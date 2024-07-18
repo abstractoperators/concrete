@@ -2,33 +2,9 @@ import os
 import time
 from typing import List, Tuple
 
-from assistants import Developer, Executive
+from .agents import Developer, Executive
 from dotenv import load_dotenv
 from openai import OpenAI
-
-
-def tester(prompt):
-    # Doesn't really work.
-    # At minimum, needs some kind of preprocessing (eg removing comments).
-    # Algebraic substitution for variable names may also be appropriate
-    # Could look into equivalence checking via LLM
-    assert (
-        main(prompt)
-        == """
-    ```python
-    from flask import Flask
-
-    app = Flask(__name__)
-
-    @app.route('/')
-    def hello_world():
-        return 'Hello, World!'
-
-    if __name__ == '__main__':
-    app.run()
-    ```
-    """
-    )
 
 
 def communicative_dehallucination(
