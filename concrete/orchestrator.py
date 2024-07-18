@@ -7,6 +7,30 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 
+def tester(prompt):
+    # Doesn't really work.
+    # At minimum, needs some kind of preprocessing (eg removing comments).
+    # Algebraic substitution for variable names may also be appropriate
+    # Could look into equivalence checking via LLM
+    assert (
+        main(prompt)
+        == """
+    ```python
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.route('/')
+    def hello_world():
+        return 'Hello, World!'
+
+    if __name__ == '__main__':
+    app.run()
+    ```
+    """
+    )
+
+
 def communicative_dehallucination(
     executive: Executive,
     developer: Developer,
@@ -61,16 +85,15 @@ def communicative_dehallucination(
     return implementation, context, summary
 
 
-def main() -> None:
+def main(prompt: str) -> str:
     load_dotenv()
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
     client = OpenAI(api_key=OPENAI_API_KEY)
 
     GPT_MODEL = "gpt-3.5-turbo-1106"
-    WEBPAGE_IDEA = "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
 
-    print("Creating assistants")
+    print("Creating assistants...")
     executive = client.beta.assistants.create(
         name="Executive",
         instructions="You are a senior software developer. You break down tasks and provide high-level instructions using natural language.",
@@ -88,10 +111,10 @@ def main() -> None:
 
     thread = client.beta.threads.create()
     initial_prompt = client.beta.threads.messages.create(
-        thread_id=thread.id, role="user", content=WEBPAGE_IDEA
+        thread_id=thread.id, role="user", content=prompt
     )
 
-    print("Defining project components")
+    print("Defining project components...")
     run = client.beta.threads.runs.create_and_poll(
         thread_id=thread.id,
         assistant_id=executive.id,
@@ -134,7 +157,8 @@ def main() -> None:
     components = message.content[0].text.value.split("\n")
     components = [comp.strip() for comp in components if comp.strip()]
     print("Components to be implemented:")
-    print(components)
+    for component in components:
+        print(component)
     # Initialize previous_components
     summary = ""
     all_implementations = []
@@ -151,11 +175,20 @@ def main() -> None:
         all_implementations.append(implementation)
 
         final_code = developer_assistant.integrate_components(
-            all_implementations, WEBPAGE_IDEA
+            all_implementations, prompt
         )
 
-    print(final_code)
+    print(
+        f"""
+         Final Produced Code:
+         {final_code}
+         """
+    )
+    return final_code
 
 
 if __name__ == "__main__":
-    main()
+    # prompt = "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
+
+    prompt = """Provide the code to quickstart a Flask server. The server should have one route, that returns HTML with placeholders for a Title, authors, and a body paragraph"""
+    tester(prompt)

@@ -122,7 +122,7 @@ class Executive:
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=f"Context: {context} Developer's Question: {question}\n As the senior advisor, answer with specificity the developer's question about this component. If there is no question, then do not respond. Do not provide unprompted information.",
+            content=f"Context: {context} Developer's Question: {question}\n As the senior advisor, answer with specificity the developer's question about this component. If there is no question, then respond with 'Okay'. Do not provide clarification unprompted.",
         )
 
         run = self.client.beta.threads.runs.create(
@@ -154,7 +154,13 @@ class Executive:
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content="Provide an explicit summary of what has been implemented. Include only and all implemented components, and provide variable names and implementation details using natural language.",
+            content="""Provide an explicit summary of what has been implemented as a list of points. For each implemented component:
+
+            1. Describe its functionality if necessary
+            2. Include variable names if necessary
+            3. Provide implementation details using natural language
+            Include exactly all that has been implemented.
+            """,
         )
 
         run = self.client.beta.threads.runs.create(
