@@ -167,4 +167,4 @@ if __name__ == "__main__":
     # prompt = "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
 
     prompt = """Provide the code to quickstart a Flask server. The server should have one route, that returns HTML with placeholders for a Title, authors, and a body paragraph"""
-    tester(prompt)
+    main(prompt)

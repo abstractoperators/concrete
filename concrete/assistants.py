@@ -18,21 +18,9 @@ class Developer:
             content=f"Context: {context}\n As the developer, if necessary to implement, ask a clarifying question about the current component. Otherwise, respond with No Question.",
         )
 
-        run = self.client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=self.assistant_id,
-            instructions="Ask a specific question to clarify details about the current component",
+        run = self.client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=self.assistant_id
         )
-
-        while True:
-            time.sleep(1)
-            run_status = self.client.beta.threads.runs.retrieve(
-                thread_id=thread.id, run_id=run.id
-            )
-            if run_status.status == "completed":
-                break
-            elif run_status.status == "failed":
-                raise Exception("Run failed")
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
         question = messages.data[0].content[0].text.value
@@ -45,24 +33,12 @@ class Developer:
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=f"Based on this context, provide code for ONLY the current component: {context}",
+            content=f"Based on the context, provide code the current component. Never provide unspecified code: {context}",
         )
 
-        run = self.client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=self.assistant_id,
-            instructions="Provide the code to implement only the current component based on the provided context and specifications. NEVER provide code unprompted",
+        run = self.client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=self.assistant_id
         )
-
-        while True:
-            time.sleep(1)
-            run_status = self.client.beta.threads.runs.retrieve(
-                thread_id=thread.id, run_id=run.id
-            )
-            if run_status.status == "completed":
-                break
-            elif run_status.status == "failed":
-                raise Exception("Run failed")
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
         implementation = messages.data[0].content[0].text.value
@@ -82,24 +58,13 @@ class Developer:
             2. Code is organized logically
             3. There are no duplicate or conflicting code
             4. Resolve conflicting or redundant pieces of code. 
+            5. Only code is returned
             """,
         )
 
-        run = self.client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=self.assistant_id,
-            instructions="Integrate all the provided implementations into a single, coherent application. Resolve any conflicts and ensure the final code is complete and ready to run. Return only the code",
+        run = self.client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=self.assistant_id
         )
-
-        while True:
-            time.sleep(1)
-            run_status = self.client.beta.threads.runs.retrieve(
-                thread_id=thread.id, run_id=run.id
-            )
-            if run_status.status == "completed":
-                break
-            elif run_status.status == "failed":
-                raise Exception("Run failed")
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
         integrated_implementation = messages.data[0].content[0].text.value
@@ -120,22 +85,9 @@ class Executive:
             role="user",
             content=f"Context: {context} Developer's Question: {question}\n As the senior advisor, answer with specificity the developer's question about this component. If there is no question, then respond with 'Okay'. Do not provide clarification unprompted.",
         )
-
-        run = self.client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=self.assistant_id,
-            instructions="Answer the developer's question with specificity",
+        run = self.client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=self.assistant_id
         )
-
-        while True:
-            time.sleep(1)
-            run_status = self.client.beta.threads.runs.retrieve(
-                thread_id=thread.id, run_id=run.id
-            )
-            if run_status.status == "completed":
-                break
-            elif run_status.status == "failed":
-                raise Exception("Run failed")
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
         answer = messages.data[0].content[0].text.value
@@ -150,30 +102,27 @@ class Executive:
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content="""Provide an explicit summary of what has been implemented as a list of points. For each implemented component:
+            content=f"""Provide an explicit summary of what has been implemented as a list of points.
+            
+            Previous Components: {previous_components}
+            Current Component Implementation: {implementation}
 
+            For each component:
             1. Describe its functionality if necessary
             2. Include variable names if necessary
             3. Provide implementation details using natural language
-            Include exactly all that has been implemented.
+            
+            Example:
+            1. imported the packages numpy and pandas as np and pd respectively. imported random
+            2. Instantiated a pandas dataframe named foo, with column names bar and baz
+            3. Populated foo with random ints
+            4. Printed average of bar and baz
             """,
         )
 
-        run = self.client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=self.assistant_id,
-            instructions=f"Summarize what has been implemented in the {previous_components}, and in the current component {implementation}",
+        run = self.client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=self.assistant_id
         )
-
-        while True:
-            time.sleep(1)
-            run_status = self.client.beta.threads.runs.retrieve(
-                thread_id=thread.id, run_id=run.id
-            )
-            if run_status.status == "completed":
-                break
-            elif run_status.status == "failed":
-                raise Exception("Run failed")
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
         summary = messages.data[0].content[0].text.value
