@@ -3,10 +3,6 @@ from typing import Any, List
 
 from openai import OpenAI
 
-# TODO Replace run = self.client.beta.threads.runs.create(....
-# + while True(sleep(1).... retrieve)
-# with create_and_poll
-
 
 class Developer:
     def __init__(self, client: OpenAI, assistant_id: str):
