@@ -3,9 +3,10 @@ import time
 from textwrap import dedent
 from typing import List, Tuple
 
-from .agents import Developer, Executive
 from dotenv import load_dotenv
 from openai import OpenAI
+
+from .agents import Developer, Executive
 
 
 def communicative_dehallucination(
@@ -155,5 +156,5 @@ def main(prompt: str) -> str:
 
 
 if __name__ == "__main__":
-    prompt = """Provide the code to quickstart a Flask server. The server should have only the home route, and should return Hello World"""  # noqa: E501
+    prompt = """Provide the code to quickstart a Flask server. The server should have only the home route which displays "Hello World", and a login route which only displays a text input"""  # noqa: E501
     main(prompt)
