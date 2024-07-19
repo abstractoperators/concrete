@@ -13,6 +13,38 @@ class Agent:
             model=model,
         ).id
 
+    # def decompose(self, component):
+    #     """
+    #     Returns the decomposition of the component into up to 2 components. If trivial, then returns the code.
+    #     """
+    #     run = self.client.beta.threads.runs.create_and_poll(
+    #         thread_id=thread.id,
+    #         assistant_id=executive_assistant.assistant_id,
+    #         instructions="""
+    #         List, in natural language, only the essential code components needed to fulfill the user's request.
+
+    #         Your response must:
+    #         1. Include only core components.
+    #         2. Put each new component on a new line (not numbered).
+    #         3. Focus on the conceptual steps of specific code elements or function calls
+    #         4. Be comprehensive, covering all necessary components
+    #         5. Use technical terms appropriate for the specific programming language and framework.
+    #         6. Naturally sequence components, so that later components are dependent on previous ones.
+
+    #         Important:
+    #         - Assume all dependencies are already installed but not imported.
+    #         - Do not include dependency installations.
+    #         - Focus solely on the code components needed to implement the functionality.
+    #         - NEVER provide code example
+    #         - ALWAYS ensure all necessary components are present
+
+    #         Example format:
+    #         1. [Natural language specification of the specific code component or function call]
+    #         2. [Natural language specification of the specific code component or function call]
+    #         ...
+    #         """,
+    #     )
+
 
 class Developer(Agent):
     def ask_question(self, context: str) -> str:
@@ -31,8 +63,10 @@ class Developer(Agent):
                     Context:
                     1. Imported the Flask module from the flask package
                     Current Component: Create a Flask application instance
+                    Clarification: None
 
-                    Response: No Question
+                    No Question
+
 
                     Example:
                     Context:
@@ -41,7 +75,7 @@ class Developer(Agent):
                     3. Created a route for the root URL ('/')
                     Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph
 
-                    Response: What should the function be called?"""  # noqa: E501
+                    What should the function be called?"""  # noqa: E501
             ),
         )
 
@@ -71,18 +105,19 @@ class Developer(Agent):
                 Context:
                 1. Imported the Flask module from the flask package
                 Current Component: Create a flask application instance named 'app'
-                Response: app = Flask(app)
-                
-                
+                Clarification: None
+
+                app = Flask(app)
+
+
                 Example:
                 Context:
                 1. The code imported the Flask module from the flask package
                 2. The code created a Flask application named "app"
                 3. Created a route for the root URL ('/')
-                Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph
-                The function should be called index
-                
-                Response: 
+                Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph. 
+                Clarification: The function should be called index
+ 
                 def index():
                     return '''
                     <!DOCTYPE html>
