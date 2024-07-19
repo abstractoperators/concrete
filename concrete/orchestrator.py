@@ -1,5 +1,6 @@
 import os
 import time
+from textwrap import dedent
 from typing import List, Tuple
 
 from .agents import Developer, Executive
@@ -31,24 +32,34 @@ def communicative_dehallucination(
             - summary (str): A concise summary of what has been achieved for this component.
     """
 
-    context = f"""
-    Previous Components summarized: {summary}
-    Current Component: {component}
-    """
+    context = dedent(
+        f"""Previous Components summarized:\n{summary}
+    Current Component: {component}"""
+    )
     print(f"Context: \n{context}\n")
 
     # Iterative Q&A process
+    q_and_a = []
     for i in range(max_iter):
         # Developer asks a question
         question = developer.ask_question(context)
         print(f"Developer's question:\n {question}\n")
 
+        if question == "No Question":
+            break
+
         # Executive answers the question
         answer = executive.answer_question(context, question)
         print(f"Executive's answer:\n {answer}\n")
 
+        q_and_a.append((question, answer))
         # Update context with new Q&A pair
-        context += f"\n {i+1}: Clarifying Question about current component: {question}\n Clarifying Answer about current component: {answer}\n"
+
+    if q_and_a:
+        context += "\nComponent Clarifications:"
+        for question, answer in q_and_a:
+            context += f"\nQuestion: {question}"
+            context += f"\nAnswer: {answer}"
 
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context)
@@ -58,7 +69,7 @@ def communicative_dehallucination(
     summary = executive.generate_summary(summary, implementation)
     print(f"Summary: {summary}")
 
-    return implementation, context, summary
+    return implementation, summary
 
 
 def main(prompt: str) -> str:
@@ -67,39 +78,26 @@ def main(prompt: str) -> str:
 
     client = OpenAI(api_key=OPENAI_API_KEY)
 
-    GPT_MODEL = "gpt-3.5-turbo-1106"
-
     print("Creating assistants...")
-    executive = client.beta.assistants.create(
-        name="Executive",
-        instructions="You are a senior software developer. You break down tasks and provide high-level instructions using natural language.",
-        model=GPT_MODEL,
-    )
 
-    developer = client.beta.assistants.create(
-        name="Developer",
-        instructions="You are a web developer. You create and deploy Flask webpages based on instructions, asking questions when necessary",
-        model=GPT_MODEL,
-    )
-
-    developer_assistant = Developer(client, developer.id)
-    executive_assistant = Executive(client, executive.id)
+    developer_assistant = Developer(client)
+    executive_assistant = Executive(client)
 
     thread = client.beta.threads.create()
-    initial_prompt = client.beta.threads.messages.create(
+    client.beta.threads.messages.create(
         thread_id=thread.id, role="user", content=prompt
     )
 
     print("Defining project components...")
-    run = client.beta.threads.runs.create_and_poll(
+    client.beta.threads.runs.create_and_poll(
         thread_id=thread.id,
-        assistant_id=executive.id,
+        assistant_id=executive_assistant.assistant_id,
         instructions="""
         List, in natural language, only the essential code components needed to fulfill the user's request.
     
         Your response must:
         1. Include only core components.
-        2. Put each new component on a new line (not numbered).
+        2. Put each new component on a new line (not numbered, but conceptually sequential).
         3. Focus on the conceptual steps of specific code elements or function calls
         4. Be comprehensive, covering all necessary components
         5. Use technical terms appropriate for the specific programming language and framework.
@@ -113,37 +111,29 @@ def main(prompt: str) -> str:
         - ALWAYS ensure all necessary components are present
     
         Example format:
-        1. [Natural language specification of the specific code component or function call]
-        2. [Natural language specification of the specific code component or function call]
+        [Natural language specification of the specific code component or function call]
+        [Natural language specification of the specific code component or function call]
         ...
         """,
     )
 
-    if run.status == "completed":
-        messages = client.beta.threads.messages.list(thread_id=thread.id)
-    else:
-        print(run.status)
-
-    # Parse the components from the executive's response
-    messages = client.beta.threads.messages.list(thread_id=thread.id)
-
-    message = client.beta.threads.messages.retrieve(
-        thread_id=thread.id, message_id=messages.data[0].id
+    messages = client.beta.threads.messages.list(
+        thread_id=thread.id, order="desc", limit=1
     )
-    components = message.content[0].text.value.split("\n")
+    components = messages.data[0].content[0].text.value.split("\n")
     components = [comp.strip() for comp in components if comp.strip()]
     print("Components to be implemented:")
     for component in components:
         print(component)
-    # Initialize previous_components
+
     summary = ""
     all_implementations = []
 
-    for i, component in enumerate(components):
-        print(f"\nProcessing Component {i+1}: \n{component}")
+    for component in components:
+        print(f"\nProcessing Component: {component}")
 
         # Use communicative_dehallucination for each component
-        implementation, context, summary = communicative_dehallucination(
+        implementation, summary = communicative_dehallucination(
             executive_assistant, developer_assistant, summary, component, max_iter=1
         )
 
@@ -155,16 +145,15 @@ def main(prompt: str) -> str:
         )
 
     print(
-        f"""
-         Final Produced Code:
+        dedent(
+            f"""Final Produced Code:
          {final_code}
          """
+        )
     )
     return final_code
 
 
 if __name__ == "__main__":
-    # prompt = "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
-
-    prompt = """Provide the code to quickstart a Flask server. The server should have one route, that returns HTML with placeholders for a Title, authors, and a body paragraph"""
-    tester(prompt)
+    prompt = """Provide the code to quickstart a Flask server. The server should have only the home route, and should return Hello World"""  # noqa: E501
+    main(prompt)
