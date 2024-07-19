@@ -3,7 +3,7 @@ import time
 from textwrap import dedent
 from typing import List, Tuple
 
-from assistants import Developer, Executive
+from .agents import Developer, Executive
 from dotenv import load_dotenv
 from openai import OpenAI
 
