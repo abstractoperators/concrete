@@ -67,33 +67,20 @@ def main(prompt: str) -> str:
 
     client = OpenAI(api_key=OPENAI_API_KEY)
 
-    GPT_MODEL = "gpt-3.5-turbo-1106"
-
     print("Creating assistants...")
-    executive = client.beta.assistants.create(
-        name="Executive",
-        instructions="You are a senior software developer. You break down tasks and provide high-level instructions using natural language.",
-        model=GPT_MODEL,
-    )
 
-    developer = client.beta.assistants.create(
-        name="Developer",
-        instructions="You are a web developer. You create and deploy Flask webpages based on instructions, asking questions when necessary",
-        model=GPT_MODEL,
-    )
-
-    developer_assistant = Developer(client, developer.id)
-    executive_assistant = Executive(client, executive.id)
+    developer_assistant = Developer(client)
+    executive_assistant = Executive(client)
 
     thread = client.beta.threads.create()
-    initial_prompt = client.beta.threads.messages.create(
+    client.beta.threads.messages.create(
         thread_id=thread.id, role="user", content=prompt
     )
 
     print("Defining project components...")
     run = client.beta.threads.runs.create_and_poll(
         thread_id=thread.id,
-        assistant_id=executive.id,
+        assistant_id=executive_assistant.assistant_id,
         instructions="""
         List, in natural language, only the essential code components needed to fulfill the user's request.
     
@@ -164,7 +151,5 @@ def main(prompt: str) -> str:
 
 
 if __name__ == "__main__":
-    # prompt = "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
-
-    prompt = """Provide the code to quickstart a Flask server. The server should have one route, that returns HTML with placeholders for a Title, authors, and a body paragraph"""
+    prompt = """Provide the code to quickstart a Flask server. The server should have only the home route, and should return Hello World"""
     main(prompt)

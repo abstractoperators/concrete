@@ -1,24 +1,51 @@
 import time
+from textwrap import dedent
 from typing import Any, List
 
 from openai import OpenAI
 
 
-class Developer:
-    def __init__(self, client: OpenAI, assistant_id: str):
+class Agent:
+    def __init__(self, client: OpenAI, model: str = "gpt-3.5-turbo-0125"):
         self.client = client
-        self.assistant_id = assistant_id
+        self.assistant_id = client.beta.assistants.create(
+            instructions="""You are a software developer. You will answer software development questions as concisely as possible.""",
+            model=model,
+        ).id
 
+
+class Developer(Agent):
     def ask_question(self, context: str) -> str:
         thread = self.client.beta.threads.create()
 
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=f"Context: {context}\n As the developer, if necessary to implement, ask a clarifying question about the current component. Otherwise, respond with No Question.",
+            content=dedent(
+                f"""Context: 
+                    {context}
+
+                    If necessary, ask one essential question for continued implementation. If unnecessary, respond 'No Question'.  
+
+                    Example:
+                    Context:
+                    1. Imported the Flask module from the flask package
+                    Current Component: Create a Flask application instance
+
+                    Response: No Question
+
+                    Example:
+                    Context:
+                    1. The code imported the Flask module from the flask package
+                    2. The code created a Flask application named "app"
+                    3. Created a route for the root URL ('/')
+                    Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph
+
+                    Response: What should the function be called?"""  # noqa: E501
+            ),
         )
 
-        run = self.client.beta.threads.runs.create_and_poll(
+        self.client.beta.threads.runs.create_and_poll(
             thread_id=thread.id, assistant_id=self.assistant_id
         )
 
@@ -33,10 +60,48 @@ class Developer:
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=f"Based on the context, provide code the current component. Never provide unspecified code: {context}",
+            content=dedent(
+                f"""
+                Context:
+                {context}
+
+                Based on the context, provide code the current component. Never provide unspecified code.
+
+                Example:
+                Context:
+                1. Imported the Flask module from the flask package
+                Current Component: Create a flask application instance named 'app'
+                Response: app = Flask(app)
+                
+                
+                Example:
+                Context:
+                1. The code imported the Flask module from the flask package
+                2. The code created a Flask application named "app"
+                3. Created a route for the root URL ('/')
+                Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph
+                The function should be called index
+                
+                Response: 
+                def index():
+                    return '''
+                    <!DOCTYPE html>
+                    <html>
+                        <head>
+                            <title>Page Title</title>
+                        </head># noqa: E501
+                    <body>
+                        <h1>Main Title</h1>
+                        <h2>Authors:</h2>
+                        <p>Author 1, Author 2</p>
+                        <p>This is a body paragraph.</p>
+                    </body>
+                    </html>'''
+                """  # noqa: E501
+            ),
         )
 
-        run = self.client.beta.threads.runs.create_and_poll(
+        self.client.beta.threads.runs.create_and_poll(
             thread_id=thread.id, assistant_id=self.assistant_id
         )
 
@@ -62,7 +127,7 @@ class Developer:
             """,
         )
 
-        run = self.client.beta.threads.runs.create_and_poll(
+        self.client.beta.threads.runs.create_and_poll(
             thread_id=thread.id, assistant_id=self.assistant_id
         )
 
@@ -72,11 +137,7 @@ class Developer:
         return integrated_implementation
 
 
-class Executive:
-    def __init__(self, client: OpenAI, assistant_id: str):
-        self.client = client
-        self.assistant_id = assistant_id
-
+class Executive(Agent):
     def answer_question(self, context: str, question: str) -> str:
         thread = self.client.beta.threads.create()
 
@@ -85,7 +146,7 @@ class Executive:
             role="user",
             content=f"Context: {context} Developer's Question: {question}\n As the senior advisor, answer with specificity the developer's question about this component. If there is no question, then respond with 'Okay'. Do not provide clarification unprompted.",
         )
-        run = self.client.beta.threads.runs.create_and_poll(
+        self.client.beta.threads.runs.create_and_poll(
             thread_id=thread.id, assistant_id=self.assistant_id
         )
 
@@ -120,7 +181,7 @@ class Executive:
             """,
         )
 
-        run = self.client.beta.threads.runs.create_and_poll(
+        self.client.beta.threads.runs.create_and_poll(
             thread_id=thread.id, assistant_id=self.assistant_id
         )
 
