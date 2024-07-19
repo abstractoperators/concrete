@@ -1,12 +1,11 @@
 import os
-import time
+import sys
 from textwrap import dedent
 from typing import List, Tuple
 
+from agents import Developer, Executive
 from dotenv import load_dotenv
 from openai import OpenAI
-
-from .agents import Developer, Executive
 
 
 def communicative_dehallucination(
@@ -74,6 +73,9 @@ def communicative_dehallucination(
 
 
 def main(prompt: str) -> str:
+    """
+    Produces code based off of a prompt
+    """
     load_dotenv()
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -156,5 +158,8 @@ def main(prompt: str) -> str:
 
 
 if __name__ == "__main__":
-    prompt = """Provide the code to quickstart a Flask server. The server should have only the home route which displays "Hello World", and a login route which only displays a text input"""  # noqa: E501
-    main(prompt)
+    if len(sys.argv) != 2:
+        print("Use: orchestrator.py prompt")
+        sys.exit(1)
+    input = sys.argv[1]
+    print(main(input))

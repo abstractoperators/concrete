@@ -6,6 +6,10 @@ from openai import OpenAI
 
 
 class Agent:
+    """
+    Represents the base agent for further implementation
+    """
+
     def __init__(self, client: OpenAI, model: str = "gpt-4o-mini"):
         self.client = client
         self.assistant_id = client.beta.assistants.create(
@@ -47,7 +51,15 @@ class Agent:
 
 
 class Developer(Agent):
+    """
+    Represents an agent that produces code.
+    """
+
     def ask_question(self, context: str) -> str:
+        """
+        Prompts agent to ask a question
+        Returns the question
+        """
         thread = self.client.beta.threads.create()
 
         self.client.beta.threads.messages.create(
@@ -89,6 +101,10 @@ class Developer(Agent):
         return question
 
     def implement_component(self, context: str) -> str:
+        """
+        Prompts the agent to implement a component based off of the components context
+        Returns the code for the component
+        """
         thread = self.client.beta.threads.create()
 
         self.client.beta.threads.messages.create(
@@ -148,6 +164,10 @@ class Developer(Agent):
     def integrate_components(
         self, implementations: List[str], webpage_idea: str
     ) -> str:
+        """
+        Prompts agent to combine code implementations of multiple components
+        Returns the combined code
+        """
         thread = self.client.beta.threads.create()
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
@@ -173,7 +193,15 @@ class Developer(Agent):
 
 
 class Executive(Agent):
+    """
+    Represents an agent that instructs and guides other agents.
+    """
+
     def answer_question(self, context: str, question: str) -> str:
+        """
+        Prompts the agent to answer a question
+        Returns the answer
+        """
         thread = self.client.beta.threads.create()
 
         self.client.beta.threads.messages.create(
@@ -193,6 +221,10 @@ class Executive(Agent):
     def generate_summary(
         self, previous_components: List[str], implementation: str
     ) -> str:
+        """
+        Generates a summary of completed components
+        Returns the summary
+        """
         thread = self.client.beta.threads.create()
 
         self.client.beta.threads.messages.create(
