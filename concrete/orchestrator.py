@@ -32,10 +32,10 @@ def communicative_dehallucination(
             - summary (str): A concise summary of what has been achieved for this component.
     """
 
-    context = f"""
-    Previous Components summarized: {summary}
-    Current Component: {component}
-    """
+    context = dedent(
+        f"""Previous Components summarized:\n{summary}
+    Current Component: {component}"""
+    )
     print(f"Context: \n{context}\n")
 
     # Iterative Q&A process
