@@ -40,17 +40,20 @@ def compare_ast(expected_code, actual_code):
 
             if isinstance(value1, (list, tuple)):
                 if len(value1) != len(value2):
+                    print(f"lengths: f{len(value1), len(value2)}")
                     return False
                 for item1, item2 in zip(value1, value2):
                     if isinstance(item1, NodeNG):
                         if not compare_nodes(item1, item2):
                             return False
                     elif item1 != item2:
+                        print(f"items: {item1}, {item2}")
                         return False
             elif isinstance(value1, NodeNG):
                 if not compare_nodes(value1, value2):
                     return False
             elif value1 != value2:
+                print(f"values: {value1}, {value2})")
                 return False
 
         return True
