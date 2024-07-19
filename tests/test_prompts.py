@@ -1,14 +1,16 @@
+import ast
+import re
 import sys
 from textwrap import dedent
 from typing import List, Tuple
 
-import astroid
 import pytest
 from astroid.exceptions import InferenceError
 from astroid.nodes import NodeNG
 
 sys.path.append("../")
-sys.path.append("../concrete")
+sys.path.append(". ./concrete")
+
 from concrete import assistants, orchestrator
 
 
@@ -19,9 +21,46 @@ def strip_code_block(text):
         return "\n".join(lines[1:-1])
     return text
 
+class DocstringRemover(ast.NodeTransformer):
+    def visit_FunctionDef(self, node):
+        node.body = [
+            n
+            for n in node.body
+            if not isinstance(n, ast.Expr) or not isinstance(n.value, ast.Constant)
+        ]
+        return node
 
-def remove_comments(text):
-    pass
+    def visit_ClassDef(self, node):
+        node.body = [
+            n
+            for n in node.body
+            if not isinstance(n, ast.Expr) or not isinstance(n.value, ast.Constant)
+        ]
+        return node
+
+    def visit_Module(self, node):
+        node.body = [
+            n
+            for n in node.body
+            if not isinstance(n, ast.Expr) or not isinstance(n.value, ast.Constant)
+        ]
+        return node
+
+
+def remove_comments(source_code):
+    # Converting to a tree removes all comments
+    tree = ast.parse(source_code)
+
+    # But does not remove comments via multiline string.
+    # Overload the visit_* methods which are called when the tree is unparsed so only expressions and constants are kept.
+    transformer = DocstringRemover()
+    modified_tree = transformer.visit(tree)
+    cleaned_code = ast.unparse(modified_tree)
+
+    # Remove all whitespace lines
+    cleaned_code = "\n".join(line for line in cleaned_code.splitlines() if line.strip())
+
+    return dedent(cleaned_code)
 
 
 def evaluate_simple_return(node):
@@ -30,7 +69,8 @@ def evaluate_simple_return(node):
             return node.value.value
     return None
 
-
+def test_simple_prompts_string_comp():
+    
 def compare_nodes_recursive(node1, node2):
     if type(node1) is not type(node2):
         return False
