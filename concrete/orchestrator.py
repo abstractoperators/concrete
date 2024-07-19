@@ -146,8 +146,7 @@ def main(prompt: str) -> str:
 
     print(
         dedent(
-            f"""
-         Final Produced Code:
+            f"""Final Produced Code:
          {final_code}
          """
         )

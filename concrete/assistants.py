@@ -6,7 +6,7 @@ from openai import OpenAI
 
 
 class Agent:
-    def __init__(self, client: OpenAI, model: str = "gpt-3.5-turbo-0125"):
+    def __init__(self, client: OpenAI, model: str = "gpt-4o-mini"):
         self.client = client
         self.assistant_id = client.beta.assistants.create(
             instructions="""You are a software developer. You will answer software development questions as concisely as possible.""",
