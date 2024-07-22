@@ -1,0 +1,12 @@
+image: python:3.11.9
+
+before_script:
+  - pip install poetry
+  - poetry install
+
+test:
+  script:
+    - poetry run python3 -m pytest
+  artifacts:
+    paths:
+      - logs/diff_log_helloworld_flaskapp.txt
