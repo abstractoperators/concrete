@@ -1,13 +1,13 @@
-name: GitHub Actions Demo
+name: Unit Test
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
+env:
+  OPENAI_API_KEY: ${{secrets.OPENAI_API_KEY}}
+
 jobs:
   Test-Agents:
     runs-on: ubuntu-latest
     steps:
-      env:
-        OPENAI_API_KEY = ${{secrets.OPENAI_API_KEY}}
-      run:
-        echo 'hello world'
-        
+      - run: echo 'hello world'
+
 
