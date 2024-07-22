@@ -56,7 +56,7 @@ def test_simple_prompts_string_comp(test_name, prompt, expected):
     app = Flask(__name__)
 
     @app.route('/')
-    def hello_worldfdd():
+    def hello_world():
         return 'Hello, World!'
 
     if __name__ == '__main__':
