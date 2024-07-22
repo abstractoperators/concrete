@@ -46,23 +46,23 @@ def test_simple_prompts_string_comp(test_name, prompt, expected):
     prompt (str): Initial prompt for the project.
     expected (str): Expected output.
     """
-    # actual = orchestrator.main(prompt)
+    actual = orchestrator.main(prompt)
 
-    # For developing tester.
-    actual = dedent(
-        """```python
-    from flask import Flask
+    # # For developing tester.
+    # actual = dedent(
+    #     """```python
+    # from flask import Flask
 
-    app = Flask(__name__)
+    # app = Flask(__name__)
 
-    @app.route('/')
-    def hello_worldd():
-        return 'Hello, World!'
+    # @app.route('/')
+    # def hello_world():
+    #     return 'Hello, World!'
 
-    if __name__ == '__main__':
-        app.run()
-    ```"""
-    )
+    # if __name__ == '__main__':
+    #     app.run()
+    # ```"""
+    # )
 
     actual = dedent(strip_code_block(actual))
     actual = remove_comments(actual)
