@@ -1,0 +1,12 @@
+image: python:3.9.11
+
+stages:
+  - test
+
+before_script:
+  - poetry install
+
+test:
+  stage: test
+  script:
+    - poetry run python3 -m pytest

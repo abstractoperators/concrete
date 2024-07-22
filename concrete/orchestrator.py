@@ -3,9 +3,10 @@ import sys
 from textwrap import dedent
 from typing import List, Tuple
 
-from agents import Developer, Executive
 from dotenv import load_dotenv
 from openai import OpenAI
+
+from concrete.agents import Developer, Executive
 
 
 def communicative_dehallucination(
