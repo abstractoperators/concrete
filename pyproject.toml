@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "concrete-operators"
-version = "0.1.3a0"
+version = "0.1.3"
 description = "AI Agent Orchestration Platform"
 authors = ["Abstract Operators <hello@abstractoperators.ai>"]
 readme = "README.md"
