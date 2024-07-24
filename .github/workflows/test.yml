@@ -1,5 +1,5 @@
 name: Unit Test
-run-name: Unite Test ${{ github.actor }}
+run-name: Unit Test ${{ github.actor }}
 on: [push]
 env:
   OPENAI_API_KEY: ${{secrets.OPENAI_API_KEY}}
