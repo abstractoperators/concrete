@@ -1,10 +1,11 @@
 name: Code Formatting
-run-name: ${{  github.actor }} is checking code formatting
+run-name: Code Format ${{  github.actor }}
 on: [push]
 
 jobs:
   setup:
     runs-on: ubuntu-latest
+    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
