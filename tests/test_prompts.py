@@ -7,8 +7,8 @@ from typing import List, Tuple
 
 import pytest
 
-from concrete import agents, orchestrator
-from .remove_comments import remove_comments
+from concrete import orchestrator
+from concrete.utils import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
     (
