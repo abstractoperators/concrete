@@ -156,11 +156,3 @@ def main(prompt: str) -> str:
         )
     )
     return final_code
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Use: orchestrator.py prompt")
-        sys.exit(1)
-    input = sys.argv[1]
-    print(main(input))
