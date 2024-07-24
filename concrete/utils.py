@@ -7,27 +7,27 @@ class CommentAndDocstringRemover(ast.NodeTransformer):
     def visit_Module(self, node):
         # Remove module-level docstring if present
         if (len(node.body) > 0 and isinstance(node.body[0], ast.Expr) and
-            isinstance(node.body[0].value, ast.Str)):
+            isinstance(node.body[0].value, ast.Constant)):
             node.body.pop(0)
         return self.generic_visit(node)
     
     def visit_ClassDef(self, node):
         # Remove class-level docstring if present
         if (len(node.body) > 0 and isinstance(node.body[0], ast.Expr) and
-            isinstance(node.body[0].value, ast.Str)):
+            isinstance(node.body[0].value, ast.Constant)):
             node.body.pop(0)
         return self.generic_visit(node)
     
     def visit_FunctionDef(self, node):
         # Remove function-level docstring if present
         if (len(node.body) > 0 and isinstance(node.body[0], ast.Expr) and
-            isinstance(node.body[0].value, ast.Str)):
+            isinstance(node.body[0].value, ast.Constant)):
             node.body.pop(0)
         return self.generic_visit(node)
     
     def visit_Expr(self, node):
         # Remove standalone expressions that are actually comments
-        if isinstance(node.value, ast.Str):
+        if isinstance(node.value, ast.Constant):
             return None
         return self.generic_visit(node)
 
