@@ -8,7 +8,7 @@ from typing import List, Tuple
 import pytest
 
 from concrete import agents, orchestrator
-from . import remove_comments
+from .remove_comments import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
     (
@@ -22,7 +22,7 @@ test_fixture: List[Tuple[str, str, str]] = [
         def hello_world():
             return 'Hello, World!'
         if __name__ == '__main__':
-            app.run()
+            app.run(debug=True)
         ```
         """,
     ),
