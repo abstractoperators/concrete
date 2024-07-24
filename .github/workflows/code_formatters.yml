@@ -1,5 +1,5 @@
 name: Code Formatting
-
+run-name: ${{  github.actor }} is checking code formatting
 on: [push]
 
 jobs:
