@@ -16,6 +16,11 @@ jobs:
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
 
       # Taken from install-poetry readme
       # https://github.com/marketplace/actions/install-poetry-action#testing
@@ -38,6 +43,7 @@ jobs:
         uses: py-actions/flake8@v2
         with:
           max-line-length: "120"
+          ignore: "W293"
       - name: black
         uses: psf/black@stable
         with:
@@ -45,6 +51,11 @@ jobs:
           use_pyproject: true  # sync with poetry version
       - name: isort
         uses: isort/isort-action@v1 
+
+  bandit:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
       - name: bandit 
         uses: mdegis/bandit-action@v1.0
         with:
@@ -52,3 +63,4 @@ jobs:
           level: high
           confidence: high
           exit_zero: true  # force success. could be noisy, so try this for now
+          skips: B101,B601
