@@ -6,6 +6,10 @@ ORCHESTRATE := $(PYTHON) -m concrete
 install:
 	poetry install
 
+# Run tests
+test:
+	$(PYTHON) -m pytest
+
 # Demo commands
 helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"

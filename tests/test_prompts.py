@@ -6,9 +6,9 @@ from textwrap import dedent
 from typing import List, Tuple
 
 import pytest
-from remove_comments import remove_comments
 
 from concrete import agents, orchestrator
+from . import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
     (
