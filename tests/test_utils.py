@@ -49,8 +49,4 @@ def func_with_whitespace():
     return x + y
 '''
     actual = remove_comments(source_code)
-    print("ACTUAL")
-    print(actual)
-    print("EXPECTED")
-    print(expected)
     assert actual == expected
