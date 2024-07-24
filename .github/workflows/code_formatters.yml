@@ -48,7 +48,6 @@ jobs:
         uses: psf/black@stable
         with:
           options: "--check --verbose --skip-string-normalization --line-length=120"
-          use_pyproject: true  # sync with poetry version
       - name: isort
         uses: isort/isort-action@v1 
 
