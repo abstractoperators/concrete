@@ -41,15 +41,13 @@ jobs:
         uses: isort/isort-action@v1 
         with:
           configuration: "--check-only --diff --profile black"
-  security:
-    runs-on: ubuntu-latest
-    steps:
       - name: bandit
         uses: mdegis/bandit-action@v1.0
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: "concrete"
           level: high
           confidence: high
-          exit_zero: true  # force success. could be noisy, so try this for now
+          exit_zero: true  # force success. comments on pr when issues exist
           skips: B101,B601
 
