@@ -14,33 +14,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          virtualenvs-path: .venv
-          installer-parallel: true
-
-      # Taken from install-poetry readme
-      # https://github.com/marketplace/actions/install-poetry-action#testing
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root --only dev
-
   lint:
     runs-on: ubuntu-latest
     needs: setup
     steps:
       - name: mypy
-        run: poetry run mypy .
+        run: |
+          pip install mypy
+          mypy .
       - name: flake8
         uses: py-actions/flake8@v2
         with:
