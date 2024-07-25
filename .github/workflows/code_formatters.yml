@@ -19,6 +19,7 @@ jobs:
     needs: setup
     steps:
       - name: mypy
+        uses: setup
         run: |
           pip install mypy
           mypy concrete/concrete
