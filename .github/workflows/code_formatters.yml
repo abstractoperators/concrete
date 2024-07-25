@@ -52,6 +52,8 @@ jobs:
           options: "--check --verbose --skip-string-normalization --line-length=120"
       - name: isort
         uses: isort/isort-action@v1 
+        with:
+          configuration: "--check-only --diff --profile black"
 
   bandit:
     runs-on: ubuntu-latest
