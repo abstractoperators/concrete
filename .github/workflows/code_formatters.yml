@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
+      - name: List files in the directory
+        run: ls -R
       - name: mypy
         run: |
           pip install mypy
