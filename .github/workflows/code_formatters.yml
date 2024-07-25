@@ -43,6 +43,7 @@ jobs:
           configuration: "--check-only --diff --profile black"
   security:
     runs-on: ubuntu-latest
+    steps:
       - name: bandit
         uses: mdegis/bandit-action@v1.0
         with:
