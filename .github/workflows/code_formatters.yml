@@ -20,21 +20,10 @@ jobs:
           virtualenvs-in-project: true
           virtualenvs-path: .venv
           installer-parallel: true
-      # Taken from install-poetry readme
-      # https://github.com/marketplace/actions/install-poetry-action#testing
-      # - name: Load cached venv
-      #   id: cached-poetry-dependencies
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: .venv
-      #     key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
-        # if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
       # TOOLS
-      - name: List files in the directory
-        run: ls -R
       - name: mypy
         run: |
           poetry run python -m mypy -p concrete
@@ -43,6 +32,7 @@ jobs:
         with:
           max-line-length: "120"
           ignore: "W293"
+          path: "concrete"
       - name: black
         uses: psf/black@stable
         with:
@@ -51,6 +41,8 @@ jobs:
         uses: isort/isort-action@v1 
         with:
           configuration: "--check-only --diff --profile black"
+  security:
+    runs-on: ubuntu-latest
       - name: bandit 
         uses: mdegis/bandit-action@v1.0
         with:
