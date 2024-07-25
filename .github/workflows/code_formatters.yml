@@ -19,10 +19,9 @@ jobs:
     needs: setup
     steps:
       - name: mypy
-        uses: setup
         run: |
           pip install mypy
-          mypy concrete/concrete
+          mypy .
       - name: flake8
         uses: py-actions/flake8@v2
         with:
