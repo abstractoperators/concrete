@@ -40,7 +40,7 @@ jobs:
     needs: setup
     steps:
       - name: mypy
-        run: mypy .
+        run: poetry run mypy .
       - name: flake8
         uses: py-actions/flake8@v2
         with:
