@@ -37,7 +37,7 @@ jobs:
         run: ls -R
       - name: mypy
         run: |
-          poetry run mypy -p concrete
+          poetry run python -m mypy -p concrete
       - name: flake8
         uses: py-actions/flake8@v2
         with:
