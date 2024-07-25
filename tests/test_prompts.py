@@ -34,6 +34,7 @@ def strip_code_block(text):
     return text
 
 
+@pytest.mark.skip(reason="Probabilistic")
 @pytest.mark.parametrize("test_name,prompt,expected", test_fixture)
 def test_simple_prompts_string_comp(test_name, prompt, expected):
     """

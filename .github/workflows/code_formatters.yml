@@ -39,6 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
+      - name: mypy
+        run: mypy .
       - name: flake8
         uses: py-actions/flake8@v2
         with:
