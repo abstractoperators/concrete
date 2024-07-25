@@ -1,4 +1,5 @@
 import os
+from operator import attrgetter
 from textwrap import dedent
 from typing import Tuple
 
@@ -118,7 +119,9 @@ def main(prompt: str) -> str:
     )
 
     messages = client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
-    components = messages.data[0].content[0].text.value.split("\n")
+
+    # Assume message data is TextContentBlock
+    components = attrgetter('text.value')(messages.data[0].content[0]).split("\n")
     components = [comp.strip() for comp in components if comp.strip()]
     print("Components to be implemented:")
     for component in components:

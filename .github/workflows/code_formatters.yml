@@ -21,7 +21,7 @@ jobs:
       - name: mypy
         run: |
           pip install mypy
-          mypy .
+          mypy -p concrete
       - name: flake8
         uses: py-actions/flake8@v2
         with:

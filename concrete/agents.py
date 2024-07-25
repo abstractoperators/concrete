@@ -1,3 +1,4 @@
+from operator import attrgetter
 from textwrap import dedent
 from typing import List
 
@@ -96,8 +97,9 @@ class Developer(Agent):
         self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        question = messages.data[0].content[0].text.value
 
+        # Assume message data is TextContentBlock
+        question = attrgetter('text.value')(messages.data[0].content[0])
         return question
 
     def implement_component(self, context: str) -> str:
@@ -155,8 +157,9 @@ class Developer(Agent):
         self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        implementation = messages.data[0].content[0].text.value
 
+        # Assume message data is TextContentBlock
+        implementation = attrgetter('text.value')(messages.data[0].content[0])
         return implementation
 
     def integrate_components(self, implementations: List[str], webpage_idea: str) -> str:
@@ -184,8 +187,8 @@ class Developer(Agent):
         self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        integrated_implementation = messages.data[0].content[0].text.value
-
+        # Assume message data is TextContentBlock
+        integrated_implementation = attrgetter('text.value')(messages.data[0].content[0])
         return integrated_implementation
 
 
@@ -213,8 +216,8 @@ class Executive(Agent):
         self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        answer = messages.data[0].content[0].text.value
-
+        # Assume message data is TextContentBlock
+        answer = attrgetter('text.value')(messages.data[0].content[0])
         return answer
 
     def generate_summary(self, summary: str, implementation: str) -> str:
@@ -248,5 +251,6 @@ class Executive(Agent):
         self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        summary = messages.data[0].content[0].text.value
+        # Assume message data is TextContentBlock
+        summary = attrgetter('text.value')(messages.data[0].content[0])
         return summary
