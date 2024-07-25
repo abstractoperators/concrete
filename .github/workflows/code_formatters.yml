@@ -43,7 +43,7 @@ jobs:
           configuration: "--check-only --diff --profile black"
   security:
     runs-on: ubuntu-latest
-      - name: bandit 
+      - name: bandit
         uses: mdegis/bandit-action@v1.0
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
