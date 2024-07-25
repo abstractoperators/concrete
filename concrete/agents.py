@@ -1,6 +1,6 @@
-import time
+from operator import attrgetter
 from textwrap import dedent
-from typing import Any, List
+from typing import List
 
 from openai import OpenAI
 
@@ -13,7 +13,10 @@ class Agent:
     def __init__(self, client: OpenAI, model: str = "gpt-4o-mini"):
         self.client = client
         self.assistant_id = client.beta.assistants.create(
-            instructions="""You are a software developer. You will answer software development questions as concisely as possible.""",
+            instructions=(
+                "You are a software developer. "
+                "You will answer software development questions as concisely as possible."
+            ),
             model=model,
         ).id
 
@@ -66,10 +69,10 @@ class Developer(Agent):
             thread_id=thread.id,
             role="user",
             content=dedent(
-                f"""Context: 
+                f"""Context:
                     {context}
 
-                    If necessary, ask one essential question for continued implementation. If unnecessary, respond 'No Question'.  
+                    If necessary, ask one essential question for continued implementation. If unnecessary, respond 'No Question'.
 
                     Example:
                     Context:
@@ -91,13 +94,12 @@ class Developer(Agent):
             ),
         )
 
-        self.client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id, assistant_id=self.assistant_id
-        )
+        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        question = messages.data[0].content[0].text.value
 
+        # Assume message data is TextContentBlock
+        question = attrgetter('text.value')(messages.data[0].content[0])
         return question
 
     def implement_component(self, context: str) -> str:
@@ -131,7 +133,7 @@ class Developer(Agent):
                 1. The code imported the Flask module from the flask package
                 2. The code created a Flask application named "app"
                 3. Created a route for the root URL ('/')
-                Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph. 
+                Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph.
                 Clarification: The function should be called index
  
                 def index():
@@ -152,18 +154,15 @@ class Developer(Agent):
             ),
         )
 
-        self.client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id, assistant_id=self.assistant_id
-        )
+        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        implementation = messages.data[0].content[0].text.value
 
+        # Assume message data is TextContentBlock
+        implementation = attrgetter('text.value')(messages.data[0].content[0])
         return implementation
 
-    def integrate_components(
-        self, implementations: List[str], webpage_idea: str
-    ) -> str:
+    def integrate_components(self, implementations: List[str], webpage_idea: str) -> str:
         """
         Prompts agent to combine code implementations of multiple components
         Returns the combined code
@@ -172,23 +171,24 @@ class Developer(Agent):
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=f"""\nTask: Combine all these implementations into a single, coherent final application to {webpage_idea} Ensure that:
-            
+            content=(
+                "\nTask: Combine all these implementations into a single, coherent final application to "
+                f"""{webpage_idea} Ensure that:
+ 
             1. All necessary imports are at the top of the file
             2. Code is organized logically
             3. There are no duplicate or conflicting code
-            4. Resolve conflicting or redundant pieces of code. 
+            4. Resolve conflicting or redundant pieces of code.
             5. Only code is returned
-            """,
+            """
+            ),
         )
 
-        self.client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id, assistant_id=self.assistant_id
-        )
+        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        integrated_implementation = messages.data[0].content[0].text.value
-
+        # Assume message data is TextContentBlock
+        integrated_implementation = attrgetter('text.value')(messages.data[0].content[0])
         return integrated_implementation
 
 
@@ -207,20 +207,20 @@ class Executive(Agent):
         self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=f"Context: {context} Developer's Question: {question}\n As the senior advisor, answer with specificity the developer's question about this component. If there is no question, then respond with 'Okay'. Do not provide clarification unprompted.",
+            content=(
+                f"Context: {context} Developer's Question: {question}\n "
+                "As the senior advisor, answer with specificity the developer's question about this component. "
+                "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
+            ),
         )
-        self.client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id, assistant_id=self.assistant_id
-        )
+        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        answer = messages.data[0].content[0].text.value
-
+        # Assume message data is TextContentBlock
+        answer = attrgetter('text.value')(messages.data[0].content[0])
         return answer
 
-    def generate_summary(
-        self, previous_components: List[str], implementation: str
-    ) -> str:
+    def generate_summary(self, summary: str, implementation: str) -> str:
         """
         Generates a summary of completed components
         Returns the summary
@@ -231,15 +231,15 @@ class Executive(Agent):
             thread_id=thread.id,
             role="user",
             content=f"""Provide an explicit summary of what has been implemented as a list of points.
-            
-            Previous Components: {previous_components}
+ 
+            Previous Components: {summary}
             Current Component Implementation: {implementation}
 
             For each component:
             1. Describe its functionality if necessary
             2. Include variable names if necessary
             3. Provide implementation details using natural language
-            
+
             Example:
             1. imported the packages numpy and pandas as np and pd respectively. imported random
             2. Instantiated a pandas dataframe named foo, with column names bar and baz
@@ -248,10 +248,9 @@ class Executive(Agent):
             """,
         )
 
-        self.client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id, assistant_id=self.assistant_id
-        )
+        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        summary = messages.data[0].content[0].text.value
+        # Assume message data is TextContentBlock
+        summary = attrgetter('text.value')(messages.data[0].content[0])
         return summary

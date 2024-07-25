@@ -2,8 +2,7 @@ from concrete.utils import remove_comments
 
 
 def test_remove_comments():
-    source_code = \
-'''"""
+    source_code = '''"""
 Module-level docstring.
 """
 
@@ -27,7 +26,7 @@ def another_function():
 # A function with extra newlines and spaces
 def func_with_whitespace():
     
-    print("Inside function")    
+    print("Inside function")
      
     x = 10
     
@@ -36,8 +35,7 @@ def func_with_whitespace():
     return x + y
     
 '''
-    expected = \
-'''class ExampleClass:
+    expected = """class ExampleClass:
     def example_method(self):
         print('Hello, \\nworld!')
 def another_function():
@@ -47,6 +45,6 @@ def func_with_whitespace():
     x = 10
     y = 20
     return x + y
-'''
+"""
     actual = remove_comments(source_code)
     assert actual == expected

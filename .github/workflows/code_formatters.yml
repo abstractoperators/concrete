@@ -1,0 +1,53 @@
+name: Code Formatting
+run-name: Code Format ${{  github.actor }}
+on: [push]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      # SETUP
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      # TOOLS
+      - name: mypy
+        run: |
+          poetry run python -m mypy -p concrete
+      - name: flake8
+        uses: py-actions/flake8@v2
+        with:
+          max-line-length: "120"
+          ignore: "W293"
+          path: "concrete"
+      - name: black
+        uses: psf/black@stable
+        with:
+          options: "--check --verbose --skip-string-normalization --line-length=120"
+      - name: isort
+        uses: isort/isort-action@v1 
+        with:
+          configuration: "--check-only --diff --profile black"
+      - name: bandit
+        uses: mdegis/bandit-action@v1.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: "concrete"
+          level: high
+          confidence: high
+          exit_zero: true  # force success. comments on pr when issues exist
+          skips: B101,B601
+

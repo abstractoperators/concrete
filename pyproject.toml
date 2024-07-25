@@ -19,7 +19,18 @@ astor = "==0.8.1"
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"
 pytest = "==8.2.2"
+black = "==24.4.2"
+flake8 = "==7.1.0"
+isort = "==5.13.2"
+bandit = "==1.7.9"
+pre-commit = "==3.7.1"
+mypy = "==1.11.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.bandit]
+exclude_dirs = ["tests", "path/to/file"]
+tests = ["B201", "B301"]
+skips = ["B101", "B601"]

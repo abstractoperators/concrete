@@ -1,4 +1,3 @@
-from concrete import agents
-from concrete import orchestrator
+from concrete import agents, orchestrator
 
-__all__ = ['agents', 'orchestrator']
+__all__ = ["agents", "orchestrator"]
