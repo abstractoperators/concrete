@@ -1,12 +1,105 @@
-import os
-from operator import attrgetter
 from textwrap import dedent
-from typing import Tuple
+from typing import Tuple, cast
+from uuid import uuid1
 
-from dotenv import load_dotenv
-from openai import OpenAI
+from openai.types.beta.thread import Thread
 
-from concrete.agents import Developer, Executive
+from concrete.agents import Agent, Developer, Executive
+from concrete.clients import CLIClient, Client, OpenAIClient
+
+_HELLO_WORLD_PROMPT = "Create a simple hello world program"
+
+
+class SoftwareProject:
+    """
+    Tracks the execution of a task or objectives
+    """
+
+    def __init__(
+        self,
+        starting_prompt: str,
+        orchestrator: "Orchestrator",
+        agents: dict[str, Agent],  # codename for agent -> Agent
+        clients: dict[str, Client],
+        threads: dict[str, Thread] | None = None,  # context -> Thread
+    ):
+        self.uuid = uuid1()  # suffix is unique based on network id
+        self.clients = clients
+        self.starting_prompt = starting_prompt
+        self.agents = agents
+        self.threads = threads or {'main': self.clients['openai'].create_thread()}
+        self.orchestrator = orchestrator
+        self.results = None
+
+    def do_work(self) -> str:
+        """
+        Break down prompt into smaller components and write the code for each individually.
+        """
+        components_list = self.plan().split('\n')
+        components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
+
+        summary = ""
+        all_implementations = []
+        for component in components:
+            # Use communicative_dehallucination for each component
+            implementation, summary = communicative_dehallucination(
+                cast(Executive, self.agents['exec']),
+                cast(Developer, self.agents['dev']),
+                summary,
+                component,
+                project=self,
+                max_iter=1,
+            )
+
+            # Add the implementation to our list
+            all_implementations.append(implementation)
+
+        final_code = self.agents['dev'].integrate_components(all_implementations, self.starting_prompt)
+        return final_code
+
+    def plan(self) -> str:
+        main_thread = self.threads['main']
+        self.clients['openai'].client.beta.threads.messages.create(
+            thread_id=main_thread.id, role="user", content=self.starting_prompt
+        )
+        # TODO: Figure out how to get typehinting for Agents here
+        planned_components = self.agents['exec'].plan_components(thread=main_thread)
+        return planned_components
+
+
+class Orchestrator:
+    pass
+
+
+class SoftwareOrchestrator(Orchestrator):
+    """
+    An Orchestrator is a set of configured Agents and a resource manager
+
+    Provides a single entry point for common interactions with agents
+    """
+
+    def __init__(self):
+        openai_client = OpenAIClient()
+        self.clients = {
+            'openai': openai_client,
+        }
+        self.agents = {
+            'exec': Executive(self.clients),
+            'dev': Developer(self.clients),
+        }
+
+    def process_new_project(self, starting_prompt: str):
+        threads = {'main': self.clients['openai'].create_thread(starting_prompt)}
+        current_project = SoftwareProject(
+            starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
+            agents=self.agents,
+            orchestrator=self,
+            threads=threads,
+            clients=self.clients,
+        )
+        final_code = current_project.do_work()
+        CLIClient.emit("[Final Code]\n" + final_code)
+        return final_code
 
 
 def communicative_dehallucination(
@@ -14,6 +107,7 @@ def communicative_dehallucination(
     developer: Developer,
     summary: str,
     component: str,
+    project: SoftwareProject,
     max_iter: int = 1,
 ) -> Tuple[str, str]:
     """
@@ -36,21 +130,21 @@ def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    print(f"Context: \n{context}\n")
+    CLIClient.emit(f"Context: \n{context}\n")
 
     # Iterative Q&A process
     q_and_a = []
     for i in range(max_iter):
         # Developer asks a question
         question = developer.ask_question(context)
-        print(f"Developer's question:\n {question}\n")
+        CLIClient.emit(f"Developer's question:\n {question}\n")
 
         if question == "No Question":
             break
 
         # Executive answers the question
         answer = executive.answer_question(context, question)
-        print(f"Executive's answer:\n {answer}\n")
+        CLIClient.emit(f"Executive's answer:\n {answer}\n")
 
         q_and_a.append((question, answer))
         # Update context with new Q&A pair
@@ -63,91 +157,10 @@ def communicative_dehallucination(
 
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context)
-    print(f"Current Component Implementation:\n{implementation}\n")
+    CLIClient.emit(f"Current Component Implementation:\n{implementation}\n")
 
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation)
-    print(f"Summary: {summary}")
+    CLIClient.emit(f"Summary: {summary}")
 
     return implementation, summary
-
-
-def main(prompt: str) -> str:
-    """
-    Produces code based off of a prompt
-    """
-    load_dotenv()
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
-    print("Creating assistants...")
-
-    developer_assistant = Developer(client)
-    executive_assistant = Executive(client)
-
-    thread = client.beta.threads.create()
-    client.beta.threads.messages.create(thread_id=thread.id, role="user", content=prompt)
-
-    print("Defining project components...")
-    client.beta.threads.runs.create_and_poll(
-        thread_id=thread.id,
-        assistant_id=executive_assistant.assistant_id,
-        instructions="""
-        List, in natural language, only the essential code components needed to fulfill the user's request.
- 
-        Your response must:
-        1. Include only core components.
-        2. Put each new component on a new line (not numbered, but conceptually sequential).
-        3. Focus on the conceptual steps of specific code elements or function calls
-        4. Be comprehensive, covering all necessary components
-        5. Use technical terms appropriate for the specific programming language and framework.
-        6. Naturally sequence components, so that later components are dependent on previous ones.
- 
-        Important:
-        - Assume all dependencies are already installed but not imported.
-        - Do not include dependency installations.
-        - Focus solely on the code components needed to implement the functionality.
-        - NEVER provide code example
-        - ALWAYS ensure all necessary components are present
- 
-        Example format:
-        [Natural language specification of the specific code component or function call]
-        [Natural language specification of the specific code component or function call]
-        ...
-        """,
-    )
-
-    messages = client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
-
-    # Assume message data is TextContentBlock
-    components = attrgetter('text.value')(messages.data[0].content[0]).split("\n")
-    components = [comp.strip() for comp in components if comp.strip()]
-    print("Components to be implemented:")
-    for component in components:
-        print(component)
-
-    summary = ""
-    all_implementations = []
-
-    for component in components:
-        print(f"\nProcessing Component: {component}")
-
-        # Use communicative_dehallucination for each component
-        implementation, summary = communicative_dehallucination(
-            executive_assistant, developer_assistant, summary, component, max_iter=1
-        )
-
-        # Add the implementation to our list
-        all_implementations.append(implementation)
-
-        final_code = developer_assistant.integrate_components(all_implementations, prompt)
-
-    print(
-        dedent(
-            f"""Final Produced Code:
-         {final_code}
-         """
-        )
-    )
-    return final_code

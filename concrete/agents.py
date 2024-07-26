@@ -1,8 +1,11 @@
+from functools import wraps
 from operator import attrgetter
 from textwrap import dedent
-from typing import List
+from typing import Callable, List
 
-from openai import OpenAI
+from openai.types.beta.thread import Thread
+
+from concrete.clients import Client
 
 
 class Agent:
@@ -10,47 +13,58 @@ class Agent:
     Represents the base agent for further implementation
     """
 
-    def __init__(self, client: OpenAI, model: str = "gpt-4o-mini"):
-        self.client = client
-        self.assistant_id = client.beta.assistants.create(
-            instructions=(
-                "You are a software developer. "
-                "You will answer software development questions as concisely as possible."
-            ),
-            model=model,
-        ).id
+    auto_dedent = True
 
-    # def decompose(self, component):
-    #     """
-    #     Returns the decomposition of the component into up to 2 components. If trivial, then returns the code.
-    #     """
-    #     run = self.client.beta.threads.runs.create_and_poll(
-    #         thread_id=thread.id,
-    #         assistant_id=executive_assistant.assistant_id,
-    #         instructions="""
-    #         List, in natural language, only the essential code components needed to fulfill the user's request.
+    def __init__(self, clients: dict[str, Client]):
+        self.clients = clients
+        instructions = (
+            "You are a software developer. " "You will answer software development questions as concisely as possible."
+        )
+        self.assistant = self.clients['openai'].create_assistant(prompt=instructions)  # type: ignore
 
-    #         Your response must:
-    #         1. Include only core components.
-    #         2. Put each new component on a new line (not numbered).
-    #         3. Focus on the conceptual steps of specific code elements or function calls
-    #         4. Be comprehensive, covering all necessary components
-    #         5. Use technical terms appropriate for the specific programming language and framework.
-    #         6. Naturally sequence components, so that later components are dependent on previous ones.
+    def _qna(self, content: str, thread: Thread | None, instructions: str | None = None):
+        """
+        "Question and Answer", given a query, return an answer.
 
-    #         Important:
-    #         - Assume all dependencies are already installed but not imported.
-    #         - Do not include dependency installations.
-    #         - Focus solely on the code components needed to implement the functionality.
-    #         - NEVER provide code example
-    #         - ALWAYS ensure all necessary components are present
+        Synchronous. Creates a new thread if one isn't given
+        """
+        thread = thread or self.clients['openai'].create_thread()
+        self.clients['openai'].client.beta.threads.messages.create(
+            thread_id=thread.id,
+            role="user",
+            content=content,
+        )
+        self.clients['openai'].client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=self.assistant.id, instructions=instructions
+        )
 
-    #         Example format:
-    #         1. [Natural language specification of the specific code component or function call]
-    #         2. [Natural language specification of the specific code component or function call]
-    #         ...
-    #         """,
-    #     )
+        messages = self.clients['openai'].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
+        # Assume message data is TextContentBlock
+        answer = attrgetter('text.value')(messages.data[0].content[0])
+        return answer
+
+    @classmethod
+    def qna(cls, message_producer: Callable) -> Callable:
+        """
+        Decorate something on a child object downstream to get a response from a query
+
+        message_producer is expected to return a string/prompt.
+        """
+
+        @wraps(message_producer)
+        def _send_and_await_reply(*args, **kwargs):
+            self = args[0]
+            thread = kwargs.pop('thread', None)
+            instructions = kwargs.pop('instructions', None)
+            content = message_producer(*args, **kwargs)
+            content = dedent(content) if self.auto_dedent else content
+            return self._qna(content, thread=thread, instructions=instructions)
+
+        return _send_and_await_reply
+
+
+class Human(Agent):
+    id = 'human'
 
 
 class Developer(Agent):
@@ -58,138 +72,104 @@ class Developer(Agent):
     Represents an agent that produces code.
     """
 
+    @Agent.qna
     def ask_question(self, context: str) -> str:
         """
-        Prompts agent to ask a question
-        Returns the question
+        Accept instructions and ask a question about it if necessary.
+
+        Can return `no question`.
         """
-        thread = self.client.beta.threads.create()
+        return f"""Context:
+            {context}
 
-        self.client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=dedent(
-                f"""Context:
-                    {context}
+            If necessary, ask one essential question for continued implementation. If unnecessary, respond 'No Question'.
 
-                    If necessary, ask one essential question for continued implementation. If unnecessary, respond 'No Question'.
+            Example:
+            Context:
+            1. Imported the Flask module from the flask package
+            Current Component: Create a Flask application instance
+            Clarification: None
 
-                    Example:
-                    Context:
-                    1. Imported the Flask module from the flask package
-                    Current Component: Create a Flask application instance
-                    Clarification: None
-
-                    No Question
+            No Question
 
 
-                    Example:
-                    Context:
-                    1. The code imported the Flask module from the flask package
-                    2. The code created a Flask application named "app"
-                    3. Created a route for the root URL ('/')
-                    Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph
+            Example:
+            Context:
+            1. The code imported the Flask module from the flask package
+            2. The code created a Flask application named "app"
+            3. Created a route for the root URL ('/')
+            Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph
 
-                    What should the function be called?"""  # noqa: E501
-            ),
-        )
+            What should the function be called?"""  # noqa: E501
 
-        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
-
-        messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-
-        # Assume message data is TextContentBlock
-        question = attrgetter('text.value')(messages.data[0].content[0])
-        return question
-
-    def implement_component(self, context: str) -> str:
+    @Agent.qna
+    def implement_component(self, context: str, dedent=True) -> str:
         """
         Prompts the agent to implement a component based off of the components context
         Returns the code for the component
         """
-        thread = self.client.beta.threads.create()
+        return f"""
+            Context:
+            {context}
 
-        self.client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=dedent(
-                f"""
-                Context:
-                {context}
+            Based on the context, provide code the current component. Never provide unspecified code.
 
-                Based on the context, provide code the current component. Never provide unspecified code.
+            Example:
+            Context:
+            1. Imported the Flask module from the flask package
+            Current Component: Create a flask application instance named 'app'
+            Clarification: None
 
-                Example:
-                Context:
-                1. Imported the Flask module from the flask package
-                Current Component: Create a flask application instance named 'app'
-                Clarification: None
-
-                app = Flask(app)
+            app = Flask(app)
 
 
-                Example:
-                Context:
-                1. The code imported the Flask module from the flask package
-                2. The code created a Flask application named "app"
-                3. Created a route for the root URL ('/')
-                Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph.
-                Clarification: The function should be called index
- 
-                def index():
-                    return '''
-                    <!DOCTYPE html>
-                    <html>
-                        <head>
-                            <title>Page Title</title>
-                        </head># noqa: E501
-                    <body>
-                        <h1>Main Title</h1>
-                        <h2>Authors:</h2>
-                        <p>Author 1, Author 2</p>
-                        <p>This is a body paragraph.</p>
-                    </body>
-                    </html>'''
-                """  # noqa: E501
-            ),
-        )
+            Example:
+            Context:
+            1. The code imported the Flask module from the flask package
+            2. The code created a Flask application named "app"
+            3. Created a route for the root URL ('/')
+            Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph.
+            Clarification: The function should be called index
 
-        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
+            def index():
+                return '''
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Page Title</title>
+                    </head># noqa: E501
+                <body>
+                    <h1>Main Title</h1>
+                    <h2>Authors:</h2>
+                    <p>Author 1, Author 2</p>
+                    <p>This is a body paragraph.</p>
+                </body>
+                </html>'''
+        """  # noqa: E501
 
-        messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-
-        # Assume message data is TextContentBlock
-        implementation = attrgetter('text.value')(messages.data[0].content[0])
-        return implementation
-
+    @Agent.qna
     def integrate_components(self, implementations: List[str], webpage_idea: str) -> str:
         """
         Prompts agent to combine code implementations of multiple components
         Returns the combined code
         """
-        thread = self.client.beta.threads.create()
-        self.client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=(
-                "\nTask: Combine all these implementations into a single, coherent final application to "
-                f"""{webpage_idea} Ensure that:
- 
+        return (
+            "\nTask: Combine all these implementations into a single, coherent final application to "
+            f"""{webpage_idea}
+            
+            Ensure that:
             1. All necessary imports are at the top of the file
             2. Code is organized logically
             3. There are no duplicate or conflicting code
             4. Resolve conflicting or redundant pieces of code.
             5. Only code is returned
             """
-            ),
         )
-
-        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
-
-        messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        # Assume message data is TextContentBlock
-        integrated_implementation = attrgetter('text.value')(messages.data[0].content[0])
-        return integrated_implementation
+        # Below at end of prompt was messing things up
+        # """
+        # Implementations:
+        # {chr(92) + "n".join([f"{i}. " + piece for i, piece in enumerate(implementations)])}
+        # """
 
 
 class Executive(Agent):
@@ -197,60 +177,63 @@ class Executive(Agent):
     Represents an agent that instructs and guides other agents.
     """
 
+    @Agent.qna
+    def plan_components(self) -> str:
+        return """
+        List, in natural language, only the essential code components needed to fulfill the user's request.
+ 
+        Your response must:
+        1. Include only core components.
+        2. Put each new component on a new line (not numbered, but conceptually sequential).
+        3. Focus on the conceptual steps of specific code elements or function calls
+        4. Be comprehensive, covering all necessary components
+        5. Use technical terms appropriate for the specific programming language and framework.
+        6. Naturally sequence components, so that later components are dependent on previous ones.
+ 
+        Important:
+        - Assume all dependencies are already installed but not imported.
+        - Do not include dependency installations.
+        - Focus solely on the code components needed to implement the functionality.
+        - NEVER provide code example
+        - ALWAYS ensure all necessary components are present
+ 
+        Example format:
+        [Natural language specification of the specific code component or function call]
+        [Natural language specification of the specific code component or function call]
+        ...
+        """
+
+    @Agent.qna
     def answer_question(self, context: str, question: str) -> str:
         """
         Prompts the agent to answer a question
         Returns the answer
         """
-        thread = self.client.beta.threads.create()
-
-        self.client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=(
-                f"Context: {context} Developer's Question: {question}\n "
-                "As the senior advisor, answer with specificity the developer's question about this component. "
-                "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
-            ),
+        return (
+            f"Context: {context} Developer's Question: {question}\n "
+            "As the senior advisor, answer with specificity the developer's question about this component. "
+            "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
-        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
 
-        messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        # Assume message data is TextContentBlock
-        answer = attrgetter('text.value')(messages.data[0].content[0])
-        return answer
-
+    @Agent.qna
     def generate_summary(self, summary: str, implementation: str) -> str:
         """
         Generates a summary of completed components
         Returns the summary
         """
-        thread = self.client.beta.threads.create()
+        return f"""Provide an explicit summary of what has been implemented as a list of points.
 
-        self.client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=f"""Provide an explicit summary of what has been implemented as a list of points.
- 
-            Previous Components: {summary}
-            Current Component Implementation: {implementation}
+        Previous Components: {summary}
+        Current Component Implementation: {implementation}
 
-            For each component:
-            1. Describe its functionality if necessary
-            2. Include variable names if necessary
-            3. Provide implementation details using natural language
+        For each component:
+        1. Describe its functionality if necessary
+        2. Include variable names if necessary
+        3. Provide implementation details using natural language
 
-            Example:
-            1. imported the packages numpy and pandas as np and pd respectively. imported random
-            2. Instantiated a pandas dataframe named foo, with column names bar and baz
-            3. Populated foo with random ints
-            4. Printed average of bar and baz
-            """,
-        )
-
-        self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.assistant_id)
-
-        messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-        # Assume message data is TextContentBlock
-        summary = attrgetter('text.value')(messages.data[0].content[0])
-        return summary
+        Example:
+        1. imported the packages numpy and pandas as np and pd respectively. imported random
+        2. Instantiated a pandas dataframe named foo, with column names bar and baz
+        3. Populated foo with random ints
+        4. Printed average of bar and baz
+        """
