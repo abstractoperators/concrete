@@ -2,10 +2,11 @@ from functools import wraps
 from operator import attrgetter
 from textwrap import dedent
 from typing import Callable, List
+from uuid import uuid1
 
 from openai.types.beta.thread import Thread
 
-from concrete.clients import Client
+from .clients import Client
 
 
 class Agent:
@@ -16,11 +17,14 @@ class Agent:
     auto_dedent = True
 
     def __init__(self, clients: dict[str, Client]):
+        self.uuid = uuid1()
         self.clients = clients
+
+        # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
         instructions = (
             "You are a software developer. " "You will answer software development questions as concisely as possible."
         )
-        self.assistant = self.clients['openai'].create_assistant(prompt=instructions)  # type: ignore
+        self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
 
     def _qna(self, content: str, thread: Thread | None, instructions: str | None = None):
         """
@@ -28,19 +32,21 @@ class Agent:
 
         Synchronous. Creates a new thread if one isn't given
         """
-        thread = thread or self.clients['openai'].create_thread()
-        self.clients['openai'].client.beta.threads.messages.create(
+        thread = thread or self.clients["openai"].create_thread()
+        self.clients["openai"].client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
             content=content,
         )
-        self.clients['openai'].client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id, assistant_id=self.assistant.id, instructions=instructions
+        self.clients["openai"].client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id,
+            assistant_id=self.assistant.id,
+            instructions=instructions,
         )
 
-        messages = self.clients['openai'].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
+        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
         # Assume message data is TextContentBlock
-        answer = attrgetter('text.value')(messages.data[0].content[0])
+        answer = attrgetter("text.value")(messages.data[0].content[0])
         return answer
 
     @classmethod
@@ -54,17 +60,13 @@ class Agent:
         @wraps(message_producer)
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
-            thread = kwargs.pop('thread', None)
-            instructions = kwargs.pop('instructions', None)
+            thread = kwargs.pop("thread", None)
+            instructions = kwargs.pop("instructions", None)
             content = message_producer(*args, **kwargs)
             content = dedent(content) if self.auto_dedent else content
             return self._qna(content, thread=thread, instructions=instructions)
 
         return _send_and_await_reply
-
-
-class Human(Agent):
-    id = 'human'
 
 
 class Developer(Agent):

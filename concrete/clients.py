@@ -34,17 +34,9 @@ class OpenAIClient(Client):
         )
 
 
-class WebsocketClient(Client):
-    """
-    Wrapper around a websocket client
-    """
-
-    @classmethod
-    def send_message(cls, content: str, websocket_id: str):
-        print(content)
-
-
 class CLIClient(Client):
     @classmethod
     def emit(cls, content: str):
-        print(content)
+        # TODO: right now, make this a config setting
+        if os.environ.get('ENV') != 'PROD':
+            print(content)
