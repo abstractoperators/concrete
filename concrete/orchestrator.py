@@ -89,9 +89,8 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     Provides a single entry point for common interactions with agents
     """
 
-    def __init__(self, ws_manager=None):
+    def __init__(self):
         self.state = State(self, orchestrator=self)
-        self.update(ws_manager=ws_manager)
         self.uuid = uuid1()
         openai_client = OpenAIClient()
         self.clients = {
