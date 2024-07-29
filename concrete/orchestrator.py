@@ -6,16 +6,16 @@ from openai.types.beta.thread import Thread
 
 from .agents import Agent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
-from .context import Context, ProjectState
+from .state import ProjectStatus, State
 
 _HELLO_WORLD_PROMPT = "Create a simple hello world program"
 
 
 class StatefulMixin:
     def update(self, **kwargs):
-        self.context.data.update(kwargs)
-        if kwargs.get("state") == ProjectState.FINISHED:
-            self.context.data["completed"] = True
+        self.state.data.update(kwargs)
+        if kwargs.get("status") == ProjectStatus.FINISHED:
+            self.state.data["completed"] = True
 
 
 class SoftwareProject(StatefulMixin):
@@ -31,7 +31,7 @@ class SoftwareProject(StatefulMixin):
         clients: dict[str, Client],
         threads: dict[str, Thread] | None = None,  # context -> Thread
     ):
-        self.context = Context(self, orchestrator=orchestrator)
+        self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
         self.clients = clients
         self.starting_prompt = starting_prompt
@@ -39,13 +39,13 @@ class SoftwareProject(StatefulMixin):
         self.threads = threads or {"main": self.clients["openai"].create_thread()}
         self.orchestrator = orchestrator
         self.results = None
-        self.update(state=ProjectState.READY)
+        self.update(status=ProjectStatus.READY)
 
     def do_work(self) -> str:
         """
         Break down prompt into smaller components and write the code for each individually.
         """
-        self.update(state=ProjectState.WORKING, actor=self.agents["exec"])
+        self.update(status=ProjectStatus.WORKING, actor=self.agents["exec"])
 
         orig_components = self.plan()
         components_list = orig_components.split("\n")
@@ -69,7 +69,7 @@ class SoftwareProject(StatefulMixin):
             all_implementations.append(implementation)
 
         final_code = self.agents["dev"].integrate_components(all_implementations, self.starting_prompt)
-        self.update(state=ProjectState.FINISHED)
+        self.update(status=ProjectStatus.FINISHED)
         return final_code
 
     def plan(self) -> str:
@@ -90,7 +90,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     """
 
     def __init__(self, ws_manager=None):
-        self.context = Context(self, orchestrator=self)
+        self.state = State(self, orchestrator=self)
         self.update(ws_manager=ws_manager)
         self.uuid = uuid1()
         openai_client = OpenAIClient()
@@ -101,10 +101,10 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             "exec": Executive(self.clients),
             "dev": Developer(self.clients),
         }
-        self.update(state=ProjectState.READY)
+        self.update(status=ProjectStatus.READY)
 
     def process_new_project(self, starting_prompt: str):
-        self.update(state=ProjectState.WORKING)
+        self.update(status=ProjectStatus.WORKING)
         # Immediately spin off a primary thread with the prompt
         threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
         current_project = SoftwareProject(
@@ -115,7 +115,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             clients=self.clients,
         )
         final_code = current_project.do_work()
-        self.update(state=ProjectState.FINISHED)
+        self.update(status=ProjectStatus.FINISHED)
         return final_code
 
 
@@ -140,7 +140,7 @@ def communicative_dehallucination(
     Returns:
         tuple: A tuple containing:
             - implementation (str): The generated implementation of the component.
-            - summary (str): A concise summary of what has been achieved for this component.
+            - summary (str): A concise summary of what has been achieved.
     """
 
     context = dedent(
@@ -152,14 +152,12 @@ def communicative_dehallucination(
     # Iterative Q&A process
     q_and_a = []
     for i in range(max_iter):
-        # Developer asks a question
         question = developer.ask_question(context)
         CLIClient.emit(f"Developer's question:\n {question}\n")
 
         if question == "No Question":
             break
 
-        # Executive answers the question
         answer = executive.answer_question(context, question)
         CLIClient.emit(f"Executive's answer:\n {answer}\n")
 

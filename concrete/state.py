@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 
 
-class ProjectState(StrEnum):
+class ProjectStatus(StrEnum):
     INIT = 'init'
     READY = 'ready'
     WORKING = 'working'
@@ -10,7 +10,7 @@ class ProjectState(StrEnum):
     FINISHED = 'finished'
 
 
-class Context:
+class State:
     """
     Stores context data
     """
@@ -22,7 +22,7 @@ class Context:
             'owner': owner,
             'orchestrator': orchestrator,
             # Present status info
-            'state': ProjectState.INIT,
+            'status': ProjectStatus.INIT,
             'actor': None,  # The main agent doing something or overseeing something
             'target': None,  # The object/recipient agent that is on the receiving end
             'completed': False,
