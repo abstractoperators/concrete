@@ -27,6 +27,3 @@ class Context:
             'target': None,  # The object/recipient agent that is on the receiving end
             'completed': False,
         }
-
-    def update(self, d: dict):
-        self.data.update(d)

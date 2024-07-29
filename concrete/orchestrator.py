@@ -13,7 +13,7 @@ _HELLO_WORLD_PROMPT = "Create a simple hello world program"
 
 class StatefulMixin:
     def update(self, **kwargs):
-        self.context.update(kwargs)
+        self.context.data.update(kwargs)
         if kwargs.get("state") == ProjectState.FINISHED:
             self.context.data["completed"] = True
 
