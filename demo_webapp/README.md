@@ -14,6 +14,9 @@ WARNING: This assumes the services were started with docker-compose or the make 
 ### Requirements
 
 Image requires OPENAI_API_KEY environment variable. 
+```bash
+export OPENAI_API_KEY = <your-api-key-here>
+```
 
 ## dind-builder service
 
