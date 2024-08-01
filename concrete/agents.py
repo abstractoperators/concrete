@@ -1,7 +1,9 @@
 import os
+import socket
 from functools import wraps
 from operator import attrgetter
 from textwrap import dedent
+from time import time
 from typing import Callable, List
 from uuid import uuid1
 
@@ -262,9 +264,9 @@ class AWSAgent:
         self.DIND_BUILDER_PORT = 5000
 
     # deploy_code
-    async def put_docker_image(self, backend_code, client_id, project_uuid):
+    def deploy(self, backend_code, client_id, project_uuid):
         """
-        Creates and puts a docker image with backend_code + server launch logic into AWS ECR
+        Creates and puts a docker image with backend_code + server launch logic into AWS ECR. Launches a task with that docker image.
         """
         print("Making image")
         build_dir_name = f"so_uuid_{project_uuid}"

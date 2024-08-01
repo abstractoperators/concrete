@@ -31,6 +31,7 @@ class SoftwareProject(StatefulMixin):
         dev: Developer,
         clients: dict[str, Client],
         threads: dict[str, Thread] | None = None,  # context -> Thread
+        deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
@@ -42,6 +43,7 @@ class SoftwareProject(StatefulMixin):
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
+        self.deploy = bool
 
     def do_work(self) -> str:
         """
@@ -49,28 +51,43 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        orig_components = self.plan()
-        components_list = orig_components.split("\n")
-        components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
-        CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
+        # orig_components = self.plan()
+        # components_list = orig_components.split("\n")
+        # components = [
+        #     stripped_comp for comp in components_list if (stripped_comp := comp.strip())
+        # ]
+        # CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
 
-        summary = ""
-        all_implementations = []
-        for component in components:
-            # Use communicative_dehallucination for each component
-            implementation, summary = communicative_dehallucination(
-                self.exec,
-                self.dev,
-                summary,
-                component,
-                max_iter=1,
-            )
+        # summary = ""
+        # all_implementations = []
+        # for component in components:
+        #     # Use communicative_dehallucination for each component
+        #     implementation, summary = communicative_dehallucination(
+        #         self.exec,
+        #         self.dev,
+        #         summary,
+        #         component,
+        #         max_iter=1,
+        #     )
 
-            # Add the implementation to our list
-            all_implementations.append(implementation)
+        #     # Add the implementation to our list
+        #     all_implementations.append(implementation)
 
-        final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
+        # final_code = self.dev.integrate_components(
+        #     all_implementations, self.starting_prompt
+        # )
+        final_code = """from flask import Flask
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def hello_world():
+    return "Hello, World!"
+"""
         self.update(status=ProjectStatus.FINISHED)
+        if self.deploy:
+            self.agents["aws"].deploy(final_code, 1, self.uuid)
         return final_code
 
     def plan(self) -> str:
