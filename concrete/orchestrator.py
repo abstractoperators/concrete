@@ -1,5 +1,5 @@
 from textwrap import dedent
-from typing import Tuple
+from typing import Tuple, cast
 from uuid import uuid1
 
 from openai.types.beta.thread import Thread
@@ -76,10 +76,11 @@ class SoftwareProject(StatefulMixin):
         final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
 
         self.update(status=ProjectStatus.FINISHED)
-        if self.aws:
-            if self.deploy:
-                final_code_stripped = "\n".join(final_code.split("\n")[1:-1])
-                self.aws.deploy(final_code_stripped, 1, self.uuid)
+        if self.deploy:
+            if self.aws is None:
+                raise ValueError("Cannot deploy without AWSAgent")
+            final_code_stripped = "\n".join(final_code.split("\n")[1:-1])
+            cast(AWSAgent, self.aws).deploy(final_code_stripped, 1, self.uuid)
 
         return final_code
 
