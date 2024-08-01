@@ -22,16 +22,16 @@ export OPENAI_API_KEY = <your-api-key-here>
 
 This service has 3 core functionalities that deploy the code for a flask webapp on AWS ECS Tasks.
 
-   1. listener (listener.sh)
-      1. Listens on port 5000, and calls the builder
-   2. Build and push an image to AWS ECR (build_and_push.sh)
-      1. Takes one argument, which is the file path to Docker build context. 
-      2. Builds docker context, and makes a new ECR repository with that image. 
-      3. Calls deploy
-   3. Deploys a standalone task with that image (deploy_to_aws.sh)
-      1. Takes one argument, the IMAGE_URI of the ECR image to use (requires ECR image, otherwise need to add container authentication)
-      2. Uses pre-existing ECS_CLUSTER="DemoCluster", subnet, vpc security group, and taskexecution role (hard coded into script)
-      3. Defines a new task-definition in that cluster, and starts it.
+   1. listener (`listener.sh`)
+      a. Listens on port 5000, and calls the builder
+   2. Build and push an image to AWS ECR (`build_and_push.sh`)
+      a. Takes one argument, which is the file path to Docker build context. 
+      b. Builds docker context, and makes a new ECR repository with that image. 
+      c. Calls deploy
+   3. Deploys a standalone task with that image (`deploy_to_aws.sh`)
+      a. Takes one argument, the `IMAGE_URI` of the ECR image to use (requires ECR image, otherwise need to add container authentication)
+      b. Uses pre-existing ECS_CLUSTER="DemoCluster", subnet, vpc security group, and taskexecution role (hard coded into script)
+      c. Defines a new task-definition in that cluster, and starts it.
 
 It's important to note that this service DOES NOT handle deleting of AWS resources, so it is important to manually delete ECR repositories and running tasks/task definitions.
 
