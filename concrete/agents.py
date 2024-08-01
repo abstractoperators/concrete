@@ -1,8 +1,11 @@
+import os
+import socket
 from functools import wraps
 from operator import attrgetter
 from textwrap import dedent
+from time import time
 from typing import Callable, List
-from uuid import uuid1
+from uuid import UUID, uuid1
 
 from openai.types.beta.thread import Thread
 
@@ -239,3 +242,51 @@ class Executive(Agent):
         3. Populated foo with random ints
         4. Printed average of bar and baz
         """
+
+
+class AWSAgent:
+    """
+    Represents an agent that takes finalized code, and deploys it to AWS
+    """
+
+    def __init__(self):
+        self.SHARED_VOLUME: str = "/shared"
+        self.DIND_BUILDER_HOST: str = "dind-builder"
+        self.DIND_BUILDER_PORT: int = 5000
+
+    def deploy(self, backend_code: str, project_uuid: UUID):
+        """
+        Creates and puts a docker image with backend_code + server launch logic into AWS ECR.
+        Launches a task with that docker image.
+        """
+        build_dir_name = f"so_uuid_{project_uuid}"
+        build_dir_path = os.path.join(self.SHARED_VOLUME, build_dir_name)
+
+        os.makedirs(build_dir_path, exist_ok=True)
+        dockerfile_content = dedent(
+            """
+        FROM python:3.11.9-slim-bookworm
+        WORKDIR /app
+        RUN pip install flask
+        COPY . .
+        CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
+        """
+        )
+
+        with open(os.path.join(build_dir_path, "app.py"), "w") as f:
+            f.write(backend_code)
+        with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
+            f.write(dockerfile_content)
+
+        max_retries = 5
+        for _ in range(max_retries):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((self.DIND_BUILDER_HOST, self.DIND_BUILDER_PORT))
+                    s.sendall(build_dir_name.encode())
+                break
+            except Exception as e:
+                print(e)
+                time.sleep(5)
+
+        return True

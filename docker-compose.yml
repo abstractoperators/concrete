@@ -1,0 +1,31 @@
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapp
+    volumes:
+      - shared-volume:/shared
+    environment:
+      - SHARED_VOLUME=/shared
+    ports:
+      - "8080:80"
+    depends_on:
+      - dind-builder
+    env_file: ".env"
+
+  dind-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.dind-builder
+    volumes:
+      - shared-volume:/shared
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SHARED_VOLUME=/shared
+    privileged: true
+    ports:
+      - "5000:5000"
+    env_file: ".env"
+
+volumes:
+  shared-volume:

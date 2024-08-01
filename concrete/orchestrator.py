@@ -1,10 +1,10 @@
 from textwrap import dedent
-from typing import Tuple
+from typing import Tuple, cast
 from uuid import uuid1
 
 from openai.types.beta.thread import Thread
 
-from .agents import Developer, Executive
+from .agents import AWSAgent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
 from .state import ProjectStatus, State
 
@@ -30,7 +30,9 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client],
+        aws: AWSAgent | None = None,
         threads: dict[str, Thread] | None = None,  # context -> Thread
+        deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
@@ -38,10 +40,12 @@ class SoftwareProject(StatefulMixin):
         self.starting_prompt = starting_prompt
         self.exec = exec
         self.dev = dev
+        self.aws = aws
         self.threads = threads or {"main": self.clients["openai"].create_thread()}
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
+        self.deploy = deploy
 
     def do_work(self) -> str:
         """
@@ -70,11 +74,17 @@ class SoftwareProject(StatefulMixin):
             all_implementations.append(implementation)
 
         final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
+
         self.update(status=ProjectStatus.FINISHED)
+        if self.deploy:
+            if self.aws is None:
+                raise ValueError("Cannot deploy without AWSAgent")
+            final_code_stripped = "\n".join(final_code.split("\n")[1:-1])
+            cast(AWSAgent, self.aws).deploy(final_code_stripped, self.uuid)
+
         return final_code
 
     def plan(self) -> str:
-        # TODO: Figure out how to get typehinting for Agents here
         planned_components = self.exec.plan_components(thread=self.threads["main"])
         return planned_components
 
@@ -100,10 +110,11 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.agents = {
             "exec": Executive(self.clients),
             "dev": Developer(self.clients),
+            "aws": AWSAgent(),
         }
         self.update(status=ProjectStatus.READY)
 
-    def process_new_project(self, starting_prompt: str):
+    def process_new_project(self, starting_prompt: str, deploy: bool = False):
         self.update(status=ProjectStatus.WORKING)
         # Immediately spin off a primary thread with the prompt
         threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
@@ -111,9 +122,11 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
             exec=self.agents["exec"],
             dev=self.agents["dev"],
+            aws=self.agents["aws"],
             orchestrator=self,
             threads=threads,
             clients=self.clients,
+            deploy=deploy,
         )
         final_code = current_project.do_work()
         self.update(status=ProjectStatus.FINISHED)

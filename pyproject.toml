@@ -16,6 +16,11 @@ openai = "==1.35.14"
 astroid = "==3.2.3"
 astor = "==0.8.1"
 
+[tool.poetry.group.webapp.dependencies]
+gunicorn = "==22.0.0"
+uvicorn = "==0.30.4"
+fastapi = "==0.111.1"
+
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"
 pytest = "==8.2.2"
