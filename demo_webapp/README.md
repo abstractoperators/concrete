@@ -33,7 +33,7 @@ This service has 3 core functionalities that deploy the code for a flask webapp 
       b. Uses pre-existing ECS_CLUSTER="DemoCluster", subnet, vpc security group, and taskexecution role (hard coded into script)
       c. Defines a new task-definition in that cluster, and starts it.
 
-It's important to note that this service DOES NOT handle deleting of AWS resources, so it is important to manually delete ECR repositories and running tasks/task definitions.
+N.B.: This service **does not** handle deleting of AWS resources, so it is important to manually delete ECR repositories, running tasks, and task definitions.
 
 ### Requirements
 
