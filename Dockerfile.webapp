@@ -15,7 +15,7 @@ RUN pip install "poetry==$POETRY_VERSION"
 COPY . .
 
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
+    && poetry install --without dev --no-interaction --no-ansi
 
 
 RUN chmod +x start.sh
