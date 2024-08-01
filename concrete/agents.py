@@ -264,7 +264,7 @@ class AWSAgent:
 
         os.makedirs(build_dir_path, exist_ok=True)
         dockerfile_content = dedent(
-            """
+        """
         FROM python:3.11.9-slim-bookworm
         WORKDIR /app
         RUN pip install flask
