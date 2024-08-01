@@ -4,7 +4,7 @@ from uuid import uuid1
 
 from openai.types.beta.thread import Thread
 
-from .agents import Developer, Executive
+from .agents import Agent, AWSAgent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
 from .state import ProjectStatus, State
 
@@ -27,8 +27,7 @@ class SoftwareProject(StatefulMixin):
         self,
         starting_prompt: str,
         orchestrator: "Orchestrator",
-        exec: Executive,
-        dev: Developer,
+        agents: dict[str, Agent],
         clients: dict[str, Client],
         threads: dict[str, Thread] | None = None,  # context -> Thread
         deploy: bool = False,
@@ -37,19 +36,18 @@ class SoftwareProject(StatefulMixin):
         self.uuid = uuid1()  # suffix is unique based on network id
         self.clients = clients
         self.starting_prompt = starting_prompt
-        self.exec = exec
-        self.dev = dev
+        self.agents = agents
         self.threads = threads or {"main": self.clients["openai"].create_thread()}
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
-        self.deploy = bool
+        self.deploy = deploy
 
     def do_work(self) -> str:
         """
         Break down prompt into smaller components and write the code for each individually.
         """
-        self.update(status=ProjectStatus.WORKING, actor=self.exec)
+        self.update(status=ProjectStatus.WORKING, actor=self.agents["exec"])
 
         # orig_components = self.plan()
         # components_list = orig_components.split("\n")
@@ -63,8 +61,8 @@ class SoftwareProject(StatefulMixin):
         # for component in components:
         #     # Use communicative_dehallucination for each component
         #     implementation, summary = communicative_dehallucination(
-        #         self.exec,
-        #         self.dev,
+        #         self.agents['exec']
+        #         self.agents['dev'],
         #         summary,
         #         component,
         #         max_iter=1,
@@ -73,7 +71,7 @@ class SoftwareProject(StatefulMixin):
         #     # Add the implementation to our list
         #     all_implementations.append(implementation)
 
-        # final_code = self.dev.integrate_components(
+        # final_code = self.agents['dev'].integrate_components(
         #     all_implementations, self.starting_prompt
         # )
         final_code = """from flask import Flask
@@ -92,7 +90,9 @@ def hello_world():
 
     def plan(self) -> str:
         # TODO: Figure out how to get typehinting for Agents here
-        planned_components = self.exec.plan_components(thread=self.threads["main"])
+        planned_components = self.agents["exec"].plan_components(
+            thread=self.threads["main"]
+        )
         return planned_components
 
 
@@ -102,7 +102,7 @@ class Orchestrator:
 
 class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     """
-    An Orchestrator is a set of configured Agents and a resource manager
+    An Orchestrator is a set of configured Agents and a resource  manager
 
     Provides a single entry point for common interactions with agents
     """
@@ -117,6 +117,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.agents = {
             "exec": Executive(self.clients),
             "dev": Developer(self.clients),
+            "aws": AWSAgent(),
         }
         self.update(status=ProjectStatus.READY)
 
@@ -126,11 +127,11 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
         current_project = SoftwareProject(
             starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
-            exec=self.agents["exec"],
-            dev=self.agents["dev"],
+            agents=self.agents,
             orchestrator=self,
             threads=threads,
             clients=self.clients,
+            deploy=True,
         )
         final_code = current_project.do_work()
         self.update(status=ProjectStatus.FINISHED)

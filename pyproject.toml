@@ -17,6 +17,7 @@ astroid = "==3.2.3"
 astor = "==0.8.1"
 gunicorn = "^22.0.0"
 uvicorn = "^0.30.4"
+fastapi = "^0.111.1"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"
