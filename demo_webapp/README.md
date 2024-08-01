@@ -20,7 +20,7 @@ export OPENAI_API_KEY = <your-api-key-here>
 
 ## dind-builder service
 
-This service has 2.5 core functionalities that deploy the code for a flask webapp on AWS ECS Tasks.
+This service has 3 core functionalities that deploy the code for a flask webapp on AWS ECS Tasks.
 
    1. listener (listener.sh)
       1. Listens on port 5000, and calls the builder
