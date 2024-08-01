@@ -250,9 +250,9 @@ class AWSAgent:
     """
 
     def __init__(self):
-        self.SHARED_VOLUME = "/shared"
-        self.DIND_BUILDER_HOST = "dind-builder"
-        self.DIND_BUILDER_PORT = 5000
+        self.SHARED_VOLUME: str = "/shared"
+        self.DIND_BUILDER_HOST: str = "dind-builder"
+        self.DIND_BUILDER_PORT: int = 5000
 
     def deploy(self, backend_code, client_id, project_uuid):
         """
