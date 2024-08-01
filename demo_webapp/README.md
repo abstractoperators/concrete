@@ -6,7 +6,7 @@ make localhost_demo_with_deploy
 
 ## Webapp Service
 
-Launches demowebsite. \
+This service launches the demo website on local host over port 80. \
 SoftwareProject, when created with the deploy=True flag, will call Agent.AWSAgent to deploy the code on AWS ECS.\
 `AWSAgent` places Docker context into shared volume with `dind-builder`, and pings `dind-builder` service to build and deploy.
 WARNING: This assumes the services were started with docker-compose or the make command, which provides networks for each service. Using docker-compose, `AWSAgent` pings builder using `dind-builder:5000`, but will need to be changed for ECS deployment to `localhost:5000`.
