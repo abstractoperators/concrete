@@ -19,7 +19,6 @@ simpleflask:
 
 
 localhost_demo_with_deploy: localhost_demo_down
-	docker compose down -v 
 	docker compose build
 	docker compose up
 
