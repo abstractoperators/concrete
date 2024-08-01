@@ -2,7 +2,7 @@
 
 make localhost_demo_with_deploy
 
-## webapp service
+## Webapp Service
 
 Launches demowebsite. \
 SoftwareProject, when created with the deploy=True flag, will call Agent.AWSAgent to deploy the code on AWS ECS.\
