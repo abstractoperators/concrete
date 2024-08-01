@@ -31,7 +31,7 @@ It's important to note that this service DOES NOT handle deleting of AWS resourc
 
 ### Requirements
 
-Image requires environment variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_DEFAULT_REGION. Currently loaded into the image via docker-compose, will need another way on ECS deployment\
+Image requires environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. Currently loaded into the image via docker-compose, will need another way on ECS deployment\
 Pre-existing AWS ECS Cluster\
 Pre-existing AWS VPC w/ subnet, security group exposing inbound http and https traffic, and all outbound traffic \
-Pre-existing AWS taskExecutionRole allowing ECR reads
+Pre-existing AWS `taskExecutionRole` allowing ECR reads
