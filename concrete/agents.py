@@ -5,7 +5,7 @@ from operator import attrgetter
 from textwrap import dedent
 from time import time
 from typing import Callable, List
-from uuid import uuid1
+from uuid import UUID, uuid1
 
 from openai.types.beta.thread import Thread
 
@@ -254,7 +254,7 @@ class AWSAgent:
         self.DIND_BUILDER_HOST: str = "dind-builder"
         self.DIND_BUILDER_PORT: int = 5000
 
-    def deploy(self, backend_code, client_id, project_uuid):
+    def deploy(self, backend_code: str, project_uuid: UUID):
         """
         Creates and puts a docker image with backend_code + server launch logic into AWS ECR.
         Launches a task with that docker image.
