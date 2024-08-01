@@ -1,10 +1,8 @@
 import json
-import os
 from datetime import datetime
 from uuid import UUID
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -20,9 +18,7 @@ templates = Jinja2Templates(directory="templates")
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
-        self.orchestrator_map: dict[UUID, WebSocket] = (
-            {}
-        )  # orchestrator.uuid to a websocket connection
+        self.orchestrator_map: dict[UUID, WebSocket] = {}  # orchestrator.uuid to a websocket connection
         # self.services: dict[WebSocket, str] = {}  # websocket: service
 
     async def connect(self, websocket: WebSocket):
@@ -60,7 +56,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     payload = {
         "agent_type": "Executive",
         "timestamp": datetime.now().isoformat(),
-        "message": f"Hi! Ask me to do a simple coding task.\nI will work with a Developer agent to break down your prompt into smaller tasks before combining the work back together.\nPress `Submit` to get started!",
+        "message": (
+            "Hi! Ask me to do a simple coding task.\n"
+            "I will work with a Developer agent to break down your prompt "
+            "into smaller tasks before combining the work back together.\n"
+            "Press `Submit` to get started!"
+        ),
         "completed": False,
     }
     await manager.send_personal_message(json.dumps(payload), websocket)
@@ -76,14 +77,18 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             }
             await manager.send_personal_message(json.dumps(payload), websocket)
 
-            so = orchestrator.SoftwareOrchestrator(manager)
+            so = orchestrator.SoftwareOrchestrator()
             so.update(ws=websocket)
             so.update(client_id=client_id)
             result = await so.process_new_project(data)
             payload = {
                 "agent_type": "EXECUTIVE",
                 "timestamp": datetime.now().isoformat(),
-                "message": f"[Final Code]\n {result} \nQuestions? Email us at hello@abstractoperators.ai\n© Abstract Operators, 2024.",
+                "message": (
+                    f"[Final Code]\n {result} \n"
+                    "Questions? Email us at hello@abstractoperators.ai\n"
+                    "© Abstract Operators, 2024."
+                ),
                 "completed": True,
             }
 
