@@ -8,7 +8,8 @@ make localhost_demo_with_deploy
 
 Launches demowebsite. \
 SoftwareProject, when created with the deploy=True flag, will call Agent.AWSAgent to deploy the code on AWS ECS.\
-AWSAgent places Docker context into shared volume w/ dind-builder, and pings dind-builder service to build and deploy. ASSUMES SERVICES WERE STARTED WITH DOCKER COMPOSE, which provides networks for each service. Using docker-compose, AWSAgent pings builder using dind-builder:5000, but will need to be changed for ECS deployment to localhost:5000.
+`AWSAgent` places Docker context into shared volume with `dind-builder`, and pings `dind-builder` service to build and deploy.
+WARNING: This assumes the services were started with docker-compose or the make command, which provides networks for each service. Using docker-compose, `AWSAgent` pings builder using `dind-builder:5000`, but will need to be changed for ECS deployment to `localhost:5000`.
 
 ### Requirements
 
