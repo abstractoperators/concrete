@@ -1,10 +1,8 @@
 import json
-import os
 from datetime import datetime
 from uuid import UUID
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -51,7 +49,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     payload = {
         "agent_type": "Executive",
         "timestamp": datetime.now().isoformat(),
-        "message": f"Hi! Ask me to do a simple coding task.\nI will work with a Developer agent to break down your prompt into smaller tasks before combining the work back together.\nPress `Submit` to get started!",
+        "message": (
+            "Hi! Ask me to do a simple coding task.\n"
+            "I will work with a Developer agent to break down your prompt "
+            "into smaller tasks before combining the work back together.\n"
+            "Press `Submit` to get started!"
+        ),
         "completed": False,
     }
     await manager.send_personal_message(json.dumps(payload), websocket)
@@ -69,12 +72,16 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
             so = orchestrator.SoftwareOrchestrator()
             so.update(ws=websocket)
-            # so.update(client_id=client_id)
-            result = so.process_new_project(data)
+            result = so.process_new_project(data, True)
             payload = {
                 "agent_type": "EXECUTIVE",
                 "timestamp": datetime.now().isoformat(),
-                "message": f"[Final Code]\n {result} \nQuestions? Email us at hello@abstractoperators.ai\n© Abstract Operators, 2024.",
+                "message": (
+                    f"[Final Code]\n"
+                    f"{result}\n"
+                    f"Questions? Email us at hello@abstractoperators.ai\n"
+                    f"© Abstract Operators, 2024."
+                ),
                 "completed": True,
             }
 

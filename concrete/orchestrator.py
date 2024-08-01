@@ -1,12 +1,10 @@
-import json
-from datetime import datetime
 from textwrap import dedent
 from typing import Tuple
 from uuid import uuid1
 
 from openai.types.beta.thread import Thread
 
-from .agents import Agent, AWSAgent, Developer, Executive
+from .agents import AWSAgent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
 from .state import ProjectStatus, State
 
@@ -29,8 +27,10 @@ class SoftwareProject(StatefulMixin):
         self,
         starting_prompt: str,
         orchestrator: "Orchestrator",
-        agents: dict[str, Agent],
+        exec: Executive,
+        dev: Developer,
         clients: dict[str, Client],
+        aws: AWSAgent | None = None,
         threads: dict[str, Thread] | None = None,  # context -> Thread
         deploy: bool = False,
     ):
@@ -38,7 +38,9 @@ class SoftwareProject(StatefulMixin):
         self.uuid = uuid1()  # suffix is unique based on network id
         self.clients = clients
         self.starting_prompt = starting_prompt
-        self.agents = agents
+        self.exec = exec
+        self.dev = dev
+        self.aws = aws
         self.threads = threads or {"main": self.clients["openai"].create_thread()}
         self.orchestrator = orchestrator
         self.results = None
@@ -49,13 +51,11 @@ class SoftwareProject(StatefulMixin):
         """
         Break down prompt into smaller components and write the code for each individually.
         """
-        self.update(status=ProjectStatus.WORKING, actor=self.agents["exec"])
+        self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
         orig_components = self.plan()
         components_list = orig_components.split("\n")
-        components = [
-            stripped_comp for comp in components_list if (stripped_comp := comp.strip())
-        ]
+        components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
         CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
 
         summary = ""
@@ -63,8 +63,8 @@ class SoftwareProject(StatefulMixin):
         for component in components:
             # Use communicative_dehallucination for each component
             implementation, summary = communicative_dehallucination(
-                self.agents["exec"],
-                self.agents["dev"],
+                self.exec,
+                self.dev,
                 summary,
                 component,
                 max_iter=1,
@@ -73,27 +73,16 @@ class SoftwareProject(StatefulMixin):
             # Add the implementation to our list
             all_implementations.append(implementation)
 
-        final_code = self.agents["dev"].integrate_components(
-            all_implementations, self.starting_prompt
-        )
-        #         final_code = """from flask import Flask
+        final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
 
-        # app = Flask(__name__)
-
-        # @app.route("/")
-        # def hello_world():
-        #     return "Hello, World!"
-        # """
         self.update(status=ProjectStatus.FINISHED)
-        if self.deploy:
-            self.agents["aws"].deploy(final_code, 1, self.uuid)
+        if self.aws and self.deploy:
+            final_code_stripped = "\n".join(final_code.split("\n")[1:-1])
+            self.aws.deploy(final_code_stripped, 1, self.uuid)
         return final_code
 
     def plan(self) -> str:
-        # TODO: Figure out how to get typehinting for Agents here
-        planned_components = self.agents["exec"].plan_components(
-            thread=self.threads["main"]
-        )
+        planned_components = self.exec.plan_components(thread=self.threads["main"])
         return planned_components
 
 
@@ -122,17 +111,19 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         }
         self.update(status=ProjectStatus.READY)
 
-    def process_new_project(self, starting_prompt: str):
+    def process_new_project(self, starting_prompt: str, deploy: bool = False):
         self.update(status=ProjectStatus.WORKING)
         # Immediately spin off a primary thread with the prompt
         threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
         current_project = SoftwareProject(
             starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
-            agents=self.agents,
+            exec=self.agents["exec"],
+            dev=self.agents["dev"],
+            aws=self.agents["aws"],
             orchestrator=self,
             threads=threads,
             clients=self.clients,
-            deploy=True,
+            deploy=deploy,
         )
         final_code = current_project.do_work()
         self.update(status=ProjectStatus.FINISHED)

@@ -25,14 +25,11 @@ class Agent:
 
         # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
         instructions = (
-            "You are a software developer. "
-            "You will answer software development questions as concisely as possible."
+            "You are a software developer. " "You will answer software development questions as concisely as possible."
         )
         self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
 
-    def _qna(
-        self, content: str, thread: Thread | None, instructions: str | None = None
-    ):
+    def _qna(self, content: str, thread: Thread | None, instructions: str | None = None):
         """
         "Question and Answer", given a query, return an answer.
 
@@ -50,9 +47,7 @@ class Agent:
             instructions=instructions,
         )
 
-        messages = self.clients["openai"].client.beta.threads.messages.list(
-            thread_id=thread.id, order="desc", limit=1
-        )
+        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
         # Assume message data is TextContentBlock
         answer = attrgetter("text.value")(messages.data[0].content[0])
         return answer
@@ -158,9 +153,7 @@ class Developer(Agent):
         """  # noqa: E501
 
     @Agent.qna
-    def integrate_components(
-        self, implementations: List[str], webpage_idea: str
-    ) -> str:
+    def integrate_components(self, implementations: List[str], webpage_idea: str) -> str:
         """
         Prompts agent to combine code implementations of multiple components
         Returns the combined code
@@ -258,17 +251,14 @@ class AWSAgent:
 
     def __init__(self):
         self.SHARED_VOLUME = "/shared"
-        self.QUEUE_FILE = os.path.join(self.SHARED_VOLUME, "build_queue")
-        self.WORK_DIR = "/tmp/build"
         self.DIND_BUILDER_HOST = "dind-builder"
         self.DIND_BUILDER_PORT = 5000
 
-    # deploy_code
     def deploy(self, backend_code, client_id, project_uuid):
         """
-        Creates and puts a docker image with backend_code + server launch logic into AWS ECR. Launches a task with that docker image.
+        Creates and puts a docker image with backend_code + server launch logic into AWS ECR.
+        Launches a task with that docker image.
         """
-        print("Making image")
         build_dir_name = f"so_uuid_{project_uuid}"
         build_dir_path = os.path.join(self.SHARED_VOLUME, build_dir_name)
 
@@ -276,7 +266,6 @@ class AWSAgent:
         dockerfile_content = dedent(
             """
         FROM python:3.11.9-slim-bookworm
-        
         WORKDIR /app
         RUN pip install flask
         COPY . .
@@ -290,20 +279,14 @@ class AWSAgent:
             f.write(dockerfile_content)
 
         max_retries = 5
-        for attempt in range(max_retries):
+        for _ in range(max_retries):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.DIND_BUILDER_HOST, self.DIND_BUILDER_PORT))
                     s.sendall(build_dir_name.encode())
-                print(f"Successfully notified dind-builder about {build_dir_name}")
                 break
             except Exception as e:
-                if attempt < max_retries - 1:
-                    print(f"Error notifying dind-builder (attempt {attempt + 1}): {e}")
-                    time.sleep(5)  # Wait for 5 seconds before retrying
-                else:
-                    print(
-                        f"Failed to notify dind-builder after {max_retries} attempts: {e}"
-                    )
+                print(e)
+                time.sleep(5)
 
         return True

@@ -9,7 +9,6 @@ deploy_to_aws() {
     ECS_CLUSTER="DemoCluster"
     ECS_SERVICE=$TASK_FAMILY
     CONTAINER_NAME=$TASK_FAMILY
-    # ECS_SERVICE="my-ecs-service"
     AWS_REGION="us-east-1"
     CONTAINER_PORT=80
     DESIRED_COUNT=1
