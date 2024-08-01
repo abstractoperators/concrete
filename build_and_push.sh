@@ -3,21 +3,7 @@
 set -e
 
 SHARED_DIR="/shared"
-QUEUE_FILE="$SHARED_DIR/build_queue"
 
-# Uncomment and modify the send_webhook function if needed
-# send_webhook() {
-#     local image_name="$1"
-#     local status="$2"
-#     local webhook_url="http://webapp:80/webhook/image_push"
-#     local temp_file="/tmp/post_data.json"
-#     echo "{\"image_name\": \"$image_name\", \"status\": \"$status\"}" > "$temp_file"
-#     wget -q -O - \
-#          --header='Content-Type: application/json' \
-#          --post-file="$temp_file" \
-#          "$webhook_url"
-#     rm "$temp_file"
-# }
 
 build_and_push_image() {
     local build_dir="$1"

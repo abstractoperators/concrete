@@ -289,12 +289,7 @@ class AWSAgent:
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
             f.write(dockerfile_content)
 
-        build_queue_path = os.path.join(self.SHARED_VOLUME, "build_queue")
-        with open(build_queue_path, "a+") as f:
-            f.write(build_dir_name)
-
         max_retries = 5
-
         for attempt in range(max_retries):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

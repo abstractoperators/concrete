@@ -11,6 +11,7 @@ services:
       - "8080:80"
     depends_on:
       - dind-builder
+    env_file: ".env"
 
   dind-builder:
     build:
@@ -21,12 +22,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - SHARED_VOLUME=/shared
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      # - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      # - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     privileged: true
     ports:
       - "5000:5000"
+    env_file: ".env"
 
 volumes:
   shared-volume:
