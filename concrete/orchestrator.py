@@ -1,3 +1,5 @@
+import json
+from datetime import datetime
 from textwrap import dedent
 from typing import Tuple
 from uuid import uuid1
@@ -49,40 +51,39 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.agents["exec"])
 
-        # orig_components = self.plan()
-        # components_list = orig_components.split("\n")
-        # components = [
-        #     stripped_comp for comp in components_list if (stripped_comp := comp.strip())
-        # ]
-        # CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
+        orig_components = self.plan()
+        components_list = orig_components.split("\n")
+        components = [
+            stripped_comp for comp in components_list if (stripped_comp := comp.strip())
+        ]
+        CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
 
-        # summary = ""
-        # all_implementations = []
-        # for component in components:
-        #     # Use communicative_dehallucination for each component
-        #     implementation, summary = communicative_dehallucination(
-        #         self.agents['exec']
-        #         self.agents['dev'],
-        #         summary,
-        #         component,
-        #         max_iter=1,
-        #     )
+        summary = ""
+        all_implementations = []
+        for component in components:
+            # Use communicative_dehallucination for each component
+            implementation, summary = communicative_dehallucination(
+                self.agents["exec"],
+                self.agents["dev"],
+                summary,
+                component,
+                max_iter=1,
+            )
 
-        #     # Add the implementation to our list
-        #     all_implementations.append(implementation)
+            # Add the implementation to our list
+            all_implementations.append(implementation)
 
-        # final_code = self.agents['dev'].integrate_components(
-        #     all_implementations, self.starting_prompt
-        # )
-        final_code = """from flask import Flask
+        final_code = self.agents["dev"].integrate_components(
+            all_implementations, self.starting_prompt
+        )
+        #         final_code = """from flask import Flask
 
-app = Flask(__name__)
+        # app = Flask(__name__)
 
-
-@app.route("/")
-def hello_world():
-    return "Hello, World!"
-"""
+        # @app.route("/")
+        # def hello_world():
+        #     return "Hello, World!"
+        # """
         self.update(status=ProjectStatus.FINISHED)
         if self.deploy:
             self.agents["aws"].deploy(final_code, 1, self.uuid)

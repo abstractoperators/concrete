@@ -20,10 +20,7 @@ templates = Jinja2Templates(directory="templates")
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
-        self.orchestrator_map: dict[UUID, WebSocket] = (
-            {}
-        )  # orchestrator.uuid to a websocket connection
-        # self.services: dict[WebSocket, str] = {}  # websocket: service
+        self.orchestrator_map: dict[UUID, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -46,12 +43,6 @@ manager = ConnectionManager()
 @app.get("/")
 async def get(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
-
-@app.post("/webhook/image_push")
-async def image_push_webhook(payload: dict):
-    print("hiiiiiii")
-    print(payload)
 
 
 @app.websocket("/ws/{client_id}")
@@ -87,11 +78,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 "completed": True,
             }
 
-            # Launch result, and host it in a task?
-            # streams_docker_context(result, client_id)
-
             await manager.send_personal_message(json.dumps(payload), websocket)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        # await manager.broadcast(f"Client #{client_id} left the chat")
