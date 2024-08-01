@@ -15,6 +15,7 @@ python-dotenv = "==1.0.1"
 openai = "==1.35.14"
 astroid = "==3.2.3"
 astor = "==0.8.1"
+django = "^5.0.7"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"

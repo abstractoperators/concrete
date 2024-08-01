@@ -1,12 +1,22 @@
+import asyncio
+import os
 from textwrap import dedent
 from typing import Tuple
-from uuid import uuid1
+from uuid import UUID, uuid1
 
+import django
+from asgiref.sync import sync_to_async
+from django.db import transaction
 from openai.types.beta.thread import Thread
 
 from .agents import Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
 from .state import ProjectStatus, State
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "concrete.settings")
+django.setup()
+
+from .models import Message, MessageStatus, MessageType  # noqa:E402
 
 _HELLO_WORLD_PROMPT = "Create a simple hello world program"
 
@@ -26,20 +36,18 @@ class SoftwareProject(StatefulMixin):
     def __init__(
         self,
         starting_prompt: str,
-        orchestrator: "Orchestrator",
+        orchestrator: UUID,
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client],
         threads: dict[str, Thread] | None = None,  # context -> Thread
     ):
         self.state = State(self, orchestrator=orchestrator)
-        self.uuid = uuid1()  # suffix is unique based on network id
         self.clients = clients
         self.starting_prompt = starting_prompt
         self.exec = exec
         self.dev = dev
         self.threads = threads or {"main": self.clients["openai"].create_thread()}
-        self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
 
@@ -47,7 +55,7 @@ class SoftwareProject(StatefulMixin):
         """
         Break down prompt into smaller components and write the code for each individually.
         """
-        self.update(status=ProjectStatus.WORKING, actor=self.exec)
+        self.update(status=ProjectStatus.WORKING, actor=self.exec, target=self.dev)
 
         orig_components = self.plan()
         components_list = orig_components.split("\n")
@@ -79,6 +87,59 @@ class SoftwareProject(StatefulMixin):
         return planned_components
 
 
+class ProjectWorker:
+    pass
+
+
+class SoftwareProjectWorker(ProjectWorker):
+    """
+    Completes projects that it pulls from message queue
+    """
+
+    def __init__(self) -> None:
+        openai_client = OpenAIClient()
+        self.clients: dict[str, Client] = {
+            "openai": openai_client,
+        }
+        self.exec = Executive(self.clients)
+        self.dev = Developer(self.clients)
+
+    def create_project(self, starting_prompt: str, orchestrator_id: UUID) -> SoftwareProject:
+        # self.update(status=ProjectStatus.WORKING)
+        # Immediately spin off a primary thread with the prompt
+        threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
+        return SoftwareProject(
+            starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
+            exec=self.exec,
+            dev=self.dev,
+            orchestrator=orchestrator_id,
+            threads=threads,
+            clients=self.clients,
+        )
+
+    # TODO: Not a proper transaction; if SoftwareProjectWorker fails while processing there is no rollback
+    @transaction.atomic
+    def query_message_queue(self) -> Message | None:
+        messages = Message.objects.filter(message_type=MessageType.COMMAND, message_status=MessageStatus.UNPROCESSED)
+        if len(messages) == 0:
+            return None
+        message = messages[0]
+        message.message_status = MessageStatus.PROCESSING
+        message.save()
+        return message
+
+    async def run(self) -> None:
+        while True:
+            message = await sync_to_async(self.query_message_queue)()
+            if message:
+                software_project = self.create_project(message.prompt, message.orchestrator)
+                code = software_project.do_work()
+                message.message_status = MessageStatus.PROCESSED
+                message.result = code
+                await message.asave()
+            await asyncio.sleep(1)
+
+
 class Orchestrator:
     pass
 
@@ -90,34 +151,26 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     Provides a single entry point for common interactions with agents
     """
 
-    def __init__(self):
-        self.state = State(self, orchestrator=self)
+    def __init__(self) -> None:
         self.uuid = uuid1()
-        openai_client = OpenAIClient()
-        self.clients = {
-            "openai": openai_client,
-        }
-        self.agents = {
-            "exec": Executive(self.clients),
-            "dev": Developer(self.clients),
-        }
-        self.update(status=ProjectStatus.READY)
 
-    def process_new_project(self, starting_prompt: str):
-        self.update(status=ProjectStatus.WORKING)
-        # Immediately spin off a primary thread with the prompt
-        threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
-        current_project = SoftwareProject(
-            starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
-            exec=self.agents["exec"],
-            dev=self.agents["dev"],
-            orchestrator=self,
-            threads=threads,
-            clients=self.clients,
+    async def run_prompt(self, starting_prompt: str) -> str:
+        msg = Message(
+            orchestrator=self.uuid,
+            message_type=MessageType.COMMAND,
+            prompt=starting_prompt,
         )
-        final_code = current_project.do_work()
-        self.update(status=ProjectStatus.FINISHED)
-        return final_code
+        await msg.asave()
+
+        result = None
+        while not result:
+            responses = Message.objects.filter(message_status=MessageStatus.PROCESSED).filter(prompt=starting_prompt)
+            async for response in responses:
+                result = response.result
+                break
+            await asyncio.sleep(1)
+
+        return result
 
 
 def communicative_dehallucination(
