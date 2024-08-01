@@ -1,6 +1,8 @@
 # How to launch local demo site with code deployment capabilities
 
+```bash
 make localhost_demo_with_deploy
+``` 
 
 ## Webapp Service
 
