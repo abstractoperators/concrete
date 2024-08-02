@@ -260,7 +260,7 @@ class Executive(Agent):
         """
 
     @Agent.qna
-    def generate_html_element(self, prompt: str) -> str:
+    def implement_html_element(self, prompt: str) -> str:
         """
         Accept a prompt to generate an html element
         """
