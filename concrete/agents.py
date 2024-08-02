@@ -1,9 +1,9 @@
 import os
 import socket
+import time
 from functools import wraps
 from operator import attrgetter
 from textwrap import dedent
-from time import time
 from typing import Callable, List
 from uuid import UUID, uuid1
 
@@ -290,7 +290,7 @@ class AWSAgent:
     def __init__(self):
         self.SHARED_VOLUME: str = "/shared"
         self.DIND_BUILDER_HOST: str = "dind-builder"
-        self.DIND_BUILDER_PORT: int = 5000
+        self.DIND_BUILDER_PORT: int = 5002
 
     def deploy(self, backend_code: str, project_uuid: UUID):
         """
@@ -302,11 +302,13 @@ class AWSAgent:
 
         os.makedirs(build_dir_path, exist_ok=True)
         dockerfile_content = dedent(
-            """
+            f"""
         FROM python:3.11.9-slim-bookworm
         WORKDIR /app
         RUN pip install flask
+        RUN pip install concrete-operators
         COPY . .
+        ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
         CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
         """
         )

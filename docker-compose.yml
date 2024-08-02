@@ -24,7 +24,7 @@ services:
       - SHARED_VOLUME=/shared
     privileged: true
     ports:
-      - "5000:5000"
+      - "5002:5002"
     env_file: ".env"
 
 volumes:

@@ -18,5 +18,5 @@ COPY build_and_push.sh /usr/local/bin/build_and_push.sh
 COPY deploy_to_aws.sh /usr/local/bin/deploy_to_aws.sh
 RUN chmod +x /usr/local/bin/listener.sh /usr/local/bin/build_and_push.sh /usr/local/bin/deploy_to_aws.sh
 
-EXPOSE 5000
+EXPOSE 5002
 CMD ["bash", "/usr/local/bin/listener.sh"]

@@ -44,7 +44,11 @@ deploy_to_aws() {
         requiresCompatibilities: ["FARGATE"],
         networkMode: "awsvpc",
         cpu: "256",
-        memory: "512"
+        memory: "512",
+        runtimePlatform: {
+            cpuArchitecture: "ARM64",
+            operatingSystemFamily: "LINUX"
+        }
     }')
     echo $TASK_DEFINITION
 
