@@ -133,23 +133,12 @@ class Developer(Agent):
             1. The code imported the Flask module from the flask package
             2. The code created a Flask application named "app"
             3. Created a route for the root URL ('/')
-            Current Component: Create a function that will be called when the root URL is accessed. This function should return HTML with a temporary Title, Author, and Body Paragraph.
+            Current Component: Create a function that will be called when the root URL is accessed.
             Clarification: The function should be called index
 
             def index():
                 return '''
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Page Title</title>
-                    </head># noqa: E501
-                <body>
-                    <h1>Main Title</h1>
-                    <h2>Authors:</h2>
-                    <p>Author 1, Author 2</p>
-                    <p>This is a body paragraph.</p>
-                </body>
-                </html>'''
+                <html></html>'''
         """  # noqa: E501
 
     @Agent.qna
