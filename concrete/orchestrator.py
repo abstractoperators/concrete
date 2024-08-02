@@ -1,11 +1,12 @@
-import asyncio
 import os
+import time
+from multiprocessing import Pool, pool
+from multiprocessing.pool import AsyncResult
 from textwrap import dedent
 from typing import Tuple
 from uuid import UUID, uuid1
 
 import django
-from asgiref.sync import sync_to_async
 from django.db import transaction
 from openai.types.beta.thread import Thread
 
@@ -128,16 +129,34 @@ class SoftwareProjectWorker(ProjectWorker):
         message.save()
         return message
 
-    async def run(self) -> None:
+    def run(self) -> Message:
+        message = self.query_message_queue()
+        if message:
+            software_project = self.create_project(message.prompt, message.orchestrator)
+            code = software_project.do_work()
+            message.message_status = MessageStatus.PROCESSED
+            message.result = code
+            message.save()
+        return message
+
+    @staticmethod
+    def loop(worker_timeout: float = 1) -> None:
+        worker = SoftwareProjectWorker()
         while True:
-            message = await sync_to_async(self.query_message_queue)()
-            if message:
-                software_project = self.create_project(message.prompt, message.orchestrator)
-                code = software_project.do_work()
-                message.message_status = MessageStatus.PROCESSED
-                message.result = code
-                await message.asave()
-            await asyncio.sleep(1)
+            worker.run()
+            time.sleep(worker_timeout)
+
+    @staticmethod
+    def multi_loop(num_workers: int = 3, worker_timeout: float = 1) -> tuple[pool.Pool, list[AsyncResult]]:
+        pool = Pool(num_workers)
+        loop_handles = [
+            pool.apply_async(
+                SoftwareProjectWorker.loop,
+                kwds={'worker_timeout': worker_timeout},
+            )
+            for _ in range(num_workers)
+        ]
+        return pool, loop_handles
 
 
 class Orchestrator:
@@ -154,21 +173,26 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     def __init__(self) -> None:
         self.uuid = uuid1()
 
-    async def run_prompt(self, starting_prompt: str) -> str:
+    def run_prompt(self, starting_prompt: str) -> str:
         msg = Message(
             orchestrator=self.uuid,
             message_type=MessageType.COMMAND,
             prompt=starting_prompt,
         )
-        await msg.asave()
+        msg.save()
 
         result = None
         while not result:
-            responses = Message.objects.filter(message_status=MessageStatus.PROCESSED).filter(prompt=starting_prompt)
-            async for response in responses:
+            responses = (
+                Message.objects.filter(orchestrator=self.uuid)
+                .filter(message_status=MessageStatus.PROCESSED)
+                .filter(prompt=starting_prompt)
+                .filter(created_at=msg.created_at)
+            )
+            for response in responses:
                 result = response.result
                 break
-            await asyncio.sleep(1)
+            time.sleep(1)
 
         return result
 

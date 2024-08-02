@@ -26,3 +26,4 @@ class Message(models.Model):
     )
     prompt = models.TextField()
     result = models.TextField(default="")
+    created_at = models.TimeField(auto_now_add=True)
