@@ -28,15 +28,13 @@ class OpenAIClient(Client):
         return new_thread
 
     def create_assistant(self, prompt: str = "", model: str = "gpt-4o-mini") -> Assistant:
-        return self.client.beta.assistants.create(
-            instructions=prompt,
-            model=model,
-        )
+        temperature = float(os.getenv("OPENAI_TEMPERATURE", 1))
+        return self.client.beta.assistants.create(instructions=prompt, model=model, temperature=temperature)
 
 
 class CLIClient(Client):
     @classmethod
     def emit(cls, content: str):
         # TODO: right now, make this a config setting
-        if os.environ.get('ENV') != 'PROD':
+        if os.environ.get("ENV") != "PROD":
             print(content)

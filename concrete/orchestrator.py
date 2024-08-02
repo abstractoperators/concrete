@@ -3,14 +3,13 @@ import time
 from multiprocessing import Pool, pool
 from multiprocessing.pool import AsyncResult
 from textwrap import dedent
-from typing import Tuple
 from uuid import UUID, uuid1
 
 import django
 from django.db import transaction
 from openai.types.beta.thread import Thread
 
-from .agents import Developer, Executive
+from .agents import AWSAgent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
 from .state import ProjectStatus, State
 
@@ -41,16 +40,20 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client],
+        aws: AWSAgent | None = None,
         threads: dict[str, Thread] | None = None,  # context -> Thread
+        deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.clients = clients
         self.starting_prompt = starting_prompt
         self.exec = exec
         self.dev = dev
+        self.aws = aws
         self.threads = threads or {"main": self.clients["openai"].create_thread()}
         self.results = None
         self.update(status=ProjectStatus.READY)
+        self.deploy = deploy
 
     def do_work(self) -> str:
         """
@@ -79,11 +82,17 @@ class SoftwareProject(StatefulMixin):
             all_implementations.append(implementation)
 
         final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
+
         self.update(status=ProjectStatus.FINISHED)
+        if self.deploy:
+            if self.aws is None:
+                raise ValueError("Cannot deploy without AWSAgent")
+            final_code_stripped = "\n".join(final_code.split("\n")[1:-1])
+            self.aws.deploy(final_code_stripped, self.uuid)
+
         return final_code
 
     def plan(self) -> str:
-        # TODO: Figure out how to get typehinting for Agents here
         planned_components = self.exec.plan_components(thread=self.threads["main"])
         return planned_components
 
@@ -104,18 +113,20 @@ class SoftwareProjectWorker(ProjectWorker):
         }
         self.exec = Executive(self.clients)
         self.dev = Developer(self.clients)
+        self.aws = AWSAgent()
 
-    def create_project(self, starting_prompt: str, orchestrator_id: UUID) -> SoftwareProject:
-        # self.update(status=ProjectStatus.WORKING)
+    def create_project(self, starting_prompt: str, orchestrator_id: UUID, deploy: bool = False) -> SoftwareProject:
         # Immediately spin off a primary thread with the prompt
         threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
         return SoftwareProject(
             starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
             exec=self.exec,
             dev=self.dev,
+            aws=self.aws,
             orchestrator=orchestrator_id,
             threads=threads,
             clients=self.clients,
+            deploy=deploy,
         )
 
     # TODO: Not a proper transaction; if SoftwareProjectWorker fails while processing there is no rollback
@@ -203,7 +214,7 @@ def communicative_dehallucination(
     summary: str,
     component: str,
     max_iter: int = 1,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """
     Implements a communicative dehallucination process for software development.
 
@@ -228,7 +239,7 @@ def communicative_dehallucination(
 
     # Iterative Q&A process
     q_and_a = []
-    for i in range(max_iter):
+    for _ in range(max_iter):
         question = developer.ask_question(context)
         CLIClient.emit(f"Developer's question:\n {question}\n")
 
