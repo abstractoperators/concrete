@@ -17,6 +17,8 @@ helloworld:
 simpleflask:
 	$(ORCHESTRATE) "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
 
+django:
+	$(PYTHON) manage.py runserver
 
 localhost_demo_with_deploy: localhost_demo_down
 	docker compose build
