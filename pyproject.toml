@@ -20,7 +20,7 @@ astor = "==0.8.1"
 gunicorn = "==22.0.0"
 uvicorn = "==0.30.4"
 fastapi = "==0.111.1"
-flask = "^3.0.3"
+flask = "==3.0.3"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"
