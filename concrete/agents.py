@@ -171,23 +171,27 @@ class Developer(Agent):
         return out_str
 
     @Agent.qna
-    def implement_html_component(self, prompt: str) -> str:
-        return f"""
-        Write an html component with the following description:
+    def implement_html_element(self, prompt: str) -> str:
+        out_str = f"""
+        Write an html element with the following description:
         {prompt}
 
         Example 1.
         Description: Create a header that says `Title`
-        Output: <h1>Title</h1>
+
+        <h1>Title</h1>
 
         Example 2.
         Description: Create an input form that dispatches a POST request on submit
-        Output: <form method="POST" action="/">
+
+        <form method="POST" action="/">
         <label for="textInput">Input:</label>
         <input type="text" id="textInput" name="textInput" required>
         <button type="submit">Submit</button>
         </form>
         """
+        CLIClient.emit("implement_html_element " + out_str)
+        return out_str
 
 
 class Executive(Agent):
