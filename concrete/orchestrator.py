@@ -67,13 +67,13 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
-                max_iter=1,
+                max_iter=0,
             )
 
             # Add the implementation to our list
             all_implementations.append(implementation)
 
-        final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
+        final_code = self.dev.integrate_components(components, all_implementations, self.starting_prompt)
 
         self.update(status=ProjectStatus.FINISHED)
         if self.deploy:
@@ -160,7 +160,6 @@ def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    CLIClient.emit(f"Context: \n{context}\n")
 
     # Iterative Q&A process
     q_and_a = []

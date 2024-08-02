@@ -9,7 +9,7 @@ from uuid import UUID, uuid1
 
 from openai.types.beta.thread import Thread
 
-from .clients import Client
+from .clients import CLIClient, Client
 
 
 class Agent:
@@ -117,7 +117,7 @@ class Developer(Agent):
             Context:
             {context}
 
-            Based on the context, provide code the current component. Never provide unspecified code.
+            Based on the context, provide code for the current component. Name the file appropriately. Use placeholders referencing code already provided in the context. Never provide unspecified code.
 
             Example:
             Context:
@@ -153,28 +153,33 @@ class Developer(Agent):
         """  # noqa: E501
 
     @Agent.qna
-    def integrate_components(self, implementations: List[str], webpage_idea: str) -> str:
+    def integrate_components(self, planned_components: List[str], implementations: List[str], webpage_idea: str) -> str:
         """
         Prompts agent to combine code implementations of multiple components
         Returns the combined code
         """
-        return (
-            "\nTask: Combine all these implementations into a single, coherent final application to "
-            f"""{webpage_idea}
-            
+        prev_components = []
+        for desc, code in zip(planned_components, implementations):
+            prev_components.append(f"\n\t Component description: {desc}" f"\n\t Code: {code}")
+        out_str = (
+            "\nTask: Combine all these implementations into a single, coherent final application\n"
+            f"""
+            Original Webpage Idea:
+            {webpage_idea}
+
+            Component implementations: {"".join(prev_components)}
+
             Ensure that:
-            1. All necessary imports are at the top of the file
-            2. Code is organized logically
-            3. There are no duplicate or conflicting code
-            4. Resolve conflicting or redundant pieces of code.
-            5. Only code is returned
+            1. All necessary imports are at the top of each file
+            2. Each file is named
+            3. Code is organized logically
+            4. There are no duplicate or conflicting code
+            5. Resolve conflicting or redundant pieces of code.
+            6. Only code is returned
             """
         )
-        # Below at end of prompt was messing things up
-        # """
-        # Implementations:
-        # {chr(92) + "n".join([f"{i}. " + piece for i, piece in enumerate(implementations)])}
-        # """
+        CLIClient.emit("Integrate components:\n" + out_str)
+        return out_str
 
 
 class Executive(Agent):
@@ -231,16 +236,37 @@ class Executive(Agent):
         Previous Components: {summary}
         Current Component Implementation: {implementation}
 
-        For each component:
-        1. Describe its functionality if necessary
-        2. Include variable names if necessary
-        3. Provide implementation details using natural language
+        For each component summary:
+        1. Describe its functionality using natural language
+        2. Include variable, function, and file names from components
 
         Example:
         1. imported the packages numpy and pandas as np and pd respectively. imported random
         2. Instantiated a pandas dataframe named foo, with column names bar and baz
         3. Populated foo with random ints
         4. Printed average of bar and baz
+        """
+
+    @Agent.qna
+    def generate_html_element(self, prompt: str) -> str:
+        """
+        Accept a prompt to generate an html element
+        """
+        return f"""
+        Generate an html element with the following description:\n
+        {prompt}
+
+        Example 1.
+        Description: Create a header that says `Title`
+        Output: <h1>Title</h1>
+
+        Example 2.
+        Description: Create an input form with a submit button
+        Output:<form method="POST" action="/">
+        <label for="textInput">Input:</label>
+        <input type="text" id="textInput" name="textInput" required>
+        <button type="submit">Submit</button>
+    </form>
         """
 
 
