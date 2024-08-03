@@ -26,6 +26,11 @@ deploy_to_aws() {
     '{
         family: $family,
         executionRoleArn: $execution_role_arn,
+        runtimePlatform: {"operatingSystemFamily": "LINUX", "cpuArchitecture": "ARM64"},
+        runtimePlatform:{
+            operatingSystemFamily: "LINUX",
+            cpuArchitecture: "ARM64"
+        },
         containerDefinitions: [
         {
             name: $name,
@@ -37,18 +42,21 @@ deploy_to_aws() {
                 protocol: "tcp"
             }
             ],
-            essential: true
-
+            essential: true,
+            logConfiguration: {
+                logDriver: "awslogs",
+                options: {
+                    "awslogs-group": "fargate-demos",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "fg"
+                }
+            }
         }
         ],
         requiresCompatibilities: ["FARGATE"],
         networkMode: "awsvpc",
         cpu: "256",
-        memory: "512",
-        runtimePlatform: {
-            cpuArchitecture: "ARM64",
-            operatingSystemFamily: "LINUX"
-        }
+        memory: "512"
     }')
     echo $TASK_DEFINITION
 
@@ -75,4 +83,3 @@ deploy_to_aws() {
 
 
 deploy_to_aws "$1"
-

@@ -297,7 +297,7 @@ class AWSAgent:
         Creates and puts a docker image with backend_code + server launch logic into AWS ECR.
         Launches a task with that docker image.
         """
-        build_dir_name = f"so_uuid_{project_uuid}"
+        build_dir_name = f"so_{project_uuid}"
         build_dir_path = os.path.join(self.SHARED_VOLUME, build_dir_name)
 
         os.makedirs(build_dir_path, exist_ok=True)
