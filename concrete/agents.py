@@ -1,9 +1,9 @@
 import os
 import socket
+import time
 from functools import wraps
 from operator import attrgetter
 from textwrap import dedent
-from time import time
 from typing import Callable, List
 from uuid import UUID, uuid1
 
