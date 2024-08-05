@@ -4,11 +4,10 @@ from uuid import uuid1
 
 from openai.types.beta.thread import Thread
 
+from . import prompts
 from .agents import AWSAgent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
 from .state import ProjectStatus, State
-
-_HELLO_WORLD_PROMPT = "Create a simple hello world program"
 
 
 class StatefulMixin:
@@ -67,19 +66,19 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
-                max_iter=1,
+                max_iter=0,
             )
 
             # Add the implementation to our list
             all_implementations.append(implementation)
 
-        final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
+        final_code = self.dev.integrate_components(components, all_implementations, self.starting_prompt)
 
         self.update(status=ProjectStatus.FINISHED)
         if self.deploy:
             if self.aws is None:
                 raise ValueError("Cannot deploy without AWSAgent")
-            final_code_stripped = "\n".join(final_code.split("\n")[1:-1])
+            final_code_stripped = "\n".join(final_code.strip().split("\n")[1:-1])
             cast(AWSAgent, self.aws).deploy(final_code_stripped, self.uuid)
 
         return final_code
@@ -119,7 +118,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         # Immediately spin off a primary thread with the prompt
         threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
         current_project = SoftwareProject(
-            starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
+            starting_prompt=starting_prompt or prompts.HELLO_WORLD_PROMPT,
             exec=self.agents["exec"],
             dev=self.agents["dev"],
             aws=self.agents["aws"],
@@ -160,7 +159,6 @@ def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    CLIClient.emit(f"Context: \n{context}\n")
 
     # Iterative Q&A process
     q_and_a = []
