@@ -68,13 +68,23 @@ deploy_to_aws() {
         taskDefinition: $task_definition,
         desiredCount: $desired_count,
         launchType: "FARGATE",
-        networkConfiguration: {
-            awsvpcConfiguration: {
-                subnets: [$subnet],
-                securityGroups: [$security_group],
-                assignPublicIp: "DISABLED"
-            }
-        },
+        "networkConfiguration": {
+                "awsvpcConfiguration": {
+                    "subnets": [
+                        "subnet-0fd10668867ad3f41",
+                        "subnet-0d4714f3307f188d2",
+                        "subnet-0cf5f19eab086f113",
+                        "subnet-0ba67bfb6421d660d",
+                        "subnet-0dedff55ce3f31073",
+                        "subnet-0ca57a9f5ab390beb"
+                    ],
+                    "securityGroups": [
+                        "sg-0c088e203ca8ad61a",
+                        "sg-05ef66e1440d8b914"
+                    ],
+                    "assignPublicIp": "ENABLED"
+                }
+            },
         schedulingStrategy: "REPLICA",
         deploymentController: {
             type: "ECS"
