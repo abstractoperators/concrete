@@ -17,6 +17,8 @@ services:
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.dind-builder
+      platforms:
+        - linux/arm64
     volumes:
       - shared-volume:/shared
       - /var/run/docker.sock:/var/run/docker.sock
@@ -24,7 +26,7 @@ services:
       - SHARED_VOLUME=/shared
     privileged: true
     ports:
-      - "5002:5002"
+      - "5000:5000"
     env_file: "../.env"
 
 volumes:

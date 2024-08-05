@@ -1,22 +1,28 @@
 # This container is responsible for building and pushing containers to ECR
-FROM docker:latest
+FROM docker:dind
 
 RUN apk add --no-cache \
     bash \
     python3 \
     py3-pip \
-    jq
+    jq \
+    curl \
+    unzip
 
-RUN python3 -m venv /opt/awscli && \
-    /opt/awscli/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/awscli/bin/pip install --no-cache-dir awscli
+RUN apk add --no-cache aws-cli
 
-ENV PATH="/opt/awscli/bin:${PATH}"
+RUN docker --version && \
+    aws --version && \
+    python3 --version
+
+RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 COPY /demo_webapp/scripts/listener.sh /usr/local/bin/listener.sh
 COPY /demo_webapp/scripts/build_and_push.sh /usr/local/bin/build_and_push.sh
 COPY /demo_webapp/scripts/deploy_to_aws.sh /usr/local/bin/deploy_to_aws.sh
 RUN chmod +x /usr/local/bin/listener.sh /usr/local/bin/build_and_push.sh /usr/local/bin/deploy_to_aws.sh
 
-EXPOSE 5002
+ENTRYPOINT ["dockerd-entrypoint.sh"]
+
+EXPOSE 5000
 CMD ["bash", "/usr/local/bin/listener.sh"]
