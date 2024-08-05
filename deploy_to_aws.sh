@@ -1,4 +1,25 @@
 #!/bin/bash
+find_lowest_priority() {
+    LISTENER_ARN=$1
+    # Get all rules for the listener
+    rules=$(aws elbv2 describe-rules --listener-arn $LISTENER_ARN --output json)
+   
+    # Extract priorities and sort them numerically
+    priorities=$(echo "$rules" | jq -r '.Rules[].Priority' | grep -v default | sort -n)
+   
+    # Find the lowest unused priority
+    last_priority=0
+    for priority in $priorities; do
+        if [ $((priority - last_priority)) -gt 1 ]; then
+            echo $((last_priority + 1))
+            return
+        fi
+        last_priority=$priority
+    done
+   
+    # If all priorities are consecutive, return the next number
+    echo $((last_priority + 1))
+}
 
 deploy_to_aws() {
     local IMAGE_URI="$1"
@@ -9,12 +30,18 @@ deploy_to_aws() {
     ECS_CLUSTER="DemoCluster"
     ECS_SERVICE=$TASK_FAMILY
     CONTAINER_NAME=$TASK_FAMILY
+    TARGET_GROUP_NAME=$(echo $TASK_FAMILY| sed 's/^so_//' | tr '_' '-')
+    TARGET_GROUP_NAME="${TARGET_GROUP_NAME:0:32}"
     AWS_REGION="us-east-1"
     CONTAINER_PORT=80
     DESIRED_COUNT=1
+    VPC="vpc-022b256b8d0487543"
     SUBNET="subnet-0d4714f3307f188d2"
     SECURITY_GROUP="sg-0463bb6000a464f50"
     EXECUTION_ROLE_ARN="arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
+    LOAD_BALANCER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:loadbalancer/app/ConcreteLB/8624995bbfed2fc3"
+    LISTENER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLB/8624995bbfed2fc3/8e2d28e1f80bf00b"
+    LISTENER_RULE_PRIORITY=$(find_lowest_priority $LISTENER_ARN)
 
     echo "Creating/updating task definition..."
     TASK_DEFINITION=$(jq -n \
@@ -65,7 +92,50 @@ deploy_to_aws() {
     --query 'taskDefinition.taskDefinitionArn' \
     --output text)
 
+    echo "Creating target group"
+    TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
+    --name $TARGET_GROUP_NAME \
+    --protocol HTTP \
+    --port 80 \
+    --vpc-id $VPC \
+    --target-type ip \
+    --health-check-path / \
+    --health-check-interval-seconds 30 \
+    --health-check-timeout-seconds 5 \
+    --healthy-threshold-count 2 \
+    --unhealthy-threshold-count 2 \
+    --query 'TargetGroups[0].TargetGroupArn' \
+    --output text)
+
+    echo "Target Group ARN: $TARGET_GROUP_ARN"
+
+    echo "Adding rule to listener"
+    RULE_JSON=$(jq -n \
+    --arg listener_arn "$LISTENER_ARN" \
+    --argjson priority "$LISTENER_RULE_PRIORITY" \
+    --arg target_group_arn "$TARGET_GROUP_ARN" \
+    --arg path "$TARGET_GROUP_NAME.abop.ai" \
+    '{
+        ListenerArn: $listener_arn,
+        Priority: $priority,
+        Conditions: [
+            {
+                Field: "host-header",
+                Values: [$path]
+            }
+        ],
+        Actions: [
+            {
+                Type: "forward",
+                TargetGroupArn: $target_group_arn
+            }
+        ]
+    }')
+
+    aws elbv2 create-rule --cli-input-json "$RULE_JSON"
+
     echo "Creating ECS service..."
+    # Use argjson to use ints
     SERVICE_DEFINITION=$(jq -n \
     --arg cluster "$ECS_CLUSTER" \
     --arg service_name "$ECS_SERVICE" \
@@ -73,6 +143,9 @@ deploy_to_aws() {
     --argjson desired_count "$DESIRED_COUNT" \
     --arg subnet "$SUBNET" \
     --arg security_group "$SECURITY_GROUP" \
+    --arg target_group_arn "$TARGET_GROUP_ARN" \
+    --arg container_name "$CONTAINER_NAME" \
+    --argjson container_port $CONTAINER_PORT \
     '{
         cluster: $cluster,
         serviceName: $service_name,
@@ -102,12 +175,18 @@ deploy_to_aws() {
             type: "ECS"
         },
         enableECSManagedTags: true,
-        propagateTags: "SERVICE"
+        propagateTags: "SERVICE",
+        loadBalancers: [
+        {
+            targetGroupArn: $target_group_arn,
+            containerName: $container_name,
+            containerPort: $container_port
+        }
+    ]
     }')
 
     echo $SERVICE_DEFINITION
     aws ecs create-service \
-    --region $AWS_DEFAULT_REGION \
     --cli-input-json "$SERVICE_DEFINITION"
 }
 
