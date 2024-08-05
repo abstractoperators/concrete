@@ -67,19 +67,19 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
-                max_iter=1,
+                max_iter=0,
             )
 
             # Add the implementation to our list
             all_implementations.append(implementation)
 
-        final_code = self.dev.integrate_components(all_implementations, self.starting_prompt)
+        final_code = self.dev.integrate_components(components, all_implementations, self.starting_prompt)
 
         self.update(status=ProjectStatus.FINISHED)
         if self.deploy:
             if self.aws is None:
                 raise ValueError("Cannot deploy without AWSAgent")
-            final_code_stripped = "\n".join(final_code.split("\n")[1:-1])
+            final_code_stripped = "\n".join(final_code.strip().split("\n")[1:-1])
             cast(AWSAgent, self.aws).deploy(final_code_stripped, self.uuid)
 
         return final_code
@@ -115,21 +115,68 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.update(status=ProjectStatus.READY)
 
     def process_new_project(self, starting_prompt: str, deploy: bool = False):
-        self.update(status=ProjectStatus.WORKING)
-        # Immediately spin off a primary thread with the prompt
-        threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
-        current_project = SoftwareProject(
-            starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
-            exec=self.agents["exec"],
-            dev=self.agents["dev"],
-            aws=self.agents["aws"],
-            orchestrator=self,
-            threads=threads,
-            clients=self.clients,
-            deploy=deploy,
-        )
-        final_code = current_project.do_work()
-        self.update(status=ProjectStatus.FINISHED)
+        # self.update(status=ProjectStatus.WORKING)
+        # # Immediately spin off a primary thread with the prompt
+        # threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
+        # current_project = SoftwareProject(
+        #     starting_prompt=starting_prompt or _HELLO_WORLD_PROMPT,
+        #     exec=self.agents["exec"],
+        #     dev=self.agents["dev"],
+        #     aws=self.agents["aws"],
+        #     orchestrator=self,
+        #     threads=threads,
+        #     clients=self.clients,
+        #     deploy=deploy,
+        # )
+        # final_code = current_project.do_work()
+        # self.update(status=ProjectStatus.FINISHED)
+        final_code = r"""
+```python
+# Filename: app.py
+
+from flask import Flask, request, render_template_string, session
+from concrete import orchestrator
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Required for session management
+
+def invoke_concrete(input_str: str):
+    ''' Returns a valid html element '''
+    so = orchestrator.SoftwareOrchestrator()
+    element = so.agents['dev'].implement_html_element(input_str)
+    return "\n".join(element.strip().split('\n')[1:-1])
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if 'elements' not in session:
+        session['elements'] = []  # Initialize the session variable
+
+    if request.method == 'POST':
+        input_value = request.form.get('input_name', '').strip()
+        if input_value:  # Error checking for empty input
+            session['elements'].append(invoke_concrete(input_value))  # Call invoke_concrete and persist the result
+
+    elements_display = ''.join(session['elements'])  # Join elements for display
+    return render_template_string('''
+        <html>
+            <body>
+                <form method="post">
+                    <input type="text" name="input_name" required placeholder="Enter something">
+                    <input type="submit" value="Submit">
+                </form>
+                <div>
+                    Submitted elements: {{ elements_display|safe }}
+                </div>
+            </body>
+        </html>
+    ''', elements_display=elements_display)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+"""
+        final_code_stripped = "\n".join(final_code.strip().split("\n")[1:-1])
+        cast(AWSAgent, self.agents['aws']).deploy(final_code_stripped, self.uuid)
         return final_code
 
 
@@ -160,7 +207,6 @@ def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    CLIClient.emit(f"Context: \n{context}\n")
 
     # Iterative Q&A process
     q_and_a = []

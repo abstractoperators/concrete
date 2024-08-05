@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "concrete-operators"
-version = "0.1.4"
+version = "0.1.5"
 description = "AI Agent Orchestration Platform"
 authors = ["Abstract Operators <hello@abstractoperators.ai>"]
 readme = "README.md"
@@ -20,6 +20,7 @@ astor = "==0.8.1"
 gunicorn = "==22.0.0"
 uvicorn = "==0.30.4"
 fastapi = "==0.111.1"
+flask = "==3.0.3"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"
