@@ -1,8 +1,8 @@
 services:
   webapp:
     build:
-      context: .
-      dockerfile: Dockerfile.webapp
+      context: ../
+      dockerfile: ./docker/Dockerfile.webapp
     volumes:
       - shared-volume:/shared
     environment:
@@ -11,12 +11,12 @@ services:
       - "8080:80"
     depends_on:
       - dind-builder
-    env_file: ".env"
+    env_file: "../.env"
 
   dind-builder:
     build:
-      context: .
-      dockerfile: Dockerfile.dind-builder
+      context: ../
+      dockerfile: ./docker/Dockerfile.dind-builder
       platforms:
         - linux/arm64
     volumes:
@@ -27,7 +27,7 @@ services:
     privileged: true
     ports:
       - "5000:5000"
-    env_file: ".env"
+    env_file: "../.env"
 
 volumes:
   shared-volume:

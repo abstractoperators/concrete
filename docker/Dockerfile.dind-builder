@@ -17,12 +17,12 @@ RUN docker --version && \
 
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
-COPY listener.sh /usr/local/bin/listener.sh
-COPY build_and_push.sh /usr/local/bin/build_and_push.sh
-COPY deploy_to_aws.sh /usr/local/bin/deploy_to_aws.sh
+COPY /demo_webapp/scripts/listener.sh /usr/local/bin/listener.sh
+COPY /demo_webapp/scripts/build_and_push.sh /usr/local/bin/build_and_push.sh
+COPY /demo_webapp/scripts/deploy_to_aws.sh /usr/local/bin/deploy_to_aws.sh
 RUN chmod +x /usr/local/bin/listener.sh /usr/local/bin/build_and_push.sh /usr/local/bin/deploy_to_aws.sh
 
-ENTRYPOINT ["dockerd-entrypoint.sh"]
+ENTRYPOINT ["/dockerd-entrypoint.sh"]
 
 EXPOSE 5000
 CMD ["bash", "/usr/local/bin/listener.sh"]

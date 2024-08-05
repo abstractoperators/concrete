@@ -165,7 +165,6 @@ cython_debug/
 # Jupyter Notebooks
 .ipynb_checkpoints
 */log.txt
-*/log.txt
 
 # MacOS
 .DS_Store

@@ -5,6 +5,7 @@ ENV PYTHONUNBUFFERED=1
 ENV POETRY_VERSION=1.5.1
 ENV POETRY_HOME=/opt/poetry
 ENV PATH=$POETRY_HOME/bin:$PATH
+ENV OPENAI_TEMPERATURE=.2
 
 WORKDIR /app
 
@@ -18,7 +19,7 @@ RUN poetry config virtualenvs.create false \
     && poetry install --without dev --no-interaction --no-ansi
 
 
-RUN chmod +x start.sh
+RUN chmod +x ./demo_webapp/scripts/start.sh
 EXPOSE 80
 
-CMD ["./start.sh"]
+CMD ["./demo_webapp/scripts/start.sh"]

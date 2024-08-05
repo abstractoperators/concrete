@@ -310,10 +310,9 @@ class AWSAgent:
             f"""
         FROM python:3.11.9-slim-bookworm
         WORKDIR /app
-        RUN pip install flask
-        RUN pip install concrete-operators
+        RUN pip install flask concrete-operators
         COPY . .
-        ENV OPENAI_API_KEY={os.environ['OPENAI_API_KEY']}
+        ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
         CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
         """
         )

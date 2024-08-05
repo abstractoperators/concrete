@@ -191,4 +191,3 @@ deploy_to_aws() {
 }
 
 deploy_to_aws "$1"
-
