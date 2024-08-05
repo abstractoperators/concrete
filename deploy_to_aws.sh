@@ -54,21 +54,40 @@ deploy_to_aws() {
     --query 'taskDefinition.taskDefinitionArn' \
     --output text)
 
-    echo "New task definition: $NEW_TASK_DEFINITION"
+    echo "Creating ECS service..."
+    SERVICE_DEFINITION=$(jq -n \
+    --arg cluster "$ECS_CLUSTER" \
+    --arg service_name "$ECS_SERVICE" \
+    --arg task_definition "$NEW_TASK_DEFINITION" \
+    --argjson desired_count "$DESIRED_COUNT" \
+    --arg subnet "$SUBNET" \
+    --arg security_group "$SECURITY_GROUP" \
+    '{
+        cluster: $cluster,
+        serviceName: $service_name,
+        taskDefinition: $task_definition,
+        desiredCount: $desired_count,
+        launchType: "FARGATE",
+        networkConfiguration: {
+            awsvpcConfiguration: {
+                subnets: [$subnet],
+                securityGroups: [$security_group],
+                assignPublicIp: "DISABLED"
+            }
+        },
+        schedulingStrategy: "REPLICA",
+        deploymentController: {
+            type: "ECS"
+        },
+        enableECSManagedTags: true,
+        propagateTags: "SERVICE"
+    }')
 
-    echo "Running task..."
-    TASK_ARN=$(aws ecs run-task \
-        --cluster $ECS_CLUSTER \
-        --task-definition $NEW_TASK_DEFINITION \
-        --launch-type FARGATE \
-        --network-configuration "awsvpcConfiguration={subnets=[$SUBNET],securityGroups=[$SECURITY_GROUP],assignPublicIp=ENABLED}" \
-        --region $AWS_DEFAULT_REGION \
-        --query 'tasks[0].taskArn' \
-        --output text)
-
-    echo "Task ARN: $TASK_ARN"
+    echo $SERVICE_DEFINITION
+    aws ecs create-service \
+    --region $AWS_DEFAULT_REGION \
+    --cli-input-json "$SERVICE_DEFINITION"
 }
-
 
 deploy_to_aws "$1"
 

@@ -17,6 +17,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dind-builder
+      platforms:
+        - linux/arm64
     volumes:
       - shared-volume:/shared
       - /var/run/docker.sock:/var/run/docker.sock
