@@ -142,7 +142,12 @@ class Developer(Agent):
         """  # noqa: E501
 
     @Agent.qna
-    def integrate_components(self, planned_components: List[str], implementations: List[str], webpage_idea: str) -> str:
+    def integrate_components(
+        self,
+        planned_components: List[str],
+        implementations: List[str],
+        webpage_idea: str,
+    ) -> str:
         """
         Prompts agent to combine code implementations of multiple components
         Returns the combined code
@@ -290,7 +295,7 @@ class AWSAgent:
     def __init__(self):
         self.SHARED_VOLUME: str = "/shared"
         self.DIND_BUILDER_HOST: str = "dind-builder"
-        self.DIND_BUILDER_PORT: int = 5002
+        self.DIND_BUILDER_PORT: int = 5000
 
     def deploy(self, backend_code: str, project_uuid: UUID):
         """
@@ -312,11 +317,36 @@ class AWSAgent:
         CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
         """
         )
+        start_script = dedent(
+            """
+            #!/bin/sh
+            set -e
+            if ! command -v flask &> /dev/null
+            then
+                echo "Flask is not installed. Installing..."
+                pip install flask
+            fi
 
+            if ! pip show concrete-operators &> /dev/null
+            then
+                echo "concrete-operators is not installed. Installing..."
+                pip install concrete-operators
+            fi
+
+            if [ -z "$OPENAI_API_KEY" ]
+            then
+                echo "Error: OPENAI_API_KEY is not set. Please set it before running this script."
+                exit 1
+            fi
+            flask run --host=0.0.0.0 --port=80
+            """
+        )
         with open(os.path.join(build_dir_path, "app.py"), "w") as f:
             f.write(backend_code)
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
             f.write(dockerfile_content)
+        with open(os.path.join(build_dir_path, "start.sh"), "w") as f:
+            f.write(start_script)
 
         max_retries = 5
         for _ in range(max_retries):

@@ -26,6 +26,10 @@ deploy_to_aws() {
     '{
         family: $family,
         executionRoleArn: $execution_role_arn,
+        runtimePlatform: {
+            cpuArchitecture: "ARM64",
+            operatingSystemFamily: "LINUX"
+        },
         containerDefinitions: [
         {
             name: $name,
@@ -37,8 +41,15 @@ deploy_to_aws() {
                 protocol: "tcp"
             }
             ],
-            essential: true
-
+            essential: true,
+            logConfiguration: {
+                logDriver: "awslogs",
+                options: {
+                    "awslogs-group": "fargate-demos",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "fg"
+                }
+            }
         }
         ],
         requiresCompatibilities: ["FARGATE"],
@@ -80,7 +91,8 @@ deploy_to_aws() {
                     ],
                     "securityGroups": [
                         "sg-0c088e203ca8ad61a",
-                        "sg-05ef66e1440d8b914"
+                        "sg-05ef66e1440d8b914",
+                        "sg-0463bb6000a464f50"
                     ],
                     "assignPublicIp": "ENABLED"
                 }
