@@ -26,7 +26,6 @@ deploy_to_aws() {
     '{
         family: $family,
         executionRoleArn: $execution_role_arn,
-        runtimePlatform: {"operatingSystemFamily": "LINUX", "cpuArchitecture": "ARM64"},
         runtimePlatform:{
             operatingSystemFamily: "LINUX",
             cpuArchitecture: "ARM64"
