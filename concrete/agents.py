@@ -125,7 +125,8 @@ class Developer(Agent):
         Returns the code for the component
         """
         return f"""
-            Based on the context, provide code for the current component. Name the file appropriately.\
+            Based on the context, provide code for the current component. \
+            Each code block is preceded by a file path where it should be placed
             Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
 
             *Context:*
