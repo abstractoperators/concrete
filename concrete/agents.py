@@ -125,8 +125,9 @@ class Developer(Agent):
         Returns the code for the component
         """
         return f"""
-            Based on the context, provide code for the current component. Name the file appropriately. Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
-            
+            Based on the context, provide code for the current component. Name the file appropriately.\
+            Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
+
             *Context:*
             {context}
 
@@ -137,8 +138,10 @@ class Developer(Agent):
                 Current Component: Create a flask application instance named 'app'
                 Clarification: None
 
+                app.py
+                ```python
                 app = Flask(app)
-
+                ```
 
             **Example:**
                 Context:
@@ -149,9 +152,27 @@ class Developer(Agent):
                 Question: What should the function do?
                 Clarification: The function should do nothing. It should be a placeholder for future functionality.
 
+                Output:
+                app.py
+                ```python
                 def index():
                     pass
-        """  # noqa: E501
+                ```
+
+            **Example:**
+                Context:
+                    1. The code imported the Flask module from the flask package
+                    2. The code created a Flask application named "app"
+                    3. Created a route for the root URL ('/')
+                    4. Created a placeholder function named 'index' that does nothing
+                    Current Component: Create an html file that will be rendered when the root URL is accessed
+
+                    Output:
+                    templates/index.html
+                    ```html
+                    <!DOCTYPE html>
+                    ```html
+        """
 
     @Agent.qna
     def integrate_components(
