@@ -26,7 +26,7 @@ class Agent:
 
         # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
         instructions = (
-            "You are a software developer. " "You will answer software development questions as concisely as possible."
+            "You are an expert software developer. You will follow the instructions given to you to complete each task."
         )
         self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
 
@@ -121,11 +121,11 @@ class Developer(Agent):
     @Agent.qna
     def implement_component(self, context: str, dedent=True) -> str:
         """
-        Prompts the agent to implement a component based off of the components context
+        Prompts the agent to implement a component based off of the components
         Returns the code for the component
         """
         return f"""
-            Provide code for the current component based on existing component implementations in Context.\
+            Please provide complete and accurate code for the current component.\
             Produced code blocks should be preceded by the file where it should be placed.
             Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
 
@@ -192,19 +192,27 @@ class Developer(Agent):
             prev_components.append(f"\n\t****Component description****: \n{desc}\n\t****Code:**** \n{code}")
 
         out_str = """\
-            *Task: Implement the original webpage creation task*
-            ```webpage_details
-            {webpage_idea}
-            ```end_webpage_details
+            *Task: Accurately and completely implement the original webpage creation task using the provided components*
+                ```webpage_details
+                {webpage_idea}
+                ```end_webpage_details
 
+            
+    
+            **Components:**
+                {components}
+                
+                
             **Important Details:**
             1. All necessary imports and libraries are at the top of each file
             2. Each code block is preceded by a file path where it should be placed
             3. Code is organized logically
             4. Resolve duplicate and conflicting code with discretion
             5. Only code and file paths are returned
+            6. With discretion, modify existing implementations to ensure a working implementation of the\
+            original webpage creation task.
 
-            **Example Output:**
+            **Example Output Syntax:**
             app.py
             ```python
             def foo():
@@ -215,15 +223,6 @@ class Developer(Agent):
             ```html
             <!DOCTYPE html>
             ```
-            
-            static/style.css
-            ```css
-                /* Foo */
-            ```
-            
-            **Integrate the following components to implement the webpage**
-                ***Components:***
-                {components}
             """.format(
             webpage_idea=webpage_idea, components="".join(prev_components)
         )
@@ -232,21 +231,34 @@ class Developer(Agent):
 
     @Agent.qna
     def implement_html_element(self, prompt: str) -> str:
-        out_str = f"""
+        out_str = f"""\
         Generate an html element with the following description:\n
         {prompt}
 
+        Generated html elements should be returned as a string with the following format.
+        Remember to ONLY return the generated HTML element. Do not include any other information.
+
         Example 1.
-        Description: Create a header that says `Title`
-        Output: <h1>Title</h1>
+        Generate an html element with the following description:
+        A header that says `Title`
+        
+        <h1>Title</h1>
 
         Example 2.
-        Description: Create an input form with a submit button
-        Output:<form method="POST" action="/">
+        Generate an html element with the following description:
+        An input form with a submit button
+        
+        <form method="POST" action="/">
         <label for="textInput">Input:</label>
         <input type="text" id="textInput" name="textInput" required>
         <button type="submit">Submit</button>
         </form>
+        
+        Example 3.
+        Generate an html element with the following description:
+        Create a paragraph with the text `Hello, World!`
+        
+        <p>Hello, World!</p>
         """
         CLIClient.emit("implement_html_element " + out_str)
         return out_str
@@ -261,17 +273,17 @@ class Executive(Agent):
     def plan_components(self) -> str:
         return """\
         List the essential code components needed to fulfill the user's request. Each component should be atomic,\
-        such that a developer could implement it in isolation provided placeholders for preceding components.
+        such that a developer can implement it in isolation provided placeholders for preceding components.
+        Use your discretion as a expert developer, and provide a comprehensive list of components.
         
         Your response must:
-        1. Focus on the conceptual steps of specific code elements or function calls
-        2. Be comprehensive, accurate, and complete; cover all necessary components
+        1. Focus on the conceptual steps required to fully implement the request.
+        2. Be clear, concise, and specific
+        3. Be comprehensive, accurate, and complete
         3. Use technical terms appropriate for the specific programming language and framework.
         4. Sequence components logically, with later components dependent on previous ones
         5. Put each component on a new line without numbering
-
-        Assumptions:
-        - Assume all dependencies are already installed but NOT imported.
+        6. Assume all dependencies are already installed but NOT imported.
 
         Example format:
         [Natural language specification of the specific code component or function call]
@@ -297,16 +309,17 @@ class Executive(Agent):
         Generates a summary of completed components
         Returns the summary
         """
-        return f"""Provide an explicit summary of what has been implemented as a list of points.
+        return f"""\
+        Provide an explicit summary of what has been implemented as a list of points.
 
-        Previous Components: {summary}
+        Previous Components Summarized: {summary}
         Current Component Implementation: {implementation}
 
         For each component summary:
-        1. Describe its functionality using natural language
+        1. Describe its full functionality using natural language.
         2. Include file name, function name, and variable name in the description.
 
-        Example:
+        Example Output:
         1. Imported the packages numpy as np, and pandas as pd in app.py
         2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
         3. Populated foo with random ints in app.py
