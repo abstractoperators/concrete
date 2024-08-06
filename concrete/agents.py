@@ -3,8 +3,9 @@ import socket
 import time
 from functools import wraps
 from operator import attrgetter
+from pathlib import Path
 from textwrap import dedent
-from typing import Callable, List
+from typing import Callable, List, cast
 from uuid import UUID, uuid1
 
 from openai.types.beta.thread import Thread
@@ -29,7 +30,7 @@ class Agent:
         )
         self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
 
-    def _qna(self, content: str, thread: Thread | None, instructions: str | None = None):
+    def _qna(self, content: str, thread: Thread | None = None, instructions: str | None = None):
         """
         "Question and Answer", given a query, return an answer.
 
@@ -165,11 +166,21 @@ class Developer(Agent):
 
             Ensure that:
             1. All necessary imports are at the top of each file
-            2. Each file is named
+            2. Each code block is preceded by a file path where it should be placed
+            Example:
+            app.py
+            ```python
+            def foo():
+                pass
+            ```
+
+            templates/home.html
+            ```html
+            <!DOCTYPE html>
+            ```
             3. Code is organized logically
             4. There are no duplicate or conflicting code
-            5. Resolve conflicting or redundant pieces of code.
-            6. Only code is returned
+            5. Only code or file paths are returned
             """
         )
         CLIClient.emit("Integrate components:\n" + out_str)
@@ -308,13 +319,13 @@ class AWSAgent:
         os.makedirs(build_dir_path, exist_ok=True)
         dockerfile_content = dedent(
             f"""
-        FROM python:3.11.9-slim-bookworm
-        WORKDIR /app
-        RUN pip install flask concrete-operators
-        COPY . .
-        ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
-        CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
-        """
+            FROM python:3.11.9-slim-bookworm
+            WORKDIR /app
+            RUN pip install flask concrete-operators
+            COPY . .
+            ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
+            CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
+            """
         )
         start_script = dedent(
             """
@@ -340,8 +351,8 @@ class AWSAgent:
             flask run --host=0.0.0.0 --port=80
             """
         )
-        with open(os.path.join(build_dir_path, "app.py"), "w") as f:
-            f.write(backend_code)
+        # writes app.py and other files to build_dir_path
+        self.parse_and_write_files(backend_code, build_dir_path)
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
             f.write(dockerfile_content)
         with open(os.path.join(build_dir_path, "start.sh"), "w") as f:
@@ -359,3 +370,29 @@ class AWSAgent:
                 time.sleep(5)
 
         return True
+
+    def parse_and_write_files(self, backend_code: str, build_dir_path: str):
+        """
+        Splits out multiple code blocks by programming language.
+        Assumes one file per filetype or language.
+        """
+        out_files: dict[str, str] = {}
+        file_string_lines = backend_code.strip().split('\n')
+
+        file_start_line, file_name = None, None
+        for i, line in enumerate(file_string_lines):
+            if line.startswith('```'):
+                if file_start_line is None:
+                    # New file detected
+                    file_name = file_string_lines[i - 1]
+                    file_start_line = i + 1
+                else:
+                    # File is done
+                    out_files[file_name] = "\n".join(file_string_lines[file_start_line:i])
+                    file_start_line, file_name = None, None
+
+        for file_name, contents in out_files.items():
+            file_path = Path(os.path.join(build_dir_path, cast(str, file_name)))
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "w") as f:
+                f.write(contents)
