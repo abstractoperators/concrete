@@ -193,9 +193,8 @@ class Developer(Agent):
 
         out_str = """\
             *Task: Accurately and completely implement the original webpage creation task using the provided components*
-                ```webpage_details
+            **Webpage Idea:**
                 {webpage_idea}
-                ```end_webpage_details
 
             
     
