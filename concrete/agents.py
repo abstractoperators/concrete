@@ -125,8 +125,8 @@ class Developer(Agent):
         Returns the code for the component
         """
         return f"""
-            Based on the context, provide code for the current component. \
-            Each code block is preceded by a file path where it should be placed
+            Provide code for the current component based on existing component implementations in Context.\
+            Produced code blocks should be preceded by the file where it should be placed.
             Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
 
             *Context:*
@@ -139,6 +139,7 @@ class Developer(Agent):
                 Current Component: Create a flask application instance named 'app'
                 Clarification: None
 
+                Output:
                 app.py
                 ```python
                 app = Flask(app)
@@ -189,35 +190,42 @@ class Developer(Agent):
         prev_components = []
         for desc, code in zip(planned_components, implementations):
             prev_components.append(f"\n\t****Component description****: \n{desc}\n\t****Code:**** \n{code}")
-        out_str = dedent(
-            f"""*Task: Implement the original webpage creation task*
-                ```webpage_details
-                {webpage_idea}
-                ```end_webpage_details
 
-            **Integrate the following components to implement the webpage**
-                ***Components:***
-                {"".join(prev_components)}
+        out_str = """\
+            *Task: Implement the original webpage creation task*
+            ```webpage_details
+            {webpage_idea}
+            ```end_webpage_details
 
             **Important Details:**
-            1. All necessary imports are at the top of each file
+            1. All necessary imports and libraries are at the top of each file
             2. Each code block is preceded by a file path where it should be placed
-                a. e.g.)
-                    app.py
-                    ```python
-                    # Do not place the file path here.
-                    def foo():
-                        pass
-                    ```
-                b. e.g.)
-                    templates/home.html
-                    ```html
-                    <!DOCTYPE html>
-                    ```
             3. Code is organized logically
-            4. There is no duplicate or conflicting code
+            4. Resolve duplicate and conflicting code with discretion
             5. Only code and file paths are returned
-            """
+
+            **Example Output:**
+            app.py
+            ```python
+            def foo():
+                pass
+            ```
+
+            templates/home.html
+            ```html
+            <!DOCTYPE html>
+            ```
+            
+            static/style.css
+            ```css
+                /* Foo */
+            ```
+            
+            **Integrate the following components to implement the webpage**
+                ***Components:***
+                {{"".join(prev_components)}}
+            """.format(
+            webpage_idea=webpage_idea
         )
         CLIClient.emit("Integrate components:\n" + out_str)
         return out_str
@@ -251,23 +259,19 @@ class Executive(Agent):
 
     @Agent.qna
     def plan_components(self) -> str:
-        return """
-        List, in natural language, only the essential code components needed to fulfill the user's request.
-
+        return """\
+        List the essential code components needed to fulfill the user's request. Each component should be atomic,\
+        such that a developer could implement it in isolation provided placeholders for preceding  components.
+        
         Your response must:
-        1. Include only core components.
-        2. Put each new component on a new line (not numbered, but conceptually sequential).
-        3. Focus on the conceptual steps of specific code elements or function calls
-        4. Be comprehensive, covering all necessary components
-        5. Use technical terms appropriate for the specific programming language and framework.
-        6. Naturally sequence components, so that later components are dependent on previous ones.
+        1. Focus on the conceptual steps of specific code elements or function calls
+        2. Be comprehensive, accurate, and complete; cover all necessary components
+        3. Use technical terms appropriate for the specific programming language and framework.
+        4. Sequence components logically, with later components dependent on previous ones
+        5. Put each  component on a new line without numbering
 
-        Important:
+        Assumptions:
         - Assume all dependencies are already installed but not imported.
-        - Do not include dependency installations.
-        - Focus solely on the code components needed to implement the functionality.
-        - NEVER provide code example
-        - ALWAYS ensure all necessary components are present
 
         Example format:
         [Natural language specification of the specific code component or function call]
