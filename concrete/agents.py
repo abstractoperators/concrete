@@ -20,46 +20,53 @@ class Agent:
 
     auto_dedent = True
 
-    def __init__(self, clients: dict[str, Client]):
+    def __init__(self, clients: dict[str, Client], org: str = "groq"):
         self.uuid = uuid1()
         self.clients = clients
+        self.org = org
 
         # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
-        instructions = (
+        self.instructions = (
             "You are a software developer. " "You will answer software development questions as concisely as possible."
         )
-        self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
+        if self.org == "openai":
+            self.assistant = self.clients[self.org].create_assistant(prompt=self.instructions)  # type: ignore
 
     def _qna(
         self,
         content: str,
         thread: Thread | None = None,
         instructions: str | None = None,
-    ):
+    ) -> str:
         """
         "Question and Answer", given a query, return an answer.
 
         Synchronous. Creates a new thread if one isn't given
         """
-        thread = thread or self.clients["openai"].create_thread()
-        self.clients["openai"].client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=content,
-        )
-        self.clients["openai"].client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id,
-            assistant_id=self.assistant.id,
-            instructions=instructions,
-        )
+        client = self.clients[self.org]
+        if self.org == "openai":
+            thread = thread or client.create_thread()
+            client._client.beta.threads.messages.create(
+                thread_id=thread.id,
+                role="user",
+                content=content,
+            )
+            client._client.beta.threads.runs.create_and_poll(
+                thread_id=thread.id,
+                assistant_id=self.assistant.id,
+                instructions=instructions or self.instructions,
+            )
 
-        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
-        # Assume message data is TextContentBlock
-        answer = attrgetter("text.value")(messages.data[0].content[0])
-        return answer
+            messages = client._client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
+            # Assume message data is TextContentBlock
+            answer = attrgetter("text.value")(messages.data[0].content[0])
+            return answer
+
+        # self.org == "groq":
+        return client.chat(content, instructions or self.instructions)
 
     @classmethod
-    def qna(cls, message_producer: Callable) -> Callable:
+    def qna(cls, message_producer: Callable[..., str]) -> Callable[..., str]:
         """
         Decorate something on a child object downstream to get a response from a query
 

@@ -6,7 +6,7 @@ from openai.types.beta.thread import Thread
 
 from . import prompts
 from .agents import AWSAgent, Developer, Executive
-from .clients import CLIClient, Client, OpenAIClient
+from .clients import CLIClient, Client, GroqClient, OpenAIClient
 from .state import ProjectStatus, State
 
 
@@ -32,6 +32,7 @@ class SoftwareProject(StatefulMixin):
         aws: AWSAgent | None = None,
         threads: dict[str, Thread] | None = None,  # context -> Thread
         deploy: bool = False,
+        org: str = "groq",
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
@@ -40,7 +41,8 @@ class SoftwareProject(StatefulMixin):
         self.exec = exec
         self.dev = dev
         self.aws = aws
-        self.threads = threads or {"main": self.clients["openai"].create_thread()}
+        if org == "openai":
+            self.threads = threads or {"main": self.clients[org].create_thread()}
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
@@ -52,7 +54,7 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        orig_components = self.plan()
+        orig_components = self.exec.plan_components()
         components_list = orig_components.split("\n")
         components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
         CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
@@ -83,10 +85,6 @@ class SoftwareProject(StatefulMixin):
 
         return final_code
 
-    def plan(self) -> str:
-        planned_components = self.exec.plan_components(thread=self.threads["main"])
-        return planned_components
-
 
 class Orchestrator:
     pass
@@ -99,16 +97,17 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     Provides a single entry point for common interactions with agents
     """
 
-    def __init__(self):
+    def __init__(self, org: str = "groq"):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
-        openai_client = OpenAIClient()
+        self.org = org
         self.clients = {
-            "openai": openai_client,
+            "groq": GroqClient(),
+            "openai": OpenAIClient(),
         }
         self.agents = {
-            "exec": Executive(self.clients),
-            "dev": Developer(self.clients),
+            "exec": Executive(self.clients, org),
+            "dev": Developer(self.clients, org),
             "aws": AWSAgent(),
         }
         self.update(status=ProjectStatus.READY)
@@ -116,16 +115,17 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     def process_new_project(self, starting_prompt: str, deploy: bool = False):
         self.update(status=ProjectStatus.WORKING)
         # Immediately spin off a primary thread with the prompt
-        threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
+        threads = None if self.org == "groq" else {"main": self.clients[self.org].create_thread(starting_prompt)}
         current_project = SoftwareProject(
             starting_prompt=starting_prompt or prompts.HELLO_WORLD_PROMPT,
-            exec=self.agents["exec"],
-            dev=self.agents["dev"],
-            aws=self.agents["aws"],
+            exec=cast(Executive, self.agents["exec"]),
+            dev=cast(Developer, self.agents["dev"]),
+            aws=cast(AWSAgent, self.agents["aws"]),
             orchestrator=self,
             threads=threads,
             clients=self.clients,
             deploy=deploy,
+            org=self.org,
         )
         final_code = current_project.do_work()
         self.update(status=ProjectStatus.FINISHED)
