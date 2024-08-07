@@ -289,15 +289,12 @@ class Executive(Agent):
     @Agent.qna
     def plan_components(self, user_request) -> str:
         return """\
-        List the essential code components needed to fulfill the user's request.
-        Each component should be atomic,\
-such that a developer can implement it in isolation provided placeholders for preceding components.
-        Use your discretion as a expert developer, and provide a comprehensive list of components.
+        List the essential components needed to fulfill the user's request.
+        Use your discretion as a expert developer, and provide a comprehensive, declarative list of components.
         
-        Your response must:
-        1. Focus on the conceptual steps required to fully implement the request.
-        2. Be clear, concise, and specific
-        3. Be comprehensive, accurate, and complete
+        Your responses must:
+        1. Include specific components
+        2. Be comprehensive, accurate, and complete
         3. Use technical terms appropriate for the specific programming language and framework.
         4. Sequence components logically, with later components dependent on previous ones
         5. Put each component on a new line without numbering
@@ -331,8 +328,10 @@ such that a developer can implement it in isolation provided placeholders for pr
         Generates a summary of completed components
         Returns the summary
         """
-        return """\
-        Provide an explicit summary of implemented components as a list of points.
+
+        prompt = """\
+        Add a summary of the current component implementation to the existing summary of components (if any).
+        Return only the list.
         For each component summary:
         1. Describe its full functionality using natural language.
         2. Include file name, function name, and variable name in the description.
@@ -342,12 +341,11 @@ such that a developer can implement it in isolation provided placeholders for pr
         2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
         3. Populated foo with random ints in app.py
         4. Printed average of bar and baz in the main function of app.py
-
-        Previous Components Summarized: {summary}
-        Current Component Implementation: {implementation}
-        """.format(
-            summary=summary, implementation=implementation
-        )
+        """
+        if summary:
+            prompt += f"\nPrevious Components Summarized: {summary}"
+        prompt += f"\nCurrent Component Implementation: {implementation}"
+        return prompt
 
 
 class AWSAgent:

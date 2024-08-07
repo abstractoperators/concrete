@@ -181,10 +181,8 @@ def communicative_dehallucination(
 
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context)
-    # CLIClient.emit(f"Component Implementation:\n{implementation}")
 
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation)
-    # CLIClient.emit(f"Summary: {summary}")
 
     return implementation, summary
