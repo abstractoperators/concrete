@@ -371,7 +371,7 @@ class AWSAgent:
             f"""
             FROM python:3.11.9-slim-bookworm
             WORKDIR /app
-            # RUN pip install flask concrete-operators
+            RUN pip install flask concrete-operators
             COPY . .
             ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
             ENV OPENAI_TEMPERATURE 0

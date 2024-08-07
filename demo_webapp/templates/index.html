@@ -11,20 +11,21 @@
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0QK53DQ7ZM"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-0QK53DQ7ZM');
+    gtag('config', 'G-0QK53DQ7ZM');
 </script>
 
 <body>
     <div id="sticky-container">
         <div id="sticky-div">
             <h1>Abstract Operators Demo</h1>
-            <form action="" onsubmit="sendPrompt(event)">
-                <input type="text" id="promptText" value="Create a simple helloworld flask application" autocomplete="off" />
-                <button type="submit" value="Submit" id="submitPrompt"> Submit </button>
+            <form action="" onsubmit="sendPrompt(event)" style="width: 100%;">
+                <textarea id="promptText" rows="5" style="width: 100%; box-sizing: border-box;"
+                    autocomplete="off">Create a simple helloworld flask application</textarea>
+                <button type="submit" value="Submit" id="submitPrompt">Submit</button>
             </form>
         </div>
         <div id="promptDisplay"></div>
@@ -94,8 +95,20 @@
             var input = document.getElementById("promptText");
             var submitButton = document.getElementById("submitPrompt");
             var promptDisplay = document.getElementById("promptDisplay");
-            promptDisplay.textContent = "Prompt: " + input.value;
-            ws.send(input.value)
+
+            // Format the prompt text
+            var formattedPrompt = input.value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>')
+                .replace(/\s{2,}/g, function (match) {
+                    return '&nbsp;'.repeat(match.length);
+                });
+
+            promptDisplay.innerHTML = "<strong>Prompt:</strong> <pre>" + formattedPrompt + "</pre>";
+
+            ws.send(input.value);
             input.value = '';
             submitButton.disabled = true;
         }
