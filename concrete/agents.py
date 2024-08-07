@@ -10,8 +10,6 @@ from uuid import UUID, uuid1
 
 from .clients import CLIClient, Client
 
-# from openai.types.beta.thread import Thread
-
 
 class Agent:
     """
@@ -291,8 +289,9 @@ class Executive(Agent):
     @Agent.qna
     def plan_components(self, user_request) -> str:
         return """\
-        List the essential code components needed to fulfill the user's request. Each component should be atomic,\
-        such that a developer can implement it in isolation provided placeholders for preceding components.
+        List the essential code components needed to fulfill the user's request.
+        Each component should be atomic,\
+such that a developer can implement it in isolation provided placeholders for preceding components.
         Use your discretion as a expert developer, and provide a comprehensive list of components.
         
         Your response must:
