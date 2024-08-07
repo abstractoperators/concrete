@@ -77,8 +77,7 @@ class SoftwareProject(StatefulMixin):
         if self.deploy:
             if self.aws is None:
                 raise ValueError("Cannot deploy without AWSAgent")
-            final_code_stripped = "\n".join(final_code.strip().split("\n")[1:-1])
-            cast(AWSAgent, self.aws).deploy(final_code_stripped, self.uuid)
+            cast(AWSAgent, self.aws).deploy(final_code, self.uuid)
 
         return final_code
 

@@ -289,7 +289,7 @@ class Executive(Agent):
     @Agent.qna
     def plan_components(self, user_request) -> str:
         return """\
-        List the essential components needed to fulfill the user's request.
+        List the essential, atomic components needed to fulfill the user's request.
         Use your discretion as a expert developer, and provide a comprehensive, declarative list of components.
         
         Your responses must:
@@ -343,8 +343,8 @@ class Executive(Agent):
         4. Printed average of bar and baz in the main function of app.py
         """
         if summary:
-            prompt += f"\nPrevious Components Summarized: {summary}"
-        prompt += f"\nCurrent Component Implementation: {implementation}"
+            prompt += f"\nPrevious Components Summarized: \n{summary}"
+        prompt += f"\nCurrent Component Implementation: \n{implementation}"
         return prompt
 
 
@@ -371,9 +371,10 @@ class AWSAgent:
             f"""
             FROM python:3.11.9-slim-bookworm
             WORKDIR /app
-            RUN pip install flask concrete-operators
+            # RUN pip install flask concrete-operators
             COPY . .
             ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
+            ENV OPENAI_TEMPERATURE 0
             CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
             """
         )
@@ -442,6 +443,7 @@ class AWSAgent:
                     file_start_line, file_name = None, None
 
         for file_name, contents in out_files.items():
+            print(f"Writing to {os.path.join(build_dir_path, file_name)}")
             file_path = Path(os.path.join(build_dir_path, cast(str, file_name)))
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, "w") as f:
