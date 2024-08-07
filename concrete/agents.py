@@ -8,9 +8,9 @@ from textwrap import dedent
 from typing import Callable, List, cast
 from uuid import UUID, uuid1
 
-from openai.types.beta.thread import Thread
-
 from .clients import CLIClient, Client
+
+# from openai.types.beta.thread import Thread
 
 
 class Agent:
@@ -18,62 +18,66 @@ class Agent:
     Represents the base agent for further implementation
     """
 
-    auto_dedent = True
-
     def __init__(self, clients: dict[str, Client]):
         self.uuid = uuid1()
         self.clients = clients
 
         # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
-        instructions = (
-            "You are an expert software developer. You will follow the instructions given to you to complete each task."
-        )
-        self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
 
     def _qna(
         self,
-        content: str,
-        thread: Thread | None = None,
-        instructions: str | None = None,
+        question: str,
+        # thread: Thread,
+        # agent_task: str | None = None,
     ):
         """
         "Question and Answer", given a query, return an answer.
 
-        Synchronous. Creates a new thread if one isn't given
+        # Synchronous. Creates a new thread if one isn't given
+
+        user_request: eg) "Create a website that does xyz. Can include context"
+        agent_task: eg) "List the components required to make fulfill the users request"
         """
-        thread = thread or self.clients["openai"].create_thread()
+        thread = self.clients["openai"].create_thread()
+
+        # eg) make a website...
         self.clients["openai"].client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=content,
+            content=question,
         )
+
+        # eg) list the components required to make fulfill the users request
         self.clients["openai"].client.beta.threads.runs.create_and_poll(
             thread_id=thread.id,
             assistant_id=self.assistant.id,
-            instructions=instructions,
         )
 
-        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
+        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="asc")
+
         # Assume message data is TextContentBlock
-        answer = attrgetter("text.value")(messages.data[0].content[0])
+        answer = attrgetter("text.value")(messages.data[-1].content[0])
+
+        for i, message in enumerate(messages.data):
+            CLIClient.emit(f'\nQNA Message ({i}): ({message.role})\n{message.content[0].text.value}')
+
         return answer
 
     @classmethod
-    def qna(cls, message_producer: Callable) -> Callable:
+    def qna(cls, question_producer: Callable) -> Callable:
         """
         Decorate something on a child object downstream to get a response from a query
 
-        message_producer is expected to return a string/prompt.
+        question_producer is expected to return a request like "Create a website that does xyz"
         """
 
-        @wraps(message_producer)
+        @wraps(question_producer)
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
-            thread = kwargs.pop("thread", None)
-            instructions = kwargs.pop("instructions", None)
-            content = message_producer(*args, **kwargs)
-            content = dedent(content) if self.auto_dedent else content
-            return self._qna(content, thread=thread, instructions=instructions)
+            # thread = kwargs.pop("thread", None)
+            # user_request = dedent(kwargs.pop("user_request", None))
+            question = dedent(question_producer(*args, **kwargs))
+            return self._qna(question=question)
 
         return _send_and_await_reply
 
@@ -82,6 +86,16 @@ class Developer(Agent):
     """
     Represents an agent that produces code.
     """
+
+    def __init__(self, clients: dict[str, Client]):
+        super().__init__(clients)
+        agent_role = (
+            "You are an expert software developer. You will follow the instructions given to you to complete each task."
+            "You will follow example formatting, defaulting to no formatting if no example is provided."
+        )
+        self.assistant = self.clients["openai"].create_assistant(
+            instructions=agent_role, name="Developer", description="This is a developer assistant"
+        )
 
     @Agent.qna
     def ask_question(self, context: str) -> str:
@@ -124,14 +138,10 @@ class Developer(Agent):
         Prompts the agent to implement a component based off of the components
         Returns the code for the component
         """
-        return f"""
-            Please provide complete and accurate code for the current component.\
+        return """
+            Please provide complete and accurate code for the provided current component.\
             Produced code blocks should be preceded by the file where it should be placed.
             Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
-
-            *Context:*
-            {context}
-
 
             **Example:**
                 Context:
@@ -174,7 +184,12 @@ class Developer(Agent):
                     ```html
                     <!DOCTYPE html>
                     ```html
-        """
+                    
+            *Context:*
+            {context}
+        """.format(
+            context=context
+        )
 
     @Agent.qna
     def integrate_components(
@@ -196,12 +211,9 @@ class Developer(Agent):
             **Webpage Idea:**
                 {webpage_idea}
 
-            
-    
             **Components:**
                 {components}
-                
-                
+               
             **Important Details:**
             1. All necessary imports and libraries are at the top of each file
             2. Each code block is preceded by a file path where it should be placed
@@ -225,7 +237,6 @@ class Developer(Agent):
             """.format(
             webpage_idea=webpage_idea, components="".join(prev_components)
         )
-        CLIClient.emit("Integrate components:\n" + out_str)
         return out_str
 
     @Agent.qna
@@ -259,7 +270,6 @@ class Developer(Agent):
         
         <p>Hello, World!</p>
         """
-        CLIClient.emit("implement_html_element " + out_str)
         return out_str
 
 
@@ -268,8 +278,18 @@ class Executive(Agent):
     Represents an agent that instructs and guides other agents.
     """
 
+    def __init__(self, clients: dict[str, Client]):
+        super().__init__(clients)
+        agent_role = (
+            "You are an expert executive software developer."
+            "You will follow the instructions given to you to complete each task."
+        )
+        self.assistant = self.clients["openai"].create_assistant(
+            instructions=agent_role, name="Executive", description="This is an executive assistant"
+        )
+
     @Agent.qna
-    def plan_components(self) -> str:
+    def plan_components(self, user_request) -> str:
         return """\
         List the essential code components needed to fulfill the user's request. Each component should be atomic,\
         such that a developer can implement it in isolation provided placeholders for preceding components.
@@ -288,7 +308,11 @@ class Executive(Agent):
         [Natural language specification of the specific code component or function call]
         [Natural language specification of the specific code component or function call]
         ...
-        """
+        
+        User Request: {user_request}
+        """.format(
+            user_request=user_request
+        )
 
     @Agent.qna
     def answer_question(self, context: str, question: str) -> str:
@@ -308,12 +332,8 @@ class Executive(Agent):
         Generates a summary of completed components
         Returns the summary
         """
-        return f"""\
-        Provide an explicit summary of what has been implemented as a list of points.
-
-        Previous Components Summarized: {summary}
-        Current Component Implementation: {implementation}
-
+        return """\
+        Provide an explicit summary of implemented components as a list of points.
         For each component summary:
         1. Describe its full functionality using natural language.
         2. Include file name, function name, and variable name in the description.
@@ -323,7 +343,12 @@ class Executive(Agent):
         2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
         3. Populated foo with random ints in app.py
         4. Printed average of bar and baz in the main function of app.py
-        """
+
+        Previous Components Summarized: {summary}
+        Current Component Implementation: {implementation}
+        """.format(
+            summary=summary, implementation=implementation
+        )
 
 
 class AWSAgent:

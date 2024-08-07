@@ -6,7 +6,7 @@ from openai.types.beta.thread import Thread
 
 from . import prompts
 from .agents import AWSAgent, Developer, Executive
-from .clients import CLIClient, Client, OpenAIClient
+from .clients import Client, OpenAIClient
 from .state import ProjectStatus, State
 
 
@@ -52,10 +52,9 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        orig_components = self.plan()
+        orig_components = self.plan(self.starting_prompt)
         components_list = orig_components.split("\n")
         components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
-        CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
 
         summary = ""
         all_implementations = []
@@ -83,8 +82,8 @@ class SoftwareProject(StatefulMixin):
 
         return final_code
 
-    def plan(self) -> str:
-        planned_components = self.exec.plan_components(thread=self.threads["main"])
+    def plan(self, project_idea) -> str:
+        planned_components = self.exec.plan_components(project_idea)
         return planned_components
 
 
@@ -102,9 +101,8 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     def __init__(self):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
-        openai_client = OpenAIClient()
         self.clients = {
-            "openai": openai_client,
+            "openai": OpenAIClient(),
         }
         self.agents = {
             "exec": Executive(self.clients),
@@ -164,13 +162,13 @@ def communicative_dehallucination(
     q_and_a = []
     for i in range(max_iter):
         question = developer.ask_question(context)
-        CLIClient.emit(f"Developer's question:\n {question}\n")
+        # CLIClient.emit(f"Developer's question:\n {question}\n")
 
         if question == "No Question":
             break
 
         answer = executive.answer_question(context, question)
-        CLIClient.emit(f"Executive's answer:\n {answer}\n")
+        # CLIClient.emit(f"Executive's answer:\n {answer}\n")
 
         q_and_a.append((question, answer))
         # Update context with new Q&A pair
@@ -183,10 +181,10 @@ def communicative_dehallucination(
 
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context)
-    CLIClient.emit(f"Component Implementation:\n{implementation}")
+    # CLIClient.emit(f"Component Implementation:\n{implementation}")
 
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation)
-    CLIClient.emit(f"Summary: {summary}")
+    # CLIClient.emit(f"Summary: {summary}")
 
     return implementation, summary

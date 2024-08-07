@@ -27,9 +27,13 @@ class OpenAIClient(Client):
             self.client.beta.threads.messages.create(thread_id=new_thread.id, role="user", content=prompt)
         return new_thread
 
-    def create_assistant(self, prompt: str = "", model: str = "gpt-4o-mini") -> Assistant:
+    def create_assistant(
+        self, instructions: str = "", model: str = "gpt-4o-mini", description: str = "", name: str = ""
+    ) -> Assistant:
         temperature = float(os.getenv("OPENAI_TEMPERATURE", 1))
-        return self.client.beta.assistants.create(instructions=prompt, model=model, temperature=temperature)
+        return self.client.beta.assistants.create(
+            instructions=instructions, model=model, temperature=temperature, name=name, description=description
+        )
 
 
 class CLIClient(Client):
