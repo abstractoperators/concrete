@@ -73,9 +73,19 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             data = await websocket.receive_text()
 
             so = orchestrator.SoftwareOrchestrator()
-            so.update(ws=websocket)
-            so.update(manager=manager)
-            result = so.process_new_project(data, True)
+            so.update(ws=websocket, manager=manager)
+            result = ""
+            async for agent_type, message in so.process_new_project(data, False):
+                payload = {
+                    "agent_type": agent_type,
+                    "timestamp": datetime.now().isoformat(),
+                    "message": (message),
+                    "completed": False,
+                }
+                result = message
+
+                await manager.send_personal_message(json.dumps(payload), websocket)
+
             payload = {
                 "agent_type": "EXECUTIVE",
                 "timestamp": datetime.now().isoformat(),
