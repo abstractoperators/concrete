@@ -2,13 +2,13 @@ services:
   demo:
     build:
       context: ../
-      dockerfile: ./docker/Dockerfile.demo`
+      dockerfile: ./docker/Dockerfile.demo
     volumes:
       - shared-volume:/shared
     environment:
       - SHARED_VOLUME=/shared
     ports:
-      - "8080:80"
+      - "8000:80"
     depends_on:
       - dind-builder
     env_file: "../.env"
