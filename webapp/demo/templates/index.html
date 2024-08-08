@@ -20,18 +20,21 @@
 
 <body>
     <div id="sticky-container">
-        <div id="sticky-div">
-            <h1>Abstract Operators Demo</h1>
-            <form action="" onsubmit="sendPrompt(event)" style="width: 100%;">
-                <textarea id="promptText" rows="5" style="width: 100%; box-sizing: border-box;"
-                    autocomplete="off">Create a simple helloworld flask application</textarea>
-                <button type="submit" value="Submit" id="submitPrompt">Submit</button>
-            </form>
-        </div>
+        <h1>Abstract Operators Demo</h1>
+        <form action="" onsubmit="sendPrompt(event)"
+            style="width: 80%; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
+            <div style="position: relative; width: 80%; display: flex; justify-content: center;">
+                <textarea id="promptText" placeholder="Create a simple helloworld flask application" rows="3"
+                    style="width: 100%; box-sizing: border-box; resize: none" autocomplete="off"></textarea>
+                <button type="submit" value="Submit" id="submitPrompt"
+                    style="position: absolute; bottom: 10px; right: 10px;">
+                    Submit
+                </button> 
+            </div>
+        </form>
         <div id="promptDisplay"></div>
     </div>
 
-    <!-- Submitted prompt sits at top of page even after scrolling -->
     <div id="messages">
     </div>
 
@@ -43,9 +46,8 @@
             if (ws.readyState !== WebSocket.OPEN) {
                 console.log("WebSocket connection timed out");
                 ws.close();
-                // Implement retry logic or inform the user
             }
-        }, 100000); // 10 seconds timeout
+        }, 100000);
 
         ws.onopen = function () {
             clearTimeout(connectionTimeout);
@@ -73,16 +75,9 @@
             const content = document.createElement('p');
             content.innerText = messageText;
 
-            const timeStamp = document.createElement('span');
-            timeStamp.className = 'time-left';
-            timeStamp.textContent = new Date(timestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
 
             messageElement.appendChild(content);
-            messageElement.appendChild(timeStamp);
+            // messageElement.appendChild(timeStamp);
             messages.appendChild(messageElement);
 
             scrollToBottom();
@@ -91,13 +86,11 @@
         function sendPrompt(event) {
             event.preventDefault();
             const messages = document.getElementById('messages');
-            // messages.innerHTML = ""
             var input = document.getElementById("promptText");
             var submitButton = document.getElementById("submitPrompt");
             var promptDisplay = document.getElementById("promptDisplay");
 
-            // Format the prompt text
-            var formattedPrompt = input.value
+            var formattedPrompt = input.value.trim()
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
@@ -106,7 +99,7 @@
                     return '&nbsp;'.repeat(match.length);
                 });
 
-            promptDisplay.innerHTML = "<strong>Prompt:</strong> <pre>" + formattedPrompt + "</pre>";
+            promptDisplay.innerHTML = "<b>Prompt:</b> <div class='formatted-prompt'>" + formattedPrompt + "</div>";
 
             ws.send(input.value);
             input.value = '';

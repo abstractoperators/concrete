@@ -24,3 +24,6 @@ localhost_demo_with_deploy: localhost_demo_down
 
 localhost_demo_down:
 	docker compose -f docker/docker-compose.yml down -v
+
+# Build docker images
+# Push to ECR? 
