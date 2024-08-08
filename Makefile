@@ -27,3 +27,6 @@ localhost_demo_down:
 
 # Build docker images
 # Push to ECR? 
+
+aws_ecr_login:
+	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com

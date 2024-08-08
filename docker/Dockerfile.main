@@ -1,0 +1,11 @@
+FROM python:3.11.9-slim-bookworm
+
+WORKDIR /app
+
+RUN apt-get update
+
+COPY /webapp/main /app
+
+RUN chmod +x ./app/scripts/start.sh
+
+CMD ["./app/scripts/start.sh"]

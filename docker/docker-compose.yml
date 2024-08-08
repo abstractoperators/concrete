@@ -1,8 +1,8 @@
 services:
-  webapp:
+  demo:
     build:
       context: ../
-      dockerfile: ./docker/Dockerfile.webapp
+      dockerfile: ./docker/Dockerfile.demo`
     volumes:
       - shared-volume:/shared
     environment:
