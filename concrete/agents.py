@@ -373,8 +373,8 @@ class AWSAgent:
             WORKDIR /app
             RUN pip install flask concrete-operators
             COPY . .
-            ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
-            ENV OPENAI_TEMPERATURE 0
+            ENV OPENAI_API_KEY={os.environ['OPENAI_API_KEY']}
+            ENV OPENAI_TEMPERATURE=0
             CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
             """
         )
