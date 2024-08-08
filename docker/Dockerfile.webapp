@@ -18,7 +18,7 @@ COPY . .
 RUN poetry config virtualenvs.create false \
     && poetry install --without dev --no-interaction --no-ansi
 
-RUN chmod +x ./demo_webapp/scripts/start.sh
+RUN chmod +x ./webapp/demo/scripts/start.sh
 EXPOSE 80
 
-CMD ["./demo_webapp/scripts/start.sh"]
+CMD ["./webapp/demo/scripts/start.sh"]
