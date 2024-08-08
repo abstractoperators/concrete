@@ -1,5 +1,6 @@
+import asyncio
 from textwrap import dedent
-from typing import Tuple, cast
+from typing import cast
 from uuid import uuid1
 
 from openai.types.beta.thread import Thread
@@ -46,13 +47,14 @@ class SoftwareProject(StatefulMixin):
         self.update(status=ProjectStatus.READY)
         self.deploy = deploy
 
-    def do_work(self) -> str:
+    async def do_work(self):
         """
         Break down prompt into smaller components and write the code for each individually.
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        orig_components = self.plan(self.starting_prompt)
+        orig_components = self.exec.plan_components(self.starting_prompt)
+        yield "executive", orig_components
         components_list = orig_components.split("\n")
         components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
 
@@ -60,30 +62,32 @@ class SoftwareProject(StatefulMixin):
         all_implementations = []
         for component in components:
             # Use communicative_dehallucination for each component
-            implementation, summary = communicative_dehallucination(
+            await asyncio.sleep(0)
+            async for agent_or_implementation, message in communicative_dehallucination(
                 self.exec,
                 self.dev,
                 summary,
                 component,
                 max_iter=0,
-            )
+            ):
+                await asyncio.sleep(0)
+                if agent_or_implementation in ("developer", "executive"):
+                    yield agent_or_implementation, message
 
-            # Add the implementation to our list
-            all_implementations.append(implementation)
+                else:  # last result
+                    # Add the implementation to our list
+                    all_implementations.append(agent_or_implementation)
+                    summary = message
 
         final_code = self.dev.integrate_components(components, all_implementations, self.starting_prompt)
 
-        self.update(status=ProjectStatus.FINISHED)
         if self.deploy:
             if self.aws is None:
                 raise ValueError("Cannot deploy without AWSAgent")
             cast(AWSAgent, self.aws).deploy(final_code, self.uuid)
 
-        return final_code
-
-    def plan(self, project_idea) -> str:
-        planned_components = self.exec.plan_components(project_idea)
-        return planned_components
+        self.update(status=ProjectStatus.FINISHED)
+        yield "developer", final_code
 
 
 class Orchestrator:
@@ -124,18 +128,16 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             clients=self.clients,
             deploy=deploy,
         )
-        final_code = current_project.do_work()
-        self.update(status=ProjectStatus.FINISHED)
-        return final_code
+        return current_project.do_work()
 
 
-def communicative_dehallucination(
+async def communicative_dehallucination(
     executive: Executive,
     developer: Developer,
     summary: str,
     component: str,
     max_iter: int = 1,
-) -> Tuple[str, str]:
+):
     """
     Implements a communicative dehallucination process for software development.
 
@@ -159,18 +161,26 @@ def communicative_dehallucination(
 
     # Iterative Q&A process
     q_and_a = []
-    for i in range(max_iter):
+    for _ in range(max_iter):
         question = developer.ask_question(context)
         # CLIClient.emit(f"Developer's question:\n {question}\n")
 
         if question == "No Question":
             break
 
+        yield "developer", question
+
+        await asyncio.sleep(0)
+
         answer = executive.answer_question(context, question)
         # CLIClient.emit(f"Executive's answer:\n {answer}\n")
 
         q_and_a.append((question, answer))
         # Update context with new Q&A pair
+
+        yield "executive", answer
+
+        await asyncio.sleep(0)
 
     if q_and_a:
         context += "\nComponent Clarifications:"
@@ -181,7 +191,13 @@ def communicative_dehallucination(
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context)
 
+    yield "developer", implementation
+
+    await asyncio.sleep(0)
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation)
 
-    return implementation, summary
+    yield "executive", summary
+    await asyncio.sleep(0)
+    yield implementation, summary
+    await asyncio.sleep(0)
