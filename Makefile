@@ -17,14 +17,6 @@ helloworld:
 simpleflask:
 	$(ORCHESTRATE) "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
 
-# Demo Webapp with Deploy
-# localhost_demo_with_deploy: localhost_demo_down
-# 	docker compose -f docker/docker-compose.yml build
-# 	docker compose -f docker/docker-compose.yml up
-
-# localhost_demo_down:
-# 	docker compose -f docker/docker-compose.yml down -v
-
 build-webapp-demo:
 	docker compose -f docker/docker-compose.yml build
 down-webapp-demo:
