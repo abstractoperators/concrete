@@ -16,10 +16,6 @@ h1 {
   color: var(--primary-color);
   font-size: clamp(2px, calc(7vw), 25px);
   text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  text-align: center;
 }
 
 .center-text {
