@@ -28,11 +28,9 @@ class Agent:
     ):
         """
         "Question and Answer", given a query, return an answer.
+        Basically just a wrapper for OpenAI's chat completion API.
 
         # Synchronous. Creates a new thread if one isn't given
-
-        user_request: eg) "Create a website that does xyz. Can include context"
-        agent_task: eg) "List the components required to make fulfill the users request"
         """
         thread = self.clients["openai"].create_thread()
 
