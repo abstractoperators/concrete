@@ -68,6 +68,8 @@ class SoftwareProject(StatefulMixin):
             ):
                 await asyncio.sleep(0)
                 if agent_or_implementation in ("developer", "executive"):
+                    if agent_or_implementation == "executive":
+                        summary = message  # Keep a rolling summary so that the developer can refer to it.
                     yield agent_or_implementation, message
 
                 else:  # last result
