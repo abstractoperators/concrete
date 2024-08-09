@@ -57,22 +57,35 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         ),
         "completed": False,
     }
+
     await manager.send_personal_message(json.dumps(payload), websocket)
 
+    payload = {
+        "agent_type": "Developer",
+        "timestamp": datetime.now().isoformat(),
+        "message": ("Hi! I'm the Developer!\n"),
+        "completed": False,
+    }
+
+    await manager.send_personal_message(json.dumps(payload), websocket)
     try:
         while True:
             data = await websocket.receive_text()
-            payload = {
-                "agent_type": "USER",
-                "timestamp": datetime.now().isoformat(),
-                "message": f"User (#{client_id}) requested: {data}",
-                "completed": False,
-            }
-            await manager.send_personal_message(json.dumps(payload), websocket)
 
             so = orchestrator.SoftwareOrchestrator()
-            so.update(ws=websocket)
-            result = so.process_new_project(data, True)
+            so.update(ws=websocket, manager=manager)
+            result = ""
+            async for agent_type, message in so.process_new_project(data, False):
+                payload = {
+                    "agent_type": agent_type,
+                    "timestamp": datetime.now().isoformat(),
+                    "message": (message),
+                    "completed": False,
+                }
+                result = message
+
+                await manager.send_personal_message(json.dumps(payload), websocket)
+
             payload = {
                 "agent_type": "EXECUTIVE",
                 "timestamp": datetime.now().isoformat(),

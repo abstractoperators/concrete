@@ -11,28 +11,32 @@
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0QK53DQ7ZM"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-0QK53DQ7ZM');
+    gtag('config', 'G-0QK53DQ7ZM');
 </script>
 
 <body>
-    <div id="sticky-container">
-        <div id="sticky-div">
-            <h1>Abstract Operators Demo</h1>
-            <form action="" onsubmit="sendPrompt(event)">
-                <input type="text" id="promptText" value="Create a simple helloworld flask application" autocomplete="off" />
-                <button type="submit" value="Submit" id="submitPrompt"> Submit </button>
-            </form>
-        </div>
+    <h1>demo</h1>
+
+    <div class="center-text">
+        <form id="promptForm" action="" onsubmit="sendPrompt(event)">
+            <textarea id="promptInput" placeholder="Create a simple helloworld flask application"
+                autocomplete="off"></textarea>
+            <button type="submit" value="Submit" id="submitPrompt">
+                Submit
+            </button>
+        </form>
+
         <div id="promptDisplay"></div>
+
+        <div id="messages">
+        </div>
+
     </div>
 
-    <!-- Submitted prompt sits at top of page even after scrolling -->
-    <div id="messages">
-    </div>
 
     <script>
         var client_id = Date.now();
@@ -42,9 +46,8 @@
             if (ws.readyState !== WebSocket.OPEN) {
                 console.log("WebSocket connection timed out");
                 ws.close();
-                // Implement retry logic or inform the user
             }
-        }, 100000); // 10 seconds timeout
+        }, 100000);
 
         ws.onopen = function () {
             clearTimeout(connectionTimeout);
@@ -69,19 +72,7 @@
                 messageElement.className = `message ${agent_type.toLowerCase()}`;
             }
 
-            const content = document.createElement('p');
-            content.innerText = messageText;
-
-            const timeStamp = document.createElement('span');
-            timeStamp.className = 'time-left';
-            timeStamp.textContent = new Date(timestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-
-            messageElement.appendChild(content);
-            messageElement.appendChild(timeStamp);
+            messageElement.innerHTML = messageText;
             messages.appendChild(messageElement);
 
             scrollToBottom();
@@ -89,13 +80,22 @@
 
         function sendPrompt(event) {
             event.preventDefault();
-            const messages = document.getElementById('messages');
-            // messages.innerHTML = ""
-            var input = document.getElementById("promptText");
+            var input = document.getElementById("promptInput");
             var submitButton = document.getElementById("submitPrompt");
             var promptDisplay = document.getElementById("promptDisplay");
-            promptDisplay.textContent = "Prompt: " + input.value;
-            ws.send(input.value)
+
+            var formattedPrompt = input.value.trim()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>')
+                .replace(/\s{2,}/g, function (match) {
+                    return '&nbsp;'.repeat(match.length);
+                });
+
+            promptDisplay.innerHTML = "<b>Prompt:</b> <div class='formatted-prompt'>" + formattedPrompt + "</div>";
+
+            ws.send(input.value);
             input.value = '';
             submitButton.disabled = true;
         }

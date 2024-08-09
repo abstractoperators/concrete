@@ -40,7 +40,7 @@ deploy_to_aws() {
     SECURITY_GROUP="sg-0463bb6000a464f50"
     EXECUTION_ROLE_ARN="arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
     LOAD_BALANCER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:loadbalancer/app/ConcreteLB/8624995bbfed2fc3"
-    LISTENER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLB/8624995bbfed2fc3/8e2d28e1f80bf00b"
+    LISTENER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLB/8624995bbfed2fc3/b8f13a57787e02eb"
     LISTENER_RULE_PRIORITY=$(find_lowest_priority $LISTENER_ARN)
 
     echo "Creating/updating task definition..."
@@ -82,7 +82,13 @@ deploy_to_aws() {
         requiresCompatibilities: ["FARGATE"],
         networkMode: "awsvpc",
         cpu: "256",
-        memory: "512"
+        memory: "512",
+        tags: [
+            {
+                "key": "created_by",
+                "value": "demo"
+            }
+        ]
     }')
     echo $TASK_DEFINITION
 
@@ -105,7 +111,8 @@ deploy_to_aws() {
     --healthy-threshold-count 2 \
     --unhealthy-threshold-count 2 \
     --query 'TargetGroups[0].TargetGroupArn' \
-    --output text)
+    --output text\
+    --tags Key=created_by,Value=demo)
 
     echo "Target Group ARN: $TARGET_GROUP_ARN"
 
@@ -128,6 +135,12 @@ deploy_to_aws() {
             {
                 Type: "forward",
                 TargetGroupArn: $target_group_arn
+            }
+        ],
+        Tags: [
+            {
+                Key: "created_by",
+                Value: "demo"
             }
         ]
     }')
@@ -177,12 +190,18 @@ deploy_to_aws() {
         enableECSManagedTags: true,
         propagateTags: "SERVICE",
         loadBalancers: [
-        {
-            targetGroupArn: $target_group_arn,
-            containerName: $container_name,
-            containerPort: $container_port
-        }
-    ]
+            {
+                targetGroupArn: $target_group_arn,
+                containerName: $container_name,
+                containerPort: $container_port
+            }
+        ],
+        tags: [
+            {
+                "key": "created_by",
+                "value": "demo"
+            }
+        ]
     }')
 
     echo $SERVICE_DEFINITION

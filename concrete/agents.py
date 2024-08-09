@@ -8,8 +8,6 @@ from textwrap import dedent
 from typing import Callable, List, cast
 from uuid import UUID, uuid1
 
-from openai.types.beta.thread import Thread
-
 from .clients import CLIClient, Client
 
 
@@ -18,62 +16,60 @@ class Agent:
     Represents the base agent for further implementation
     """
 
-    auto_dedent = True
-
     def __init__(self, clients: dict[str, Client]):
         self.uuid = uuid1()
         self.clients = clients
 
         # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
-        instructions = (
-            "You are a software developer. " "You will answer software development questions as concisely as possible."
-        )
-        self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
 
     def _qna(
         self,
-        content: str,
-        thread: Thread | None = None,
-        instructions: str | None = None,
+        question: str,
     ):
         """
         "Question and Answer", given a query, return an answer.
+        Basically just a wrapper for OpenAI's chat completion API.
 
-        Synchronous. Creates a new thread if one isn't given
+        # Synchronous. Creates a new thread if one isn't given
         """
-        thread = thread or self.clients["openai"].create_thread()
+        thread = self.clients["openai"].create_thread()
+
+        # eg) make a website...
         self.clients["openai"].client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=content,
+            content=question,
         )
+
+        # eg) list the components required to make fulfill the users request
         self.clients["openai"].client.beta.threads.runs.create_and_poll(
             thread_id=thread.id,
             assistant_id=self.assistant.id,
-            instructions=instructions,
         )
 
-        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
+        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="asc")
+
         # Assume message data is TextContentBlock
-        answer = attrgetter("text.value")(messages.data[0].content[0])
+        answer = attrgetter("text.value")(messages.data[-1].content[0])
+
+        for i, message in enumerate(messages.data):
+            CLIClient.emit(f'\nQNA Message ({i}): ({message.role})\n{message.content[0].text.value}')
+
         return answer
 
     @classmethod
-    def qna(cls, message_producer: Callable) -> Callable:
+    def qna(cls, question_producer: Callable) -> Callable:
         """
         Decorate something on a child object downstream to get a response from a query
 
-        message_producer is expected to return a string/prompt.
+        question_producer is expected to return a request like "Create a website that does xyz"
         """
 
-        @wraps(message_producer)
+        @wraps(question_producer)
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
-            thread = kwargs.pop("thread", None)
-            instructions = kwargs.pop("instructions", None)
-            content = message_producer(*args, **kwargs)
-            content = dedent(content) if self.auto_dedent else content
-            return self._qna(content, thread=thread, instructions=instructions)
+            question = dedent(question_producer(*args, **kwargs))
+            return self._qna(question=question)
 
         return _send_and_await_reply
 
@@ -82,6 +78,16 @@ class Developer(Agent):
     """
     Represents an agent that produces code.
     """
+
+    def __init__(self, clients: dict[str, Client]):
+        super().__init__(clients)
+        agent_role = (
+            "You are an expert software developer. You will follow the instructions given to you to complete each task."
+            "You will follow example formatting, defaulting to no formatting if no example is provided."
+        )
+        self.assistant = self.clients["openai"].create_assistant(
+            instructions=agent_role, name="Developer", description="This is a developer assistant"
+        )
 
     @Agent.qna
     def ask_question(self, context: str) -> str:
@@ -121,17 +127,13 @@ class Developer(Agent):
     @Agent.qna
     def implement_component(self, context: str, dedent=True) -> str:
         """
-        Prompts the agent to implement a component based off of the components context
+        Prompts the agent to implement a component based off of the components
         Returns the code for the component
         """
-        return f"""
-            Provide code for the current component based on existing component implementations in Context.\
+        return """
+            Please provide complete and accurate code for the provided current component.\
             Produced code blocks should be preceded by the file where it should be placed.
             Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
-
-            *Context:*
-            {context}
-
 
             **Example:**
                 Context:
@@ -174,7 +176,12 @@ class Developer(Agent):
                     ```html
                     <!DOCTYPE html>
                     ```html
-        """
+                    
+            *Context:*
+            {context}
+        """.format(
+            context=context
+        )
 
     @Agent.qna
     def integrate_components(
@@ -192,19 +199,23 @@ class Developer(Agent):
             prev_components.append(f"\n\t****Component description****: \n{desc}\n\t****Code:**** \n{code}")
 
         out_str = """\
-            *Task: Implement the original webpage creation task*
-            ```webpage_details
-            {webpage_idea}
-            ```end_webpage_details
+            *Task: Accurately and completely implement the original webpage creation task using the provided components*
+            **Webpage Idea:**
+                {webpage_idea}
 
+            **Components:**
+                {components}
+               
             **Important Details:**
             1. All necessary imports and libraries are at the top of each file
             2. Each code block is preceded by a file path where it should be placed
             3. Code is organized logically
             4. Resolve duplicate and conflicting code with discretion
             5. Only code and file paths are returned
+            6. With discretion, modify existing implementations to ensure a working implementation of the\
+            original webpage creation task.
 
-            **Example Output:**
+            **Example Output Syntax:**
             app.py
             ```python
             def foo():
@@ -215,40 +226,42 @@ class Developer(Agent):
             ```html
             <!DOCTYPE html>
             ```
-            
-            static/style.css
-            ```css
-                /* Foo */
-            ```
-            
-            **Integrate the following components to implement the webpage**
-                ***Components:***
-                {components}
             """.format(
             webpage_idea=webpage_idea, components="".join(prev_components)
         )
-        CLIClient.emit("Integrate components:\n" + out_str)
         return out_str
 
     @Agent.qna
     def implement_html_element(self, prompt: str) -> str:
-        out_str = f"""
+        out_str = f"""\
         Generate an html element with the following description:\n
         {prompt}
 
+        Generated html elements should be returned as a string with the following format.
+        Remember to ONLY return the generated HTML element. Do not include any other information.
+
         Example 1.
-        Description: Create a header that says `Title`
-        Output: <h1>Title</h1>
+        Generate an html element with the following description:
+        A header that says `Title`
+        
+        <h1>Title</h1>
 
         Example 2.
-        Description: Create an input form with a submit button
-        Output:<form method="POST" action="/">
+        Generate an html element with the following description:
+        An input form with a submit button
+        
+        <form method="POST" action="/">
         <label for="textInput">Input:</label>
         <input type="text" id="textInput" name="textInput" required>
         <button type="submit">Submit</button>
         </form>
+        
+        Example 3.
+        Generate an html element with the following description:
+        Create a paragraph with the text `Hello, World!`
+        
+        <p>Hello, World!</p>
         """
-        CLIClient.emit("implement_html_element " + out_str)
         return out_str
 
 
@@ -257,27 +270,39 @@ class Executive(Agent):
     Represents an agent that instructs and guides other agents.
     """
 
+    def __init__(self, clients: dict[str, Client]):
+        super().__init__(clients)
+        agent_role = (
+            "You are an expert executive software developer."
+            "You will follow the instructions given to you to complete each task."
+        )
+        self.assistant = self.clients["openai"].create_assistant(
+            instructions=agent_role, name="Executive", description="This is an executive assistant"
+        )
+
     @Agent.qna
-    def plan_components(self) -> str:
+    def plan_components(self, user_request) -> str:
         return """\
-        List the essential code components needed to fulfill the user's request. Each component should be atomic,\
-        such that a developer could implement it in isolation provided placeholders for preceding components.
+        List the essential, atomic components needed to fulfill the user's request.
+        Use your discretion as a expert developer, and provide a comprehensive, declarative list of components.
         
-        Your response must:
-        1. Focus on the conceptual steps of specific code elements or function calls
-        2. Be comprehensive, accurate, and complete; cover all necessary components
+        Your responses must:
+        1. Include specific components
+        2. Be comprehensive, accurate, and complete
         3. Use technical terms appropriate for the specific programming language and framework.
         4. Sequence components logically, with later components dependent on previous ones
         5. Put each component on a new line without numbering
-
-        Assumptions:
-        - Assume all dependencies are already installed but NOT imported.
+        6. Assume all dependencies are already installed but NOT imported.
 
         Example format:
         [Natural language specification of the specific code component or function call]
         [Natural language specification of the specific code component or function call]
         ...
-        """
+        
+        User Request: {user_request}
+        """.format(
+            user_request=user_request
+        )
 
     @Agent.qna
     def answer_question(self, context: str, question: str) -> str:
@@ -297,21 +322,24 @@ class Executive(Agent):
         Generates a summary of completed components
         Returns the summary
         """
-        return f"""Provide an explicit summary of what has been implemented as a list of points.
 
-        Previous Components: {summary}
-        Current Component Implementation: {implementation}
-
+        prompt = """\
+        Add a summary of the current component implementation to the existing summary of components (if any).
+        Return only the list.
         For each component summary:
-        1. Describe its functionality using natural language
+        1. Describe its full functionality using natural language.
         2. Include file name, function name, and variable name in the description.
 
-        Example:
+        Example Output:
         1. Imported the packages numpy as np, and pandas as pd in app.py
         2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
         3. Populated foo with random ints in app.py
         4. Printed average of bar and baz in the main function of app.py
         """
+        if summary:
+            prompt += f"\nPrevious Components Summarized: \n{summary}"
+        prompt += f"\nCurrent Component Implementation: \n{implementation}"
+        return prompt
 
 
 class AWSAgent:
@@ -339,7 +367,8 @@ class AWSAgent:
             WORKDIR /app
             RUN pip install flask concrete-operators
             COPY . .
-            ENV OPENAI_API_KEY {os.environ['OPENAI_API_KEY']}
+            ENV OPENAI_API_KEY={os.environ['OPENAI_API_KEY']}
+            ENV OPENAI_TEMPERATURE=0
             CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
             """
         )
@@ -367,7 +396,7 @@ class AWSAgent:
             flask run --host=0.0.0.0 --port=80
             """
         )
-        # writes app.py and other files to build_dir_path
+
         self.parse_and_write_files(backend_code, build_dir_path)
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
             f.write(dockerfile_content)
@@ -408,6 +437,7 @@ class AWSAgent:
                     file_start_line, file_name = None, None
 
         for file_name, contents in out_files.items():
+            print(f"Writing to {os.path.join(build_dir_path, file_name)}")
             file_path = Path(os.path.join(build_dir_path, cast(str, file_name)))
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, "w") as f:

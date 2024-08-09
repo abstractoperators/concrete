@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 ENV POETRY_VERSION=1.5.1
 ENV POETRY_HOME=/opt/poetry
 ENV PATH=$POETRY_HOME/bin:$PATH
-ENV OPENAI_TEMPERATURE=.2
+ENV OPENAI_TEMPERATURE=0
 
 WORKDIR /app
 
@@ -13,13 +13,14 @@ RUN apt-get update
 
 RUN pip install "poetry==$POETRY_VERSION"
 
-COPY . .
-
+COPY pyproject.toml poetry.lock README.md /app/
+COPY concrete /app/concrete
 RUN poetry config virtualenvs.create false \
-    && poetry install --without dev --no-interaction --no-ansi
+    && poetry install --only webapp-main
 
+COPY /webapp/main ./
 
-RUN chmod +x ./demo_webapp/scripts/start.sh
+RUN chmod +x ./scripts/start.sh
+
 EXPOSE 80
-
-CMD ["./demo_webapp/scripts/start.sh"]
+CMD ["./scripts/start.sh"]
