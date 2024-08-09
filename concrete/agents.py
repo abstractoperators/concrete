@@ -25,8 +25,6 @@ class Agent:
     def _qna(
         self,
         question: str,
-        # thread: Thread,
-        # agent_task: str | None = None,
     ):
         """
         "Question and Answer", given a query, return an answer.

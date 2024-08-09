@@ -163,23 +163,17 @@ async def communicative_dehallucination(
     q_and_a = []
     for _ in range(max_iter):
         question = developer.ask_question(context)
-        # CLIClient.emit(f"Developer's question:\n {question}\n")
 
         if question == "No Question":
             break
 
         yield "developer", question
-
         await asyncio.sleep(0)
 
         answer = executive.answer_question(context, question)
-        # CLIClient.emit(f"Executive's answer:\n {answer}\n")
-
         q_and_a.append((question, answer))
-        # Update context with new Q&A pair
 
         yield "executive", answer
-
         await asyncio.sleep(0)
 
     if q_and_a:
