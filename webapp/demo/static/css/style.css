@@ -1,5 +1,5 @@
 :root {
-  --primary-color: #ddd;
+  --primary-color: #bbb;
   --background-color: #111111;
 }
 
@@ -96,6 +96,7 @@ button[type="submit"]:disabled {
   white-space: normal;
   width: 100%;
   text-align: left;
+  padding-bottom: 1vh;
 }
 
 .formatted-prompt {
@@ -119,7 +120,8 @@ button[type="submit"]:disabled {
   white-space: pre-wrap;
   box-sizing: border-box;
   font-size: clamp(5px, calc(2.5vw), 18px);
-  padding: 1.5vh 1.5vw;
+  padding: 2vh 2vw;
+  margin-bottom: 2vh;
   display: block;
   text-align: left;
 }
@@ -137,6 +139,6 @@ button[type="submit"]:disabled {
 }
 
 .message.final {
-  border-color: #4fd156;
+  border-color: #398f3e;
   width: 100%;
 }

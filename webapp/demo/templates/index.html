@@ -95,7 +95,7 @@
 
             promptDisplay.innerHTML = "<b>Prompt:</b> <div class='formatted-prompt'>" + formattedPrompt + "</div>";
 
-            // ws.send(input.value);
+            ws.send(input.value);
             input.value = '';
             submitButton.disabled = true;
         }
