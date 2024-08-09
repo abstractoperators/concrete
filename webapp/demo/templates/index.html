@@ -19,24 +19,24 @@
 </script>
 
 <body>
-    <div id="sticky-container">
-        <h1>Abstract Operators Demo</h1>
-        <form action="" onsubmit="sendPrompt(event)"
-            style="width: 80%; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
-            <div style="position: relative; width: 80%; display: flex; justify-content: center;">
-                <textarea id="promptText" placeholder="Create a simple helloworld flask application" rows="3"
-                    style="width: 100%; box-sizing: border-box; resize: none" autocomplete="off"></textarea>
-                <button type="submit" value="Submit" id="submitPrompt"
-                    style="position: absolute; bottom: 10px; right: 10px;">
-                    Submit
-                </button> 
-            </div>
+    <h1>demo</h1>
+
+    <div class="center-text">
+        <form id="promptForm" action="" onsubmit="sendPrompt(event)">
+            <textarea id="promptInput" placeholder="Create a simple helloworld flask application"
+                autocomplete="off"></textarea>
+            <button type="submit" value="Submit" id="submitPrompt">
+                Submit
+            </button>
         </form>
+
         <div id="promptDisplay"></div>
+
+        <div id="messages">
+        </div>
+
     </div>
 
-    <div id="messages">
-    </div>
 
     <script>
         var client_id = Date.now();
@@ -72,12 +72,7 @@
                 messageElement.className = `message ${agent_type.toLowerCase()}`;
             }
 
-            const content = document.createElement('p');
-            content.innerText = messageText;
-
-
-            messageElement.appendChild(content);
-            // messageElement.appendChild(timeStamp);
+            messageElement.innerHTML = messageText;
             messages.appendChild(messageElement);
 
             scrollToBottom();
@@ -85,8 +80,7 @@
 
         function sendPrompt(event) {
             event.preventDefault();
-            const messages = document.getElementById('messages');
-            var input = document.getElementById("promptText");
+            var input = document.getElementById("promptInput");
             var submitButton = document.getElementById("submitPrompt");
             var promptDisplay = document.getElementById("promptDisplay");
 
@@ -101,7 +95,7 @@
 
             promptDisplay.innerHTML = "<b>Prompt:</b> <div class='formatted-prompt'>" + formattedPrompt + "</div>";
 
-            ws.send(input.value);
+            // ws.send(input.value);
             input.value = '';
             submitButton.disabled = true;
         }
