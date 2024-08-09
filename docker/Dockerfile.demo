@@ -6,6 +6,7 @@ ENV POETRY_VERSION=1.5.1
 ENV POETRY_HOME=/opt/poetry
 ENV PATH=$POETRY_HOME/bin:$PATH
 ENV OPENAI_TEMPERATURE=0
+ENV POETRY_NO_INTERACTION=1 
 
 WORKDIR /app
 
@@ -15,8 +16,10 @@ RUN pip install "poetry==$POETRY_VERSION"
 
 COPY . .
 
-RUN poetry config virtualenvs.create false \
-    && poetry install --with webapp-demo
+RUN touch README.md
+RUN poetry config virtualenvs.create false
+RUN poetry config installer.max-workers 10
+RUN poetry install --with webapp-demo --no-cache --no-ansi
 
 RUN chmod +x ./webapp/demo/scripts/start.sh
 EXPOSE 80
