@@ -68,8 +68,6 @@ class Agent:
         @wraps(question_producer)
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
-            # thread = kwargs.pop("thread", None)
-            # user_request = dedent(kwargs.pop("user_request", None))
             question = dedent(question_producer(*args, **kwargs))
             return self._qna(question=question)
 
@@ -398,7 +396,7 @@ class AWSAgent:
             flask run --host=0.0.0.0 --port=80
             """
         )
-        # writes app.py and other files to build_dir_path
+
         self.parse_and_write_files(backend_code, build_dir_path)
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
             f.write(dockerfile_content)
