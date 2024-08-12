@@ -2,13 +2,10 @@ import os
 import socket
 import time
 from functools import wraps
-from operator import attrgetter
 from pathlib import Path
 from textwrap import dedent
 from typing import Callable, List, cast
 from uuid import UUID, uuid1
-
-from openai.types.beta.thread import Thread
 
 from .clients import CLIClient, Client
 
@@ -25,37 +22,30 @@ class Operator:
         self.clients = clients
 
         # TODO: Move specific software prompting to its own SoftwareOperator class or mixin
-        instructions = (
+        self.instructions = (
             "You are a software developer. " "You will answer software development questions as concisely as possible."
         )
-        self.assistant = self.clients["openai"].create_assistant(prompt=instructions)  # type: ignore
 
     def _qna(
         self,
         content: str,
-        thread: Thread | None = None,
-        instructions: str | None = None,
     ):
         """
         "Question and Answer", given a query, return an answer.
 
-        Synchronous. Creates a new thread if one isn't given
+        Synchronous.
         """
-        thread = thread or self.clients["openai"].create_thread()
-        self.clients["openai"].client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=content,
-        )
-        self.clients["openai"].client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id,
-            assistant_id=self.assistant.id,
-            instructions=instructions,
+        messages = [
+            {'role': 'system', 'content': self.instructions},
+            {'role': 'user', 'content': content},
+        ]
+        response = self.clients["openai"].chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
         )
 
-        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="desc", limit=1)
-        # Assume message data is TextContentBlock
-        answer = attrgetter("text.value")(messages.data[0].content[0])
+        answer = response.choices[0].message.content
+
         return answer
 
     @classmethod
@@ -69,11 +59,10 @@ class Operator:
         @wraps(message_producer)
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
-            thread = kwargs.pop("thread", None)
             instructions = kwargs.pop("instructions", None)
             content = message_producer(*args, **kwargs)
             content = dedent(content) if self.auto_dedent else content
-            return self._qna(content, thread=thread, instructions=instructions)
+            return self._qna(content, instructions=instructions)
 
         return _send_and_await_reply
 
