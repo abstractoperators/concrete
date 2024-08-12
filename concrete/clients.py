@@ -4,6 +4,16 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.beta.assistant import Assistant
 from openai.types.beta.thread import Thread
+from pydantic import BaseModel
+
+
+class ProjectFile(BaseModel):
+    name: str  # eg app.py
+    content: str  # eg "print('hello world')\nprint('goodbye world')"
+
+
+class Project(BaseModel):
+    files: list[ProjectFile]
 
 
 class Client:
