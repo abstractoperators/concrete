@@ -4,7 +4,7 @@ import time
 from functools import wraps
 from pathlib import Path
 from textwrap import dedent
-from typing import Callable, List, cast
+from typing import Callable, List, Optional, cast
 from uuid import UUID, uuid1
 
 from .clients import CLIClient, Client
@@ -28,21 +28,20 @@ class Operator:
 
     def _qna(
         self,
-        content: str,
+        query: str,
+        instructions: Optional[str] = None,
     ):
         """
         "Question and Answer", given a query, return an answer.
 
         Synchronous.
         """
+        instructions = instructions or self.instructions
         messages = [
-            {'role': 'system', 'content': self.instructions},
-            {'role': 'user', 'content': content},
+            {'role': 'system', 'content': instructions},
+            {'role': 'user', 'content': query},
         ]
-        response = self.clients["openai"].chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-        )
+        response = self.clients["openai"].complete(messages=messages, model="gpt-4o-mini")
 
         answer = response.choices[0].message.content
 
@@ -247,9 +246,9 @@ class Executive(Operator):
     """
 
     @Operator.qna
-    def plan_components(self) -> str:
+    def plan_components(self, starting_prompt) -> str:
         return """\
-        List the essential code components needed to fulfill the user's request. Each component should be atomic,\
+        List the essential code components required to implement the project idea. Each component should be atomic,\
         such that a developer could implement it in isolation provided placeholders for preceding components.
         
         Your response must:
@@ -266,7 +265,12 @@ class Executive(Operator):
         [Natural language specification of the specific code component or function call]
         [Natural language specification of the specific code component or function call]
         ...
-        """
+        
+        Project Idea:
+        {starting_prompt}
+        """.format(
+            starting_prompt=starting_prompt
+        )
 
     @Operator.qna
     def answer_question(self, context: str, question: str) -> str:

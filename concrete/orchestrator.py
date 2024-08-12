@@ -4,7 +4,7 @@ from uuid import uuid1
 
 from . import prompts
 from .clients import CLIClient, Client, OpenAIClient
-from .Operators import AWSOperator, Developer, Executive
+from .operators import AWSOperator, Developer, Executive
 from .state import ProjectStatus, State
 
 

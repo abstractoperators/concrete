@@ -1,8 +1,9 @@
 import os
+from typing import List
 
 from dotenv import load_dotenv
 from openai import OpenAI
-from openai.types.beta.assistant import Assistant
+from openai.types.chat import ChatCompletion
 from pydantic import BaseModel
 
 
@@ -30,9 +31,8 @@ class OpenAIClient(Client):
         client = OpenAI(api_key=OPENAI_API_KEY)
         self.client = client
 
-    def create_assistant(self, prompt: str = "", model: str = "gpt-4o-mini") -> Assistant:
-        temperature = float(os.getenv("OPENAI_TEMPERATURE", 1))
-        return self.client.beta.assistants.create(instructions=prompt, model=model, temperature=temperature)
+    def complete(self, messages: List[str], **kwargs) -> ChatCompletion:
+        return self.client.chat.completions.create(messages=messages, **kwargs)
 
 
 class CLIClient(Client):
