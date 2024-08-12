@@ -2,8 +2,6 @@ from textwrap import dedent
 from typing import Tuple, cast
 from uuid import uuid1
 
-from openai.types.beta.thread import Thread
-
 from . import prompts
 from .agents import AWSAgent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
@@ -30,7 +28,6 @@ class SoftwareProject(StatefulMixin):
         dev: Developer,
         clients: dict[str, Client],
         aws: AWSAgent | None = None,
-        threads: dict[str, Thread] | None = None,  # context -> Thread
         deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
@@ -40,7 +37,6 @@ class SoftwareProject(StatefulMixin):
         self.exec = exec
         self.dev = dev
         self.aws = aws
-        self.threads = threads or {"main": self.clients["openai"].create_thread()}
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
@@ -84,7 +80,7 @@ class SoftwareProject(StatefulMixin):
         return final_code
 
     def plan(self) -> str:
-        planned_components = self.exec.plan_components(thread=self.threads["main"])
+        planned_components = self.exec.plan_components(self.starting_prompt)
         return planned_components
 
 
@@ -115,15 +111,12 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
 
     def process_new_project(self, starting_prompt: str, deploy: bool = False):
         self.update(status=ProjectStatus.WORKING)
-        # Immediately spin off a primary thread with the prompt
-        threads = {"main": self.clients["openai"].create_thread(starting_prompt)}
         current_project = SoftwareProject(
             starting_prompt=starting_prompt or prompts.HELLO_WORLD_PROMPT,
             exec=self.agents["exec"],
             dev=self.agents["dev"],
             aws=self.agents["aws"],
             orchestrator=self,
-            threads=threads,
             clients=self.clients,
             deploy=deploy,
         )
