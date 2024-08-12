@@ -51,7 +51,7 @@ class Operator:
         self,
         query: str,
         response_format: Optional[BaseModel] = None,
-    ):
+    ) -> BaseModel:
         """
         "Question and Answer", given a query, return an answer.
         Basically just a wrapper for OpenAI's chat completion API.
@@ -79,7 +79,6 @@ class Operator:
             raise Exception("Operator refused to answer question")
 
         answer = response.parsed
-
         return answer
 
     @classmethod
@@ -305,17 +304,18 @@ class Executive(Operator):
         return """\
         List the essential code components required to implement the project idea. Each component should be atomic,\
         such that a developer could implement it in isolation provided placeholders for preceding components.
-        
+
         Your responses must:
         1. Include specific components
         2. Be comprehensive, accurate, and complete
-        3. Use technical terms appropriate for the specific programming language and framework.
+        3. Use technical terms appropriate for the specific programming language and framework
         4. Sequence components logically, with later components dependent on previous ones
         5. Not include implementation details or code snippets
-        6. Assume all dependencies are already installed but NOT imported.
-        7. Be decisive and clear, avoiding ambiguity or vagueness.
+        6. Assume all dependencies are already installed but NOT imported
+        7. Be decisive and clear, avoiding ambiguity or vagueness
+        8. Be declarative, using action verbs to describe the component.
         ...
-        
+
         Project Idea:
         {starting_prompt}
         """.format(
@@ -340,7 +340,8 @@ class Executive(Operator):
         Generates a summary of completed components
         Returns the summary
         """
-        prompt = """Provide an explicit summary of what has been implemented as a list of points.
+        prompt = """Summarize what has been implemented in the current component,
+        and append it to the previously summarized components.
 
         For each component summary:
         1. Describe its full functionality using natural language.

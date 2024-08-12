@@ -4,7 +4,7 @@ from typing import cast
 from uuid import uuid1
 
 from . import prompts
-from .clients import CLIClient, Client, OpenAIClient
+from .clients import Client, OpenAIClient
 from .operators import (
     AWSOperator,
     Developer,
@@ -15,6 +15,7 @@ from .operators import (
     Summary,
 )
 from .state import ProjectStatus, State
+from .utils import format_project_directory, format_project_file, format_summary
 
 
 class StatefulMixin:
@@ -58,8 +59,7 @@ class SoftwareProject(StatefulMixin):
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
         components = self.plan()
-        for component in components:
-            CLIClient.emit(f"[Planned Component]: {component}")
+        yield "executive", "\n".join([f"[Planned Component]: {component}" for component in components])
 
         summary = ""
         all_implementations = []
@@ -75,12 +75,8 @@ class SoftwareProject(StatefulMixin):
             ):
                 await asyncio.sleep(0)
                 if agent_or_implementation in ("developer", "executive"):
-                    # if agent_or_implementation == "executive":
-                    #     summary = message  # Keep a rolling summary so that the developer can refer to it.
                     yield agent_or_implementation, message
-
                 else:  # last result
-                    # Add the implementation to our list
                     all_implementations.append(agent_or_implementation)
                     summary = message
 
@@ -88,16 +84,13 @@ class SoftwareProject(StatefulMixin):
             components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
         )
 
-        for project_file in files.files:
-            CLIClient.emit(f"\nfile_name: {project_file.file_name}\nfile_contents: {project_file.file_contents}\n")
-
         if self.deploy:
             if self.aws is None:
                 raise ValueError("Cannot deploy without AWSAgent")
             cast(AWSOperator, self.aws).deploy(files, self.uuid)
 
         self.update(status=ProjectStatus.FINISHED)
-        yield "developer", files
+        yield "developer", format_project_directory(files)
 
     def plan(self) -> str:
         planned_components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents)
@@ -178,13 +171,13 @@ async def communicative_dehallucination(
         if question == "No Question":
             break
 
-        yield "developer", question
+        yield "developer", question.text
         await asyncio.sleep(0)
 
         answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
-        yield "executive", answer
+        yield "executive", answer.text
         await asyncio.sleep(0)
 
     if q_and_a:
@@ -195,20 +188,15 @@ async def communicative_dehallucination(
 
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context, response_format=ProjectFile)
-    CLIClient.emit("Component Implementation:")
-    CLIClient.emit(f"File Name:{implementation.file_name}")
-    CLIClient.emit(f"File Contents:\n{implementation.file_contents}")
-    implementation = developer.implement_component(context)
 
-    yield "developer", implementation
+    yield "developer", format_project_file(implementation)
 
     await asyncio.sleep(0)
     # Generate a summary of what has been achieved
-    summary = executive.generate_summary(summary, implementation, response_format=Summary).summary
-    CLIClient.emit(f"Summary: {summary}")
+    summary = executive.generate_summary(summary, implementation, response_format=Summary)
 
-    yield "executive", summary
+    yield "executive", format_summary(cast(Summary, summary))
     await asyncio.sleep(0)
 
-    yield implementation, summary
+    yield implementation, format_summary(cast(Summary, summary))
     await asyncio.sleep(0)

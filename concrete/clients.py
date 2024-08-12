@@ -19,9 +19,10 @@ class OpenAIClient(Client):
         load_dotenv()
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE"))
 
     def complete(self, messages: List[str], **kwargs) -> ChatCompletion:
-        return self.client.beta.chat.completions.parse(messages=messages, **kwargs)
+        return self.client.beta.chat.completions.parse(messages=messages, temperature=self.OPENAI_TEMPERATURE, **kwargs)
 
 
 class CLIClient(Client):
