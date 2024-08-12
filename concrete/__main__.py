@@ -1,3 +1,4 @@
+import asyncio
 import sys
 
 from . import orchestrator
@@ -7,5 +8,11 @@ if len(sys.argv) != 2:
     sys.exit(1)
 input = sys.argv[1]
 so = orchestrator.SoftwareOrchestrator()
-result = so.process_new_project(input)
-print(result)
+
+
+async def main():
+    async for result in so.process_new_project(input):
+        print(result)
+
+
+asyncio.run(main())

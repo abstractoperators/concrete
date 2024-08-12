@@ -1,19 +1,21 @@
 services:
-  webapp:
+  demo:
+    image: webapp-demo:latest
     build:
       context: ../
-      dockerfile: ./docker/Dockerfile.webapp
+      dockerfile: ./docker/Dockerfile.demo
     volumes:
       - shared-volume:/shared
     environment:
       - SHARED_VOLUME=/shared
     ports:
-      - "8080:80"
+      - "8000:80"
     depends_on:
       - dind-builder
     env_file: "../.env"
 
   dind-builder:
+    image: webapp-dind-builder:latest
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.dind-builder
