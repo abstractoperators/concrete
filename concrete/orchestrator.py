@@ -1,10 +1,18 @@
 from textwrap import dedent
-from typing import Tuple, cast
+from typing import Tuple
 from uuid import uuid1
 
 from . import prompts
 from .clients import CLIClient, Client, OpenAIClient
-from .operators import AWSOperator, Developer, Executive
+from .operators import (
+    AWSOperator,
+    Developer,
+    Executive,
+    PlannedComponents,
+    ProjectDirectory,
+    ProjectFile,
+    Summary,
+)
 from .state import ProjectStatus, State
 
 
@@ -48,10 +56,9 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        orig_components = self.plan()
-        components_list = orig_components.split("\n")
-        components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
-        CLIClient.emit(f"\n[Planned Components]: \n{orig_components}\n")
+        components = self.plan()
+        for component in components:
+            CLIClient.emit(f"[Planned Component]: {component}")
 
         summary = ""
         all_implementations = []
@@ -68,20 +75,25 @@ class SoftwareProject(StatefulMixin):
             # Add the implementation to our list
             all_implementations.append(implementation)
 
-        final_code = self.dev.integrate_components(components, all_implementations, self.starting_prompt)
+        files = self.dev.integrate_components(
+            components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
+        )
+
+        for project_file in files.files:
+            CLIClient.emit(f"\nfile_name: {project_file.file_name}\nfile_contents: {project_file.file_contents}\n")
 
         self.update(status=ProjectStatus.FINISHED)
-        if self.deploy:
-            if self.aws is None:
-                raise ValueError("Cannot deploy without AWSOperator")
-            final_code_stripped = "\n".join(final_code.strip().split("\n")[1:-1])
-            cast(AWSOperator, self.aws).deploy(final_code_stripped, self.uuid)
+        # if self.deploy:
+        #     if self.aws is None:
+        #         raise ValueError("Cannot deploy without AWSOperator")
+        #     final_code_stripped = "\n".join(final_code.strip().split("\n")[1:-1])
+        #     cast(AWSOperator, self.aws).deploy(final_code_stripped, self.uuid)
 
-        return final_code
+        return files
 
     def plan(self) -> str:
-        planned_components = self.exec.plan_components(self.starting_prompt)
-        return planned_components
+        planned_components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents)
+        return planned_components.components
 
 
 class Orchestrator:
@@ -175,11 +187,11 @@ def communicative_dehallucination(
             context += f"\nAnswer: {answer}"
 
     # Developer implements component based on clarified context
-    implementation = developer.implement_component(context)
+    implementation = developer.implement_component(context, response_format=ProjectFile)
     CLIClient.emit(f"Component Implementation:\n{implementation}")
 
     # Generate a summary of what has been achieved
-    summary = executive.generate_summary(summary, implementation)
-    CLIClient.emit(f"Summary: {summary}")
+    summary = executive.generate_summary(summary, implementation, response_format=Summary)
+    CLIClient.emit(f"Summary: {summary}").summary
 
     return implementation, summary

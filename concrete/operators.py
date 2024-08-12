@@ -7,7 +7,30 @@ from textwrap import dedent
 from typing import Callable, List, Optional, cast
 from uuid import UUID, uuid1
 
+from pydantic import BaseModel
+
 from .clients import CLIClient, Client
+
+
+class ProjectFile(BaseModel):
+    file_name: str
+    file_contents: str
+
+
+class ProjectDirectory(BaseModel):
+    files: list[ProjectFile]
+
+
+class TextResponse(BaseModel):
+    text: str
+
+
+class Summary(BaseModel):
+    summary: List[str]
+
+
+class PlannedComponents(BaseModel):
+    components: List[str]
 
 
 class Operator:
@@ -30,6 +53,7 @@ class Operator:
         self,
         query: str,
         instructions: Optional[str] = None,
+        response_format: Optional[BaseModel] = None,
     ):
         """
         "Question and Answer", given a query, return an answer.
@@ -41,9 +65,22 @@ class Operator:
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
         ]
-        response = self.clients["openai"].complete(messages=messages, model="gpt-4o-mini")
 
-        answer = response.choices[0].message.content
+        response = (
+            self.clients["openai"]
+            .complete(
+                messages=messages,
+                model="gpt-4o-mini",
+                response_format=response_format if response_format else TextResponse,
+            )
+            .choices[0]
+        ).message
+
+        if response.refusal:
+            print(f"Operator refused to answer question: {query}")
+            raise Exception("Operator refused to answer question")
+
+        answer = response.parsed
 
         return answer
 
@@ -59,9 +96,9 @@ class Operator:
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
             instructions = kwargs.pop("instructions", None)
-            content = message_producer(*args, **kwargs)
-            content = dedent(content) if self.auto_dedent else content
-            return self._qna(content, instructions=instructions)
+            response_format = kwargs.pop("response_format", None)
+            query = message_producer(*args, **kwargs)
+            return self._qna(query, instructions=instructions, response_format=response_format)
 
         return _send_and_await_reply
 
@@ -107,7 +144,7 @@ class Developer(Operator):
         )
 
     @Operator.qna
-    def implement_component(self, context: str, dedent=True) -> str:
+    def implement_component(self, context: str) -> str:
         """
         Prompts the Operator to implement a component based off of the components context
         Returns the code for the component
@@ -256,14 +293,9 @@ class Executive(Operator):
         2. Be comprehensive, accurate, and complete; cover all necessary components
         3. Use technical terms appropriate for the specific programming language and framework.
         4. Sequence components logically, with later components dependent on previous ones
-        5. Put each component on a new line without numbering
-
-        Assumptions:
-        - Assume all dependencies are already installed but NOT imported.
-
-        Example format:
-        [Natural language specification of the specific code component or function call]
-        [Natural language specification of the specific code component or function call]
+        5. Not include implementation details or code snippets
+        6. Assume all dependencies are already installed but NOT imported.
+        7. Be decisive and clear, avoiding ambiguity or vagueness.
         ...
         
         Project Idea:
@@ -292,9 +324,6 @@ class Executive(Operator):
         """
         return f"""Provide an explicit summary of what has been implemented as a list of points.
 
-        Previous Components: {summary}
-        Current Component Implementation: {implementation}
-
         For each component summary:
         1. Describe its functionality using natural language
         2. Include file name, function name, and variable name in the description.
@@ -304,6 +333,9 @@ class Executive(Operator):
         2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
         3. Populated foo with random ints in app.py
         4. Printed average of bar and baz in the main function of app.py
+   
+        Previous Components: {summary}
+        Current Component Implementation: {implementation}
         """
 
 
