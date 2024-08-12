@@ -3,8 +3,8 @@ from typing import Tuple, cast
 from uuid import uuid1
 
 from . import prompts
-from .agents import AWSAgent, Developer, Executive
 from .clients import CLIClient, Client, OpenAIClient
+from .Operators import AWSOperator, Developer, Executive
 from .state import ProjectStatus, State
 
 
@@ -27,7 +27,7 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client],
-        aws: AWSAgent | None = None,
+        aws: AWSOperator | None = None,
         deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
@@ -73,9 +73,9 @@ class SoftwareProject(StatefulMixin):
         self.update(status=ProjectStatus.FINISHED)
         if self.deploy:
             if self.aws is None:
-                raise ValueError("Cannot deploy without AWSAgent")
+                raise ValueError("Cannot deploy without AWSOperator")
             final_code_stripped = "\n".join(final_code.strip().split("\n")[1:-1])
-            cast(AWSAgent, self.aws).deploy(final_code_stripped, self.uuid)
+            cast(AWSOperator, self.aws).deploy(final_code_stripped, self.uuid)
 
         return final_code
 
@@ -90,9 +90,9 @@ class Orchestrator:
 
 class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     """
-    An Orchestrator is a set of configured Agents and a resource manager
+    An Orchestrator is a set of configured Operators and a resource manager
 
-    Provides a single entry point for common interactions with agents
+    Provides a single entry point for common interactions with Operators
     """
 
     def __init__(self):
@@ -102,10 +102,10 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.clients = {
             "openai": openai_client,
         }
-        self.agents = {
+        self.operators = {
             "exec": Executive(self.clients),
             "dev": Developer(self.clients),
-            "aws": AWSAgent(),
+            "aws": AWSOperator(),
         }
         self.update(status=ProjectStatus.READY)
 
@@ -113,9 +113,9 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.update(status=ProjectStatus.WORKING)
         current_project = SoftwareProject(
             starting_prompt=starting_prompt or prompts.HELLO_WORLD_PROMPT,
-            exec=self.agents["exec"],
-            dev=self.agents["dev"],
-            aws=self.agents["aws"],
+            exec=self.operators["exec"],
+            dev=self.operators["dev"],
+            aws=self.operators["aws"],
             orchestrator=self,
             clients=self.clients,
             deploy=deploy,

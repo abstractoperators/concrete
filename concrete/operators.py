@@ -13,9 +13,9 @@ from openai.types.beta.thread import Thread
 from .clients import CLIClient, Client
 
 
-class Agent:
+class Operator:
     """
-    Represents the base agent for further implementation
+    Represents the base Operator for further implementation
     """
 
     auto_dedent = True
@@ -24,7 +24,7 @@ class Agent:
         self.uuid = uuid1()
         self.clients = clients
 
-        # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
+        # TODO: Move specific software prompting to its own SoftwareOperator class or mixin
         instructions = (
             "You are a software developer. " "You will answer software development questions as concisely as possible."
         )
@@ -78,12 +78,12 @@ class Agent:
         return _send_and_await_reply
 
 
-class Developer(Agent):
+class Developer(Operator):
     """
-    Represents an agent that produces code.
+    Represents an Operator that produces code.
     """
 
-    @Agent.qna
+    @Operator.qna
     def ask_question(self, context: str) -> str:
         """
         Accept instructions and ask a question about it if necessary.
@@ -118,10 +118,10 @@ class Developer(Agent):
                 What should the function be called?"""
         )
 
-    @Agent.qna
+    @Operator.qna
     def implement_component(self, context: str, dedent=True) -> str:
         """
-        Prompts the agent to implement a component based off of the components context
+        Prompts the Operator to implement a component based off of the components context
         Returns the code for the component
         """
         return f"""
@@ -176,7 +176,7 @@ class Developer(Agent):
                     ```html
         """
 
-    @Agent.qna
+    @Operator.qna
     def integrate_components(
         self,
         planned_components: List[str],
@@ -184,7 +184,7 @@ class Developer(Agent):
         webpage_idea: str,
     ) -> str:
         """
-        Prompts agent to combine code implementations of multiple components
+        Prompts Operator to combine code implementations of multiple components
         Returns the combined code
         """
         prev_components = []
@@ -230,7 +230,7 @@ class Developer(Agent):
         CLIClient.emit("Integrate components:\n" + out_str)
         return out_str
 
-    @Agent.qna
+    @Operator.qna
     def implement_html_element(self, prompt: str) -> str:
         out_str = f"""
         Generate an html element with the following description:\n
@@ -252,12 +252,12 @@ class Developer(Agent):
         return out_str
 
 
-class Executive(Agent):
+class Executive(Operator):
     """
-    Represents an agent that instructs and guides other agents.
+    Represents an Operator that instructs and guides other Operators.
     """
 
-    @Agent.qna
+    @Operator.qna
     def plan_components(self) -> str:
         return """\
         List the essential code components needed to fulfill the user's request. Each component should be atomic,\
@@ -279,10 +279,10 @@ class Executive(Agent):
         ...
         """
 
-    @Agent.qna
+    @Operator.qna
     def answer_question(self, context: str, question: str) -> str:
         """
-        Prompts the agent to answer a question
+        Prompts the Operator to answer a question
         Returns the answer
         """
         return (
@@ -291,7 +291,7 @@ class Executive(Agent):
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    @Agent.qna
+    @Operator.qna
     def generate_summary(self, summary: str, implementation: str) -> str:
         """
         Generates a summary of completed components
@@ -314,9 +314,9 @@ class Executive(Agent):
         """
 
 
-class AWSAgent:
+class AWSOperator:
     """
-    Represents an agent that takes finalized code, and deploys it to AWS
+    Represents an Operator that takes finalized code, and deploys it to AWS
     """
 
     def __init__(self):
