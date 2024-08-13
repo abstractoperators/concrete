@@ -9,27 +9,7 @@ from uuid import UUID, uuid1
 from pydantic import BaseModel
 
 from .clients import Client
-
-
-class ProjectFile(BaseModel):
-    file_name: str
-    file_contents: str
-
-
-class ProjectDirectory(BaseModel):
-    files: list[ProjectFile]
-
-
-class TextResponse(BaseModel):
-    text: str
-
-
-class Summary(BaseModel):
-    summary: List[str]
-
-
-class PlannedComponents(BaseModel):
-    components: List[str]
+from .operator_responses import ProjectDirectory, TextResponse
 
 
 class Operator:

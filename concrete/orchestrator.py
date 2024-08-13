@@ -5,15 +5,13 @@ from uuid import uuid1
 
 from . import prompts
 from .clients import Client, OpenAIClient
-from .operators import (
-    AWSOperator,
-    Developer,
-    Executive,
+from .operator_responses import (
     PlannedComponents,
     ProjectDirectory,
     ProjectFile,
     Summary,
 )
+from .operators import AWSOperator, Developer, Executive
 from .state import ProjectStatus, State
 from .utils import format_project_directory, format_project_file, format_summary
 
