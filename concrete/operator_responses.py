@@ -1,3 +1,9 @@
+"""
+OpenAI's Structured Responses integrates directly into Pydantic models using Pydantic's BaseModel class.
+Inheriting from this baseclass allows for consistently formatted responses.
+Use OpenAI().beta.chat.completions.parse() to generate responses conforming to defined class.
+"""
+
 from typing import List
 
 from pydantic import BaseModel
