@@ -4,8 +4,14 @@ from typing import cast
 from uuid import uuid1
 
 from . import prompts
-from .agents import AWSAgent, Developer, Executive
 from .clients import Client, OpenAIClient
+from .operator_responses import (
+    PlannedComponents,
+    ProjectDirectory,
+    ProjectFile,
+    Summary,
+)
+from .operators import AWSOperator, Developer, Executive
 from .state import ProjectStatus, State
 
 
@@ -28,7 +34,7 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client],
-        aws: AWSAgent | None = None,
+        aws: AWSOperator | None = None,
         deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
@@ -49,10 +55,8 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        orig_components = self.exec.plan_components(self.starting_prompt)
-        yield "executive", orig_components
-        components_list = orig_components.split("\n")
-        components = [stripped_comp for comp in components_list if (stripped_comp := comp.strip())]
+        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents)
+        yield "executive", str(components)
 
         summary = ""
         all_implementations = []
@@ -68,24 +72,22 @@ class SoftwareProject(StatefulMixin):
             ):
                 await asyncio.sleep(0)
                 if agent_or_implementation in ("developer", "executive"):
-                    # if agent_or_implementation == "executive":
-                    #     summary = message  # Keep a rolling summary so that the developer can refer to it.
                     yield agent_or_implementation, message
-
                 else:  # last result
-                    # Add the implementation to our list
                     all_implementations.append(agent_or_implementation)
                     summary = message
 
-        final_code = self.dev.integrate_components(components, all_implementations, self.starting_prompt)
+        files = self.dev.integrate_components(
+            components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
+        )
 
         if self.deploy:
             if self.aws is None:
                 raise ValueError("Cannot deploy without AWSAgent")
-            cast(AWSAgent, self.aws).deploy(final_code, self.uuid)
+            cast(AWSOperator, self.aws).deploy(files, self.uuid)
 
         self.update(status=ProjectStatus.FINISHED)
-        yield "developer", final_code
+        yield "developer", str(files)
 
 
 class Orchestrator:
@@ -94,9 +96,9 @@ class Orchestrator:
 
 class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     """
-    An Orchestrator is a set of configured Agents and a resource manager
+    An Orchestrator is a set of configured Operators and a resource manager
 
-    Provides a single entry point for common interactions with agents
+    Provides a single entry point for common interactions with Operators
     """
 
     def __init__(self):
@@ -105,20 +107,20 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.clients = {
             "openai": OpenAIClient(),
         }
-        self.agents = {
+        self.operators = {
             "exec": Executive(self.clients),
             "dev": Developer(self.clients),
-            "aws": AWSAgent(),
+            "aws": AWSOperator(),
         }
         self.update(status=ProjectStatus.READY)
 
     def process_new_project(self, starting_prompt: str, deploy: bool = False):
         self.update(status=ProjectStatus.WORKING)
         current_project = SoftwareProject(
-            starting_prompt=starting_prompt or prompts.HELLO_WORLD_PROMPT,
-            exec=self.agents["exec"],
-            dev=self.agents["dev"],
-            aws=self.agents["aws"],
+            starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
+            exec=self.operators["exec"],
+            dev=self.operators["dev"],
+            aws=self.operators["aws"],
             orchestrator=self,
             clients=self.clients,
             deploy=deploy,
@@ -162,13 +164,13 @@ async def communicative_dehallucination(
         if question == "No Question":
             break
 
-        yield "developer", question
+        yield "developer", question.text
         await asyncio.sleep(0)
 
         answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
-        yield "executive", answer
+        yield "executive", answer.text
         await asyncio.sleep(0)
 
     if q_and_a:
@@ -178,15 +180,16 @@ async def communicative_dehallucination(
             context += f"\nAnswer: {answer}"
 
     # Developer implements component based on clarified context
-    implementation = developer.implement_component(context)
+    implementation = developer.implement_component(context, response_format=ProjectFile)
 
-    yield "developer", implementation
+    yield "developer", str(implementation)
 
     await asyncio.sleep(0)
     # Generate a summary of what has been achieved
-    summary = executive.generate_summary(summary, implementation)
+    summary = executive.generate_summary(summary, implementation, response_format=Summary)
 
-    yield "executive", summary
+    yield "executive", str(summary)
     await asyncio.sleep(0)
-    yield implementation, summary
+
+    yield implementation, str(summary)
     await asyncio.sleep(0)

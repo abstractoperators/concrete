@@ -2,6 +2,7 @@ import asyncio
 import sys
 
 from . import orchestrator
+from .clients import CLIClient
 
 if len(sys.argv) != 2:
     print("Use: `python -m concrete <prompt>`")
@@ -11,8 +12,8 @@ so = orchestrator.SoftwareOrchestrator()
 
 
 async def main():
-    async for result in so.process_new_project(input):
-        print(result)
+    async for operator, response in so.process_new_project(input):
+        CLIClient.emit(f'[{operator}]:\n{response}\n')
 
 
 asyncio.run(main())

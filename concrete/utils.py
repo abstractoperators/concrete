@@ -49,7 +49,7 @@ def remove_comments(source_code):
     return modified_code
 
 
-def remove_extra_whitespace(code):
+def remove_extra_whitespace(code: str):
     # Preserve strings while removing extra whitespace
     string_regex = r"(\"\"\".*?\"\"\"|\'\'\'.*?\'\'\'|\".*?\"|\'.*?\')"
 

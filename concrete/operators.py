@@ -2,59 +2,65 @@ import os
 import socket
 import time
 from functools import wraps
-from operator import attrgetter
-from pathlib import Path
 from textwrap import dedent
-from typing import Callable, List, cast
+from typing import Callable, List, Optional
 from uuid import UUID, uuid1
 
-from .clients import CLIClient, Client
+from pydantic import BaseModel
+
+from .clients import Client
+from .operator_responses import ProjectDirectory, TextResponse
 
 
-class Agent:
+class Operator:
     """
-    Represents the base agent for further implementation
+    Represents the base Operator for further implementation
     """
 
-    def __init__(self, clients: dict[str, Client]):
+    def __init__(
+        self,
+        clients: dict[str, Client],
+        instructions: Optional[str] = None,
+    ):
         self.uuid = uuid1()
         self.clients = clients
 
-        # TODO: Move specific software prompting to its own SoftwareAgent class or mixin
+        # TODO: Move specific software prompting to its own SoftwareOperator class or mixin
+        self.instructions = instructions or (
+            "You are a software developer. " "You will answer software development questions as concisely as possible."
+        )
 
     def _qna(
         self,
-        question: str,
-    ):
+        query: str,
+        response_format: Optional[BaseModel] = None,
+    ) -> BaseModel:
         """
         "Question and Answer", given a query, return an answer.
         Basically just a wrapper for OpenAI's chat completion API.
 
-        # Synchronous. Creates a new thread if one isn't given
+        Synchronous.
         """
-        thread = self.clients["openai"].create_thread()
+        instructions = self.instructions
+        messages = [
+            {'role': 'system', 'content': instructions},
+            {'role': 'user', 'content': query},
+        ]
 
-        # eg) make a website...
-        self.clients["openai"].client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=question,
-        )
+        response = (
+            self.clients["openai"]
+            .complete(
+                messages=messages,
+                response_format=response_format if response_format else TextResponse,
+            )
+            .choices[0]
+        ).message
 
-        # eg) list the components required to make fulfill the users request
-        self.clients["openai"].client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id,
-            assistant_id=self.assistant.id,
-        )
+        if response.refusal:
+            print(f"Operator refused to answer question: {query}")
+            raise Exception("Operator refused to answer question")
 
-        messages = self.clients["openai"].client.beta.threads.messages.list(thread_id=thread.id, order="asc")
-
-        # Assume message data is TextContentBlock
-        answer = attrgetter("text.value")(messages.data[-1].content[0])
-
-        for i, message in enumerate(messages.data):
-            CLIClient.emit(f'\nQNA Message ({i}): ({message.role})\n{message.content[0].text.value}')
-
+        answer = response.parsed
         return answer
 
     @classmethod
@@ -68,28 +74,26 @@ class Agent:
         @wraps(question_producer)
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
-            question = dedent(question_producer(*args, **kwargs))
-            return self._qna(question=question)
+            response_format = kwargs.pop("response_format", None)
+            query = question_producer(*args, **kwargs)
+            return self._qna(query, response_format=response_format)
 
         return _send_and_await_reply
 
 
-class Developer(Agent):
+class Developer(Operator):
     """
-    Represents an agent that produces code.
+    Represents an Operator that produces code.
     """
 
     def __init__(self, clients: dict[str, Client]):
-        super().__init__(clients)
         agent_role = (
             "You are an expert software developer. You will follow the instructions given to you to complete each task."
             "You will follow example formatting, defaulting to no formatting if no example is provided."
         )
-        self.assistant = self.clients["openai"].create_assistant(
-            instructions=agent_role, name="Developer", description="This is a developer assistant"
-        )
+        super().__init__(clients, agent_role)
 
-    @Agent.qna
+    @Operator.qna
     def ask_question(self, context: str) -> str:
         """
         Accept instructions and ask a question about it if necessary.
@@ -124,10 +128,10 @@ class Developer(Agent):
                 What should the function be called?"""
         )
 
-    @Agent.qna
-    def implement_component(self, context: str, dedent=True) -> str:
+    @Operator.qna
+    def implement_component(self, context: str) -> str:
         """
-        Prompts the agent to implement a component based off of the components
+        Prompts the Operator to implement a component based off of the components context
         Returns the code for the component
         """
         return """
@@ -183,7 +187,7 @@ class Developer(Agent):
             context=context
         )
 
-    @Agent.qna
+    @Operator.qna
     def integrate_components(
         self,
         planned_components: List[str],
@@ -191,7 +195,7 @@ class Developer(Agent):
         webpage_idea: str,
     ) -> str:
         """
-        Prompts agent to combine code implementations of multiple components
+        Prompts Operator to combine code implementations of multiple components
         Returns the combined code
         """
         prev_components = []
@@ -231,7 +235,7 @@ class Developer(Agent):
         )
         return out_str
 
-    @Agent.qna
+    @Operator.qna
     def implement_html_element(self, prompt: str) -> str:
         out_str = f"""\
         Generate an html element with the following description:\n
@@ -265,49 +269,45 @@ class Developer(Agent):
         return out_str
 
 
-class Executive(Agent):
+class Executive(Operator):
     """
-    Represents an agent that instructs and guides other agents.
+    Represents an Operator that instructs and guides other Operators.
     """
 
     def __init__(self, clients: dict[str, Client]):
-        super().__init__(clients)
         agent_role = (
             "You are an expert executive software developer."
             "You will follow the instructions given to you to complete each task."
         )
-        self.assistant = self.clients["openai"].create_assistant(
-            instructions=agent_role, name="Executive", description="This is an executive assistant"
-        )
+        super().__init__(clients, agent_role)
 
-    @Agent.qna
-    def plan_components(self, user_request) -> str:
+    @Operator.qna
+    def plan_components(self, starting_prompt) -> str:
         return """\
-        List the essential, atomic components needed to fulfill the user's request.
-        Use your discretion as a expert developer, and provide a comprehensive, declarative list of components.
-        
+        List the essential code components required to implement the project idea. Each component should be atomic,\
+        such that a developer could implement it in isolation provided placeholders for preceding components.
+
         Your responses must:
         1. Include specific components
         2. Be comprehensive, accurate, and complete
-        3. Use technical terms appropriate for the specific programming language and framework.
+        3. Use technical terms appropriate for the specific programming language and framework
         4. Sequence components logically, with later components dependent on previous ones
-        5. Put each component on a new line without numbering
-        6. Assume all dependencies are already installed but NOT imported.
-
-        Example format:
-        [Natural language specification of the specific code component or function call]
-        [Natural language specification of the specific code component or function call]
+        5. Not include implementation details or code snippets
+        6. Assume all dependencies are already installed but NOT imported
+        7. Be decisive and clear, avoiding ambiguity or vagueness
+        8. Be declarative, using action verbs to describe the component.
         ...
-        
-        User Request: {user_request}
+
+        Project Idea:
+        {starting_prompt}
         """.format(
-            user_request=user_request
+            starting_prompt=starting_prompt
         )
 
-    @Agent.qna
+    @Operator.qna
     def answer_question(self, context: str, question: str) -> str:
         """
-        Prompts the agent to answer a question
+        Prompts the Operator to answer a question
         Returns the answer
         """
         return (
@@ -316,16 +316,15 @@ class Executive(Agent):
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    @Agent.qna
+    @Operator.qna
     def generate_summary(self, summary: str, implementation: str) -> str:
         """
         Generates a summary of completed components
         Returns the summary
         """
+        prompt = """Summarize what has been implemented in the current component,
+        and append it to the previously summarized components.
 
-        prompt = """\
-        Add a summary of the current component implementation to the existing summary of components (if any).
-        Return only the list.
         For each component summary:
         1. Describe its full functionality using natural language.
         2. Include file name, function name, and variable name in the description.
@@ -335,16 +334,18 @@ class Executive(Agent):
         2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
         3. Populated foo with random ints in app.py
         4. Printed average of bar and baz in the main function of app.py
-        """
-        if summary:
-            prompt += f"\nPrevious Components Summarized: \n{summary}"
-        prompt += f"\nCurrent Component Implementation: \n{implementation}"
+
+        Previous Components: {summary}
+        Current Component Implementation: {implementation}
+        """.format(
+            summary=summary, implementation=implementation
+        )
         return prompt
 
 
-class AWSAgent:
+class AWSOperator:
     """
-    Represents an agent that takes finalized code, and deploys it to AWS
+    Represents an Operator that takes finalized code, and deploys it to AWS
     """
 
     def __init__(self):
@@ -352,7 +353,7 @@ class AWSAgent:
         self.DIND_BUILDER_HOST: str = "dind-builder"
         self.DIND_BUILDER_PORT: int = 5000
 
-    def deploy(self, backend_code: str, project_uuid: UUID):
+    def deploy(self, files: ProjectDirectory, project_uuid: UUID):
         """
         Creates and puts a docker image with backend_code + server launch logic into AWS ECR.
         Launches a task with that docker image.
@@ -397,7 +398,12 @@ class AWSAgent:
             """
         )
 
-        self.parse_and_write_files(backend_code, build_dir_path)
+        for project_file in files.files:
+            file_path = os.path.join(build_dir_path, project_file.file_name)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, "w") as f:
+                f.write(project_file.file_contents)
+
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
             f.write(dockerfile_content)
         with open(os.path.join(build_dir_path, "start.sh"), "w") as f:
@@ -415,30 +421,3 @@ class AWSAgent:
                 time.sleep(5)
 
         return True
-
-    def parse_and_write_files(self, backend_code: str, build_dir_path: str):
-        """
-        Splits out multiple code blocks by programming language.
-        Assumes one file per filetype or language.
-        """
-        out_files: dict[str, str] = {}
-        file_string_lines = backend_code.strip().split("\n")
-
-        file_start_line, file_name = None, None
-        for i, line in enumerate(file_string_lines):
-            if line.startswith("```"):
-                if file_start_line is None:
-                    # New file detected
-                    file_name = file_string_lines[i - 1]
-                    file_start_line = i + 1
-                else:
-                    # File is done
-                    out_files[file_name] = "\n".join(file_string_lines[file_start_line:i])
-                    file_start_line, file_name = None, None
-
-        for file_name, contents in out_files.items():
-            print(f"Writing to {os.path.join(build_dir_path, file_name)}")
-            file_path = Path(os.path.join(build_dir_path, cast(str, file_name)))
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w") as f:
-                f.write(contents)
