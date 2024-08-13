@@ -5,8 +5,6 @@ import re
 
 import astor
 
-from .operators import ProjectDirectory, ProjectFile, Summary
-
 
 class CommentAndDocstringRemover(ast.NodeTransformer):
     def visit_Module(self, node):
@@ -71,15 +69,3 @@ def remove_extra_whitespace(code: str):
         code_without_extra_whitespace = code_without_extra_whitespace.replace(f"__STRING_PLACEHOLDER_{i}__", strings[i])
 
     return code_without_extra_whitespace
-
-
-def format_project_file(project_file: ProjectFile):
-    return f"File Name: {project_file.file_name}\n" f"File Contents: {project_file.file_contents}"
-
-
-def format_summary(summary: Summary):
-    return 'Summary\n' + "\n".join(summary.summary)
-
-
-def format_project_directory(project_directory: ProjectDirectory):
-    return "Final Files:\n" + "\n\n".join([format_project_file(file) for file in project_directory.files])

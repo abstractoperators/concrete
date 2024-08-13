@@ -13,7 +13,6 @@ from .operator_responses import (
 )
 from .operators import AWSOperator, Developer, Executive
 from .state import ProjectStatus, State
-from .utils import format_project_directory, format_project_file, format_summary
 
 
 class StatefulMixin:
@@ -57,7 +56,7 @@ class SoftwareProject(StatefulMixin):
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
         components = self.plan()
-        yield "executive", "\n".join([f"[Planned Component]: {component}" for component in components])
+        yield "executive", str(components)
 
         summary = ""
         all_implementations = []
@@ -88,7 +87,7 @@ class SoftwareProject(StatefulMixin):
             cast(AWSOperator, self.aws).deploy(files, self.uuid)
 
         self.update(status=ProjectStatus.FINISHED)
-        yield "developer", format_project_directory(files)
+        yield "developer", str(files)
 
     def plan(self) -> str:
         planned_components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents)
@@ -187,14 +186,14 @@ async def communicative_dehallucination(
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context, response_format=ProjectFile)
 
-    yield "developer", format_project_file(implementation)
+    yield "developer", str(implementation)
 
     await asyncio.sleep(0)
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation, response_format=Summary)
 
-    yield "executive", format_summary(cast(Summary, summary))
+    yield "executive", str(summary)
     await asyncio.sleep(0)
 
-    yield implementation, format_summary(cast(Summary, summary))
+    yield implementation, str(summary)
     await asyncio.sleep(0)
