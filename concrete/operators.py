@@ -2,9 +2,8 @@ import os
 import socket
 import time
 from functools import wraps
-from pathlib import Path
 from textwrap import dedent
-from typing import Callable, List, Optional, cast
+from typing import Callable, List, Optional
 from uuid import UUID, uuid1
 
 from pydantic import BaseModel
@@ -371,7 +370,7 @@ class AWSOperator:
         self.DIND_BUILDER_HOST: str = "dind-builder"
         self.DIND_BUILDER_PORT: int = 5000
 
-    def deploy(self, backend_code: str, project_uuid: UUID):
+    def deploy(self, files: ProjectDirectory, project_uuid: UUID):
         """
         Creates and puts a docker image with backend_code + server launch logic into AWS ECR.
         Launches a task with that docker image.
@@ -416,7 +415,10 @@ class AWSOperator:
             """
         )
 
-        self.parse_and_write_files(backend_code, build_dir_path)
+        for project_file in files.files:
+            with open(os.path.join(build_dir_path, project_file.file_name), "w") as f:
+                f.write(project_file.file_contents)
+
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
             f.write(dockerfile_content)
         with open(os.path.join(build_dir_path, "start.sh"), "w") as f:
@@ -434,30 +436,3 @@ class AWSOperator:
                 time.sleep(5)
 
         return True
-
-    def parse_and_write_files(self, backend_code: str, build_dir_path: str):
-        """
-        Splits out multiple code blocks by programming language.
-        Assumes one file per filetype or language.
-        """
-        out_files: dict[str, str] = {}
-        file_string_lines = backend_code.strip().split("\n")
-
-        file_start_line, file_name = None, None
-        for i, line in enumerate(file_string_lines):
-            if line.startswith("```"):
-                if file_start_line is None:
-                    # New file detected
-                    file_name = file_string_lines[i - 1]
-                    file_start_line = i + 1
-                else:
-                    # File is done
-                    out_files[file_name] = "\n".join(file_string_lines[file_start_line:i])
-                    file_start_line, file_name = None, None
-
-        for file_name, contents in out_files.items():
-            print(f"Writing to {os.path.join(build_dir_path, file_name)}")
-            file_path = Path(os.path.join(build_dir_path, cast(str, file_name)))
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w") as f:
-                f.write(contents)
