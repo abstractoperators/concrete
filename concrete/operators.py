@@ -17,7 +17,7 @@ class Operator:
     Represents the base Operator for further implementation
     """
 
-    def __init__(self, clients: dict[str, Client], model: str = "gpt-4o-mini", instructions: Optional[str] = None):
+    def __init__(self, clients: dict[str, Client], instructions: Optional[str] = None, model: str = "gpt-4o-mini"):
         self.uuid = uuid1()
         self.clients = clients
 
