@@ -416,7 +416,9 @@ class AWSOperator:
         )
 
         for project_file in files.files:
-            with open(os.path.join(build_dir_path, project_file.file_name), "w") as f:
+            file_path = os.path.join(build_dir_path, project_file.file_name)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, "w") as f:
                 f.write(project_file.file_contents)
 
         with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:

@@ -124,7 +124,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     def process_new_project(self, starting_prompt: str, deploy: bool = False):
         self.update(status=ProjectStatus.WORKING)
         current_project = SoftwareProject(
-            starting_prompt=starting_prompt or prompts.HELLO_WORLD_PROMPT,
+            starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
             exec=self.operators["exec"],
             dev=self.operators["dev"],
             aws=self.operators["aws"],
