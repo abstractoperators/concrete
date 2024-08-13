@@ -17,7 +17,7 @@ class Operator:
     Represents the base Operator for further implementation
     """
 
-    def __init__(self, clients: dict[str, Client], instructions: Optional[str] = None):
+    def __init__(self, clients: dict[str, Client], model: str = "gpt-4o-mini", instructions: Optional[str] = None):
         self.uuid = uuid1()
         self.clients = clients
 
@@ -25,6 +25,8 @@ class Operator:
         self.instructions = instructions or (
             "You are a software developer. " "You will answer software development questions as concisely as possible."
         )
+
+        self.model = model
 
     def _qna(
         self,
@@ -47,7 +49,7 @@ class Operator:
             self.clients["openai"]
             .complete(
                 messages=messages,
-                model="gpt-4o-mini",
+                model=self.model,
                 response_format=response_format if response_format else TextResponse,
             )
             .choices[0]

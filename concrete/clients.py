@@ -21,8 +21,10 @@ class OpenAIClient(Client):
         self.client = OpenAI(api_key=OPENAI_API_KEY)
         self.OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE"))
 
-    def complete(self, messages: List[str], **kwargs) -> ChatCompletion:
-        return self.client.beta.chat.completions.parse(messages=messages, temperature=self.OPENAI_TEMPERATURE, **kwargs)
+    def complete(self, messages: List[str], model: str = "gpt-4o-mini", **kwargs) -> ChatCompletion:
+        return self.client.beta.chat.completions.parse(
+            messages=messages, model=model, temperature=self.OPENAI_TEMPERATURE, **kwargs
+        )
 
 
 class CLIClient(Client):
