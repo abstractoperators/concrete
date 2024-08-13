@@ -21,19 +21,19 @@ class OpenAIClient(Client):
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
         self.default_temperature = float(os.getenv("OPENAI_TEMPERATURE"))
+        self.model = "gpt-4o-mini"
 
     def complete(
         self,
         messages: List[Dict[str, str]],
         response_format: BaseModel,
-        model: str = "gpt-4o-mini",
         temperature: Optional[float] = None,
         **kwargs,
     ) -> ChatCompletion:
 
         request_params = {
             "messages": messages,
-            "model": model,
+            "model": self.model,
             "temperature": temperature if temperature is not None else self.default_temperature,
             "response_format": response_format,
             **kwargs,
