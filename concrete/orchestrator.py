@@ -55,7 +55,7 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        components = self.plan()
+        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents)
         yield "executive", str(components)
 
         summary = ""
@@ -88,10 +88,6 @@ class SoftwareProject(StatefulMixin):
 
         self.update(status=ProjectStatus.FINISHED)
         yield "developer", str(files)
-
-    def plan(self) -> str:
-        planned_components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents)
-        return planned_components.components
 
 
 class Orchestrator:

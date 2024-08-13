@@ -13,7 +13,7 @@ so = orchestrator.SoftwareOrchestrator()
 
 async def main():
     async for operator, response in so.process_new_project(input):
-        CLIClient.emit(f'[{operator}]:\n{response}')
+        CLIClient.emit(f'[{operator}]:\n{response}\n')
 
 
 asyncio.run(main())
