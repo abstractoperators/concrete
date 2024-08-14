@@ -160,6 +160,3 @@ class DeployToAWS(metaclass=ToolClass):
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "w") as f:
                 f.write(project_file.file_contents)
-
-
-DeployToAWS
