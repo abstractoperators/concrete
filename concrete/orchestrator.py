@@ -55,8 +55,8 @@ class SoftwareProject(StatefulMixin):
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
-        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents)
-        yield "executive", str(components)
+        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+        yield "executive", '\n'.join(components)
 
         summary = ""
         all_implementations = []
@@ -155,7 +155,7 @@ async def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-
+    yield "executive", component
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):

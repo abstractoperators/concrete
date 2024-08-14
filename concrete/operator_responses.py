@@ -13,42 +13,36 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
+from json import dumps
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-class ProjectFile(BaseModel):
-    file_name: str
-    file_contents: str
-
+class Response(BaseModel):
     def __str__(self):
-        return f"File Name: {self.file_name}\n" f"File Contents: {self.file_contents}"
+        return dumps(self.model_dump(), indent=2)
+
+    def __repr__(self):
+        return self.__str__()
 
 
-class ProjectDirectory(BaseModel):
-    files: list[ProjectFile]
-
-    def __str__(self):
-        return "Final Files:\n" + "\n\n".join([str(file) for file in self.files])
+class ProjectFile(Response):
+    file_name: str = Field(description="File path relative to project root")
+    file_contents: str = Field(description="File contents")
 
 
-class TextResponse(BaseModel):
-    text: str
-
-    def __str__(self):
-        return self.text
+class ProjectDirectory(Response):
+    files: list[ProjectFile] = Field(description="List of ProjectFiles in the directory")
 
 
-class Summary(BaseModel):
-    summary: List[str]
-
-    def __str__(self):
-        return 'Summary\n' + "\n".join(self.summary)
+class TextResponse(Response):
+    text: str = Field(description="Text response")
 
 
-class PlannedComponents(BaseModel):
-    components: List[str]
+class Summary(Response):
+    summary: List[str] = Field(description="List of component summaries")
 
-    def __str__(self):
-        return "\n".join([f"[Planned Component]: {component}" for component in self.components])
+
+class PlannedComponents(Response):
+    components: List[str] = Field(description="List of planned components")
