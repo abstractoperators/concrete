@@ -56,7 +56,7 @@ class SoftwareProject(StatefulMixin):
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
         components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
-        yield "executive", str(components)
+        yield "executive", '\n'.join(components)
 
         summary = ""
         all_implementations = []

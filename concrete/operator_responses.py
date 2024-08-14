@@ -16,7 +16,7 @@ Example:
 from json import dumps
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Response(BaseModel):
@@ -28,21 +28,21 @@ class Response(BaseModel):
 
 
 class ProjectFile(Response):
-    file_name: str
-    file_contents: str
+    file_name: str = Field(description="File path relative to project root")
+    file_contents: str = Field(description="File contents")
 
 
 class ProjectDirectory(Response):
-    files: list[ProjectFile]
+    files: list[ProjectFile] = Field(description="List of ProjectFiles in the directory")
 
 
 class TextResponse(Response):
-    text: str
+    text: str = Field(description="Text response")
 
 
 class Summary(Response):
-    summary: List[str]
+    summary: List[str] = Field(description="List of component summaries")
 
 
 class PlannedComponents(Response):
-    components: List[str]
+    components: List[str] = Field(description="List of planned components")
