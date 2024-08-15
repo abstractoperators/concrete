@@ -1,5 +1,6 @@
-import json
+import asyncio
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -30,6 +31,9 @@ class ConnectionManager:
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
 
+    async def send_json(self, message: Any, websocket: WebSocket):
+        await websocket.send_json(message)
+
     async def broadcast(self, message: str):
         for connection in self.active_connections:
             await connection.send_text(message)
@@ -46,6 +50,7 @@ async def get(request: Request):
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.connect(websocket)
+
     payload = {
         "agent_type": "Executive",
         "timestamp": datetime.now().isoformat(),
@@ -57,8 +62,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         ),
         "completed": False,
     }
-
-    await manager.send_personal_message(json.dumps(payload), websocket)
+    await manager.send_json(payload, websocket)
 
     payload = {
         "agent_type": "Developer",
@@ -66,8 +70,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         "message": ("Hi! I'm the Developer!\n"),
         "completed": False,
     }
-
-    await manager.send_personal_message(json.dumps(payload), websocket)
+    await manager.send_json(payload, websocket)
     try:
         while True:
             data = await websocket.receive_text()
@@ -76,15 +79,21 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             so.update(ws=websocket, manager=manager)
             result = ""
             async for agent_type, message in so.process_new_project(data, False):
+                result = message
+
                 payload = {
                     "agent_type": agent_type,
                     "timestamp": datetime.now().isoformat(),
                     "message": (message),
                     "completed": False,
                 }
-                result = message
-
-                await manager.send_personal_message(json.dumps(payload), websocket)
+                await manager.send_json(payload, websocket)
+                await asyncio.sleep(0)
+                # this is also valid:
+                # await asyncio.create_task(manager.send_json(payload, websocket))
+                # the problem here is websocket.send* does not properly function without
+                # the asyncio.sleep or asyncio.create_task, for whatever reason
+                # websocket.receive_text also "flushes" the stack of messages passed to websocket.send*
 
             payload = {
                 "agent_type": "EXECUTIVE",
@@ -97,8 +106,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 ),
                 "completed": True,
             }
-
-            await manager.send_personal_message(json.dumps(payload), websocket)
+            await manager.send_json(payload, websocket)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
