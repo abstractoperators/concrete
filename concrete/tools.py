@@ -62,7 +62,11 @@ from textwrap import dedent
 from .operator_responses import ProjectDirectory
 
 
-class ToolClass(type):
+class MetaTool(type):
+    """
+    This metaclass enables dynamic string representation of class objects without needing to instantiate them.
+    """
+
     def __new__(cls, name, bases, attrs):
         method_info = []
         for attr, value in attrs.items():
@@ -86,6 +90,7 @@ class ToolClass(type):
                 return_str = (
                     f" -> {signature.return_annotation.__name__}"
                     if signature.return_annotation != inspect.Signature.empty
+                    and signature.return_annotation is not None
                     else ""
                 )
 
@@ -104,7 +109,7 @@ class ToolClass(type):
         return str(cls)
 
 
-class DeployToAWS(metaclass=ToolClass):
+class DeployToAWS(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
 
     def deploy_to_aws(self, project_directory: ProjectDirectory, project_name: str):
