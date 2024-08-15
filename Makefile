@@ -32,10 +32,12 @@ run-webapp-main:
 build-dind-builder:
 	docker buildx build -f docker/Dockerfile.dind-builder -t dind-builder:latest . $(if $(filter true,$(USE_CACHE)),,--no-cache)
 run-dind-builder: 
+	-docker stop dind-builder > /dev/null 2>&1
+	-docker rm dind-builder > /dev/null 2>&1
 	docker run -d \
 		--name dind-builder \
 		--privileged \
-        -v $(PWD)/shared:/shared \
+        -v /shared:/shared \
         -e SHARED_VOLUME=/shared \
         -p 5000:5000 \
         --env-file .env.demo \
