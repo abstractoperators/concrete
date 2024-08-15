@@ -22,7 +22,7 @@ COPY /webapp/demo/scripts/build_and_push.sh /usr/local/bin/build_and_push.sh
 COPY /webapp/demo/scripts/deploy_to_aws.sh /usr/local/bin/deploy_to_aws.sh
 RUN chmod +x /usr/local/bin/listener.sh /usr/local/bin/build_and_push.sh /usr/local/bin/deploy_to_aws.sh
 
-ENTRYPOINT ["dockerd-entrypoint.sh"]
+ENV DOCKER_HOST=unix:///var/run/docker.sock
 
 EXPOSE 5000
-CMD ["bash", "/usr/local/bin/listener.sh"]
+CMD ["sh", "-c", "dockerd-entrypoint.sh & /usr/local/bin/listener.sh"]

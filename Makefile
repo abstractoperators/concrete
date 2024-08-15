@@ -37,10 +37,10 @@ run-dind-builder:
 	docker run -d \
 		--name dind-builder \
 		--privileged \
-        -v /shared:/shared \
-        -e SHARED_VOLUME=/shared \
-        -p 5000:5000 \
-        --env-file .env.demo \
+		-v /shared:/shared \
+		-e SHARED_VOLUME=/shared \
+		-p 5000:5000 \
+		--env-file .env.dind-builder \
 		dind-builder:latest
 
 # Need to set your aws config for default profile + credentials
