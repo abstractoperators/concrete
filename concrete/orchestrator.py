@@ -1,4 +1,4 @@
-import asyncio
+from collections.abc import AsyncGenerator
 from textwrap import dedent
 from typing import cast
 from uuid import uuid1
@@ -49,20 +49,19 @@ class SoftwareProject(StatefulMixin):
         self.update(status=ProjectStatus.READY)
         self.deploy = deploy
 
-    async def do_work(self):
+    async def do_work(self) -> AsyncGenerator[tuple[str, str], None]:
         """
         Break down prompt into smaller components and write the code for each individually.
         """
         self.update(status=ProjectStatus.WORKING, actor=self.exec)
 
         components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
-        yield "executive", '\n'.join(components)
+        yield Executive.__name__, '\n'.join(components)
 
         summary = ""
         all_implementations = []
         for component in components:
             # Use communicative_dehallucination for each component
-            await asyncio.sleep(0)
             async for agent_or_implementation, message in communicative_dehallucination(
                 self.exec,
                 self.dev,
@@ -70,8 +69,7 @@ class SoftwareProject(StatefulMixin):
                 component,
                 max_iter=0,
             ):
-                await asyncio.sleep(0)
-                if agent_or_implementation in ("developer", "executive"):
+                if agent_or_implementation in (Developer.__name__, Executive.__name__):
                     yield agent_or_implementation, message
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
@@ -87,7 +85,7 @@ class SoftwareProject(StatefulMixin):
             cast(AWSOperator, self.aws).deploy(files, self.uuid)
 
         self.update(status=ProjectStatus.FINISHED)
-        yield "developer", str(files)
+        yield Developer.__name__, str(files)
 
 
 class Orchestrator:
@@ -114,7 +112,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         }
         self.update(status=ProjectStatus.READY)
 
-    def process_new_project(self, starting_prompt: str, deploy: bool = False):
+    def process_new_project(self, starting_prompt: str, deploy: bool = False) -> AsyncGenerator[tuple[str, str], None]:
         self.update(status=ProjectStatus.WORKING)
         current_project = SoftwareProject(
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
@@ -134,7 +132,7 @@ async def communicative_dehallucination(
     summary: str,
     component: str,
     max_iter: int = 1,
-):
+) -> AsyncGenerator[tuple[str, str], None]:
     """
     Implements a communicative dehallucination process for software development.
 
@@ -155,7 +153,7 @@ async def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    yield "executive", component
+    yield Executive.__name__, component
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):
@@ -164,14 +162,12 @@ async def communicative_dehallucination(
         if question == "No Question":
             break
 
-        yield "developer", question.text
-        await asyncio.sleep(0)
+        yield Developer.__name__, question.text
 
         answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
-        yield "executive", answer.text
-        await asyncio.sleep(0)
+        yield Executive.__name__, answer.text
 
     if q_and_a:
         context += "\nComponent Clarifications:"
@@ -182,14 +178,11 @@ async def communicative_dehallucination(
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context, response_format=ProjectFile)
 
-    yield "developer", str(implementation)
+    yield Developer.__name__, str(implementation)
 
-    await asyncio.sleep(0)
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation, response_format=Summary)
 
-    yield "executive", str(summary)
-    await asyncio.sleep(0)
+    yield Executive.__name__, str(summary)
 
     yield implementation, str(summary)
-    await asyncio.sleep(0)
