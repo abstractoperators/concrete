@@ -20,11 +20,6 @@ from pydantic import BaseModel, Field
 
 
 class Response(BaseModel):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
     def __str__(self):
         return dumps(self.model_dump(), indent=2)
 
