@@ -1,16 +1,30 @@
 """
 srry for indentation, black is complaining about lines being too long.
 
-Tools for integration with OpenAI's Structured Outputs.
-Use: Add tools to a function to inform the operator of available tools.
-    1) Tell operator what tools are available
-    2) TODO: Update qna output to include tool(s) field.
-        a) ATM, all responses inherit from Tools class.
-           This is good, but we only want the outermost response to have a tools field.
-        eg) ProjectFile inherits from Tools, and so does ProjectDirectory.
-        ProjectDirectory should have a list of ProjectFiles, but we only want ProjectDirectory to have tools.
-    3) TODO: If tools field is present and populated, hit the response tool_call field with eval() to execute the tool.
-    4) TODO: Update prompting to get good tool call behavior.
+Tools for integration with OpenAI's Structured Outputs (and any other LLM that supports structured output).
+
+Use: Tools are used to provide operators methods that can be used to complete a task.
+Tools are defined as classes with methods that can be called.
+Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
+A returned tool syntax is expected to be evaluated using eval(tool_name.tool_call(params))
+eg) [DeployToAWS.deploy_to_aws(example_directory_name)]
+
+1) String representation of the tool tells operator what tools are available
+    a) Currently implemented with a metaclass defining __str__ for a class (a metaclass instance).
+    The benefit of this is that the class does not need to be instantiated to get its string representation.
+    Similarly, with staticmethods, the class does not need to be instantiated to use its methods
+        - The benefit of keeping tools inside a toolclass is to provide the tool organized helper functions.
+    b) Possible alternatives involving removal of tool class
+    https://stackoverflow.com/questions/20093811/how-do-i-change-the-representation-of-a-python-function
+    This would remove the complicated metaclass entirely in favor of a decorated function.
+
+2) TODO: Fix tool nesting.
+    a) ATM, all responses inherit from Tools class.
+        This is good, but we only want the outermost response to have a tools field.
+    eg) ProjectFile inherits from Tools, and so does ProjectDirectory.
+    ProjectDirectory should have a list of ProjectFiles, but we only want ProjectDirectory to have tools.
+
+4) TODO: Update prompting to get good tool call behavior.
 
 Example:
 In this example, TestTool is an example Tool that can be provided to an operator qna.
@@ -42,7 +56,7 @@ class testOperator(operators.Operator):
         super().__init__(clients, instructions)
 
     @operators.Operator.qna
-    def use_tools(self, question, tools: List[type]):
+    def use_tools(self, question, tools: List[MetaTool]):
 
         query = ""
         if tools:
@@ -58,6 +72,7 @@ class testOperator(operators.Operator):
 import inspect
 import os
 from textwrap import dedent
+from typing import Dict
 
 from .operator_responses import ProjectDirectory
 
@@ -110,13 +125,16 @@ class MetaTool(type):
 
 
 class DeployToAWS(metaclass=MetaTool):
-    SHARED_VOLUME = "/shared"
+    SHARED_VOLUME = "./shared"
+    results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
 
-    def deploy_to_aws(self, project_directory: ProjectDirectory, project_name: str):
+    @classmethod
+    def deploy_to_aws(cls, project_directory_name: str) -> None:
         """
-        project_directory (ProjectDirectory): An object containing the project's files.
+        project_directory_name (str): The name of the project directory to deploy.
         """
-        build_dir_path = os.path.join(self.SHARED_VOLUME, project_name)
+        project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
+        build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
         os.makedirs(build_dir_path, exist_ok=True)
 
         dockerfile_content = dedent(
