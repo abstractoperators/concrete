@@ -3,16 +3,17 @@ import socket
 import time
 from functools import wraps
 from textwrap import dedent
-from typing import Callable, List, Optional
+from typing import Callable, List
 from uuid import UUID, uuid1
 
+from celery import Task, signals
 from pydantic import BaseModel
 
 from .clients import Client
 from .operator_responses import ProjectDirectory, TextResponse
 
 
-class Operator:
+class Operator(Task):
     """
     Represents the base Operator for further implementation
     """
@@ -20,20 +21,27 @@ class Operator:
     def __init__(
         self,
         clients: dict[str, Client],
-        instructions: Optional[str] = None,
+        instructions: str | None = None,
     ):
+        super().__init__()
         self.uuid = uuid1()
-        self.clients = clients
-
+        signals.worker_init.connect(self.on_worker_init)
         # TODO: Move specific software prompting to its own SoftwareOperator class or mixin
         self.instructions = instructions or (
             "You are a software developer. " "You will answer software development questions as concisely as possible."
         )
 
+    @property
+    def clients(self):
+        return self._clients
+
+    def on_worker_init(self, *args, **kwargs):
+        self._clients: dict[str, Client] = kwargs['clients']
+
     def _qna(
         self,
         query: str,
-        response_format: Optional[BaseModel] = None,
+        response_format: BaseModel | None = None,
     ) -> BaseModel:
         """
         "Question and Answer", given a query, return an answer.
