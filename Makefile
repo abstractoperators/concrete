@@ -62,3 +62,14 @@ aws_ecr_push_homepage: aws_ecr_login
 aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+
+# Celery setup
+celery: celery-message-broker celery-backend
+
+## Celery message broker
+celery-message-broker:
+	docker run -d -p 5672:5672 rabbitmq
+
+## Celery result backend
+celery-backend:
+	docker run -d -p 6379:6379 redis

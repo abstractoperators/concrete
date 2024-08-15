@@ -2,8 +2,9 @@ from abc import abstractmethod
 from functools import wraps
 from textwrap import dedent
 from typing import Callable, List, Optional
-from uuid import uuid1
+from uuid import UUID, uuid1
 
+from celery import Task, signals
 from pydantic import BaseModel
 
 from .clients import CLIClient, Client
@@ -11,7 +12,7 @@ from .operator_responses import TextResponse
 from .tools import MetaTool
 
 
-class LlmMixin:
+class LlmMixin(Task):
     """
     Represents the base Operator for further implementation.
     """
@@ -21,9 +22,12 @@ class LlmMixin:
         clients: dict[str, Client],
         tools: list[MetaTool] | None = None,
     ):
+        super().__init__()
         self.uuid = uuid1()
         self.clients = clients
         self.tools = tools
+        # Question: What is this for?
+        signals.worker_init.connect(self.on_worker_init)
 
     @property
     @abstractmethod
@@ -35,10 +39,17 @@ class LlmMixin:
         """
         pass
 
+    @property
+    def clients(self):
+        return self._clients
+
+    def on_worker_init(self, *args, **kwargs):
+        self._clients: dict[str, Client] = kwargs['clients']
+
     def _qna(
         self,
         query: str,
-        response_format: Optional[BaseModel] = None,
+        response_format: BaseModel | None = None,
     ) -> BaseModel:
         """
         "Question and Answer", given a query, return an answer.
