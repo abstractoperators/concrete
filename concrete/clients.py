@@ -1,9 +1,10 @@
 import os
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 from openai import OpenAI
-from openai.types.beta.assistant import Assistant
-from openai.types.beta.thread import Thread
+from openai.types.chat import ChatCompletion
+from pydantic import BaseModel
 
 
 class Client:
@@ -18,22 +19,27 @@ class OpenAIClient(Client):
     def __init__(self):
         load_dotenv()
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-        client = OpenAI(api_key=OPENAI_API_KEY)
-        self.client = client
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.default_temperature = float(os.getenv("OPENAI_TEMPERATURE"))
+        self.model = "gpt-4o-mini"
 
-    def create_thread(self, prompt: str | None = None) -> Thread:
-        new_thread = self.client.beta.threads.create()
-        if prompt is not None:
-            self.client.beta.threads.messages.create(thread_id=new_thread.id, role="user", content=prompt)
-        return new_thread
+    def complete(
+        self,
+        messages: List[Dict[str, str]],
+        response_format: BaseModel,
+        temperature: Optional[float] = None,
+        **kwargs,
+    ) -> ChatCompletion:
 
-    def create_assistant(
-        self, instructions: str = "", model: str = "gpt-4o-mini", description: str = "", name: str = ""
-    ) -> Assistant:
-        temperature = float(os.getenv("OPENAI_TEMPERATURE", 1))
-        return self.client.beta.assistants.create(
-            instructions=instructions, model=model, temperature=temperature, name=name, description=description
-        )
+        request_params = {
+            "messages": messages,
+            "model": self.model,
+            "temperature": temperature if temperature is not None else self.default_temperature,
+            "response_format": response_format,
+            **kwargs,
+        }
+
+        return self.client.beta.chat.completions.parse(**request_params)
 
 
 class CLIClient(Client):
