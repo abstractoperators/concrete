@@ -68,6 +68,8 @@ class testOperator(operators.Operator):
 
 import inspect
 import os
+import socket
+import time
 from textwrap import dedent
 from typing import Dict
 
@@ -122,8 +124,10 @@ class MetaTool(type):
 
 
 class DeployToAWS(metaclass=MetaTool):
-    SHARED_VOLUME = "./shared"
+    SHARED_VOLUME = "/shared"
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
+    DIND_BUILDER_HOST = "dind-builder"
+    DIND_BUILDER_PORT = 5000
 
     @classmethod
     def deploy_to_aws(cls, project_directory_name: str) -> None:
@@ -180,3 +184,14 @@ class DeployToAWS(metaclass=MetaTool):
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "w") as f:
                 f.write(project_file.file_contents)
+
+        max_retries = 2
+        for _ in range(max_retries):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((cls.DIND_BUILDER_HOST, cls.DIND_BUILDER_PORT))
+                    s.sendall(project_directory_name.encode())
+                break
+            except Exception as e:
+                print(e)
+                time.sleep(5)
