@@ -28,10 +28,7 @@ eg) [DeployToAWS.deploy_to_aws(example_directory_name)]
 
 Example:
 In this example, TestTool is an example Tool that can be provided to an operator qna.
-Tools should have syntax documented in their docstrings so they are made available to the operator.
-Operator qna functions should have a tools parameter.
-This takes a list of tools [TestTool] (objects, not instances) that are available to the operator.
-TODO: Move available tools query to decorator instead of functions decorated with qna.
+Tools should have syntax documented in their docstrings so the operator knows how to use them.
 
 class TestTool(metaclass=ToolClass):
     @classmethod

@@ -26,8 +26,20 @@ run-webapp-demo: down-webapp-demo
 
 build-webapp-main:
 	docker buildx build -f docker/Dockerfile.main -t webapp-main:latest . $(if $(filter true,$(USE_CACHE)),,--no-cache)
-run-webapp-main: build-webapp-main
+run-webapp-main: 
 	docker run -p 8000:80 webapp-main
+
+build-dind-builder:
+	docker buildx build -f docker/Dockerfile.dind-builder -t dind-builder:latest . $(if $(filter true,$(USE_CACHE)),,--no-cache)
+run-dind-builder: 
+	docker run -d \
+		--name dind-builder \
+		--privileged \
+        -v $(PWD)/shared:/shared \
+        -e SHARED_VOLUME=/shared \
+        -p 5000:5000 \
+        --env-file .env.demo \
+		dind-builder:latest
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
