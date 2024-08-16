@@ -126,7 +126,7 @@ class MetaTool(type):
 class DeployToAWS(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
-    DIND_BUILDER_HOST = "dind-builder"
+    DIND_BUILDER_HOST = "localhost"
     DIND_BUILDER_PORT = 5000
 
     @classmethod
