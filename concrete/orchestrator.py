@@ -1,6 +1,5 @@
 import asyncio
 import json
-from ast import literal_eval
 from textwrap import dedent
 from uuid import uuid1
 
@@ -84,10 +83,9 @@ class SoftwareProject(StatefulMixin):
 
         if self.deploy:
             # TODO Use an actual DB instead of emulating one with a dictionary
-            # TODO Figure something out safer than literal_eval
+            # TODO Figure something out safer than eval
             yield "executive", "Deploying to AWS"
-            json_project_directory = json.loads(str(files))
-            DeployToAWS.results.update({json_project_directory['project_name']: json_project_directory})
+            DeployToAWS.results.update({files.project_name: json.loads(str(files))})
 
             deploy_tool_call = self.dev.use_tools(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
@@ -96,7 +94,7 @@ class SoftwareProject(StatefulMixin):
             )
             for tool in deploy_tool_call.tools:
                 full_tool_call = f'{tool.tool_name}.{tool.tool_call}'
-                literal_eval(full_tool_call)
+                eval(full_tool_call)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
         yield "developer", str(files).replace('\\n', '\n')

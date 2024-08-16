@@ -42,6 +42,7 @@ class ProjectFile(Tools):
 
 
 class ProjectDirectory(Tools):
+    project_name: str = Field(description="Name of the project directory")
     files: list[ProjectFile] = Field(description="List of ProjectFiles in the directory")
 
 

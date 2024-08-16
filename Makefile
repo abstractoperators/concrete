@@ -17,6 +17,12 @@ helloworld:
 simpleflask:
 	$(ORCHESTRATE) "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
 
+# Requires dind-builder to be running
+# Need to manually delete created resources in AWS.
+# Created resources will be in ECR, ECS (tasks definitions and services), LB listener rules.
+deploysimpleflask:
+	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
+
 # Note that webapp-demo will require dind-builder to deploy a service to aws. 
 # No actual dependency is defined for flexibility.
 run-webapp-demo: 
