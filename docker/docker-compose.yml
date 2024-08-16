@@ -1,9 +1,10 @@
 services:
   demo:
-    image: webapp-demo:latest
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.demo
+    image: webapp-demo:latest
+    container_name: webapp-demo
     volumes:
       - shared-volume:/shared
     environment:
@@ -12,24 +13,23 @@ services:
       - "8000:80"
     depends_on:
       - dind-builder
-    env_file: "../.env"
+    env_file: "../.env.demo"
 
   dind-builder:
-    image: webapp-dind-builder:latest
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.dind-builder
-      platforms:
-        - linux/arm64
+    image: dind-builder:latest
+    container_name: dind-builder
+    privileged: true
     volumes:
-      - shared-volume:/shared
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /shared:/shared
     environment:
       - SHARED_VOLUME=/shared
-    privileged: true
     ports:
-      - "5000:5000"
-    env_file: "../.env"
+      - 5000:5000
+    env_file:
+      - ../.env.dind-builder
 
 volumes:
   shared-volume:

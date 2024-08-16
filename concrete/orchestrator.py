@@ -73,7 +73,7 @@ class SoftwareProject(StatefulMixin):
             ):
                 await asyncio.sleep(0)
                 if agent_or_implementation in ("developer", "executive"):
-                    yield agent_or_implementation, message
+                    yield agent_or_implementation, str(message).replace('\\n', '\n')
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
                     summary = message
@@ -99,7 +99,7 @@ class SoftwareProject(StatefulMixin):
                 literal_eval(full_tool_call)
 
         self.update(status=ProjectStatus.FINISHED)
-        yield "developer", str(files)
+        yield "developer", str(files).replace('\\n', '\n')
 
 
 class Orchestrator:
@@ -165,7 +165,7 @@ async def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    yield "executive", component
+    yield "executive", str(component)
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):
@@ -174,13 +174,13 @@ async def communicative_dehallucination(
         if question == "No Question":
             break
 
-        yield "developer", question.text
+        yield "developer", str(question)
         await asyncio.sleep(0)
 
         answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
-        yield "executive", answer.text
+        yield "executive", str(answer)
         await asyncio.sleep(0)
 
     if q_and_a:
