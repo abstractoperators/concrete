@@ -1,5 +1,4 @@
 import os
-from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -25,9 +24,9 @@ class OpenAIClient(Client):
 
     def complete(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         response_format: BaseModel,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs,
     ) -> ChatCompletion:
 

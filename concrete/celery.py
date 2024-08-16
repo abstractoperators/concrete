@@ -1,10 +1,9 @@
 from celery import Celery
 
-app = Celery(
-    'concrete',
-    broker='pyamqp://',
-    include=['concrete.operators'],
-)
+from . import celeryconfig
+
+app = Celery('concrete')
+app.config_from_object(celeryconfig)
 
 if __name__ == '__main__':
     app.start()
