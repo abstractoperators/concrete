@@ -5,7 +5,7 @@ from . import orchestrator
 from .clients import CLIClient
 
 if len(sys.argv) < 2:
-    print("Use: `python -m concrete <--deploy=true> <prompt>`")
+    print("Use: `python -m concrete <prompt> [--deploy]`")
     sys.exit(1)
 
 prompt = sys.argv[1]
