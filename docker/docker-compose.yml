@@ -9,11 +9,13 @@ services:
       - shared-volume:/shared
     environment:
       - SHARED_VOLUME=/shared
-    ports:
-      - "8000:80"
     depends_on:
       - dind-builder
+    ports:
+      - "8000:80"
     env_file: "../.env.demo"
+    networks:
+      - concrete_network
 
   dind-builder:
     build:
@@ -27,9 +29,26 @@ services:
     environment:
       - SHARED_VOLUME=/shared
     ports:
-      - 5000:5000
+      - "5000:5000"
     env_file:
       - ../.env.dind-builder
+    networks:
+      - concrete_network
+
+  webapp-main:
+    ports:
+      - 8000:80
+    image: webapp-main
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.main
+    container_name: webapp-main
+    networks:
+      - concrete_network
 
 volumes:
   shared-volume:
+
+networks:
+  concrete_network:
+    driver: bridge

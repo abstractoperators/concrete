@@ -24,24 +24,13 @@ down-webapp-demo:
 run-webapp-demo: down-webapp-demo
 	docker compose -f docker/docker-compose.yml up
 
-build-webapp-main:
-	docker buildx build -f docker/Dockerfile.main -t webapp-main:latest . $(if $(filter true,$(USE_CACHE)),,--no-cache)
 run-webapp-main: 
-	docker run -p 8000:80 webapp-main
+	docker-compose -f docker/docker-compose.yml stop webapp-main
+	docker-compose -f docker/docker-compose.yml up --build -d webapp-main
 
-build-dind-builder:
-	docker buildx build -f docker/Dockerfile.dind-builder -t dind-builder:latest . $(if $(filter true,$(USE_CACHE)),,--no-cache)
 run-dind-builder: 
-	-docker stop dind-builder > /dev/null 2>&1
-	-docker rm dind-builder > /dev/null 2>&1
-	docker run -d \
-		--name dind-builder \
-		--privileged \
-		-v /shared:/shared \
-		-e SHARED_VOLUME=/shared \
-		-p 5000:5000 \
-		--env-file .env.dind-builder \
-		dind-builder:latest
+	docker-compose -f docker/docker-compose.yml stop dind-builder
+	docker-compose -f docker/docker-compose.yml up --build -d dind-builder
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
