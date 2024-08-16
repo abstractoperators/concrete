@@ -172,11 +172,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.connect(websocket)
 
     payload = {
-        "agent_type": "Executive",
+        "operator_type": "Executive",
         "timestamp": datetime.now().isoformat(),
         "message": (
             "Hi! Ask me to do a simple coding task.\n"
-            "I will work with a Developer agent to break down your prompt "
+            "I will work with a Developer Operator to break down your prompt "
             "into smaller tasks before combining the work back together.\n"
             "Press `Submit` to get started!"
         ),
@@ -185,7 +185,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.send_json(payload, websocket)
 
     payload = {
-        "agent_type": "Developer",
+        "operator_type": "Developer",
         "timestamp": datetime.now().isoformat(),
         "message": ("Hi! I'm the Developer!\n"),
         "completed": False,
@@ -198,11 +198,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             so = orchestrator.SoftwareOrchestrator()
             so.update(ws=websocket, manager=manager)
             result = ""
-            async for agent_type, message in so.process_new_project(data, False):
+            async for operator_type, message in so.process_new_project(data, False):
                 result = message
 
                 payload = {
-                    "agent_type": agent_type,
+                    "operator_type": operator_type,
                     "timestamp": datetime.now().isoformat(),
                     "message": (message),
                     "completed": False,
@@ -216,7 +216,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 # websocket.receive_text also "flushes" the stack of messages passed to websocket.send*
 
             payload = {
-                "agent_type": "EXECUTIVE",
+                "operator_type": "EXECUTIVE",
                 "timestamp": datetime.now().isoformat(),
                 "message": (
                     f"[Final Code]\n"

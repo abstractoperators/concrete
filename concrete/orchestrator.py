@@ -1,9 +1,9 @@
 import json
 from collections.abc import AsyncGenerator
+from textwrap import dedent
 from uuid import uuid1
 
 from . import prompts
-from .clients import Client, OpenAIClient
 from .operator_responses import (
     PlannedComponents,
     ProjectDirectory,
@@ -11,7 +11,7 @@ from .operator_responses import (
     Summary,
     Tools,
 )
-from .operators import Developer, Executive
+from .operators import AWSOperator, Developer, Executive
 from .state import ProjectStatus, State
 from .tools import AwsTool
 
@@ -35,14 +35,15 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client],
+        aws: AWSOperator | None = None,
         deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
-        self.clients = clients
         self.starting_prompt = starting_prompt
         self.exec = exec
         self.dev = dev
+        self.aws = aws
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
@@ -52,18 +53,16 @@ class SoftwareProject(StatefulMixin):
         """
         Break down prompt into smaller components and write the code for each individually.
         """
-        self.update(status=ProjectStatus.WORKING, actor=self.exec)
+        self.update(status=ProjectStatus.WORKING)
 
-        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
-        yield Executive.__name__, '\n'.join(components)
+        components = executive.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+        yield executive.__name__, '\n'.join(components)
 
         summary = ""
         all_implementations = []
         for component in components:
             # Use communicative_dehallucination for each component
             async for agent_or_implementation, message in communicative_dehallucination(
-                self.exec,
-                self.dev,
                 summary,
                 component,
                 starting_prompt=self.starting_prompt,
@@ -75,7 +74,7 @@ class SoftwareProject(StatefulMixin):
                     all_implementations.append(agent_or_implementation)
                     summary = message
 
-        files = self.dev.integrate_components(
+        files = developer.integrate_components(
             components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
         )
 
@@ -95,7 +94,7 @@ class SoftwareProject(StatefulMixin):
                 eval(full_tool_call)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
-        yield Developer.__name__, str(files)
+        yield developer.__name__, str(files)
 
 
 class Orchestrator:
@@ -119,6 +118,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             "exec": Executive(self.clients),
             "dev": Developer(self.clients),
         }
+        self.aws = AWSOperator()
         self.update(status=ProjectStatus.READY)
 
     def process_new_project(self, starting_prompt: str, deploy: bool = False) -> AsyncGenerator[tuple[str, str], None]:
@@ -128,15 +128,13 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             exec=self.operators["exec"],
             dev=self.operators["dev"],
             orchestrator=self,
-            clients=self.clients,
+            aws=self.aws,
             deploy=deploy,
         )
         return current_project.do_work()
 
 
 async def communicative_dehallucination(
-    executive: Executive,
-    developer: Developer,
     summary: str,
     component: str,
     starting_prompt: str,
@@ -159,11 +157,11 @@ async def communicative_dehallucination(
             - summary (str): A concise summary of what has been achieved.
     """
 
-    context = f"""Previously Implemented Components summarized:\n{summary}
-Current Component: {component}
-Initial Prompt: {starting_prompt}\n"""
-
-    yield Executive.__name__, str(component)
+    context = dedent(
+        f"""Previous Components summarized:\n{summary}
+    Current Component: {component}"""
+    )
+    yield executive.__name__, component
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):
@@ -172,12 +170,12 @@ Initial Prompt: {starting_prompt}\n"""
         if question == "No Question":
             break
 
-        yield Developer.__name__, str(question)
+        yield developer.__name__, question.text
 
         answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
-        yield Executive.__name__, str(answer)
+        yield executive.__name__, answer.text
 
     if q_and_a:
         context += "\nComponent Clarifications:"
@@ -188,11 +186,11 @@ Initial Prompt: {starting_prompt}\n"""
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context, response_format=ProjectFile)
 
-    yield Developer.__name__, str(implementation)
+    yield developer.__name__, str(implementation)
 
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation, response_format=Summary)
 
-    yield Executive.__name__, str(summary)
+    yield executive.__name__, str(summary)
 
     yield implementation, str(summary)

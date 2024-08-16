@@ -1,5 +1,4 @@
 import os
-from typing import Dict, List, Optional
 
 import requests
 import requests.adapters
@@ -26,9 +25,9 @@ class OpenAIClient(Client):
 
     def complete(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         response_format: BaseModel,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs,
     ) -> ChatCompletion:
 
