@@ -22,7 +22,7 @@ class OpenAiOperation(Task):
 
         # TODO: Move specific software prompting to its own SoftwareOperator class or mixin
         self.instructions = (
-            "You are a software developer. " "You will answer software development questions as concisely as possible."
+            "You are a software developer." "You will answer software development questions as concisely as possible."
         )
 
     def on_worker_init(self, *args, **kwargs):

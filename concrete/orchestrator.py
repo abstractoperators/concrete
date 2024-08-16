@@ -31,6 +31,7 @@ class SoftwareProject(StatefulMixin):
         orchestrator: "Orchestrator",
         aws: AWSOperator | None = None,
         deploy: bool = False,
+        use_celery: bool = True,
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
@@ -40,13 +41,49 @@ class SoftwareProject(StatefulMixin):
         self.results = None
         self.update(status=ProjectStatus.READY)
         self.deploy = deploy
+        self.use_celery = use_celery
 
-    async def do_work(self) -> AsyncGenerator[tuple[str, str], None]:
+    def do_work(self) -> AsyncGenerator[tuple[str, str], None]:
         """
         Break down prompt into smaller components and write the code for each individually.
         """
         self.update(status=ProjectStatus.WORKING)
+        if self.use_celery:
+            return self._do_work_celery()
+        return self._do_work_plain()
 
+    async def _do_work_plain(self) -> AsyncGenerator[tuple[str, str], None]:
+        components = executive.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+        yield executive.__name__, '\n'.join(components)
+
+        summary = ""
+        all_implementations = []
+        for component in components:
+            # Use communicative_dehallucination for each component
+            async for agent_or_implementation, message in communicative_dehallucination(
+                summary,
+                component,
+                max_iter=0,
+            ):
+                if agent_or_implementation in (developer.__name__, executive.__name__):
+                    yield agent_or_implementation, message
+                else:  # last result
+                    all_implementations.append(agent_or_implementation)
+                    summary = message
+
+        files = developer.integrate_components(
+            components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
+        )
+
+        if self.deploy:
+            if self.aws is None:
+                raise ValueError("Cannot deploy without AWSAgent")
+            self.aws.deploy(files, self.uuid)
+
+        self.update(status=ProjectStatus.FINISHED)
+        yield developer.__name__, str(files)
+
+    async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
         components = executive.plan_components(self.starting_prompt, response_format=PlannedComponents).components
         yield executive.__name__, '\n'.join(components)
 
@@ -95,13 +132,18 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.aws = AWSOperator()
         self.update(status=ProjectStatus.READY)
 
-    def process_new_project(self, starting_prompt: str, deploy: bool = False) -> AsyncGenerator[tuple[str, str], None]:
+    def process_new_project(
+        self, starting_prompt: str, deploy: bool = False, use_celery: bool = True
+    ) -> AsyncGenerator[tuple[str, str], None]:
+        # create or accept queues
+        # assign workers to queues
         self.update(status=ProjectStatus.WORKING)
         current_project = SoftwareProject(
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
             orchestrator=self,
             aws=self.aws,
             deploy=deploy,
+            use_celery=use_celery,
         )
         return current_project.do_work()
 
