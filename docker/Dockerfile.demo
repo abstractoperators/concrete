@@ -14,6 +14,8 @@ RUN apt-get update
 
 RUN pip install "poetry==$POETRY_VERSION"
 
+COPY pyproject.toml poetry.lock ./
+
 COPY . .
 
 RUN touch README.md

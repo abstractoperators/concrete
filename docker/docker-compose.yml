@@ -1,5 +1,5 @@
 services:
-  demo:
+  webapp-demo:
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.demo
@@ -9,8 +9,6 @@ services:
       - shared-volume:/shared
     environment:
       - SHARED_VOLUME=/shared
-    depends_on:
-      - dind-builder
     ports:
       - "8000:80"
     env_file: "../.env.demo"
@@ -37,7 +35,7 @@ services:
 
   webapp-main:
     ports:
-      - 8000:80
+      - 8001:80
     image: webapp-main
     build:
       context: ../

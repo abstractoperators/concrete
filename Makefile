@@ -17,12 +17,11 @@ helloworld:
 simpleflask:
 	$(ORCHESTRATE) "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
 
-build-webapp-demo:
-	docker compose -f docker/docker-compose.yml build $(if $(filter true,$(USE_CACHE)),,--no-cache)
-down-webapp-demo:
-	docker compose -f docker/docker-compose.yml down -v
-run-webapp-demo: down-webapp-demo
-	docker compose -f docker/docker-compose.yml up
+# Note that webapp-demo will require dind-builder to deploy a service to aws. 
+# No actual dependency is defined for flexibility.
+run-webapp-demo: 
+	docker compose -f docker/docker-compose.yml stop webapp-demo
+	docker compose -f docker/docker-compose.yml up --build -d webapp-demo
 
 run-webapp-main: 
 	docker-compose -f docker/docker-compose.yml stop webapp-main
