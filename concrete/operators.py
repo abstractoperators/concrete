@@ -351,7 +351,7 @@ class AWSOperator:
     def __init__(self):
         self.SHARED_VOLUME: str = "/shared"
         self.DIND_BUILDER_HOST: str = "dind-builder"
-        self.DIND_BUILDER_PORT: int = 5000
+        self.DIND_BUILDER_PORT: int = 5002
 
     def deploy(self, files: ProjectDirectory, project_uuid: UUID):
         """
