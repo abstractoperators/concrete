@@ -45,7 +45,7 @@ jobs:
 
       - name: Deploy to ECS staging
         env:
-          SERVICE: webapp-demo
+          SERVICE: webapp_demo_staging
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: webapp-demo
           CONTAINER_NAME: webapp_demo
