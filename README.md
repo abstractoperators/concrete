@@ -11,7 +11,7 @@ export OPENAI_API_KEY=<your-api-key-here>
 python -m concrete "Create a simple program that says 'Hello, World!'"
 ```
 
-# Dev Setup
+## Dev Setup
 Run the following commands to get your local environment setup
 ```bash
 brew install poetry
