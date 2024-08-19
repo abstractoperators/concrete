@@ -48,9 +48,64 @@ jobs:
           SERVICE: webapp-demo
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: webapp-demo
+          CONTAINER_NAME: webapp_demo
+          IMAGE_URI: ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
+          TASK_FAMILY: webapp_demo_staging
+          EXECUTION_ROLE_ARN: arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret
           IMAGE_TAG: ${{ github.sha }}
         run: | # Update task definition to use new image
-          aws ecs register-task-definition --family webapp_demo_staging --container-definitions '[{"name":"webapp-demo","image":"'"${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}"'","essential":true,"portMappings":[{"containerPort":80}]}]'
+          TASK_DEFINITION=$(jq -n \
+            --arg family "$TASK_FAMILY" \
+            --arg name "$CONTAINER_NAME" \
+            --arg image "$IMAGE_URI" \
+            --argjson port 80 \
+            --arg execution_role_arn "$EXECUTION_ROLE_ARN"\
+            '{
+                family: $family,
+                executionRoleArn: $execution_role_arn,
+                runtimePlatform: {
+                    cpuArchitecture: "ARM64",
+                    operatingSystemFamily: "LINUX"
+                },
+                containerDefinitions: [
+                {
+                    name: $name,
+                    image: $image,
+                    portMappings: [
+                    {
+                        containerPort: $port,
+                        hostPort: $port,
+                        protocol: "tcp"
+                    }
+                    ],
+                    essential: true,
+                    logConfiguration: {
+                        logDriver: "awslogs",
+                        options: {
+                            "awslogs-group": "fargate-demos",
+                            "awslogs-region": "us-east-1",
+                            "awslogs-stream-prefix": "fg"
+                        }
+                    }
+                }
+                ],
+                requiresCompatibilities: ["FARGATE"],
+                networkMode: "awsvpc",
+                cpu: "256",
+                memory: "512",
+                tags: [
+                    {
+                        "key": "created_by",
+                        "value": "demo"
+                    }
+                ]
+            }')
+
+          NEW_TASK_DEFINITION=$(aws ecs register-task-definition \
+            --region $AWS_DEFAULT_REGION \
+            --cli-input-json "$TASK_DEFINITION" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
 
           aws ecs update-service --cluster DemoCluster --service ${SERVICE} --task-definition webapp_demo_staging --force-new-deployment
 
