@@ -49,21 +49,19 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: webapp-demo
           CONTAINER_NAME: webapp_demo
-          IMAGE_URI: ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
           TASK_FAMILY: webapp_demo_staging
           IMAGE_TAG: ${{ github.sha }}
         run: | # Update task definition to use new image
           OLD_TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition' --output json)
-    
-          NEW_TASK_DEFINITION=$(echo $OLD_TASK_DEFINITION | jq --arg IMAGE "$IMAGE_URI" '.containerDefinitions[0].image = $IMAGE')
-          
+
+          NEW_TASK_DEFINITION=$(echo $OLD_TASK_DEFINITION | jq --arg IMAGE "${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}" '.containerDefinitions[0].image = $IMAGE')
+
           NEW_TASK_DEFINITION=$(echo $NEW_TASK_DEFINITION | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          
+
           NEW_TASK_INFO=$(aws ecs register-task-definition --family $TASK_FAMILY --cli-input-json "$NEW_TASK_DEFINITION")
           NEW_TASK_ARN=$(echo $NEW_TASK_INFO | jq -r '.taskDefinition.taskDefinitionArn')
-          
-          aws ecs update-service --cluster DemoCluster --service ${SERVICE} --task-definition ${NEW_TASK_ARN} --force-new-deployment
 
+          aws ecs update-service --cluster DemoCluster --service ${SERVICE} --task-definition ${NEW_TASK_ARN} --force-new-deployment
 
 permissions:
   id-token: write
