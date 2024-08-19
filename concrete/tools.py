@@ -1,30 +1,21 @@
 """
-srry for indentation, black is complaining about lines being too long.
-
 Tools for integration with OpenAI's Structured Outputs (and any other LLM that supports structured output).
 
-Use: Tools are used to provide operators methods that can be used to complete a task.
-Tools are defined as classes with methods that can be called.
-Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
+Use: Tools are used to provide operators methods that can be used to complete a task. Tools are defined as classes with methods that can be called. Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
 A returned tool syntax is expected to be evaluated using eval(tool_name.tool_call(params))
 eg) [DeployToAWS.deploy_to_aws(example_directory_name)]
 
 1) String representation of the tool tells operator what tools are available
-    a) Currently implemented with a metaclass defining __str__ for a class (a metaclass instance).
-    The benefit of this is that the class does not need to be instantiated to get its string representation.
-    Similarly, with staticmethods, the class does not need to be instantiated to use its methods
+    a) Currently implemented with a metaclass defining __str__ for a class (a metaclass instance). The benefit of this is that the class does not need to be instantiated to get its string representation. Similarly, with staticmethods, the class does not need to be instantiated to use its methods
         - The benefit of keeping tools inside a toolclass is to provide the tool organized helper functions.
-    b) Possible alternatives involving removal of tool class
-    https://stackoverflow.com/questions/20093811/how-do-i-change-the-representation-of-a-python-function
-    This would remove the complicated metaclass entirely in favor of a decorated function.
+    b) Possible alternatives involving removal of tool class. https://stackoverflow.com/questions/20093811/how-do-i-change-the-representation-of-a-python-function. This would remove the complicated metaclass entirely in favor of a decorated function.
 
 2) TODO: Fix tool nesting.
-    a) ATM, all responses inherit from Tools class.
-        This is good, but we only want the outermost response to have a tools field.
+    a) ATM, all responses inherit from Tools class. This is good, but we only want the outermost response to have a tools field.
     eg) ProjectFile inherits from Tools, and so does ProjectDirectory.
     ProjectDirectory should have a list of ProjectFiles, but we only want ProjectDirectory to have tools.
 
-4) TODO: Update prompting to get good tool call behavior.
+3) TODO: Update prompting to get good tool call behavior.
 
 Example:
 In this example, TestTool is an example Tool that can be provided to an operator qna.
@@ -64,7 +55,7 @@ class testOperator(operators.Operator):
 
         query += '''\n\n{question}'''.format(question=question)
         return query
-"""
+"""  # noqa: E501
 
 import inspect
 import os
