@@ -12,7 +12,10 @@ services:
       - "8000:80"
     depends_on:
       - dind-builder
-    env_file: "../.env"
+    env_file: 
+      - path: "../.env"
+        required: false
+      
 
   dind-builder:
     image: webapp-dind-builder:latest
