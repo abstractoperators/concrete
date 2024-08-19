@@ -58,8 +58,7 @@ jobs:
 
           NEW_TASK_DEFINITION=$(echo $NEW_TASK_DEFINITION | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
 
-          NEW_TASK_INFO=$(aws ecs register-task-definition --family $TASK_FAMILY --cli-input-json "$NEW_TASK_DEFINITION")
-          NEW_TASK_ARN=$(echo $NEW_TASK_INFO | jq -r '.taskDefinition.taskDefinitionArn')
+          NEW_TASK_ARN=$(aws ecs register-task-definition --family $TASK_FAMILY --cli-input-json "$NEW_TASK_DEFINITION" --query 'taskDefinition.taskDefinitionArn' --output text)
 
           aws ecs update-service --cluster DemoCluster --service ${SERVICE} --task-definition ${NEW_TASK_ARN} --force-new-deployment
 
