@@ -27,7 +27,7 @@ services:
     environment:
       - SHARED_VOLUME=/shared
     ports:
-      - "5000:5000"
+      - "5002:5002"
     env_file:
       - ../.env.dind-builder
     networks:
@@ -43,6 +43,7 @@ services:
     container_name: webapp-main
     networks:
       - concrete_network
+    env_file: "../.env"
 
 volumes:
   shared-volume:

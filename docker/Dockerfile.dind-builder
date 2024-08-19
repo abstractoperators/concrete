@@ -24,5 +24,5 @@ RUN chmod +x /usr/local/bin/listener.sh /usr/local/bin/build_and_push.sh /usr/lo
 
 ENV DOCKER_HOST=unix:///var/run/docker.sock
 
-EXPOSE 5000
+EXPOSE 5002
 CMD ["sh", "-c", "dockerd-entrypoint.sh & /usr/local/bin/listener.sh"]
