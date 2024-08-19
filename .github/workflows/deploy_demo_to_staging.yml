@@ -50,7 +50,7 @@ jobs:
           REPOSITORY: webapp-demo
           IMAGE_TAG: ${{ github.sha }}
         run: | # Update task definition to use new image
-          aws ecs update-task-definition --cluster DemoCluster --task-definition webapp_demo_staging --container-definitions '[{"name":"webapp-demo","image":"'"${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}"'"}]'
+          aws ecs register-task-definition --family webapp_demo_staging --container-definitions '[{"name":"webapp-demo","image":"'"${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}"'","essential":true,"portMappings":[{"containerPort":80}]}]'
 
           aws ecs update-service --cluster DemoCluster --service ${SERVICE} --task-definition webapp_demo_staging --force-new-deployment
 
