@@ -13,7 +13,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::008971649127:role/GHA_ECR
-          aws-region: us-east-1,
+          aws-region: us-east-1
           output-credentials: true
       - name: Login to Amazon ECR
         id: login-ecr
