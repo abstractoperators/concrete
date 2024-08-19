@@ -32,7 +32,9 @@ services:
     privileged: true
     ports:
       - "5002:5002"
-    env_file: "../.env"
+    env_file: 
+      - path: "../.env"
+        required: false
 
 volumes:
   shared-volume:
