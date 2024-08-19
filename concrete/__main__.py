@@ -1,18 +1,21 @@
+import argparse
 import asyncio
-import sys
 
 from . import orchestrator
 from .clients import CLIClient
 
-if len(sys.argv) != 2:
-    print("Use: `python -m concrete <prompt>`")
-    sys.exit(1)
-input = sys.argv[1]
+parser = argparse.ArgumentParser(description="Concrete CLI")
+parser.add_argument("prompt", type=str, help="The prompt to generate a response for")
+
+parser.add_argument("--deploy", action="store_true", help="Deploy the project to AWS")
+
+args = parser.parse_args()
+
 so = orchestrator.SoftwareOrchestrator()
 
 
 async def main():
-    async for operator, response in so.process_new_project(input):
+    async for operator, response in so.process_new_project(args.prompt, deploy=args.deploy):
         CLIClient.emit(f'[{operator}]:\n{response}\n')
 
 

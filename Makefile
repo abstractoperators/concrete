@@ -17,17 +17,25 @@ helloworld:
 simpleflask:
 	$(ORCHESTRATE) "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
 
-build-webapp-demo:
-	docker compose -f docker/docker-compose.yml build $(if $(filter true,$(USE_CACHE)),,--no-cache)
-down-webapp-demo:
-	docker compose -f docker/docker-compose.yml down -v
-run-webapp-demo: down-webapp-demo
-	docker compose -f docker/docker-compose.yml up
+# Requires dind-builder to be running
+# Need to manually delete created resources in AWS.
+# Created resources will be in ECR, ECS (tasks definitions and services), LB listener rules.
+deploysimpleflask:
+	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
-build-webapp-main:
-	docker buildx build -f docker/Dockerfile.main -t webapp-main:latest . $(if $(filter true,$(USE_CACHE)),,--no-cache)
-run-webapp-main: build-webapp-main
-	docker run -p 8000:80 webapp-main
+# Note that webapp-demo will require dind-builder to deploy a service to aws. 
+# No actual dependency is defined for flexibility.
+run-webapp-demo: 
+	docker compose -f docker/docker-compose.yml stop webapp-demo
+	docker compose -f docker/docker-compose.yml up --build -d webapp-demo
+
+run-webapp-main: 
+	docker-compose -f docker/docker-compose.yml stop webapp-main
+	docker-compose -f docker/docker-compose.yml up --build -d webapp-main
+
+run-dind-builder: 
+	docker-compose -f docker/docker-compose.yml stop dind-builder
+	docker-compose -f docker/docker-compose.yml up --build -d dind-builder
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:

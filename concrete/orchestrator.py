@@ -1,6 +1,6 @@
+import json
 from collections.abc import AsyncGenerator
 from textwrap import dedent
-from typing import cast
 from uuid import uuid1
 
 from . import prompts
@@ -10,9 +10,11 @@ from .operator_responses import (
     ProjectDirectory,
     ProjectFile,
     Summary,
+    Tools,
 )
-from .operators import AWSOperator, Developer, Executive
+from .operators import Developer, Executive
 from .state import ProjectStatus, State
+from .tools import DeployToAWS
 
 
 class StatefulMixin:
@@ -34,7 +36,6 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client],
-        aws: AWSOperator | None = None,
         deploy: bool = False,
     ):
         self.state = State(self, orchestrator=orchestrator)
@@ -43,7 +44,6 @@ class SoftwareProject(StatefulMixin):
         self.starting_prompt = starting_prompt
         self.exec = exec
         self.dev = dev
-        self.aws = aws
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
@@ -70,7 +70,7 @@ class SoftwareProject(StatefulMixin):
                 max_iter=0,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
-                    yield agent_or_implementation, message
+                    yield agent_or_implementation, str(message).replace('\\n', '\n')
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
                     summary = message
@@ -80,12 +80,22 @@ class SoftwareProject(StatefulMixin):
         )
 
         if self.deploy:
-            if self.aws is None:
-                raise ValueError("Cannot deploy without AWSAgent")
-            cast(AWSOperator, self.aws).deploy(files, self.uuid)
+            # TODO Use an actual DB instead of emulating one with a dictionary
+            # TODO Figure something out safer than eval
+            yield "executive", "Deploying to AWS"
+            DeployToAWS.results.update({files.project_name: json.loads(str(files))})
+
+            deploy_tool_call = self.dev.use_tools(
+                f"""Deploy the provided project to AWS. The project directory is: {files}""",
+                tools=[DeployToAWS],
+                response_format=Tools,
+            )
+            for tool in deploy_tool_call.tools:
+                full_tool_call = f'{tool.tool_name}.{tool.tool_call}'
+                eval(full_tool_call)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
-        yield Developer.__name__, str(files)
+        yield Developer.__name__, str(files).replace('\\n', '\n')
 
 
 class Orchestrator:
@@ -108,7 +118,6 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.operators = {
             "exec": Executive(self.clients),
             "dev": Developer(self.clients),
-            "aws": AWSOperator(),
         }
         self.update(status=ProjectStatus.READY)
 
@@ -118,7 +127,6 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
             exec=self.operators["exec"],
             dev=self.operators["dev"],
-            aws=self.operators["aws"],
             orchestrator=self,
             clients=self.clients,
             deploy=deploy,
@@ -153,7 +161,7 @@ async def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    yield Executive.__name__, component
+    yield Executive.__name__, str(component)
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):
@@ -162,12 +170,12 @@ async def communicative_dehallucination(
         if question == "No Question":
             break
 
-        yield Developer.__name__, question.text
+        yield Developer.__name__, str(question)
 
         answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
-        yield Executive.__name__, answer.text
+        yield Executive.__name__, str(answer)
 
     if q_and_a:
         context += "\nComponent Clarifications:"
