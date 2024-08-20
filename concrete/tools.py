@@ -203,9 +203,11 @@ class DeployToAWS(metaclass=MetaTool):
         client = boto3.client("ecs")
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
-            print(res)
-            if res and res['services'] and res["services"][0]["stabilityStatus"] == "STEADY_STATE":
-                return True
+            try:
+                if res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
+                    return True
+            except Exception as e:
+                print(e)
             time.sleep(10)
 
         return False
