@@ -64,6 +64,8 @@ import time
 from textwrap import dedent
 from typing import Dict
 
+import boto3
+
 from .operator_responses import ProjectDirectory
 
 
@@ -118,10 +120,10 @@ class DeployToAWS(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
     DIND_BUILDER_HOST = "localhost"
-    DIND_BUILDER_PORT = 5000
+    DIND_BUILDER_PORT = 5002
 
     @classmethod
-    def deploy_to_aws(cls, project_directory_name: str) -> None:
+    def deploy_to_aws(cls, project_directory_name: str) -> bool:
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
@@ -186,3 +188,23 @@ class DeployToAWS(metaclass=MetaTool):
             except Exception as e:
                 print(e)
                 time.sleep(5)
+
+        return cls._poll_service_status(project_directory_name)
+
+    @classmethod
+    def _poll_service_status(cls, service_name: str) -> bool:
+        """
+        service_name (str): The name of the service to poll.
+
+        Polls ecs.describe_service until stabilityStatus = STEADY_STATE, then returns true
+        Returns false after ~5 minutes of polling.
+        """
+        client = boto3.client("ecs")
+        for _ in range(30):
+            res = client.describe_services(cluster="DemoCluster", services=[service_name])
+            if res and res["services"][0]["stabilityStatus"] == "STEADY_STATE":
+                return True
+            time.sleep(10)
+            break
+
+        return False

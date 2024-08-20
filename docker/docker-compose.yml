@@ -11,18 +11,9 @@ services:
       - SHARED_VOLUME=/shared
     ports:
       - "8000:80"
-<<<<<<< HEAD
-    depends_on:
-      - dind-builder
-    env_file: 
-      - path: "../.env"
-        required: false
-      
-=======
     env_file: "../.env.demo"
     networks:
       - concrete_network
->>>>>>> main
 
   dind-builder:
     build:
@@ -37,11 +28,6 @@ services:
       - SHARED_VOLUME=/shared
     ports:
       - "5002:5002"
-<<<<<<< HEAD
-    env_file: 
-      - path: "../.env"
-        required: false
-=======
     env_file:
       - ../.env.dind-builder
     networks:
@@ -58,7 +44,6 @@ services:
     networks:
       - concrete_network
     env_file: "../.env"
->>>>>>> main
 
 volumes:
   shared-volume:
