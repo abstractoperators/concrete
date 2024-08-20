@@ -1,5 +1,5 @@
 from kombu.utils.json import register_type
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class ConcreteBaseModel(BaseModel):
@@ -11,7 +11,7 @@ class ConcreteBaseModel(BaseModel):
 
 
 class KombuMixin(BaseModel):
-    def __init_subclass__(cls, **kwargs: ConfigDict):
+    def __init_subclass__(cls, **kwargs):
         register_type(
             cls,
             cls.__name__,

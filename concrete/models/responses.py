@@ -13,8 +13,6 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
-from typing import TypeVar
-
 from pydantic import Field
 
 from .base import ConcreteBaseModel, KombuMixin
@@ -22,9 +20,6 @@ from .base import ConcreteBaseModel, KombuMixin
 
 class Response(ConcreteBaseModel):
     pass
-
-
-Response_co = TypeVar('Response_co', bound=Response, covariant=True)
 
 
 class ProjectFile(Response, KombuMixin):

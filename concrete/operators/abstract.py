@@ -9,7 +9,7 @@ from ..celery import app
 from ..clients import CLIClient, OpenAIClient
 from ..models.clients import ConcreteChatCompletion, OpenAIClientModel
 from ..models.operations import Operation
-from ..models.responses import Response, Response_co, TextResponse
+from ..models.responses import Response, TextResponse
 
 
 # TODO replace OpenAIClientModel with GenericClientModel
@@ -101,8 +101,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         self,
         query: str,
         instructions: str | None = None,
-        response_format: type[Response_co] = TextResponse,
-    ) -> Response_co:
+        response_format: type[Response] = TextResponse,
+    ) -> Response:
         """
         "Question and Answer", given a query, return an answer.
         Basically just a wrapper for OpenAI's chat completion API.
