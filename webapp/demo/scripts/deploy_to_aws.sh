@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 find_lowest_priority() {
     LISTENER_ARN=$1
     # Get all rules for the listener
@@ -36,11 +39,11 @@ deploy_to_aws() {
     CONTAINER_PORT=80
     DESIRED_COUNT=1
     VPC="vpc-022b256b8d0487543"
-    SUBNET="subnet-0d4714f3307f188d2"
+    SUBNET="subnet-0ba67bfb6421d660d" # Can add more subnets for placement
     SECURITY_GROUP="sg-0463bb6000a464f50"
     EXECUTION_ROLE_ARN="arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
-    LOAD_BALANCER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:loadbalancer/app/ConcreteLB/8624995bbfed2fc3"
-    LISTENER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLB/8624995bbfed2fc3/b8f13a57787e02eb"
+    LOAD_BALANCER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:loadbalancer/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4"
+    LISTENER_ARN="arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4/451389d914171f05"
     LISTENER_RULE_PRIORITY=$(find_lowest_priority $LISTENER_ARN)
 
     echo "Creating/updating task definition..."

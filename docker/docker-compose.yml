@@ -1,40 +1,68 @@
 services:
-  demo:
-    image: webapp-demo:latest
+  webapp-demo:
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.demo
+    image: webapp-demo:latest
+    container_name: webapp-demo
     volumes:
       - shared-volume:/shared
     environment:
       - SHARED_VOLUME=/shared
     ports:
       - "8000:80"
+<<<<<<< HEAD
     depends_on:
       - dind-builder
     env_file: 
       - path: "../.env"
         required: false
       
+=======
+    env_file: "../.env.demo"
+    networks:
+      - concrete_network
+>>>>>>> main
 
   dind-builder:
-    image: webapp-dind-builder:latest
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.dind-builder
-      platforms:
-        - linux/arm64
+    image: dind-builder:latest
+    container_name: dind-builder
+    privileged: true
     volumes:
-      - shared-volume:/shared
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /shared:/shared
     environment:
       - SHARED_VOLUME=/shared
-    privileged: true
     ports:
       - "5002:5002"
+<<<<<<< HEAD
     env_file: 
       - path: "../.env"
         required: false
+=======
+    env_file:
+      - ../.env.dind-builder
+    networks:
+      - concrete_network
+
+  webapp-main:
+    ports:
+      - 8001:80
+    image: webapp-main
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.main
+    container_name: webapp-main
+    networks:
+      - concrete_network
+    env_file: "../.env"
+>>>>>>> main
 
 volumes:
   shared-volume:
+
+networks:
+  concrete_network:
+    driver: bridge
