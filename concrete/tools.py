@@ -182,6 +182,7 @@ class DeployToAWS(metaclass=MetaTool):
         for _ in range(max_retries):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    print(f'Connecting to {cls.DIND_BUILDER_HOST}:{cls.DIND_BUILDER_PORT}')
                     s.connect((cls.DIND_BUILDER_HOST, cls.DIND_BUILDER_PORT))
                     s.sendall(project_directory_name.encode())
                 break
@@ -202,9 +203,9 @@ class DeployToAWS(metaclass=MetaTool):
         client = boto3.client("ecs")
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
-            if res and res["services"][0]["stabilityStatus"] == "STEADY_STATE":
+            print(res)
+            if res and res['services'] and res["services"][0]["stabilityStatus"] == "STEADY_STATE":
                 return True
             time.sleep(10)
-            break
 
         return False
