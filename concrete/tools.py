@@ -58,6 +58,7 @@ class testOperator(operators.Operator):
 """  # noqa: E501
 
 import inspect
+import json
 import os
 import socket
 import time
@@ -77,7 +78,7 @@ class MetaTool(type):
     def __new__(cls, name, bases, attrs):
         method_info = []
         for attr, value in attrs.items():
-            if attr.startswith("__"):
+            if attr.startswith("_"):
                 continue
             if callable(value) or isinstance(value, (classmethod, staticmethod)):
                 func = value.__func__ if isinstance(value, (classmethod, staticmethod)) else value
@@ -117,7 +118,7 @@ class MetaTool(type):
 
 
 class DeployToAWS(metaclass=MetaTool):
-    SHARED_VOLUME = "/shared"
+    SHARED_VOLUME = "/shared"  # host machine directory shared with the container
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
     DIND_BUILDER_HOST = "localhost"
     DIND_BUILDER_PORT = 5002
@@ -127,11 +128,8 @@ class DeployToAWS(metaclass=MetaTool):
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
-        project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
-        build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
-        os.makedirs(build_dir_path, exist_ok=True)
 
-        dockerfile_content = dedent(
+        default_dockerfile_content = dedent(
             f"""
             FROM python:3.11.9-slim-bookworm
             WORKDIR /app
@@ -142,35 +140,30 @@ class DeployToAWS(metaclass=MetaTool):
             CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
             """
         )
-        start_script = dedent(
+        dockerfile_filepath, dockerfile_content = cls.results[project_directory_name].pop(
+            'dockerfile_context', ("Dockerfile", default_dockerfile_content)
+        )
+
+        default_start_script = dedent(
             """
             #!/bin/sh
             set -e
-            if ! command -v flask &> /dev/null
-            then
-                echo "Flask is not installed. Installing..."
-                pip install flask
-            fi
-
-            if ! pip show concrete-operators &> /dev/null
-            then
-                echo "concrete-operators is not installed. Installing..."
-                pip install concrete-operators
-            fi
-
-            if [ -z "$OPENAI_API_KEY" ]
-            then
-                echo "Error: OPENAI_API_KEY is not set. Please set it before running this script."
-                exit 1
-            fi
             flask run --host=0.0.0.0 --port=80
             """
         )
+        start_script_filepath, start_script_content = cls.results[project_directory_name].pop(
+            'start_script', ("start.sh", default_start_script)
+        )
 
-        with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
+        project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
+        build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
+        os.makedirs(build_dir_path, exist_ok=True)
+
+        with open(os.path.join(build_dir_path, dockerfile_filepath), "w") as f:
             f.write(dockerfile_content)
-        with open(os.path.join(build_dir_path, "start.sh"), "w") as f:
-            f.write(start_script)
+
+        with open(os.path.join(build_dir_path, start_script_filepath), "w") as f:
+            f.write(start_script_content)
 
         for project_file in project_directory.files:
             file_path = os.path.join(build_dir_path, project_file.file_name)
@@ -184,7 +177,12 @@ class DeployToAWS(metaclass=MetaTool):
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     print(f'Connecting to {cls.DIND_BUILDER_HOST}:{cls.DIND_BUILDER_PORT}')
                     s.connect((cls.DIND_BUILDER_HOST, cls.DIND_BUILDER_PORT))
-                    s.sendall(project_directory_name.encode())
+                    build_info = {
+                        "build_dir": build_dir_path,
+                        "dockerfile_location": "Dockerfile",
+                    }
+                    json_data = json.dumps(build_info)
+                    s.sendall((json_data + '\n').encode('utf-8'))
                 break
             except Exception as e:
                 print(e)
@@ -211,3 +209,26 @@ class DeployToAWS(metaclass=MetaTool):
             time.sleep(10)
 
         return False
+
+
+class GitHubAPI(metaclass=MetaTool):
+    """
+    Implements methods for interacting with GitHub API.
+    Provides chained tools for deploying a repo to AWS.
+    """
+
+    @classmethod
+    def get_repo_contents(cls, repo_name: str, branch: str) -> str:
+        """
+        repo_name (str): The name of the repo to get contents of.
+        branch (str): The branch to get contents from
+        """
+        return f"Contents of {repo_name} fetched!"
+
+    @classmethod
+    def deploy_repo(cls, repo_name: str, branch: str) -> str:
+        """
+        repo_name (str): The name of the repo to deploy.
+        branch (str): The branch to deploy from.
+        """
+        return f"{repo_name} deployed from branch {branch}!"
