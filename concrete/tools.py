@@ -60,10 +60,11 @@ class testOperator(operators.Operator):
 import inspect
 import json
 import os
+import shutil
 import socket
 import time
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, Generator
 
 import boto3
 
@@ -217,18 +218,48 @@ class GitHubAPI(metaclass=MetaTool):
     Provides chained tools for deploying a repo to AWS.
     """
 
+    # Requires: GH Tool Deploy Key PRIVATE key on whatever machine is running this tool
+    # (technically with only pull access on a public repo this is not necessary)
+
     @classmethod
-    def get_repo_contents(cls, repo_name: str, branch: str) -> str:
+    def _get_repo_contents(cls, org: str, repo_name: str) -> str:
         """
-        repo_name (str): The name of the repo to get contents of.
-        branch (str): The branch to get contents from
+        org (str): The name of the organization to which the repo belongs.
+        repo_name (str): The name of the repo to get contents from.
         """
+        url = f'https://github.com/{org}/{repo_name}.git'
+        if os.path.isdir(f'/shared/{repo_name}'):
+            shutil.rmtree(f'/shared/{repo_name}')
+        os.system(f'git clone {url} /shared/{repo_name}')  # nosec
+
         return f"Contents of {repo_name} fetched!"
 
     @classmethod
-    def deploy_repo(cls, repo_name: str, branch: str) -> str:
+    def deploy_repo(cls, org: str, repo_name: str) -> None:
         """
         repo_name (str): The name of the repo to deploy.
         branch (str): The branch to deploy from.
         """
-        return f"{repo_name} deployed from branch {branch}!"
+        cls._get_repo_contents(org, repo_name)
+        deploy_dir = f'/shared/{repo_name}'
+
+        # Look for a dockerfile?
+        for dockerfile_filepath in cls._find_dockerfiles(repo_name):
+            with open(f'{deploy_dir}/{dockerfile_filepath}') as f:
+                dockerfile_content = f.read()
+            DeployToAWS.results[repo_name].extend({'dockerfile_context': (dockerfile_filepath, dockerfile_content)})
+            # Call an Operator to deploy it? Or just do it manually? Not sure....
+            DeployToAWS.deploy_repo(repo_name)
+
+    @classmethod
+    def _find_dockerfiles(cls, repo_name: str) -> Generator[str]:
+        """
+        repo_name (str): The name of the repo to deploy.
+        Returns a list of paths to Dockerfiles in the repo
+        """
+        for root, _, files in os.walk(f'/shared/{repo_name}'):
+            relative_root = os.path.relpath(root, f'/shared/{repo_name}')
+            for file in files:
+                if file.startswith('Dockerfile'):
+                    relative_path = os.path.join(relative_root, file)
+                    yield relative_path
