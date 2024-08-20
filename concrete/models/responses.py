@@ -13,36 +13,36 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
-from json import dumps
-from typing import List
+from typing import TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-
-class Response(BaseModel):
-    def __str__(self):
-        return dumps(self.model_dump(), indent=2)
-
-    def __repr__(self):
-        return self.__str__()
+from .base import ConcreteBaseModel, KombuMixin
 
 
-class ProjectFile(Response):
+class Response(ConcreteBaseModel):
+    pass
+
+
+Response_co = TypeVar('Response_co', bound=Response, covariant=True)
+
+
+class ProjectFile(Response, KombuMixin):
     file_name: str = Field(description="File path relative to project root")
     file_contents: str = Field(description="File contents")
 
 
-class ProjectDirectory(Response):
+class ProjectDirectory(Response, KombuMixin):
     files: list[ProjectFile] = Field(description="List of ProjectFiles in the directory")
 
 
-class TextResponse(Response):
+class TextResponse(Response, KombuMixin):
     text: str = Field(description="Text response")
 
 
-class Summary(Response):
-    summary: List[str] = Field(description="List of component summaries")
+class Summary(Response, KombuMixin):
+    summary: list[str] = Field(description="List of component summaries")
 
 
-class PlannedComponents(Response):
-    components: List[str] = Field(description="List of planned components")
+class PlannedComponents(Response, KombuMixin):
+    components: list[str] = Field(description="List of planned components")

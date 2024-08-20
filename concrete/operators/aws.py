@@ -4,7 +4,7 @@ import time
 from textwrap import dedent
 from uuid import UUID
 
-from ..operator_responses import ProjectDirectory
+from ..models.responses import ProjectDirectory
 
 
 class AWSOperator:
