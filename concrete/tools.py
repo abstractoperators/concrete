@@ -222,7 +222,7 @@ class GitHubAPI(metaclass=MetaTool):
     # (technically with only pull access on a public repo this is not necessary)
 
     @classmethod
-    def _get_repo_contents(cls, org: str, repo_name: str) -> str:
+    def _get_repo_contents(cls, org: str, repo_name: str):
         """
         org (str): The name of the organization to which the repo belongs.
         repo_name (str): The name of the repo to get contents from.
@@ -231,8 +231,6 @@ class GitHubAPI(metaclass=MetaTool):
         if os.path.isdir(f'/shared/{repo_name}'):
             shutil.rmtree(f'/shared/{repo_name}')
         os.system(f'git clone {url} /shared/{repo_name}')  # nosec
-
-        return f"Contents of {repo_name} fetched!"
 
     @classmethod
     def deploy_repo(cls, org: str, repo_name: str) -> None:
