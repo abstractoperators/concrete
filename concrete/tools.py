@@ -122,13 +122,13 @@ class DeployToAWS(metaclass=MetaTool):
     DIND_BUILDER_HOST = "localhost"
     DIND_BUILDER_PORT = 5002
 
-    @classmethod
-    def deploy_to_aws(cls, project_directory_name: str) -> bool:
-        """
-        project_directory_name (str): The name of the project directory to deploy.
-        """
-        build_dir_path, dockerfile_filepath, project_directory_name = DeployToAWS.build_image(project_directory_name)
-        return DeployToAWS.deploy_image(build_dir_path, dockerfile_filepath, project_directory_name)
+    # @classmethod
+    # def deploy_to_aws(cls, project_directory_name: str) -> bool:
+    #     """
+    #     project_directory_name (str): The name of the project directory to deploy.
+    #     """
+    #     build_dir_path, dockerfile_filepath, project_directory_name = DeployToAWS.build_image(project_directory_name)
+    #     return DeployToAWS.deploy_image(build_dir_path, dockerfile_filepath, project_directory_name)
 
     @classmethod
     def _poll_service_status(cls, service_name: str) -> bool:
@@ -150,13 +150,14 @@ class DeployToAWS(metaclass=MetaTool):
 
         return False
 
-    @classmethod
-    def pull_image(cls, image_uri):
-        """pulls an image from an arbitrary registry"""
-        pass
+    # @classmethod
+    # def pull_image(cls, image_uri):
+    #     """pulls an image from an arbitrary registry"""
+    #     pass
 
     @classmethod
     def build_image(cls, project_directory_name: str):
+        # TODO build and push to ECR
         default_dockerfile = (
             'Dockerfile',
             dedent(
@@ -234,7 +235,7 @@ class DeployToAWS(metaclass=MetaTool):
     @classmethod
     def _deploy_image(cls, image_uri) -> bool:
         """
-        Deploys an image_uri to ECS
+        Deploys an image_uri to ECS. Assumes registry does not require authentication, or is in ECR.
         """
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
