@@ -23,4 +23,4 @@ pre-commit install
 Pre-commit will check for code formatting before completing the commit. If code is formatted by black, you will need to add the changes files to staged and re-try the commit.
 Flake8 generally have to be handled manually.
 
-To force a commit locally add the flag `--no-verify` as an option to `git commit` e.g. `git commit --no-verify -m "..."`. Github workflows should mirror local pre commit checks.
+To force a commit locally add the flag `--no-verify` as an option to `git commit` e.g. `git commit --no-verify -m "..."`. Github workflows should mirror local pre commit checks. After a --no-verify, you should run a `pre-commit run --all-files` to ensure that the code is formatted correctly before commiting, as pre-commit checks will not run on unchanged files.
