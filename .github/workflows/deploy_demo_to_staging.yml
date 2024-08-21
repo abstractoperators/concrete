@@ -50,8 +50,10 @@ jobs:
 
       - name: Deploy to ECS staging using DeployToAWS._deploy_image
         run: |
-          poetry install
+          curl -sSL https://install.python-poetry.org | python3 -
+          poetry --version
           ls
+          poetry install
 
 
           
