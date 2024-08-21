@@ -27,13 +27,18 @@ jobs:
         with:
           mask-password: "true"
 
+      - name: Create .env.demo file
+        run: |
+          echo "OPENAI_API_KEY=${{secrets.DEMO_OPENAI_API_KEY}}" >> .env.demo
+          echo "OPENAI_TEMPERATURE=0" >> .env.demo
+
       - name: Build and push to ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: webapp-demo
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker compose -f docker/docker-compose.yml build demo
+          docker compose -f docker/docker-compose.yml build webapp-demo
           docker tag webapp-demo:latest ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
           docker push ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
 

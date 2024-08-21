@@ -239,6 +239,7 @@ class DeployToAWS(metaclass=MetaTool):
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
 
+        # Find listener priority to deploy to
         cluster = "DemoCluster"
         service_name = image_uri.split("/")[-1]
         task_name = service_name
