@@ -322,6 +322,7 @@ class DeployToAWS(metaclass=MetaTool):
                 service=service_name,
                 forceNewDeployment=True,
                 taskDefinition=task_definition_arn,
+                desiredCount=1,
             )
 
         else:
@@ -401,6 +402,3 @@ class GitHubAPI(metaclass=MetaTool):
                 if file.startswith('Dockerfile'):
                     relative_path = os.path.join(relative_root, file)
                     yield relative_path
-
-    # GHA: call this tool, it pings deploytoaws
-    #
