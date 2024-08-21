@@ -241,7 +241,7 @@ class DeployToAWS(metaclass=MetaTool):
 
         # Find listener priority to deploy to
         cluster = "DemoCluster"
-        service_name = image_uri.split("/")[-1]
+        service_name = image_uri.split("/")[-1].split(":")[0]
         task_name = service_name
         target_group_name = service_name
         vpc = "vpc-022b256b8d0487543"
