@@ -21,10 +21,9 @@ build_and_push_image() {
         build_pid=$!
         wait $build_pid
         if docker push "$full_image_name"; then
-            echo 'success'
-            ./usr/local/bin/deploy_to_aws.sh $full_image_name
+            echo "Successfully pushed docker image to ECR @ $full_image_name"
         else
-            echo 'fail'
+            echo "Failed to push docker image to ECR"
         fi
     else
         echo "No Dockerfile found in $build_dir"
