@@ -38,7 +38,7 @@ jobs:
           REPOSITORY: webapp-demo
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker compose -f docker/docker-compose.yml build webapp-demo
+          docker compose -f docker/docker-compose.yml build --no-deps  webapp-demo
           docker tag webapp-demo:latest ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
           docker push ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
 
