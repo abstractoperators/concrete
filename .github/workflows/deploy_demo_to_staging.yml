@@ -6,79 +6,49 @@ on:
       - michael/gha_staging
 
 jobs:
-  # build-and-redeploy:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
-
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v2
-
-  #     - name: Configure AWS credentials for ECR Write Access
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
-  #         aws-region: us-east-1
-
-  #     - name: Login to Amazon ECR
-  #       id: login-ecr
-  #       uses: aws-actions/amazon-ecr-login@v2
-  #       with:
-  #         mask-password: "true"
-
-  #     - name: Build and push to ECR
-  #       env:
-  #         REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #         REPOSITORY: webapp-demo
-  #         IMAGE_TAG: ${{ github.sha }}
-  #       run: |
-  #         docker compose -f docker/docker-compose.yml build demo
-  #         docker tag webapp-demo:latest ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
-  #         docker push ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
-
-  #     - name: Configure AWS Credentials for Service Update
-  #       uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
-  #         aws-region: us-east-1
-
-  #     - name: Deploy to ECS staging
-  #       env:
-  #         SERVICE: webapp_demo_staging
-  #         REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #         REPOSITORY: webapp-demo
-  #         CONTAINER_NAME: webapp_demo
-  #         TASK_FAMILY: webapp_demo_staging
-  #         IMAGE_TAG: ${{ github.sha }}
-  #       run: | # Update task definition to use new image
-  #         OLD_TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition' --output json)
-
-  #         NEW_TASK_DEFINITION=$(echo $OLD_TASK_DEFINITION | jq --arg IMAGE "${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}" '.containerDefinitions[0].image = $IMAGE')
-
-  #         NEW_TASK_DEFINITION=$(echo $NEW_TASK_DEFINITION | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-
-  #         NEW_TASK_ARN=$(aws ecs register-task-definition --family $TASK_FAMILY --cli-input-json "$NEW_TASK_DEFINITION" --query 'taskDefinition.taskDefinitionArn' --output text)
-
-  #         aws ecs update-service --cluster DemoCluster --service ${SERVICE} --task-definition ${NEW_TASK_ARN} --force-new-deployment
-
-  build-and-deploy:
+  build-and-redeploy:
     runs-on: ubuntu-latest
-    env: 
-      ghtool_private_key: ${{secrets.GHTOOL_PRIVATE_KEY}}
     steps:
-      - name: Set ssh key for ghtool
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Configure AWS credentials for ECR
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: "true"
+
+      - name: Build and push to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: webapp-demo
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          mkdir -p ~/.ssh
-          echo "$ghtool_private_key" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-      - name: Launch dind-builder
+          docker compose -f docker/docker-compose.yml build demo
+          docker tag webapp-demo:latest ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
+          docker push ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
+
+      - name: Configure AWS Credentials for ECS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+          aws-region: us-east-1
+
+      - name: Deploy to ECS staging using DeployToAWS._deploy_image
         run: |
-          make run-dind-builder
-      - name: Call ghtool to deploy to staging
-        run: |
-          make 
+          poetry install
+          ls
+
+
           
 permissions:
   id-token: write

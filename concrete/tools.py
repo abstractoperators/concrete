@@ -239,7 +239,6 @@ class DeployToAWS(metaclass=MetaTool):
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
 
-        # Find listener priority to deploy to
         cluster = "DemoCluster"
         service_name = image_uri.split("/")[-1]
         task_name = service_name
@@ -248,9 +247,6 @@ class DeployToAWS(metaclass=MetaTool):
         subnets = ["subnet-0ba67bfb6421d660d"]  # subnets considered for placement
         security_group = "sg-0463bb6000a464f50"  # allows traffic from ALB
         execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
-        # load_balancer_arn = (
-        #     "arn:aws:elasticloadbalancing:us-east-1:008971649127:loadbalancer/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4"
-        # )
         listener_arn = (
             "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
             "/f7cec30e1ac2e4a4/451389d914171f05"
