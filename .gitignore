@@ -170,8 +170,4 @@ cython_debug/
 .DS_Store
 shared/
 
-<<<<<<< HEAD
-#
-=======
->>>>>>> main
 .vscode/

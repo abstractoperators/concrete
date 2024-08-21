@@ -58,10 +58,8 @@ class testOperator(operators.Operator):
 """  # noqa: E501
 
 import inspect
-import json
 import os
 import shutil
-import socket
 import time
 from textwrap import dedent
 from typing import Dict, Generator
@@ -129,67 +127,8 @@ class DeployToAWS(metaclass=MetaTool):
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
-
-        default_dockerfile_content = dedent(
-            f"""
-            FROM python:3.11.9-slim-bookworm
-            WORKDIR /app
-            RUN pip install flask concrete-operators
-            COPY . .
-            ENV OPENAI_API_KEY={os.environ['OPENAI_API_KEY']}
-            ENV OPENAI_TEMPERATURE=0
-            CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
-            """
-        )
-        dockerfile_filepath, dockerfile_content = cls.results[project_directory_name].pop(
-            'dockerfile_context', ("Dockerfile", default_dockerfile_content)
-        )
-
-        default_start_script = dedent(
-            """
-            #!/bin/sh
-            set -e
-            flask run --host=0.0.0.0 --port=80
-            """
-        )
-        start_script_filepath, start_script_content = cls.results[project_directory_name].pop(
-            'start_script', ("start.sh", default_start_script)
-        )
-
-        project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
-        build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
-        os.makedirs(build_dir_path, exist_ok=True)
-
-        with open(os.path.join(build_dir_path, dockerfile_filepath), "w") as f:
-            f.write(dockerfile_content)
-
-        with open(os.path.join(build_dir_path, start_script_filepath), "w") as f:
-            f.write(start_script_content)
-
-        for project_file in project_directory.files:
-            file_path = os.path.join(build_dir_path, project_file.file_name)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, "w") as f:
-                f.write(project_file.file_contents)
-
-        max_retries = 2
-        for _ in range(max_retries):
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    print(f'Connecting to {cls.DIND_BUILDER_HOST}:{cls.DIND_BUILDER_PORT}')
-                    s.connect((cls.DIND_BUILDER_HOST, cls.DIND_BUILDER_PORT))
-                    build_info = {
-                        "build_dir": build_dir_path,
-                        "dockerfile_location": "Dockerfile",
-                    }
-                    json_data = json.dumps(build_info)
-                    s.sendall((json_data + '\n').encode('utf-8'))
-                break
-            except Exception as e:
-                print(e)
-                time.sleep(5)
-
-        return cls._poll_service_status(project_directory_name)
+        build_dir_path, dockerfile_filepath, project_directory_name = DeployToAWS.build_image(project_directory_name)
+        return DeployToAWS.deploy_image(build_dir_path, dockerfile_filepath, project_directory_name)
 
     @classmethod
     def _poll_service_status(cls, service_name: str) -> bool:
@@ -210,6 +149,210 @@ class DeployToAWS(metaclass=MetaTool):
             time.sleep(10)
 
         return False
+
+    @classmethod
+    def pull_image(cls):
+        """pulls an image from an arbitrary registry"""
+        pass
+
+    @classmethod
+    def build_image(cls, project_directory_name: str):
+        default_dockerfile = (
+            'Dockerfile',
+            dedent(
+                f"""
+            FROM python:3.11.9-slim-bookworm
+            WORKDIR /app
+            RUN pip install flask concrete-operators
+            COPY . .
+            ENV OPENAI_API_KEY={os.environ['OPENAI_API_KEY']}
+            ENV OPENAI_TEMPERATURE=0
+            CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
+            """
+            ),
+        )
+        dockerfile_filepath, dockerfile_content = cls.results[project_directory_name].pop(
+            'dockerfile', default_dockerfile
+        )
+
+        default_start_script = (
+            'start.sh',
+            dedent(
+                """
+            #!/bin/sh
+            set -e
+            flask run --host=0.0.0.0 --port=80
+            """
+            ),
+        )
+        start_script_filepath, start_script_content = cls.results[project_directory_name].pop(
+            'start_script', default_start_script
+        )
+
+        default_docker_compose = (None, None)  # ('docker-compose.yml', service), overrides dockerfile
+        docker_compose_filepath, docker_compose_services = cls.results[project_directory_name].pop(
+            'docker_compose_services', default_docker_compose
+        )
+
+        # Add a shortcircuit for projects that have already been written to shared.
+        if not os.path.exists(os.path.join(cls.SHARED_VOLUME, project_directory_name)):
+            project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
+            build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
+            os.makedirs(build_dir_path, exist_ok=True)
+
+            with open(os.path.join(build_dir_path, dockerfile_filepath), "w") as f:
+                f.write(dockerfile_content)
+
+            with open(os.path.join(build_dir_path, start_script_filepath), "w") as f:
+                f.write(start_script_content)
+
+            for project_file in project_directory.files:
+                file_path = os.path.join(build_dir_path, project_file.file_name)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                with open(file_path, "w") as f:
+                    f.write(project_file.file_contents)
+                # max_retries = 2
+        # for _ in range(max_retries):
+        #     try:
+        #         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        #             print(f'Connecting to {cls.DIND_BUILDER_HOST}:{cls.DIND_BUILDER_PORT}')
+        #             s.connect((cls.DIND_BUILDER_HOST, cls.DIND_BUILDER_PORT))
+        #             build_info = {
+        #                 "build_dir": build_dir_path,
+        #             }
+        #             json_data = json.dumps(build_info)
+        #             s.sendall((json_data + '\n').encode('utf-8'))
+        #         break
+        #     except Exception as e:
+        #         print(e)
+        #         time.sleep(5)
+
+        # return cls._poll_service_status(project_directory_name)
+
+        return build_dir_path, dockerfile_filepath, project_directory_name
+
+    @classmethod
+    def _deploy_image(cls, image_uri) -> bool:
+        """
+        Deploys an image_uri to ECS
+        """
+        ecs_client = boto3.client("ecs")
+        elbv2_client = boto3.client("elbv2")
+
+        # Find listener priority to deploy to
+        cluster = "DemoCluster"
+        service_name = image_uri.split("/")[-1]
+        task_name = service_name
+        target_group_name = service_name
+        vpc = "vpc-022b256b8d0487543"
+        subnets = ["subnet-0ba67bfb6421d660d"]  # subnets considered for placement
+        security_group = "sg-0463bb6000a464f50"  # allows traffic from ALB
+        execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
+        # load_balancer_arn = (
+        #     "arn:aws:elasticloadbalancing:us-east-1:008971649127:loadbalancer/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4"
+        # )
+        listener_arn = (
+            "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
+            "/f7cec30e1ac2e4a4/451389d914171f05"
+        )
+        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
+        if set(range(1, len(rules))) - set(rule_priorities):
+            listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
+        else:
+            listener_rule_priority = len(rules) + 1
+
+        task_definition_arn = ecs_client.register_task_definition(
+            family=task_name,
+            executionRoleArn=execution_role_arn,
+            networkMode="awsvpc",
+            requiresCompatibilities=["FARGATE"],
+            containerDefinitions=[
+                {
+                    "name": task_name,
+                    "image": image_uri,
+                    "portMappings": [{"containerPort": 80}],
+                    "essential": True,
+                    "logConfiguration": {
+                        "logDriver": "awslogs",
+                        "options": {
+                            "awslogs-group": "fargate-demos",
+                            "awslogs-region": "us-east-1",
+                            "awslogs-stream-prefix": "fg",
+                        },
+                    },
+                }
+            ],
+            cpu='256',
+            memory='512',
+            runtimePlatform={
+                'cpuArchitecture': 'ARM64',
+                'operatingSystemFamily': 'LINUX',
+            },
+        )['taskDefinition']['taskDefinitionArn']
+
+        target_group_arn = elbv2_client.create_target_group(
+            Name=target_group_name,
+            Protocol='HTTP',
+            Port=80,
+            VpcId=vpc,
+            TargetType='ip',
+            HealthCheckEnabled=True,
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=30,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=2,
+            UnhealthyThresholdCount=2,
+        )['TargetGroups'][0][
+            'TargetGroupArn'
+        ]  # A little confused as to why this is a list?
+
+        elbv2_client.create_rule(
+            ListenerArn=listener_arn,
+            Priority=listener_rule_priority,
+            Conditions=[{'Field': 'host-header', 'Values': [f'{target_group_name}.abop.ai']}],
+            Actions=[
+                {
+                    'Type': 'forward',
+                    'TargetGroupArn': target_group_arn,
+                }
+            ],
+        )
+
+        if ecs_client.describe_services(cluster=cluster, services=[service_name])['services']:
+            ecs_client.update_service(
+                cluster=cluster,
+                service=service_name,
+                forceNewDeployment=True,
+                taskDefinition=task_definition_arn,
+            )
+
+        else:
+            ecs_client.create_service(
+                cluster=cluster,
+                serviceName=service_name,
+                taskDefinition=task_definition_arn,
+                desiredCount=1,
+                launchType="FARGATE",
+                networkConfiguration={
+                    "awsvpcConfiguration": {
+                        "subnets": subnets,
+                        "securityGroups": [security_group],
+                        "assignPublicIp": "ENABLED",
+                    }
+                },
+                loadBalancers=[
+                    {
+                        "targetGroupArn": target_group_arn,
+                        "containerName": task_name,
+                        "containerPort": 80,
+                    }
+                ],
+                enableECSManagedTags=True,
+                propagateTags="SERVICE",
+            )
+
+        return cls._poll_service_status(service_name)
 
 
 class GitHubAPI(metaclass=MetaTool):
@@ -250,7 +393,7 @@ class GitHubAPI(metaclass=MetaTool):
             DeployToAWS.deploy_repo(repo_name)
 
     @classmethod
-    def _find_dockerfiles(cls, repo_name: str) -> Generator[str]:
+    def _find_dockerfiles(cls, repo_name: str) -> Generator[str, None, None]:
         """
         repo_name (str): The name of the repo to deploy.
         Returns a list of paths to Dockerfiles in the repo
@@ -261,3 +404,6 @@ class GitHubAPI(metaclass=MetaTool):
                 if file.startswith('Dockerfile'):
                     relative_path = os.path.join(relative_root, file)
                     yield relative_path
+
+    # GHA: call this tool, it pings deploytoaws
+    #

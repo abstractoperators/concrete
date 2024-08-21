@@ -79,6 +79,7 @@ jobs:
       - name: Call ghtool to deploy to staging
         run: |
           make 
+          
 permissions:
   id-token: write
   contents: read
