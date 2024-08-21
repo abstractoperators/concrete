@@ -58,8 +58,7 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           poetry --version
           poetry install
-          poetry run python3 "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri=${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}) 
-
+          poetry run python3 "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri=${REGISTRY}/${REPOSITORY}:${IMAGE_TAG})"
 
           
 permissions:
