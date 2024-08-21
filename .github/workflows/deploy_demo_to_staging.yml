@@ -40,7 +40,7 @@ jobs:
       - name: Build and push to ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: webapp-demo
+          REPOSITORY: webapp-demo-staging
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker compose -f docker/docker-compose.yml build webapp-demo
@@ -57,8 +57,8 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           poetry --version
-          ls
           poetry install
+          poetry run python3 "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri=${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}) 
 
 
           

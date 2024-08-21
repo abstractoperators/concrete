@@ -151,7 +151,7 @@ class DeployToAWS(metaclass=MetaTool):
         return False
 
     @classmethod
-    def pull_image(cls):
+    def pull_image(cls, image_uri):
         """pulls an image from an arbitrary registry"""
         pass
 
