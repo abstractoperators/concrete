@@ -214,6 +214,9 @@ class DeployToAWS(metaclass=MetaTool):
 
         return False
 
+    def _build_image(cls, project_directory_name: str) -> None:
+        pass
+
     @classmethod
     def _deploy_image(cls, image_uri: str) -> None:
         """
