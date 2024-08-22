@@ -61,6 +61,11 @@ jobs:
                   poetry --version
                   poetry install
                   echo "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri='${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}', webapp-main-staging)" | poetry run python3
+
+
+# https://github.com/actions/deploy-pages/issues/329 -
+# https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
+# The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).
 permissions:
-  id-token: write
+  id-token: write 
   contents: read
