@@ -75,7 +75,7 @@ class MetaTool(type):
     def __new__(cls, name, bases, attrs):
         method_info = []
         for attr, value in attrs.items():
-            if attr.startswith("__"):
+            if attr.startswith("_"):
                 continue
             if callable(value) or isinstance(value, (classmethod, staticmethod)):
                 func = value.__func__ if isinstance(value, (classmethod, staticmethod)) else value
@@ -186,3 +186,10 @@ class DeployToAWS(metaclass=MetaTool):
             except Exception as e:
                 print(e)
                 time.sleep(5)
+
+    @classmethod
+    def _poll_service_status(cls, service_name: str) -> bool:
+        """
+        service_name (str): Name of the service to poll for status
+        """
+        return False
