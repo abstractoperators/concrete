@@ -61,3 +61,6 @@ jobs:
                   poetry --version
                   poetry install
                   echo "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri='${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}', webapp-main-staging)" | poetry run python3
+permissions:
+  id-token: write
+  contents: read
