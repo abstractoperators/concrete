@@ -56,16 +56,14 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
 
-            - name: Deploy to ECS staging using DeployToAWS._deploy_image
+            - name: Deploy to ECS staging using DeployToAWS._deploy_images
               env:
-                  REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-                  REPOSITORY: webapp-demo-staging
-                  IMAGE_TAG: ${{ github.sha }}
+                image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest'
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  echo "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri='${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}', custom_name = 'webapp-main-staging')" | poetry run python3
+                  echo "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri='${image_uri}', custom_name = 'webapp-main-staging')" | poetry run python3
 
 
 # https://github.com/actions/deploy-pages/issues/329 -

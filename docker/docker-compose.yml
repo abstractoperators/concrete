@@ -38,7 +38,7 @@ services:
 
   webapp-main:
     ports:
-      - 8001:80
+      - 8000:80
     image: webapp-main
     build:
       context: ../
