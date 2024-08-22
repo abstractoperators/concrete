@@ -19,8 +19,7 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 COPY /webapp/demo/scripts/listener.sh /usr/local/bin/listener.sh
 COPY /webapp/demo/scripts/build_and_push.sh /usr/local/bin/build_and_push.sh
-COPY /webapp/demo/scripts/deploy_to_aws.sh /usr/local/bin/deploy_to_aws.sh
-RUN chmod +x /usr/local/bin/listener.sh /usr/local/bin/build_and_push.sh /usr/local/bin/deploy_to_aws.sh
+RUN chmod +x /usr/local/bin/listener.sh /usr/local/bin/build_and_push.sh
 
 ENV DOCKER_HOST=unix:///var/run/docker.sock
 
