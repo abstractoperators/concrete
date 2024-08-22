@@ -128,7 +128,33 @@ class DeployToAWS(metaclass=MetaTool):
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
-        # AWS enforces regex pattern for repo names, simplified as [a-z0-9_-]+
+        cls._build_and_push_image(project_directory_name)
+        cls._deploy_image(
+            f"008971649127.dkr.ecr.us-east-1.amazonaws.com/{project_directory_name.lower().replace(' ', '-')}"
+        )
+
+    @classmethod
+    def _poll_service_status(cls, service_name: str) -> bool:
+        """
+        service_name (str): The name of the service to poll.
+
+        Polls ecs.describe_service until the service is running.
+        Returns False after ~5 minutes of polling.
+        """
+        client = boto3.client("ecs")
+        for _ in range(30):
+            res = client.describe_services(cluster="DemoCluster", services=[service_name])
+            if res['services'] and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
+                return True
+            time.sleep(10)
+
+        return False
+
+    @classmethod
+    def _build_and_push_image(cls, project_directory_name: str) -> None:
+        """
+        Calls dind-builder service to build and push the image to ECR.
+        """
         project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
         project_directory_name = project_directory_name.lower().replace(" ", "-")
         build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
@@ -191,31 +217,6 @@ class DeployToAWS(metaclass=MetaTool):
             except Exception as e:
                 print(e)
                 time.sleep(5)
-
-        if not cls._poll_service_status(project_directory_name):
-            CLIClient.emit("Failed to start service.")
-        else:
-            CLIClient.emit("Service started successfully.")
-
-    @classmethod
-    def _poll_service_status(cls, service_name: str) -> bool:
-        """
-        service_name (str): The name of the service to poll.
-
-        Polls ecs.describe_service until the service is running.
-        Returns False after ~5 minutes of polling.
-        """
-        client = boto3.client("ecs")
-        for _ in range(30):
-            res = client.describe_services(cluster="DemoCluster", services=[service_name])
-            if res['services'] and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
-                return True
-            time.sleep(10)
-
-        return False
-
-    def _build_image(cls, project_directory_name: str) -> None:
-        pass
 
     @classmethod
     def _deploy_image(cls, image_uri: str) -> None:
