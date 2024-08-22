@@ -1,6 +1,6 @@
-from fasthtml import common as c
+from fasthtml import common as f
 
-app, rt = c.fast_app()
+app, rt = f.fast_app()
 
 operators = ['operator0', 'operator1', 'operator2']
 
@@ -10,10 +10,10 @@ def get():
     """
     Overview of operators
     """
-    pees = [c.H1('abstract'), c.H2('operators')]
-    pees += [c.Ul(o) for o in operators]
-    pees += [c.Footer("© 2024, abstract operators")]
-    return c.Div(*pees, hx_get="/change")
+    paragraphs = [f.H1('abstract'), f.H2('operators')]
+    paragraphs += [f.Ul(o) for o in operators]
+    paragraphs += [f.Footer("© 2024, abstract operators")]
+    return f.Title("abop"), f.Div(*paragraphs, hx_get="/change")
 
 
-c.serve()
+f.serve()
