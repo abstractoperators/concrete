@@ -65,8 +65,8 @@ from textwrap import dedent
 from typing import Dict
 
 import boto3
-from clients import CLIClient
 
+from .clients import CLIClient
 from .operator_responses import ProjectDirectory
 
 
@@ -128,7 +128,9 @@ class DeployToAWS(metaclass=MetaTool):
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
+        # AWS enforces regex pattern for repo names, simplified as [a-z0-9_-]+
         project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
+        project_directory_name = project_directory_name.lower().replace(" ", "-")
         build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
         os.makedirs(build_dir_path, exist_ok=True)
 
@@ -206,11 +208,9 @@ class DeployToAWS(metaclass=MetaTool):
         client = boto3.client("ecs")
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
-            try:
+            if res["services"]:
                 if res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
                     return True
-            except Exception as e:
-                print(e)
             time.sleep(10)
 
         return False
