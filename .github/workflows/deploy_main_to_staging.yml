@@ -42,6 +42,11 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
+            - name: Setup Python for poetry
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.11.9"
+
             - name: Checkout code
               uses: actions/checkout@v2
 
