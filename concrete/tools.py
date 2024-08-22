@@ -213,3 +213,125 @@ class DeployToAWS(metaclass=MetaTool):
             time.sleep(10)
 
         return False
+
+    def _deploy_image(cls, image_uri: str) -> bool:
+        """
+        image_uri (str): The URI of the image to deploy.
+        """
+        ecs_client = boto3.client("ecs")
+        elbv2_client = boto3.client("elbv2")
+
+        # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
+        # May eventually move these out to env, but not first priority.
+        cluster = "DemoCluster"
+        service_name = image_uri.split("/")[-1].split(":")[0]
+        task_name = service_name
+        target_group_name = service_name
+        vpc = "vpc-022b256b8d0487543"
+        subnets = ["subnet-0ba67bfb6421d660d"]  # subnets considered for placement
+        security_group = "sg-0463bb6000a464f50"  # allows traffic from ALB
+        execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
+        listener_arn = (
+            "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
+            "/f7cec30e1ac2e4a4/451389d914171f05"
+        )
+
+        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
+        if set(range(1, len(rules))) - set(rule_priorities):
+            listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
+        else:
+            listener_rule_priority = len(rules) + 1
+
+        task_definition_arn = ecs_client.register_task_definition(
+            family=task_name,
+            executionRoleArn=execution_role_arn,
+            networkMode="awsvpc",
+            requiresCompatibilities=["FARGATE"],
+            containerDefinitions=[
+                {
+                    "name": task_name,
+                    "image": image_uri,
+                    "portMappings": [{"containerPort": 80}],
+                    "essential": True,
+                    "logConfiguration": {
+                        "logDriver": "awslogs",
+                        "options": {
+                            "awslogs-group": "fargate-demos",
+                            "awslogs-region": "us-east-1",
+                            "awslogs-stream-prefix": "fg",
+                        },
+                    },
+                }
+            ],
+            cpu='256',
+            memory='512',
+            runtimePlatform={
+                'cpuArchitecture': 'ARM64',
+                'operatingSystemFamily': 'LINUX',
+            },
+        )['taskDefinition']['taskDefinitionArn']
+
+        target_group_arn = elbv2_client.create_target_group(
+            Name=target_group_name,
+            Protocol='HTTP',
+            Port=80,
+            VpcId=vpc,
+            TargetType='ip',
+            HealthCheckEnabled=True,
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=30,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=2,
+            UnhealthyThresholdCount=2,
+        )['TargetGroups'][0][
+            'TargetGroupArn'
+        ]  # A little confused as to why this is a list?
+
+        elbv2_client.create_rule(
+            ListenerArn=listener_arn,
+            Priority=listener_rule_priority,
+            Conditions=[{'Field': 'host-header', 'Values': [f'{target_group_name}.abop.ai']}],
+            Actions=[
+                {
+                    'Type': 'forward',
+                    'TargetGroupArn': target_group_arn,
+                }
+            ],
+        )
+
+        if ecs_client.describe_services(cluster=cluster, services=[service_name])['services']:
+            ecs_client.update_service(
+                cluster=cluster,
+                service=service_name,
+                forceNewDeployment=True,
+                taskDefinition=task_definition_arn,
+                desiredCount=1,
+            )
+
+        else:
+            ecs_client.create_service(
+                cluster=cluster,
+                serviceName=service_name,
+                taskDefinition=task_definition_arn,
+                desiredCount=1,
+                launchType="FARGATE",
+                networkConfiguration={
+                    "awsvpcConfiguration": {
+                        "subnets": subnets,
+                        "securityGroups": [security_group],
+                        "assignPublicIp": "ENABLED",
+                    }
+                },
+                loadBalancers=[
+                    {
+                        "targetGroupArn": target_group_arn,
+                        "containerName": task_name,
+                        "containerPort": 80,
+                    }
+                ],
+                enableECSManagedTags=True,
+                propagateTags="SERVICE",
+            )
+
+        return cls._poll_service_status(service_name)
