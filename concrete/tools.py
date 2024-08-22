@@ -64,6 +64,9 @@ import time
 from textwrap import dedent
 from typing import Dict
 
+import boto3
+
+from .clients import CLIClient
 from .operator_responses import ProjectDirectory
 
 
@@ -75,7 +78,7 @@ class MetaTool(type):
     def __new__(cls, name, bases, attrs):
         method_info = []
         for attr, value in attrs.items():
-            if attr.startswith("__"):
+            if attr.startswith("_"):
                 continue
             if callable(value) or isinstance(value, (classmethod, staticmethod)):
                 func = value.__func__ if isinstance(value, (classmethod, staticmethod)) else value
@@ -118,14 +121,16 @@ class DeployToAWS(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
     DIND_BUILDER_HOST = "localhost"
-    DIND_BUILDER_PORT = 5000
+    DIND_BUILDER_PORT = 5002
 
     @classmethod
     def deploy_to_aws(cls, project_directory_name: str) -> None:
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
+        # AWS enforces regex pattern for repo names, simplified as [a-z0-9_-]+
         project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
+        project_directory_name = project_directory_name.lower().replace(" ", "-")
         build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
         os.makedirs(build_dir_path, exist_ok=True)
 
@@ -186,3 +191,25 @@ class DeployToAWS(metaclass=MetaTool):
             except Exception as e:
                 print(e)
                 time.sleep(5)
+
+        if not cls._poll_service_status(project_directory_name):
+            CLIClient.emit("Failed to start service.")
+        else:
+            CLIClient.emit("Service started successfully.")
+
+    @classmethod
+    def _poll_service_status(cls, service_name: str) -> bool:
+        """
+        service_name (str): The name of the service to poll.
+
+        Polls ecs.describe_service until the service is running.
+        Returns False after ~5 minutes of polling.
+        """
+        client = boto3.client("ecs")
+        for _ in range(30):
+            res = client.describe_services(cluster="DemoCluster", services=[service_name])
+            if res['services'] and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
+                return True
+            time.sleep(10)
+
+        return False
