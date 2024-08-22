@@ -61,6 +61,7 @@ import inspect
 import os
 import socket
 import time
+from datetime import datetime, timezone
 from textwrap import dedent
 from typing import Dict
 
@@ -124,13 +125,23 @@ class DeployToAWS(metaclass=MetaTool):
     DIND_BUILDER_PORT = 5002
 
     @classmethod
-    def deploy_to_aws(cls, project_directory_name: str) -> None:
+    def build_and_deploy_to_aws(cls, project_directory_name: str) -> None:
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
-        # AWS enforces regex pattern for repo names, simplified as [a-z0-9_-]+
+        deployed, image_uri = cls._build_and_push_image(project_directory_name)
+        if deployed:
+            cls._deploy_image(image_uri)
+        else:
+            CLIClient.emit("Failed to deploy project")
+
+    @classmethod
+    def _build_and_push_image(cls, project_directory_name: str) -> tuple[bool, str]:
+        """
+        Calls dind-builder service to build and push the image to ECR.
+        """
         project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
-        project_directory_name = project_directory_name.lower().replace(" ", "-")
+        project_directory_name = project_directory_name.lower().replace(" ", "-").replace("_", "-")
         build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
         os.makedirs(build_dir_path, exist_ok=True)
 
@@ -192,10 +203,164 @@ class DeployToAWS(metaclass=MetaTool):
                 print(e)
                 time.sleep(5)
 
-        if not cls._poll_service_status(project_directory_name):
-            CLIClient.emit("Failed to start service.")
+        image_uri = f"008971649127.dkr.ecr.us-east-1.amazonaws.com/{project_directory_name}"
+        if not cls._poll_image_status(project_directory_name):
+            CLIClient.emit("Failed to build and push image.")
+            return (False, "")
         else:
+            CLIClient.emit("Image built and pushed successfully.")
+            return (True, image_uri)
+
+    @classmethod
+    def _poll_image_status(cls, repo_name: str) -> bool:
+        """
+        Polls ECR until an image is pushed. True if image is pushed, False otherwise.
+        Returns False after ~5 minutes of polling.
+        """
+        # TODO smarter way of detecting a 'new' image besides comparing push date.
+
+        ecr_client = boto3.client("ecr")
+        cur_time = datetime.now().replace(tzinfo=timezone.utc)
+        for _ in range(30):
+            try:
+                res = ecr_client.describe_images(repositoryName=repo_name)
+                if res['imageDetails'] and res['imageDetails'][0]['imagePushedAt'] > cur_time:
+                    return True
+            except ecr_client.exceptions.RepositoryNotFoundException:
+                pass
+            time.sleep(10)
+
+        return False
+
+    @classmethod
+    def _deploy_image(cls, image_uri: str) -> bool:
+        """
+        image_uri (str): The URI of the image to deploy.
+        """
+        ecs_client = boto3.client("ecs")
+        elbv2_client = boto3.client("elbv2")
+
+        # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
+        # May eventually move these out to env, but not first priority.
+        cluster = "DemoCluster"
+        service_name = image_uri.split("/")[-1].split(":")[0]
+        task_name = service_name
+        target_group_name = service_name
+        vpc = "vpc-022b256b8d0487543"
+        subnets = ["subnet-0ba67bfb6421d660d"]  # subnets considered for placement
+        security_group = "sg-0463bb6000a464f50"  # allows traffic from ALB
+        execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
+        listener_arn = (
+            "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
+            "/f7cec30e1ac2e4a4/451389d914171f05"
+        )
+
+        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
+        if set(range(1, len(rules))) - set(rule_priorities):
+            listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
+        else:
+            listener_rule_priority = len(rules) + 1
+
+        task_definition_arn = ecs_client.register_task_definition(
+            family=task_name,
+            executionRoleArn=execution_role_arn,
+            networkMode="awsvpc",
+            requiresCompatibilities=["FARGATE"],
+            containerDefinitions=[
+                {
+                    "name": task_name,
+                    "image": image_uri,
+                    "portMappings": [{"containerPort": 80}],
+                    "essential": True,
+                    "logConfiguration": {
+                        "logDriver": "awslogs",
+                        "options": {
+                            "awslogs-group": "fargate-demos",
+                            "awslogs-region": "us-east-1",
+                            "awslogs-stream-prefix": "fg",
+                        },
+                    },
+                }
+            ],
+            cpu='256',
+            memory='512',
+            runtimePlatform={
+                'cpuArchitecture': 'ARM64',
+                'operatingSystemFamily': 'LINUX',
+            },
+        )['taskDefinition']['taskDefinitionArn']
+
+        target_group_arn = elbv2_client.create_target_group(
+            Name=target_group_name,
+            Protocol='HTTP',
+            Port=80,
+            VpcId=vpc,
+            TargetType='ip',
+            HealthCheckEnabled=True,
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=30,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=2,
+            UnhealthyThresholdCount=2,
+        )['TargetGroups'][0][
+            'TargetGroupArn'
+        ]  # A little confused as to why this is a list?
+
+        elbv2_client.create_rule(
+            ListenerArn=listener_arn,
+            Priority=listener_rule_priority,
+            Conditions=[{'Field': 'host-header', 'Values': [f'{target_group_name}.abop.ai']}],
+            Actions=[
+                {
+                    'Type': 'forward',
+                    'TargetGroupArn': target_group_arn,
+                }
+            ],
+        )
+
+        if ecs_client.describe_services(cluster=cluster, services=[service_name])['services']:
+            CLIClient.emit(f"Service {service_name} found. Updating service.")
+            ecs_client.update_service(
+                cluster=cluster,
+                service=service_name,
+                forceNewDeployment=True,
+                taskDefinition=task_definition_arn,
+                desiredCount=1,
+            )
+
+        else:
+            CLIClient.emit(f"Service {service_name} not found. Creating new service.")
+            ecs_client.create_service(
+                cluster=cluster,
+                serviceName=service_name,
+                taskDefinition=task_definition_arn,
+                desiredCount=1,
+                launchType="FARGATE",
+                networkConfiguration={
+                    "awsvpcConfiguration": {
+                        "subnets": subnets,
+                        "securityGroups": [security_group],
+                        "assignPublicIp": "ENABLED",
+                    }
+                },
+                loadBalancers=[
+                    {
+                        "targetGroupArn": target_group_arn,
+                        "containerName": task_name,
+                        "containerPort": 80,
+                    }
+                ],
+                enableECSManagedTags=True,
+                propagateTags="SERVICE",
+            )
+
+        if cls._poll_service_status(service_name):
             CLIClient.emit("Service started successfully.")
+            return True
+
+        CLIClient.emit("Failed to start service.")
+        return False
 
     @classmethod
     def _poll_service_status(cls, service_name: str) -> bool:
@@ -208,7 +373,11 @@ class DeployToAWS(metaclass=MetaTool):
         client = boto3.client("ecs")
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
-            if res['services'] and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
+            if (
+                res['services']
+                and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']
+                and res['services'][0]['pendingCount'] == 0
+            ):
                 return True
             time.sleep(10)
 
