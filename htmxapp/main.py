@@ -1,14 +1,19 @@
-from fasthtml.common import Div, P, fast_app, serve
+from fasthtml import common as c
 
-app, rt = fast_app()
+app, rt = c.fast_app()
 
 operators = ['operator0', 'operator1', 'operator2']
 
 
 @rt('/')
 def get():
-    pees = [P(o) for o in operators]
-    return Div(*pees, hx_get="/change")
+    """
+    Overview of operators
+    """
+    pees = [c.H1('abstract'), c.H2('operators')]
+    pees += [c.Ul(o) for o in operators]
+    pees += [c.Footer("© 2024, abstract operators")]
+    return c.Div(*pees, hx_get="/change")
 
 
-serve()
+c.serve()
