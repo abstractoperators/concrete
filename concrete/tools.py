@@ -129,13 +129,12 @@ class DeployToAWS(metaclass=MetaTool):
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
-        cls._build_and_push_image(project_directory_name)
-        # cls._deploy_image(
-        #     f"008971649127.dkr.ecr.us-east-1.amazonaws.com/{project_directory_name.lower().replace(' ', '-')}"
-        # )
+        deployed, image_uri = cls._build_and_push_image(project_directory_name)
+        if deployed:
+            cls._deploy_image(image_uri)
 
     @classmethod
-    def _build_and_push_image(cls, project_directory_name: str) -> None:
+    def _build_and_push_image(cls, project_directory_name: str) -> tuple[bool, str]:
         """
         Calls dind-builder service to build and push the image to ECR.
         """
@@ -202,10 +201,13 @@ class DeployToAWS(metaclass=MetaTool):
                 print(e)
                 time.sleep(5)
 
+        image_uri = f"008971649127.dkr.ecr.us-east-1.amazonaws.com/{project_directory_name}"
         if not cls._poll_image_status(project_directory_name):
             CLIClient.emit("Failed to build and push image.")
+            return (False, "")
         else:
             CLIClient.emit("Image built and pushed successfully.")
+            return (True, image_uri)
 
     @classmethod
     def _poll_image_status(cls, repo_name: str) -> bool:
