@@ -120,7 +120,7 @@ class DeployToAWS(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
     DIND_BUILDER_HOST = "localhost"
-    DIND_BUILDER_PORT = 5000
+    DIND_BUILDER_PORT = 5002
 
     @classmethod
     def deploy_to_aws(cls, project_directory_name: str) -> None:
@@ -188,6 +188,11 @@ class DeployToAWS(metaclass=MetaTool):
             except Exception as e:
                 print(e)
                 time.sleep(5)
+
+        if not cls._poll_service_status(project_directory_name):
+            print("Service did not start in time.")
+        else:
+            print("Service started successfully.")
 
     @classmethod
     def _poll_service_status(cls, service_name: str) -> bool:
