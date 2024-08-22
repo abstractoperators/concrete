@@ -28,6 +28,7 @@ isort = "==5.13.2"
 bandit = "==1.7.9"
 pre-commit = "==3.7.1"
 mypy = "==1.11.0"
+starlette = "==0.37.2"  # for fasthtml
 
 [tool.poetry.group.webapp-new.dependencies]
 python-fasthtml = "==0.4.4"
