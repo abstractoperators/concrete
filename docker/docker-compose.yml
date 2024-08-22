@@ -38,7 +38,7 @@ services:
     platform: linux/arm64
   webapp-main:
     ports:
-      - 8000:80
+      - 8001:80
     image: webapp-main
     build:
       context: ../
