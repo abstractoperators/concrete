@@ -132,6 +132,8 @@ class DeployToAWS(metaclass=MetaTool):
         deployed, image_uri = cls._build_and_push_image(project_directory_name)
         if deployed:
             cls._deploy_image(image_uri)
+        else:
+            CLIClient.emit("Failed to deploy project")
 
     @classmethod
     def _build_and_push_image(cls, project_directory_name: str) -> tuple[bool, str]:
