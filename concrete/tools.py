@@ -63,7 +63,7 @@ import socket
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, Optional
 
 import boto3
 
@@ -233,7 +233,7 @@ class DeployToAWS(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _deploy_image(cls, image_uri: str) -> bool:
+    def _deploy_image(cls, image_uri: str, custom_name: Optional[str] = None) -> bool:
         """
         image_uri (str): The URI of the image to deploy.
         """
@@ -243,7 +243,7 @@ class DeployToAWS(metaclass=MetaTool):
         # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
         # May eventually move these out to env, but not first priority.
         cluster = "DemoCluster"
-        service_name = image_uri.split("/")[-1].split(":")[0]
+        service_name = custom_name or image_uri.split("/")[-1].split(":")[0]
         task_name = service_name
         target_group_name = service_name
         vpc = "vpc-022b256b8d0487543"
@@ -382,3 +382,15 @@ class DeployToAWS(metaclass=MetaTool):
             time.sleep(10)
 
         return False
+
+
+class GitHubDeploy(metaclass=MetaTool):
+    def __init__(self, repository: str, branch: str = "main"):
+        self.repository = repository
+        self.branch = branch
+
+    def pull(self):
+        pass
+
+    def wait_for_merge(self):
+        pass

@@ -1,0 +1,64 @@
+name: Deploy webapp-main to staging
+
+on:
+    push:
+        branches:
+            - michael/deploy_main_to_staging
+
+jobs:
+    build:
+        # Build in GHA.
+        # Can not use the wrapper provided by DeployToAWS._build_image because:
+        # _build_image does not know how to build abop images, which require context provided by docker-compose.
+        # No access to dind-builder
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            - name: Configure AWS credentials for ECR
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+                  aws-region: us-east-1
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+              with:
+                  mask-password: "true"
+
+            - name: Build the images
+              run: make build-webapp-main
+
+            - name: Push to ECR
+              run: make aws_ecr_push_main
+              # There is now a webapp-main image in ECR
+    deploy:
+        # Deploy in GHA, but use the wrapper provided by DeployToAWS._deploy_image
+        needs: build
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Configure AWS Credentials for ECS
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+                  aws-region: us-east-1
+
+            - name: Deploy to ECS staging using DeployToAWS._deploy_image
+              env:
+                  REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  REPOSITORY: webapp-demo-staging
+                  IMAGE_TAG: ${{ github.sha }}
+              run: |
+                  curl -sSL https://install.python-poetry.org | python3 -
+                  poetry --version
+                  poetry install
+                  echo "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri='${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}', webapp-main-staging)" | poetry run python3
