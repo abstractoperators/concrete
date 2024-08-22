@@ -139,7 +139,7 @@ class DeployToAWS(metaclass=MetaTool):
         Calls dind-builder service to build and push the image to ECR.
         """
         project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
-        project_directory_name = project_directory_name.lower().replace(" ", "-")
+        project_directory_name = project_directory_name.lower().replace(" ", "-").replace("_", "-")
         build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
         os.makedirs(build_dir_path, exist_ok=True)
 
@@ -367,7 +367,11 @@ class DeployToAWS(metaclass=MetaTool):
         client = boto3.client("ecs")
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
-            if res['services'] and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
+            if (
+                res['services']
+                and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']
+                and res['services'][0]['pendingCount'] == 0
+            ):
                 return True
             time.sleep(10)
 
