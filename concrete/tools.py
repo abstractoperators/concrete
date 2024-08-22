@@ -64,6 +64,8 @@ import time
 from textwrap import dedent
 from typing import Dict
 
+import boto3
+
 from .operator_responses import ProjectDirectory
 
 
@@ -190,6 +192,19 @@ class DeployToAWS(metaclass=MetaTool):
     @classmethod
     def _poll_service_status(cls, service_name: str) -> bool:
         """
-        service_name (str): Name of the service to poll for status
+        service_name (str): The name of the service to poll.
+
+        Polls ecs.describe_service until the service is running.
+        Returns False after ~5 minutes of polling.
         """
+        client = boto3.client("ecs")
+        for _ in range(30):
+            res = client.describe_services(cluster="DemoCluster", services=[service_name])
+            try:
+                if res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
+                    return True
+            except Exception as e:
+                print(e)
+            time.sleep(10)
+
         return False
