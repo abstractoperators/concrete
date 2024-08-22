@@ -15,9 +15,12 @@ build_and_push_image() {
         aws ecr get-login-password | docker login --username AWS --password-stdin "$aws_account_id.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
 
         aws ecr describe-repositories --repository-names ${REPO_NAME} || aws ecr create-repository --repository-name ${REPO_NAME}
+
         full_image_name="$aws_account_id.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPO_NAME"
+
         docker buildx build --platform linux/arm64 -t "$full_image_name" "$build_dir" &
         build_pid=$!
+
         wait $build_pid
         if docker push "$full_image_name"; then
             echo 'Successfully pushed $full_image_name'

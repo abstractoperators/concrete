@@ -61,7 +61,7 @@ import inspect
 import os
 import socket
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from textwrap import dedent
 from typing import Dict
 
@@ -216,7 +216,7 @@ class DeployToAWS(metaclass=MetaTool):
         # TODO smarter way of detecting a 'new' image besides comparing push date.
 
         ecr_client = boto3.client("ecr")
-        cur_time = datetime.now()
+        cur_time = datetime.now().replace(tzinfo=timezone.utc)
         for _ in range(30):
             try:
                 res = ecr_client.describe_images(repositoryName=repo_name)
