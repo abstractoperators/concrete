@@ -124,7 +124,7 @@ class DeployToAWS(metaclass=MetaTool):
     DIND_BUILDER_PORT = 5002
 
     @classmethod
-    def deploy_to_aws(cls, project_directory_name: str) -> None:
+    def build_and_deploy_to_aws(cls, project_directory_name: str) -> None:
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
@@ -214,7 +214,8 @@ class DeployToAWS(metaclass=MetaTool):
 
         return False
 
-    def _deploy_image(cls, image_uri: str) -> bool:
+    @classmethod
+    def _deploy_image(cls, image_uri: str) -> None:
         """
         image_uri (str): The URI of the image to deploy.
         """
@@ -334,4 +335,7 @@ class DeployToAWS(metaclass=MetaTool):
                 propagateTags="SERVICE",
             )
 
-        return cls._poll_service_status(service_name)
+        if not cls._poll_service_status(service_name):
+            CLIClient.emit("Failed to start service.")
+        else:
+            CLIClient.emit("Service started successfully.")
