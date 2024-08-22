@@ -65,6 +65,7 @@ from textwrap import dedent
 from typing import Dict
 
 import boto3
+from clients import CLIClient
 
 from .operator_responses import ProjectDirectory
 
@@ -190,9 +191,9 @@ class DeployToAWS(metaclass=MetaTool):
                 time.sleep(5)
 
         if not cls._poll_service_status(project_directory_name):
-            print("Service did not start in time.")
+            CLIClient.emit("Failed to start service.")
         else:
-            print("Service started successfully.")
+            CLIClient.emit("Service started successfully.")
 
     @classmethod
     def _poll_service_status(cls, service_name: str) -> bool:
