@@ -13,7 +13,7 @@ def get():
     paragraphs = [f.H1('abstract'), f.H2('operators')]
     paragraphs += [f.Ul(o) for o in operators]
     paragraphs += [f.Footer("© 2024, abstract operators")]
-    return f.Title("abop"), f.Div(*paragraphs, hx_get="/change")
+    return f.Title("abop"), f.Div(*paragraphs)
 
 
 f.serve()
