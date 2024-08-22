@@ -65,7 +65,7 @@ jobs:
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  echo "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri='${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}', custom_name = webapp-main-staging)" | poetry run python3
+                  echo "from concrete.tools import DeployToAWS; DeployToAWS._deploy_image(image_uri='${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}', custom_name = 'webapp-main-staging')" | poetry run python3
 
 
 # https://github.com/actions/deploy-pages/issues/329 -
