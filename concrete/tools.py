@@ -61,6 +61,7 @@ import inspect
 import os
 import socket
 import time
+from datetime import datetime
 from textwrap import dedent
 from typing import Dict
 
@@ -129,26 +130,9 @@ class DeployToAWS(metaclass=MetaTool):
         project_directory_name (str): The name of the project directory to deploy.
         """
         cls._build_and_push_image(project_directory_name)
-        cls._deploy_image(
-            f"008971649127.dkr.ecr.us-east-1.amazonaws.com/{project_directory_name.lower().replace(' ', '-')}"
-        )
-
-    @classmethod
-    def _poll_service_status(cls, service_name: str) -> bool:
-        """
-        service_name (str): The name of the service to poll.
-
-        Polls ecs.describe_service until the service is running.
-        Returns False after ~5 minutes of polling.
-        """
-        client = boto3.client("ecs")
-        for _ in range(30):
-            res = client.describe_services(cluster="DemoCluster", services=[service_name])
-            if res['services'] and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
-                return True
-            time.sleep(10)
-
-        return False
+        # cls._deploy_image(
+        #     f"008971649127.dkr.ecr.us-east-1.amazonaws.com/{project_directory_name.lower().replace(' ', '-')}"
+        # )
 
     @classmethod
     def _build_and_push_image(cls, project_directory_name: str) -> None:
@@ -217,6 +201,32 @@ class DeployToAWS(metaclass=MetaTool):
             except Exception as e:
                 print(e)
                 time.sleep(5)
+
+        if not cls._poll_image_status(project_directory_name):
+            CLIClient.emit("Failed to build and push image.")
+        else:
+            CLIClient.emit("Image built and pushed successfully.")
+
+    @classmethod
+    def _poll_image_status(cls, repo_name: str) -> bool:
+        """
+        Polls ECR until an image is pushed. True if image is pushed, False otherwise.
+        Returns False after ~5 minutes of polling.
+        """
+        # TODO smarter way of detecting a 'new' image besides comparing push date.
+
+        ecr_client = boto3.client("ecr")
+        cur_time = datetime.now()
+        for _ in range(30):
+            try:
+                res = ecr_client.describe_images(repositoryName=repo_name)
+                if res['imageDetails'] and res['imageDetails'][0]['imagePushedAt'] > cur_time:
+                    return True
+            except ecr_client.exceptions.RepositoryNotFoundException:
+                pass
+            time.sleep(10)
+
+        return False
 
     @classmethod
     def _deploy_image(cls, image_uri: str) -> None:
@@ -343,3 +353,20 @@ class DeployToAWS(metaclass=MetaTool):
             CLIClient.emit("Failed to start service.")
         else:
             CLIClient.emit("Service started successfully.")
+
+    @classmethod
+    def _poll_service_status(cls, service_name: str) -> bool:
+        """
+        service_name (str): The name of the service to poll.
+
+        Polls ecs.describe_service until the service is running.
+        Returns False after ~5 minutes of polling.
+        """
+        client = boto3.client("ecs")
+        for _ in range(30):
+            res = client.describe_services(cluster="DemoCluster", services=[service_name])
+            if res['services'] and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']:
+                return True
+            time.sleep(10)
+
+        return False
