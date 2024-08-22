@@ -233,7 +233,7 @@ class DeployToAWS(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _deploy_image(cls, image_uri: str) -> None:
+    def _deploy_image(cls, image_uri: str) -> bool:
         """
         image_uri (str): The URI of the image to deploy.
         """
@@ -320,6 +320,7 @@ class DeployToAWS(metaclass=MetaTool):
         )
 
         if ecs_client.describe_services(cluster=cluster, services=[service_name])['services']:
+            CLIClient.emit(f"Service {service_name} found. Updating service.")
             ecs_client.update_service(
                 cluster=cluster,
                 service=service_name,
@@ -329,6 +330,7 @@ class DeployToAWS(metaclass=MetaTool):
             )
 
         else:
+            CLIClient.emit(f"Service {service_name} not found. Creating new service.")
             ecs_client.create_service(
                 cluster=cluster,
                 serviceName=service_name,
@@ -353,10 +355,12 @@ class DeployToAWS(metaclass=MetaTool):
                 propagateTags="SERVICE",
             )
 
-        if not cls._poll_service_status(service_name):
-            CLIClient.emit("Failed to start service.")
-        else:
+        if cls._poll_service_status(service_name):
             CLIClient.emit("Service started successfully.")
+            return True
+
+        CLIClient.emit("Failed to start service.")
+        return False
 
     @classmethod
     def _poll_service_status(cls, service_name: str) -> bool:
