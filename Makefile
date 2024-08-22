@@ -25,17 +25,26 @@ deploysimpleflask:
 
 # Note that webapp-demo will require dind-builder to deploy a service to aws. 
 # No actual dependency is defined for flexibility.
+build-webapp-demo:
+	docker compose -f docker/docker-compose.yml build webapp-demo
+
+build-webapp-main:
+	docker compose -f docker/docker-compose.yml build webapp-main
+
+build-dind-builder:
+	docker compose -f docker/docker-compose.yml build dind-builder
+
 run-webapp-demo: 
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up --build -d webapp-demo
 
 run-webapp-main: 
-	docker-compose -f docker/docker-compose.yml stop webapp-main
-	docker-compose -f docker/docker-compose.yml up --build -d webapp-main
+	docker compose -f docker/docker-compose.yml stop webapp-main
+	docker compose -f docker/docker-compose.yml up --build -d webapp-main
 
 run-dind-builder: 
-	docker-compose -f docker/docker-compose.yml stop dind-builder
-	docker-compose -f docker/docker-compose.yml up --build -d dind-builder
+	docker compose -f docker/docker-compose.yml stop dind-builder
+	docker compose -f docker/docker-compose.yml up --build -d dind-builder
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
