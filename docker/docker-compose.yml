@@ -12,7 +12,7 @@ services:
     ports:
       - "8000:80"
     env_file: 
-      - path: ".env.demo"
+      - path: "../.env.demo"
         required: false
     networks:
       - concrete_network
@@ -32,7 +32,7 @@ services:
     ports:
       - "5002:5002"
     env_file:
-      - path: ".env.dind-builder"
+      - path: "../.env.dind-builder"
         required: false
     networks:
       - concrete_network
