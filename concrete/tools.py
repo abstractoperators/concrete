@@ -60,12 +60,17 @@ class testOperator(operators.Operator):
 import inspect
 import os
 import socket
+import tempfile
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, List, Optional
 
 import boto3
+import requests
+from dotenv import dotenv_values
+from github import Auth, Github
+from github.ContentFile import ContentFile
 
 from .clients import CLIClient
 from .operator_responses import ProjectDirectory
@@ -233,7 +238,7 @@ class DeployToAWS(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _deploy_image(cls, image_uri: str) -> bool:
+    def _deploy_image(cls, image_uri: str, custom_name: Optional[str] = None) -> bool:
         """
         image_uri (str): The URI of the image to deploy.
         """
@@ -243,7 +248,7 @@ class DeployToAWS(metaclass=MetaTool):
         # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
         # May eventually move these out to env, but not first priority.
         cluster = "DemoCluster"
-        service_name = image_uri.split("/")[-1].split(":")[0]
+        service_name = custom_name or image_uri.split("/")[-1].split(":")[0]
         task_name = service_name
         target_group_name = service_name
         vpc = "vpc-022b256b8d0487543"
@@ -382,3 +387,37 @@ class DeployToAWS(metaclass=MetaTool):
             time.sleep(10)
 
         return False
+
+
+class GitHubDeploy(metaclass=MetaTool):
+    @classmethod
+    def _get_repo_contents(cls, org: str, repo_name: str) -> None:
+        config = dotenv_values("../.env")
+        gh_pat = str(config['GH_PAT'])
+        auth = Auth.GithubToken(gh_pat)
+        gh_client = Github(auth=auth)  # Authenticate using a PAT
+        gh_client.get_user()
+
+        repo = gh_client.get_repo(f'{org}/{repo_name}')
+        # Wrestle with the linter
+        initial_contents = repo.get_contents("")
+        contents: List[ContentFile] = initial_contents if isinstance(initial_contents, list) else [initial_contents]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            while contents:
+                file_content = contents.pop(0)
+                if file_content.type == "dir":
+                    dir_contents = repo.get_contents(file_content.path)
+                    contents.extend(dir_contents if isinstance(dir_contents, list) else [dir_contents])
+                else:
+                    file_path = os.path.join(temp_dir, file_content.path)
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+                    if file_content.size <= 1_000_000:
+                        with open(file_path, 'wb') as f:
+                            f.write(file_content.decoded_content)
+                    else:
+                        with requests.get(file_content.download_url, timeout=10) as r:
+                            r.raise_for_status()
+                            with open(file_path, 'wb') as f:
+                                for chunk in r.iter_content(chunk_size=8192):
+                                    f.write(chunk)

@@ -11,9 +11,12 @@ services:
       - SHARED_VOLUME=/shared
     ports:
       - "8000:80"
-    env_file: "../.env.demo"
+    env_file: 
+      - path: "../.env.demo"
+        required: false
     networks:
       - concrete_network
+    platform: linux/arm64
 
   dind-builder:
     build:
@@ -29,9 +32,11 @@ services:
     ports:
       - "5002:5002"
     env_file:
-      - ../.env.dind-builder
+      - path: "../.env.dind-builder"
+        required: false
     networks:
       - concrete_network
+    platform: linux/arm64
 
   webapp-main:
     ports:
@@ -43,7 +48,7 @@ services:
     container_name: webapp-main
     networks:
       - concrete_network
-    env_file: "../.env"
+    platform: linux/arm64
 
 volumes:
   shared-volume:
