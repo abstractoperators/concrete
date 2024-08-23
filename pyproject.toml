@@ -13,14 +13,14 @@ python-dotenv = "==1.0.1"
 openai = "==1.40.5"
 astroid = "==3.2.3"
 astor = "==0.8.1"
+<<<<<<< HEAD
 boto3 = "==1.35.3"
 pygithub = "==2.3.0"
+=======
+>>>>>>> main
 
-[tool.poetry.group.webapp-demo.dependencies]
-gunicorn = "==22.0.0"
-uvicorn = "==0.30.4"
-fastapi = "==0.111.1"
-flask = "==3.0.3"
+[tool.poetry.group.tooluse.dependencies]
+boto3 = "==1.35.3"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"
@@ -31,6 +31,16 @@ isort = "==5.13.2"
 bandit = "==1.7.9"
 pre-commit = "==3.7.1"
 mypy = "==1.11.0"
+starlette = "==0.37.2"  # for fasthtml
+
+[tool.poetry.group.webapp-new.dependencies]
+python-fasthtml = "==0.4.4"
+
+[tool.poetry.group.webapp-demo.dependencies]
+gunicorn = "==22.0.0"
+uvicorn = "==0.30.4"
+fastapi = "==0.111.1"
+flask = "==3.0.3"
 
 [tool.poetry.group.webapp-main.dependencies]
 gunicorn = "==22.0.0"

@@ -434,15 +434,6 @@ files = [
     {file = "cffi-1.17.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:6327b572f5770293fc062a7ec04160e89741e8552bf1c358d1a23eba68166759"},
     {file = "cffi-1.17.0-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:dbc183e7bef690c9abe5ea67b7b60fdbca81aa8da43468287dae7b5c046107d4"},
     {file = "cffi-1.17.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5bdc0f1f610d067c70aa3737ed06e2726fd9d6f7bfee4a351f4c40b6831f4e82"},
-    {file = "cffi-1.17.0-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:6d872186c1617d143969defeadac5a904e6e374183e07977eedef9c07c8953bf"},
-    {file = "cffi-1.17.0-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:0d46ee4764b88b91f16661a8befc6bfb24806d885e27436fdc292ed7e6f6d058"},
-    {file = "cffi-1.17.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f76a90c345796c01d85e6332e81cab6d70de83b829cf1d9762d0a3da59c7932"},
-    {file = "cffi-1.17.0-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:0e60821d312f99d3e1569202518dddf10ae547e799d75aef3bca3a2d9e8ee693"},
-    {file = "cffi-1.17.0-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:eb09b82377233b902d4c3fbeeb7ad731cdab579c6c6fda1f763cd779139e47c3"},
-    {file = "cffi-1.17.0-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:24658baf6224d8f280e827f0a50c46ad819ec8ba380a42448e24459daf809cf4"},
-    {file = "cffi-1.17.0-cp39-cp39-win32.whl", hash = "sha256:0fdacad9e0d9fc23e519efd5ea24a70348305e8d7d85ecbb1a5fa66dc834e7fb"},
-    {file = "cffi-1.17.0-cp39-cp39-win_amd64.whl", hash = "sha256:7cbc78dc018596315d4e7841c8c3a7ae31cc4d638c9b627f87d52e8abaaf2d29"},
-    {file = "cffi-1.17.0.tar.gz", hash = "sha256:f3157624b7558b914cb039fd1af735e5e8049a87c817cc215109ad1c8779df76"},
 ]
 
 [package.dependencies]
@@ -834,6 +825,23 @@ uvicorn = {version = ">=0.15.0", extras = ["standard"]}
 standard = ["uvicorn[standard] (>=0.15.0)"]
 
 [[package]]
+name = "fastcore"
+version = "1.7.1"
+description = "Python supercharged for fastai development"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "fastcore-1.7.1-py3-none-any.whl", hash = "sha256:dc1f455878e603e5b72fae980282085b47958b620b76c0ea3fd59cd4693374ec"},
+    {file = "fastcore-1.7.1.tar.gz", hash = "sha256:102a9fc7711796581ab6dbdb4083c60080cb364a9d86eb3f0c54222aef4a6024"},
+]
+
+[package.dependencies]
+packaging = "*"
+
+[package.extras]
+dev = ["matplotlib", "nbclassic", "nbdev (>=0.2.39)", "numpy", "pandas", "pillow", "torch"]
+
+[[package]]
 name = "fastjsonschema"
 version = "2.20.0"
 description = "Fastest Python implementation of JSON schema"
@@ -846,6 +854,21 @@ files = [
 
 [package.extras]
 devel = ["colorama", "json-spec", "jsonschema", "pylint", "pytest", "pytest-benchmark", "pytest-cache", "validictory"]
+
+[[package]]
+name = "fastlite"
+version = "0.0.9"
+description = "A bit of extra usability for sqlite"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "fastlite-0.0.9-py3-none-any.whl", hash = "sha256:96ffeb06b326332098394ffb58deab3f16a115204d5fce9ecfd894939585d4ae"},
+    {file = "fastlite-0.0.9.tar.gz", hash = "sha256:27f097b943c9a25d6d807bba839fe3e13f6b55a91222d9a7f48594cebe343ec8"},
+]
+
+[package.dependencies]
+fastcore = ">=1.7.1"
+sqlite-minutils = ">=3.37"
 
 [[package]]
 name = "filelock"
@@ -1886,6 +1909,22 @@ jupyter-server = ">=1.8,<3"
 test = ["pytest", "pytest-console-scripts", "pytest-jupyter", "pytest-tornasync"]
 
 [[package]]
+name = "oauthlib"
+version = "3.2.2"
+description = "A generic, spec-compliant, thorough implementation of the OAuth request-signing logic"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "oauthlib-3.2.2-py3-none-any.whl", hash = "sha256:8139f29aac13e25d502680e9e19963e83f16838d48a0d71c287fe40e7067fbca"},
+    {file = "oauthlib-3.2.2.tar.gz", hash = "sha256:9859c40929662bec5d64f34d01c99e093149682a3f38915dc0655d5a633dd918"},
+]
+
+[package.extras]
+rsa = ["cryptography (>=3.0.0)"]
+signals = ["blinker (>=1.4.0)"]
+signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
+
+[[package]]
 name = "openai"
 version = "1.40.5"
 description = "The official Python library for the openai API"
@@ -2403,6 +2442,32 @@ files = [
 
 [package.extras]
 cli = ["click (>=5.0)"]
+
+[[package]]
+name = "python-fasthtml"
+version = "0.4.4"
+description = "The fastest way to create an HTML app"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "python-fasthtml-0.4.4.tar.gz", hash = "sha256:b8f493c04e4d0454df2bca36d7a19be780a1388ac86c5a388a074dcd4e804fde"},
+    {file = "python_fasthtml-0.4.4-py3-none-any.whl", hash = "sha256:6f9b0e7fd973cf023dc1a8cb6ad65b113d0b56201e02ea1477bdfec1d4f7e022"},
+]
+
+[package.dependencies]
+beautifulsoup4 = "*"
+fastcore = ">=1.7.1"
+fastlite = ">=0.0.9"
+httpx = "*"
+itsdangerous = "*"
+oauthlib = "*"
+python-dateutil = "*"
+python-multipart = "*"
+starlette = ">0.33"
+uvicorn = {version = ">=0.30", extras = ["standard"]}
+
+[package.extras]
+dev = ["ipython", "lxml"]
 
 [[package]]
 name = "python-json-logger"
@@ -2933,6 +2998,20 @@ files = [
     {file = "soupsieve-2.6-py3-none-any.whl", hash = "sha256:e72c4ff06e4fb6e4b5a9f0f55fe6e81514581fca1515028625d0f299c602ccc9"},
     {file = "soupsieve-2.6.tar.gz", hash = "sha256:e2e68417777af359ec65daac1057404a3c8a5455bb8abc36f1a9866ab1a51abb"},
 ]
+
+[[package]]
+name = "sqlite-minutils"
+version = "3.37.0.post1"
+description = "A fork of sqlite-utils with CLI etc removed"
+optional = false
+python-versions = "<4,>=3.7"
+files = [
+    {file = "sqlite_minutils-3.37.0.post1-py3-none-any.whl", hash = "sha256:41c70fc8cdc082c790e3447b9e0f1cf5aef762996ccb314e90b2668a969e06fc"},
+    {file = "sqlite_minutils-3.37.0.post1.tar.gz", hash = "sha256:b0f57df1fdeda83e308400666339a4f33f4e28add6e5a6c6f5cc0235d26dbc5e"},
+]
+
+[package.dependencies]
+fastcore = "*"
 
 [[package]]
 name = "stack-data"
