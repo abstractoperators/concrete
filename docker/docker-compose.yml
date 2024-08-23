@@ -16,6 +16,7 @@ services:
     networks:
       - concrete_network
     platform: linux/arm64
+    profiles: ["webapp-demo", "all"]
 
   dind-builder:
     build:
@@ -35,6 +36,8 @@ services:
     networks:
       - concrete_network
     platform: linux/arm64
+    profiles: ["dind-builder", "all"]
+
   webapp-main:
     ports:
       - 8001:80
@@ -46,6 +49,8 @@ services:
     networks:
       - concrete_network
     platform: linux/arm64
+    profiles: ["main", "all"]
+
 volumes:
   shared-volume:
 

@@ -26,13 +26,13 @@ deploysimpleflask:
 # Note that webapp-demo will require dind-builder to deploy a service to aws. 
 # No actual dependency is defined for flexibility.
 build-webapp-demo:
-	docker compose -f docker/docker-compose.yml build webapp-demo
+	docker compose -f docker/docker-compose.yml --profile webapp-demo build webapp-demo
 
 build-webapp-main:
-	docker compose -f docker/docker-compose.yml build webapp-main
+	docker compose -f docker/docker-compose.yml --profile webapp-main build webapp-main
 
 build-dind-builder:
-	docker compose -f docker/docker-compose.yml build dind-builder
+	docker compose -f docker/docker-compose.yml --profile dind-builder build dind-builder
 
 run-webapp-demo: 
 	docker compose -f docker/docker-compose.yml stop webapp-demo
