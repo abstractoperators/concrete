@@ -14,6 +14,7 @@ prompt_parser.add_argument("--deploy", action="store_true", help="Deploy the pro
 
 deploy_parser = subparsers.add_parser("deploy", help="Deploy an image uri to AWS")
 deploy_parser.add_argument("image_uri", type=str, help="The image uri to deploy to AWS")
+deploy_parser.add_argument("--custom_name", type=str, help="The custom name for the project")
 args = parser.parse_args()
 
 so = orchestrator.SoftwareOrchestrator()
@@ -26,7 +27,7 @@ async def main():
 
     elif args.mode == "deploy":
         print("Starting deployment to AWS...")
-        DeployToAWS._deploy_image(args.image_uri)
+        DeployToAWS._deploy_image(args.image_uri, args.custom_name)
         print("Deployment completed.")
 
 

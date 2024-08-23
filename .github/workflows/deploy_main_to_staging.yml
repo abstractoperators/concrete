@@ -63,8 +63,8 @@ jobs:
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
-                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest
+                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest webapp-demo-staging
+                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest webapp-main-staging
 
 
 # https://github.com/actions/deploy-pages/issues/329 -
