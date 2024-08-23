@@ -17,11 +17,10 @@ deploy_parser.add_argument("image_uri", type=str, help="The image uri to deploy 
 deploy_parser.add_argument("--custom_name", type=str, help="The custom name for the project")
 args = parser.parse_args()
 
-so = orchestrator.SoftwareOrchestrator()
-
 
 async def main():
     if args.mode == "prompt":
+        so = orchestrator.SoftwareOrchestrator()
         async for operator, response in so.process_new_project(args.prompt, deploy=args.deploy):
             CLIClient.emit(f'[{operator}]:\n{response}\n')
 
