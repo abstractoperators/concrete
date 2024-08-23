@@ -13,10 +13,10 @@ services:
       - "8000:80"
     env_file: 
       - path: "../.env.demo"
-        required: false
     networks:
       - concrete_network
     platform: linux/arm64
+
   dind-builder:
     build:
       context: ../
@@ -32,7 +32,6 @@ services:
       - "5002:5002"
     env_file:
       - path: "../.env.dind-builder"
-        required: false
     networks:
       - concrete_network
     platform: linux/arm64
