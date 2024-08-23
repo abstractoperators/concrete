@@ -1,6 +1,6 @@
 POETRY := poetry run
 PYTHON := $(POETRY) python
-ORCHESTRATE := $(PYTHON) -m concrete
+ORCHESTRATE := $(PYTHON) -m concrete prompt
 
 # Setup
 install:
