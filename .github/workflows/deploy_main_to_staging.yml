@@ -6,10 +6,6 @@ on:
 
 jobs:
     build:
-        # Build in GHA.
-        # Can not use the wrapper provided by DeployToAWS._build_image because:
-        # _build_image does not know how to build abop images, which require context provided by docker-compose.
-        # No access to dind-builder
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
@@ -35,9 +31,7 @@ jobs:
 
             - name: Push to ECR
               run: make aws_ecr_push_main
-              # There is now a webapp-main image in ECR
     deploy:
-        # Deploy in GHA, but use the wrapper provided by DeployToAWS._deploy_image
         needs: build
         runs-on: ubuntu-latest
 

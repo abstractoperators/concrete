@@ -60,12 +60,16 @@ class testOperator(operators.Operator):
 import inspect
 import os
 import socket
+import tempfile
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
 from typing import Dict, Optional
 
 import boto3
+import requests
+from dotenv import dotenv_values
+from github import Auth, Github
 
 from .clients import CLIClient
 from .operator_responses import ProjectDirectory
@@ -385,12 +389,29 @@ class DeployToAWS(metaclass=MetaTool):
 
 
 class GitHubDeploy(metaclass=MetaTool):
-    def __init__(self, repository: str, branch: str = "main"):
-        self.repository = repository
-        self.branch = branch
+    @classmethod
+    def _get_repo_contents(cls, org: str, repo_name: str) -> None:
+        config = dotenv_values("../.env")
+        gh_client = Github(auth=Auth.Token(config['GH_PAT']))  # Authenticate using a PAT
+        gh_client.get_user()
 
-    def pull(self):
-        pass
+        repo = gh_client.get_repo(f'{org}/{repo_name}')
+        contents = repo.get_contents("")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            while contents:
+                file_content = contents.pop(0)
+                if file_content.type == "dir":
+                    contents.extend(repo.get_contents(file_content.path))
+                else:
+                    file_path = os.path.join(temp_dir, file_content.path)
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-    def wait_for_merge(self):
-        pass
+                    if file_content.size <= 1_000_000:
+                        with open(file_path, 'wb') as f:
+                            f.write(file_content.decoded_content)
+                    else:
+                        with requests.get(file_content.download_url, timeout=10) as r:
+                            r.raise_for_status()
+                            with open(file_path, 'wb') as f:
+                                for chunk in r.iter_content(chunk_size=8192):
+                                    f.write(chunk)
