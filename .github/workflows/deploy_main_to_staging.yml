@@ -27,7 +27,11 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
+              env:
+                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
               run: |
+                  echo OPENAI_API_KEY=$OPENAI_API_KEY > .env.demo
+                  echo OPENAI_TEMPERATURE=0 > .env.demo
                   make build-webapp-main
                   make build-webapp-demo
               
