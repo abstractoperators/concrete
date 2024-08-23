@@ -12,11 +12,11 @@ services:
     ports:
       - "8000:80"
     env_file: 
-      - path: "../.env.demo"
+      - path: ".env.demo"
+        required: false
     networks:
       - concrete_network
     platform: linux/arm64
-    profiles: ["webapp-demo", "all"]
 
   dind-builder:
     build:
@@ -32,11 +32,11 @@ services:
     ports:
       - "5002:5002"
     env_file:
-      - path: "../.env.dind-builder"
+      - path: ".env.dind-builder"
+        required: false
     networks:
       - concrete_network
     platform: linux/arm64
-    profiles: ["dind-builder", "all"]
 
   webapp-main:
     ports:
@@ -49,7 +49,6 @@ services:
     networks:
       - concrete_network
     platform: linux/arm64
-    profiles: ["main", "all"]
 
 volumes:
   shared-volume:

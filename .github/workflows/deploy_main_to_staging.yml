@@ -33,10 +33,10 @@ jobs:
               run: |
                   echo TEST_SECRET=$TEST_SECRET > .env.demo
                   cat .env.demo
-                  ls
+                  ls -la
                   echo OPENAI_TEMPERATURE=0 > .env.demo
                   echo OPENAI_API_KEY=$OPENAI_API_KEY > .env.demo
-
+                  cat .env.demo
                   make build-webapp-main
                   make build-webapp-demo
               
