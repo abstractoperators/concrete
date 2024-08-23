@@ -31,9 +31,8 @@ jobs:
                 OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env.demo
-                  echo OPENAI_API_KEY=${OPENAI_API_KEY:0:5}... > .env.demo
+                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env.demo
                   ls -la
-                  cat .env.demo
                   make build-webapp-main
                   make build-webapp-demo
               
