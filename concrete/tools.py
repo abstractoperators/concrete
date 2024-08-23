@@ -399,12 +399,15 @@ class GitHubDeploy(metaclass=MetaTool):
         gh_client.get_user()
 
         repo = gh_client.get_repo(f'{org}/{repo_name}')
-        contents: List[ContentFile] = repo.get_contents("")
+        # Wrestle with the linter
+        initial_contents = repo.get_contents("")
+        contents: List[ContentFile] = initial_contents if isinstance(initial_contents, list) else [initial_contents]
         with tempfile.TemporaryDirectory() as temp_dir:
             while contents:
                 file_content = contents.pop(0)
                 if file_content.type == "dir":
-                    contents.extend(repo.get_contents(file_content.path))
+                    dir_contents = repo.get_contents(file_content.path)
+                    contents.extend(dir_contents if isinstance(dir_contents, list) else [dir_contents])
                 else:
                     file_path = os.path.join(temp_dir, file_content.path)
                     os.makedirs(os.path.dirname(file_path), exist_ok=True)
