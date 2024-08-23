@@ -64,12 +64,13 @@ import tempfile
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import boto3
 import requests
 from dotenv import dotenv_values
 from github import Auth, Github
+from github.ContentFile import ContentFile
 
 from .clients import CLIClient
 from .operator_responses import ProjectDirectory
@@ -392,11 +393,13 @@ class GitHubDeploy(metaclass=MetaTool):
     @classmethod
     def _get_repo_contents(cls, org: str, repo_name: str) -> None:
         config = dotenv_values("../.env")
-        gh_client = Github(auth=Auth.Token(config['GH_PAT']))  # Authenticate using a PAT
+        gh_pat = str(config['GH_PAT'])
+        auth = Auth.GithubToken(gh_pat)
+        gh_client = Github(auth=auth)  # Authenticate using a PAT
         gh_client.get_user()
 
         repo = gh_client.get_repo(f'{org}/{repo_name}')
-        contents = repo.get_contents("")
+        contents: List[ContentFile] = repo.get_contents("")
         with tempfile.TemporaryDirectory() as temp_dir:
             while contents:
                 file_content = contents.pop(0)
