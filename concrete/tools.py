@@ -60,30 +60,15 @@ class testOperator(operators.Operator):
 import inspect
 import os
 import socket
-import tempfile
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import boto3
-import requests
-import requests.adapters
-from dotenv import dotenv_values
-from github import Auth, Github
-from github.ContentFile import ContentFile
-from requests.adapters import HTTPAdapter, Retry
 
-from .clients import CLIClient
+from .clients import CLIClient, RestApiClient
 from .operator_responses import ProjectDirectory
-
-# Setup retry logic on web http requests
-web_session = requests.Session()
-jitter_retry = Retry(
-    total=5, backoff_factor=0.1, backoff_jitter=1.25, status_forcelist=[400, 403, 404, 500, 502, 503, 504]
-)
-web_session.mount("http://", HTTPAdapter(max_retries=jitter_retry))
-web_session.mount("https://", HTTPAdapter(max_retries=jitter_retry))
 
 
 class MetaTool(type):
@@ -135,30 +120,34 @@ class MetaTool(type):
 
 class RestApiTool(metaclass=MetaTool):
     @classmethod
-    def send_get_request(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}):
+    def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}):
         """
-        Make a get request to the specified url
+        Make a GET request to the specified url
 
-        Throws an error if the request was unsuccessful
+        Throws an error if the request was unsuccessful after retries
         """
-        resp = web_session.get(url, headers=headers, params=params, data=data)
+        client = RestApiClient()
+        resp = client.get(url, headers=headers, params=params, data=data)
         if not resp.ok:
+            # Request failed
             CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
-        return resp.json()
+        return resp.json()  # return unwrapped data
 
     @classmethod
-    def send_post_request(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}):
+    def post(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}):
         """
-        Make a get request to the specified url
+        Make a POST request to the specified url
 
-        Throws an error if the request was unsuccessful
+        Throws an error if the request was unsuccessful after retries
         """
-        resp = web_session.post(url, headers=headers, params=params, data=data, json=json)
+        client = RestApiClient()
+        resp = client.post(url, headers=headers, params=params, data=data, json=json)
         if not resp.ok:
+            # Request failed
             CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
-        return resp.json()
+        return resp.json()  # return unwrapped data
 
 
 class AwsTool(metaclass=MetaTool):
@@ -280,6 +269,7 @@ class AwsTool(metaclass=MetaTool):
         """
         image_uri (str): The URI of the image to deploy.
         """
+        # TODO: separate out clients and have a better interaction for attaching vars
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
 
@@ -428,50 +418,23 @@ class AwsTool(metaclass=MetaTool):
 
 
 class GithubTool(metaclass=MetaTool):
-    @classmethod
-    def _get_repo_contents(cls, owner: str, repo: str) -> None:
-        config = dotenv_values("../.env")
-        gh_pat = str(config['GH_PAT'])
-        auth = Auth.GithubToken(gh_pat)
-        gh_client = Github(auth=auth)  # Authenticate using a PAT
-        gh_client.get_user()
+    """
+    Facilitates interactions with github through its Restful API
+    """
 
-        repo = gh_client.get_repo(f'{owner}/{repo}')
-        # Wrestle with the linter
-        initial_contents = repo.get_contents("")
-        contents: List[ContentFile] = initial_contents if isinstance(initial_contents, list) else [initial_contents]
-        with tempfile.TemporaryDirectory() as temp_dir:
-            while contents:
-                file_content = contents.pop(0)
-                if file_content.type == "dir":
-                    dir_contents = repo.get_contents(file_content.path)
-                    contents.extend(dir_contents if isinstance(dir_contents, list) else [dir_contents])
-                else:
-                    file_path = os.path.join(temp_dir, file_content.path)
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    def __init__(self):
+        self.headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
 
-                    if file_content.size <= 1_000_000:
-                        with open(file_path, 'wb') as f:
-                            f.write(file_content.decoded_content)
-                    else:
-                        with requests.get(file_content.download_url, timeout=10) as r:
-                            r.raise_for_status()
-                            with open(file_path, 'wb') as f:
-                                for chunk in r.iter_content(chunk_size=8192):
-                                    f.write(chunk)
-
-    @classmethod
-    def make_pr(cls, owner: str, repo: str, branch: str) -> dict:
+    def make_pr(self, owner: str, repo: str, branch: str) -> dict:
         """
         Make a pull request on the target repo
 
         e.g. make_pr('abstractoperators', 'concrete', 'kent/http-tool')
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
-        headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}',
-            'X-GitHub-Api-Version': '2022-11-28',
-        }
         json = {'title': '[ABOP] Test', 'head': branch, 'base': 'main'}
-        return RestApiTool.send_post_request(url, headers, json=json)
+        return RestApiTool.send_post_request(url, headers=self.headers, json=json)

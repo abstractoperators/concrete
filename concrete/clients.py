@@ -1,10 +1,12 @@
 import os
 from typing import Dict, List, Optional
 
-from dotenv import load_dotenv
+import requests
+import requests.adapters
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel
+from requests.adapters import HTTPAdapter, Retry
 
 
 class Client:
@@ -17,7 +19,6 @@ class OpenAIClient(Client):
     """
 
     def __init__(self):
-        load_dotenv()
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
         self.default_temperature = float(os.getenv("OPENAI_TEMPERATURE"))
@@ -48,3 +49,18 @@ class CLIClient(Client):
         # TODO: right now, make this a config setting
         if os.environ.get("ENV") != "PROD":
             print(content)
+
+
+class RestApiClient(Client, requests.Session):
+    """
+    Set up requests.session to access
+    """
+
+    def __init__(self):
+        # Setup retry logic for restful web http requests
+        super().__init__()
+        jitter_retry = Retry(
+            total=5, backoff_factor=0.1, backoff_jitter=1.25, status_forcelist=[400, 403, 404, 500, 502, 503, 504]
+        )
+        self.mount("http://", HTTPAdapter(max_retries=jitter_retry))
+        self.mount("https://", HTTPAdapter(max_retries=jitter_retry))
