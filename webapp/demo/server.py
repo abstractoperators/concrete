@@ -50,20 +50,22 @@ async def get(request: Request):
     return templates.TemplateResponse("index.html", {'request': {}})
 
 
-def deploy_images(background_tasks: BackgroundTasks, response_url: str):
-    background_tasks.add_task(
-        DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
-    )
-    background_tasks.add_task(
-        DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'
-    )
-
+def deploy_images(response_url: str):
+    if DeployToAWS._deploy_image(
+        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
+    ) and DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'):
+        body = {
+            "text": "Successfully deployed images",
+            "response_type": "in_channel",
+            "replace_original": False,
+        }
+    else:
+        body = {
+            "text": "Failed to deploy images",
+            "response_type": "in_channel",
+            "replace_original": False,
+        }
     headers = {'Content-type': 'application/json'}
-    body = {
-        "text": "Oh hey, this is a marvelous message!",
-        "response_type": "in_channel",
-        "replace_original": False,
-    }
     requests.post(response_url, headers=headers, json=body, timeout=3)
 
 
