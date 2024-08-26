@@ -49,12 +49,12 @@ async def get(request: Request):
 
 
 @app.post("/slack", status_code=200)
-async def slack_endpoint(request: Request):
+async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
     print(await request.json())
-    BackgroundTasks.add_task(
+    background_tasks.add_task(
         DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
     )
-    BackgroundTasks.add_task(
+    background_tasks.add_task(
         DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'
     )
     return "hello"
