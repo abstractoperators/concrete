@@ -3,7 +3,7 @@ Tools for integration with OpenAI's Structured Outputs (and any other LLM that s
 
 Use: Tools are used to provide operators methods that can be used to complete a task. Tools are defined as classes with methods that can be called. Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
 A returned tool syntax is expected to be evaluated using eval(tool_name.tool_call(params))
-eg) [AWSTool.deploy_to_aws(example_directory_name)]
+eg) [AwsTool.deploy_to_aws(example_directory_name)]
 
 1) String representation of the tool tells operator what tools are available
     a) Currently implemented with a metaclass defining __str__ for a class (a metaclass instance). The benefit of this is that the class does not need to be instantiated to get its string representation. Similarly, with staticmethods, the class does not need to be instantiated to use its methods
@@ -68,12 +68,22 @@ from typing import Dict, List, Optional
 
 import boto3
 import requests
+import requests.adapters
 from dotenv import dotenv_values
 from github import Auth, Github
 from github.ContentFile import ContentFile
+from requests.adapters import HTTPAdapter, Retry
 
 from .clients import CLIClient
 from .operator_responses import ProjectDirectory
+
+# Setup retry logic on web http requests
+web_session = requests.Session()
+jitter_retry = Retry(
+    total=5, backoff_factor=0.1, backoff_jitter=1.25, status_forcelist=[400, 403, 404, 500, 502, 503, 504]
+)
+web_session.mount("http://", HTTPAdapter(max_retries=jitter_retry))
+web_session.mount("https://", HTTPAdapter(max_retries=jitter_retry))
 
 
 class MetaTool(type):
@@ -123,7 +133,35 @@ class MetaTool(type):
         return str(cls)
 
 
-class AWSTool(metaclass=MetaTool):
+class RestApiTool(metaclass=MetaTool):
+    @classmethod
+    def send_get_request(cls, url: str, headers: dict = {}, params: dict = {}):
+        """
+        Make a get request to the specified url
+
+        Throws an error if the request was unsuccessful
+        """
+        resp = web_session.get(url, headers=headers, params=params)
+        if not resp.ok:
+            CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
+            resp.raise_for_status()
+        return resp.json()
+
+    @classmethod
+    def send_post_request(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}):
+        """
+        Make a get request to the specified url
+
+        Throws an error if the request was unsuccessful
+        """
+        resp = web_session.post(url, headers=headers, params=params, data=data)
+        if not resp.ok:
+            CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
+            resp.raise_for_status()
+        return resp.json()
+
+
+class AwsTool(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
     DIND_BUILDER_HOST = "localhost"
@@ -389,7 +427,7 @@ class AWSTool(metaclass=MetaTool):
         return False
 
 
-class GitHubDeploy(metaclass=MetaTool):
+class GithubTool(metaclass=MetaTool):
     @classmethod
     def _get_repo_contents(cls, org: str, repo_name: str) -> None:
         config = dotenv_values("../.env")
@@ -421,3 +459,7 @@ class GitHubDeploy(metaclass=MetaTool):
                             with open(file_path, 'wb') as f:
                                 for chunk in r.iter_content(chunk_size=8192):
                                     f.write(chunk)
+
+    @classmethod
+    def make_pr(cls, org: str, repo_name: str, branch_name: str):
+        pass
