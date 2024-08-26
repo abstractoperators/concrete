@@ -57,13 +57,25 @@ def deploy_images(response_url: str):
         body = {
             "text": "Successfully deployed images",
             "response_type": "in_channel",
-            "replace_original": False,
+            "replace_original": True,
         }
     else:
         body = {
-            "text": "Failed to deploy images",
+            "text": "Deploy failed. Try again?",
             "response_type": "in_channel",
-            "replace_original": False,
+            "replace_original": True,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Deploy failed. Attempt deploy `main` to production again?"},
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {"type": "button", "text": {"type": "plain_text", "text": "DEPLOY"}, "style": "primary"}
+                    ],
+                },
+            ],
         }
     headers = {'Content-type': 'application/json'}
     requests.post(response_url, headers=headers, json=body, timeout=3)
