@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+import requests
 from fastapi import BackgroundTasks, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -50,20 +51,30 @@ async def get(request: Request):
 
 @app.post("/slack", status_code=200)
 async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
-    print(await request.json())
+    form = await request.form()
+    payload = form['payload']
     background_tasks.add_task(
         DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
     )
     background_tasks.add_task(
         DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'
     )
-    return "hello"
+    response_url = payload['response_url']
+    headers = {'Content-type': 'application/json'}
+    body = {
+        "text": "Oh hey, this is a marvelous message!",
+        "response_type": "in_channel",
+        "replace_original": False,
+    }
+    requests.post(response_url, headers=headers, json=body, timeout=3)
+    return payload
 
 
 @app.post('/ping', status_code=200)
 async def ping(request: Request):
-
-    return await request.json()
+    form = await request.form()
+    payload = form['payload']
+    return payload
 
 
 @app.websocket("/ws/{client_id}")
