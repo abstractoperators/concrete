@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -43,17 +43,14 @@ manager = ConnectionManager()
 
 
 @app.get("/")
-async def get(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def get(request: Request):  #
+    return templates.TemplateResponse("index.html", {'request': {}})
 
 
 @app.post("/slack")
 async def slack_endpoint(request: Request):
-    payload = await request.json()
-
-    if payload.get("type") == "block_actions":
-        print(payload.get('user'))
-        return Response(content=f'Hello, {payload.get("user")}', media_type="text/plain", status_code=200)
+    # Process deploy with concrete here
+    return "hello"
 
 
 @app.websocket("/ws/{client_id}")
