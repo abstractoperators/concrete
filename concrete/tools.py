@@ -290,6 +290,7 @@ class AwsTool(metaclass=MetaTool):
             "/f7cec30e1ac2e4a4/451389d914171f05"
         )
 
+        # TODO: Add a check for existing rules
         rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
         rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
         if set(range(1, len(rules))) - set(rule_priorities):
