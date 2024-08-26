@@ -324,7 +324,9 @@ class DeployToAWS(metaclass=MetaTool):
             ],
         )
 
-        if ecs_client.describe_services(cluster=cluster, services=[service_name])['services']:
+        if (
+            service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])['services']
+        ) and service_desc[0]['status'] == 'ACTIVE':
             CLIClient.emit(f"Service {service_name} found. Updating service.")
             ecs_client.update_service(
                 cluster=cluster,

@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
+from concrete.tools import DeployToAWS
 
 app = FastAPI()
 
@@ -43,13 +44,15 @@ manager = ConnectionManager()
 
 
 @app.get("/")
-async def get(request: Request):  #
+async def get(request: Request):
     return templates.TemplateResponse("index.html", {'request': {}})
 
 
-@app.post("/slack")
+@app.post("/slack", status_code=200)
 async def slack_endpoint(request: Request):
-    # Process deploy with concrete here
+    print(await request.json())
+    DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest')
+    DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest')
     return "hello"
 
 

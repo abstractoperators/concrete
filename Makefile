@@ -36,15 +36,15 @@ build-dind-builder:
 
 run-webapp-demo: 
 	docker compose -f docker/docker-compose.yml stop webapp-demo
-	docker compose -f docker/docker-compose.yml up --build -d webapp-demo
+	docker compose -f docker/docker-compose.yml up  -d webapp-demo
 
 run-webapp-main: 
 	docker compose -f docker/docker-compose.yml stop webapp-main
-	docker compose -f docker/docker-compose.yml up --build -d webapp-main
+	docker compose -f docker/docker-compose.yml up  -d webapp-main
 
 run-dind-builder: 
 	docker compose -f docker/docker-compose.yml stop dind-builder
-	docker compose -f docker/docker-compose.yml up --build -d dind-builder
+	docker compose -f docker/docker-compose.yml up -d dind-builder
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
