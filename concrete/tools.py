@@ -135,28 +135,28 @@ class MetaTool(type):
 
 class RestApiTool(metaclass=MetaTool):
     @classmethod
-    def send_get_request(cls, url: str, headers: dict = {}, params: dict = {}):
+    def send_get_request(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}):
         """
         Make a get request to the specified url
 
         Throws an error if the request was unsuccessful
         """
-        resp = web_session.get(url, headers=headers, params=params)
+        resp = web_session.get(url, headers=headers, params=params, data=data)
         if not resp.ok:
             CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
         return resp.json()
 
     @classmethod
-    def send_post_request(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}):
+    def send_post_request(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}):
         """
         Make a get request to the specified url
 
         Throws an error if the request was unsuccessful
         """
-        resp = web_session.post(url, headers=headers, params=params, data=data)
+        resp = web_session.post(url, headers=headers, params=params, data=data, json=json)
         if not resp.ok:
-            CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
+            CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
         return resp.json()
 
@@ -429,14 +429,14 @@ class AwsTool(metaclass=MetaTool):
 
 class GithubTool(metaclass=MetaTool):
     @classmethod
-    def _get_repo_contents(cls, org: str, repo_name: str) -> None:
+    def _get_repo_contents(cls, owner: str, repo: str) -> None:
         config = dotenv_values("../.env")
         gh_pat = str(config['GH_PAT'])
         auth = Auth.GithubToken(gh_pat)
         gh_client = Github(auth=auth)  # Authenticate using a PAT
         gh_client.get_user()
 
-        repo = gh_client.get_repo(f'{org}/{repo_name}')
+        repo = gh_client.get_repo(f'{owner}/{repo}')
         # Wrestle with the linter
         initial_contents = repo.get_contents("")
         contents: List[ContentFile] = initial_contents if isinstance(initial_contents, list) else [initial_contents]
@@ -461,5 +461,17 @@ class GithubTool(metaclass=MetaTool):
                                     f.write(chunk)
 
     @classmethod
-    def make_pr(cls, org: str, repo_name: str, branch_name: str):
-        pass
+    def make_pr(cls, owner: str, repo: str, branch: str) -> dict:
+        """
+        Make a pull request on the target repo
+
+        e.g. make_pr('abstractoperators', 'concrete', 'kent/http-tool')
+        """
+        url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+        json = {'title': '[ABOP] Test', 'head': branch, 'base': 'main'}
+        return RestApiTool.send_post_request(url, headers, json=json)
