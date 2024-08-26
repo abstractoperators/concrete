@@ -429,12 +429,12 @@ class GithubTool(metaclass=MetaTool):
             'X-GitHub-Api-Version': '2022-11-28',
         }
 
-    def make_pr(self, owner: str, repo: str, branch: str) -> dict:
+    def make_pr(self, owner: str, repo: str, branch: str, title: str = "PR") -> dict:
         """
         Make a pull request on the target repo
 
         e.g. make_pr('abstractoperators', 'concrete', 'kent/http-tool')
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
-        json = {'title': '[ABOP] Test', 'head': branch, 'base': 'main'}
+        json = {'title': f'[ABOP] {title}', 'head': branch, 'base': 'main'}
         return RestApiTool.send_post_request(url, headers=self.headers, json=json)
