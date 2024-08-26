@@ -429,12 +429,19 @@ class GithubTool(metaclass=MetaTool):
             'X-GitHub-Api-Version': '2022-11-28',
         }
 
-    def make_pr(self, owner: str, repo: str, branch: str, title: str = "PR") -> dict:
+    def make_pr(self, owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict:
         """
         Make a pull request on the target repo
 
         e.g. make_pr('abstractoperators', 'concrete', 'kent/http-tool')
+
+        Args
+            owner (str): The organization or accounts that owns the repo.
+            repo (str): The name of the repository.
+            branch (str): The head branch being merged into the base.
+            title (str): The title of the PR being created.
+            base (str): The title of the branch that changes are being merged into.
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
-        json = {'title': f'[ABOP] {title}', 'head': branch, 'base': 'main'}
+        json = {'title': f'[ABOP] {title}', 'head': branch, 'base': base}
         return RestApiTool.send_post_request(url, headers=self.headers, json=json)
