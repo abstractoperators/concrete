@@ -2,7 +2,7 @@ name: Deploy webapp-main to staging
 on:
     push:
         branches:
-            - michael/deploy_main_to_staging
+            - michael/slack_endpoint
             - main
 jobs:
     build:
