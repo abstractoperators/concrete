@@ -16,7 +16,6 @@ astor = "==0.8.1"
 
 [tool.poetry.group.tooluse.dependencies]
 boto3 = "==1.35.3"
-pygithub = "==2.3.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.4"
@@ -26,7 +25,7 @@ flake8 = "==7.1.0"
 isort = "==5.13.2"
 bandit = "==1.7.9"
 pre-commit = "==3.7.1"
-mypy = "==1.11.0"
+mypy = "==1.11.2"
 starlette = "==0.37.2"  # for fasthtml
 
 [tool.poetry.group.webapp-new.dependencies]

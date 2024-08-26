@@ -68,7 +68,7 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
 
-            - name: Deploy to ECS staging using DeployToAWS._deploy_images
+            - name: Deploy to ECS staging using AwsTool._deploy_images
               env:
                 image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest'
               run: |
