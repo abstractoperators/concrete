@@ -265,7 +265,9 @@ class AwsTool(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _deploy_image(cls, image_uri: str, custom_name: Optional[str] = None) -> bool:
+    def _deploy_image(
+        cls, image_uri: str, custom_name: Optional[str] = None, cpu: int = 256, memory: int = 512
+    ) -> bool:
         """
         image_uri (str): The URI of the image to deploy.
         """
@@ -288,6 +290,7 @@ class AwsTool(metaclass=MetaTool):
             "/f7cec30e1ac2e4a4/451389d914171f05"
         )
 
+        # TODO: Add a check for existing rules
         rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
         rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
         if set(range(1, len(rules))) - set(rule_priorities):
@@ -316,8 +319,8 @@ class AwsTool(metaclass=MetaTool):
                     },
                 }
             ],
-            cpu='256',
-            memory='512',
+            cpu=str(cpu),
+            memory=str(memory),
             runtimePlatform={
                 'cpuArchitecture': 'ARM64',
                 'operatingSystemFamily': 'LINUX',
@@ -352,7 +355,9 @@ class AwsTool(metaclass=MetaTool):
             ],
         )
 
-        if ecs_client.describe_services(cluster=cluster, services=[service_name])['services']:
+        if (
+            service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])['services']
+        ) and service_desc[0]['status'] == 'ACTIVE':
             CLIClient.emit(f"Service {service_name} found. Updating service.")
             ecs_client.update_service(
                 cluster=cluster,
