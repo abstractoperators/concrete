@@ -49,17 +49,14 @@ async def get(request: Request):
     return templates.TemplateResponse("index.html", {'request': {}})
 
 
-@app.post("/slack", status_code=200)
-async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
-    form = await request.form()
-    payload = form['payload']
+def deploy_images(background_tasks: BackgroundTasks, response_url: str):
     background_tasks.add_task(
         DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
     )
     background_tasks.add_task(
         DeployToAWS._deploy_image, '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'
     )
-    response_url = payload['response_url']
+
     headers = {'Content-type': 'application/json'}
     body = {
         "text": "Oh hey, this is a marvelous message!",
@@ -67,6 +64,15 @@ async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
         "replace_original": False,
     }
     requests.post(response_url, headers=headers, json=body, timeout=3)
+
+
+@app.post("/slack", status_code=200)
+async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
+    form = await request.form()
+    payload = form['payload']
+    print(payload)
+    background_tasks.add_task(deploy_images, response_url=payload['response_url'])
+
     return payload
 
 
