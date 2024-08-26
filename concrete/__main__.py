@@ -3,7 +3,7 @@ import asyncio
 
 from . import orchestrator
 from .clients import CLIClient
-from .tools import DeployToAWS
+from .tools import AWSTool
 
 parser = argparse.ArgumentParser(description="Concrete CLI")
 subparsers = parser.add_subparsers(dest="mode")
@@ -26,7 +26,7 @@ async def main():
 
     elif args.mode == "deploy":
         print("Starting deployment to AWS...")
-        DeployToAWS._deploy_image(args.image_uri, args.custom_name)
+        AWSTool._deploy_image(args.image_uri, args.custom_name)
         print("Deployment completed.")
 
 

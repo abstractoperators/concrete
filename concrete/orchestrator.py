@@ -14,7 +14,7 @@ from .operator_responses import (
 )
 from .operators import Developer, Executive
 from .state import ProjectStatus, State
-from .tools import DeployToAWS
+from .tools import AWSTool
 
 
 class StatefulMixin:
@@ -83,11 +83,11 @@ class SoftwareProject(StatefulMixin):
             # TODO Use an actual DB instead of emulating one with a dictionary
             # TODO Figure something out safer than eval
             yield "executive", "Deploying to AWS"
-            DeployToAWS.results.update({files.project_name: json.loads(str(files))})
+            AWSTool.results.update({files.project_name: json.loads(str(files))})
 
             deploy_tool_call = self.dev.use_tools(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
-                tools=[DeployToAWS],
+                tools=[AWSTool],
                 response_format=Tools,
             )
             for tool in deploy_tool_call.tools:

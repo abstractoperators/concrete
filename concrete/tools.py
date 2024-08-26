@@ -3,7 +3,7 @@ Tools for integration with OpenAI's Structured Outputs (and any other LLM that s
 
 Use: Tools are used to provide operators methods that can be used to complete a task. Tools are defined as classes with methods that can be called. Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
 A returned tool syntax is expected to be evaluated using eval(tool_name.tool_call(params))
-eg) [DeployToAWS.deploy_to_aws(example_directory_name)]
+eg) [AWSTool.deploy_to_aws(example_directory_name)]
 
 1) String representation of the tool tells operator what tools are available
     a) Currently implemented with a metaclass defining __str__ for a class (a metaclass instance). The benefit of this is that the class does not need to be instantiated to get its string representation. Similarly, with staticmethods, the class does not need to be instantiated to use its methods
@@ -123,7 +123,7 @@ class MetaTool(type):
         return str(cls)
 
 
-class DeployToAWS(metaclass=MetaTool):
+class AWSTool(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
     results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
     DIND_BUILDER_HOST = "localhost"
