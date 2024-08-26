@@ -51,9 +51,14 @@ async def get(request: Request):
 @app.post("/slack", status_code=200)
 async def slack_endpoint(request: Request):
     print(await request.json())
-    DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest')
-    DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest')
+    DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main')
+    DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo')
     return "hello"
+
+
+@app.post('/ping', status_code=200)
+async def ping():
+    return "pong"
 
 
 @app.websocket("/ws/{client_id}")
