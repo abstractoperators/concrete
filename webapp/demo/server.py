@@ -78,7 +78,7 @@ def deploy_images(response_url: str):
             ],
         }
     headers = {'Content-type': 'application/json'}
-    requests.post(response_url, headers=headers, json=body, timeout=3)
+    requests.post(response_url, headers=headers, data=json.dumps(body), timeout=3)
 
 
 @app.post("/slack", status_code=200)
