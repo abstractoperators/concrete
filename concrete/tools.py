@@ -238,7 +238,9 @@ class DeployToAWS(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _deploy_image(cls, image_uri: str, custom_name: Optional[str] = None, cpu=256, memory=512) -> bool:
+    def _deploy_image(
+        cls, image_uri: str, custom_name: Optional[str] = None, cpu: int = 256, memory: int = 512
+    ) -> bool:
         """
         image_uri (str): The URI of the image to deploy.
         """
@@ -288,8 +290,8 @@ class DeployToAWS(metaclass=MetaTool):
                     },
                 }
             ],
-            cpu=cpu,
-            memory=memory,
+            cpu=str(cpu),
+            memory=str(memory),
             runtimePlatform={
                 'cpuArchitecture': 'ARM64',
                 'operatingSystemFamily': 'LINUX',
