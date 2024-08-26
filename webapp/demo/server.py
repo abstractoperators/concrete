@@ -55,8 +55,7 @@ def deploy_images(response_url: str):
         '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
     ) and DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'):
         body = {
-            "type": "section",
-            "text": {"text": "Successfully deployed `main`", "type": "mrkdwn"},
+            "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Successfully deployed `main`"}}],
             "response_type": "in_channel",
             "replace_original": True,
         }
