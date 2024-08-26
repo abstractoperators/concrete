@@ -2,6 +2,7 @@ name: Deploy webapp-main to staging
 on:
     push:
         branches:
+          # Use your branch if you want to deploy your branch to staging env.
             - michael/slack_endpoint
             - main
 jobs:

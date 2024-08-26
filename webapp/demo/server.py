@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
+from concrete.clients import CLIClient
 from concrete.tools import DeployToAWS
 
 app = FastAPI()
@@ -85,7 +86,7 @@ def deploy_images(response_url: str):
 async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
     form = await request.form()
     payload = json.loads(form['payload'])
-    print(payload)
+    CLIClient.emit(payload)
     background_tasks.add_task(deploy_images, response_url=payload['response_url'])
 
     return payload
