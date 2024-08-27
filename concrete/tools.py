@@ -290,13 +290,35 @@ class AwsTool(metaclass=MetaTool):
             "/f7cec30e1ac2e4a4/451389d914171f05"
         )
 
-        # TODO: Add a check for existing rules
+        target_group_arn = None
         rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
-        rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
-        if set(range(1, len(rules))) - set(rule_priorities):
-            listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
-        else:
-            listener_rule_priority = len(rules) + 1
+        for rule in rules:
+            if (
+                rule['Conditions'][0]['Field'] == 'host-header'
+                and rule['Conditions'][0]['Values'][0] == f'{target_group_name}.abop.ai'
+            ):
+                target_group_arn = rule['Actions'][0]['TargetGroupArn']
+
+        if not target_group_arn:
+            rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
+            if set(range(1, len(rules))) - set(rule_priorities):
+                listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
+            else:
+                listener_rule_priority = len(rules) + 1
+
+            target_group_arn = elbv2_client.create_target_group(
+                Name=target_group_name,
+                Protocol='HTTP',
+                Port=80,
+                VpcId=vpc,
+                TargetType='ip',
+                HealthCheckEnabled=True,
+                HealthCheckPath='/',
+                HealthCheckIntervalSeconds=30,
+                HealthCheckTimeoutSeconds=5,
+                HealthyThresholdCount=2,
+                UnhealthyThresholdCount=2,
+            )['TargetGroups'][0]['TargetGroupArn']
 
         task_definition_arn = ecs_client.register_task_definition(
             family=task_name,
@@ -326,22 +348,6 @@ class AwsTool(metaclass=MetaTool):
                 'operatingSystemFamily': 'LINUX',
             },
         )['taskDefinition']['taskDefinitionArn']
-
-        target_group_arn = elbv2_client.create_target_group(
-            Name=target_group_name,
-            Protocol='HTTP',
-            Port=80,
-            VpcId=vpc,
-            TargetType='ip',
-            HealthCheckEnabled=True,
-            HealthCheckPath='/',
-            HealthCheckIntervalSeconds=30,
-            HealthCheckTimeoutSeconds=5,
-            HealthyThresholdCount=2,
-            UnhealthyThresholdCount=2,
-        )['TargetGroups'][0][
-            'TargetGroupArn'
-        ]  # A little confused as to why this is a list?
 
         elbv2_client.create_rule(
             ListenerArn=listener_arn,
