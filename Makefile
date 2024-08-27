@@ -15,7 +15,7 @@ helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
  
 simpleflask:
-	$(ORCHESTRATE) "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World"
+	$(ORCHESTRATE) "Provide the code to quickstart a basic builtin Flask server. The Flask server should only show Hello World. It should render a simple HTML page with the text Hello World."
 
 # Requires dind-builder to be running
 # Need to manually delete created resources in AWS.

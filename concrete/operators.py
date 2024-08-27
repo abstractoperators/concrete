@@ -6,7 +6,7 @@ from uuid import uuid1
 
 from pydantic import BaseModel
 
-from .clients import Client
+from .clients import CLIClient, Client
 from .operator_responses import TextResponse
 from .tools import MetaTool
 
@@ -65,6 +65,8 @@ class LlmMixin:
             raise Exception("Operator refused to answer question")
 
         answer = response.parsed
+
+        CLIClient.emit(query)
         return answer
 
     @classmethod
@@ -98,8 +100,9 @@ class Operator(LlmMixin):
 
         query = ""
         if tools:
-            query += """Here are your available tools:\
-                Either call the tool with the specified syntax, or leave its field blank.\n"""
+            query += """
+Here are your available tools:\
+Should you need the tool, populate its field with the specified syntax. Otherwise, leave its field blank."""
             for tool in tools:
                 query += str(tool)
 
@@ -121,23 +124,18 @@ class Developer(Operator):
 
     instructions = (
         "You are an expert software developer. You will follow the instructions given to you to complete each task."
-        "You will follow example formatting, defaulting to no formatting if no example is provided."
     )
 
     """
-        You are a senior software engineer at an innovative AI agent orchestration startup. Your deep 
-        understanding of software architecture, AI systems, and scalable solutions empowers you to design 
+        You are a senior software engineer at an innovative AI agent orchestration startup. Your deep
+        understanding of software architecture, AI systems, and scalable solutions empowers you to design
         and implement cutting-edge technologies that enhance AI capabilities.
     """
     """
         Objective:
-        Your task is to apply your expertise to architect and optimize AI agent orchestration frameworks, 
-        ensuring high performance, scalability, and reliability. You will be working on complex systems 
-        that integrate multiple AI agents, enabling them to collaborate efficiently to achieve sophisticated goals.
-
-        Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. 
-        Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.
-    """
+        Your task is to apply your expertise to architect and optimize AI agent orchestration frameworks, ensuring high performance, scalability, and reliability. You will be working on complex systems that integrate multiple AI agents, enabling them to collaborate efficiently to achieve sophisticated goals.
+        Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.
+    """  # noqa E501
 
     @LlmMixin.qna
     def ask_question(self, context: str) -> str:
@@ -181,54 +179,54 @@ class Developer(Operator):
         Returns the code for the component
         """
         return """
-            Please provide complete and accurate code for the provided current component.\
-            Produced code blocks should be preceded by the file where it should be placed.
-            Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
+Please provide complete and accurate code for the provided current component.\
+Produced code blocks should be preceded by the file where it should be placed.
+Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
 
-            **Example:**
-                Context:
-                1. Imported the Flask module from the flask package
-                Current Component: Create a flask application instance named 'app'
-                Clarification: None
+**Example:**
+    Context:
+    1. Imported the Flask module from the flask package
+    Current Component: Create a flask application instance named 'app'
+    Clarification: None
 
-                Output:
-                app.py
-                ```python
-                app = Flask(app)
-                ```
+    Output:
+    app.py
+    ```python
+    app = Flask(app)
+    ```
 
-            **Example:**
-                Context:
-                1. The code imported the Flask module from the flask package
-                2. The code created a Flask application named "app"
-                3. Created a route for the root URL ('/')
-                Current Component: Create a function that will be called when the root URL is accessed.
-                Question: What should the function do?
-                Clarification: The function should do nothing. It should be a placeholder for future functionality.
+**Example:**
+    Context:
+    1. The code imported the Flask module from the flask package
+    2. The code created a Flask application named "app"
+    3. Created a route for the root URL ('/')
+    Current Component: Create a function that will be called when the root URL is accessed.
+    Question: What should the function do?
+    Clarification: The function should do nothing. It should be a placeholder for future functionality.
 
-                Output:
-                app.py
-                ```python
-                def index():
-                    pass
-                ```
+    Output:
+    app.py
+    ```python
+    def index():
+        pass
+    ```
 
-            **Example:**
-                Context:
-                    1. The code imported the Flask module from the flask package
-                    2. The code created a Flask application named "app"
-                    3. Created a route for the root URL ('/')
-                    4. Created a placeholder function named 'index' that does nothing
-                    Current Component: Create an html file that will be rendered when the root URL is accessed
+**Example:**
+    Context:
+        1. The code imported the Flask module from the flask package
+        2. The code created a Flask application named "app"
+        3. Created a route for the root URL ('/')
+        4. Created a placeholder function named 'index' that does nothing
+        Current Component: Create an html file that will be rendered when the root URL is accessed
 
-                    Output:
-                    templates/index.html
-                    ```html
-                    <!DOCTYPE html>
-                    ```html
-                    
-            *Context:*
-            {context}
+        Output:
+        templates/index.html
+        ```html
+        <!DOCTYPE html>
+        ```html
+
+*Context:*
+{context}
         """.format(
             context=context
         )
@@ -238,7 +236,7 @@ class Developer(Operator):
         self,
         planned_components: List[str],
         implementations: List[str],
-        webpage_idea: str,
+        idea: str,
     ) -> str:
         """
         Prompts Operator to combine code implementations of multiple components
@@ -246,41 +244,22 @@ class Developer(Operator):
         """
         prev_components = []
         for desc, code in zip(planned_components, implementations):
-            prev_components.append(
-                f"\n\t****Component description****: \n{desc}\n\t****Code:**** \n{code.file_name}\n{code.file_contents}"
-            )
+            prev_components.append(f"\nComponent description: {desc}\n****Code:**** \n{code}")
 
-        print(prev_components)
         out_str = """\
-            *Task: Accurately and completely implement the original task using the provided components*
-            **Idea:**
-                {webpage_idea}
+*Task: Join the provided components to implement the following idea.*
+**Idea:**
+    {idea}
 
-            **Components:**
-                {components}
-               
-            **Important Details:**
-            1. All necessary imports and libraries are at the top of each file
-            2. Each code block is preceded by a file path where it should be placed
-            3. Code is organized logically
-            4. Resolve duplicate and conflicting code with discretion
-            5. Only code and file paths are returned
-            6. With discretion, modify existing implementations to ensure a working implementation of the\
-            original webpage creation task.
+**Components:**
+    {components}
 
-            **Example Output Syntax:**
-            app.py
-            ```python
-            def foo():
-                pass
-            ```
-
-            templates/home.html
-            ```html
-            <!DOCTYPE html>
-            ```
+**Important Details:**
+1. All necessary imports and libraries are at the top of each file
+2. Code is organized logically
+3. Resolve duplicate and conflicting code with discretion
             """.format(
-            webpage_idea=webpage_idea, components="".join(prev_components)
+            idea=idea, components="".join(prev_components)
         )
         return out_str
 
@@ -290,7 +269,7 @@ class Developer(Operator):
         query = ""
         if tools:
             query += """Here are your available tools:\
-                Either call the tool with the specified syntax, or leave its field blank.\n"""
+Either call the tool with the specified syntax, or leave its field blank.\n"""
             for tool in tools:
                 query += str(tool)
 
@@ -300,34 +279,34 @@ class Developer(Operator):
     @LlmMixin.qna
     def implement_html_element(self, prompt: str) -> str:
         out_str = f"""\
-        Generate an html element with the following description:\n
-        {prompt}
+Generate an html element with the following description:\n
+{prompt}
 
-        Generated html elements should be returned as a string with the following format.
-        Remember to ONLY return the generated HTML element. Do not include any other information.
+Generated html elements should be returned as a string with the following format.
+Remember to ONLY return the generated HTML element. Do not include any other information.
 
-        Example 1.
-        Generate an html element with the following description:
-        A header that says `Title`
-        
-        <h1>Title</h1>
+Example 1.
+Generate an html element with the following description:
+A header that says `Title`
 
-        Example 2.
-        Generate an html element with the following description:
-        An input form with a submit button
-        
-        <form method="POST" action="/">
-        <label for="textInput">Input:</label>
-        <input type="text" id="textInput" name="textInput" required>
-        <button type="submit">Submit</button>
-        </form>
-        
-        Example 3.
-        Generate an html element with the following description:
-        Create a paragraph with the text `Hello, World!`
-        
-        <p>Hello, World!</p>
-        """
+<h1>Title</h1>
+
+Example 2.
+Generate an html element with the following description:
+An input form with a submit button
+
+<form method="POST" action="/">
+<label for="textInput">Input:</label>
+<input type="text" id="textInput" name="textInput" required>
+<button type="submit">Submit</button>
+</form>
+
+Example 3.
+Generate an html element with the following description:
+Create a paragraph with the text `Hello, World!`
+
+<p>Hello, World!</p>
+"""
         return out_str
 
 
@@ -342,37 +321,37 @@ class Executive(Operator):
     )
 
     """
-        You are an executive at a cutting-edge AI agent orchestration startup. 
-        Your strategic vision and leadership drive the company’s mission to revolutionize 
+        You are an executive at a cutting-edge AI agent orchestration startup.
+        Your strategic vision and leadership drive the company’s mission to revolutionize
         how AI agents collaborate, enabling transformative solutions across industries.
     """
     """
         Objective:
-        Your task is to guide the overall strategy and vision for the company, ensuring 
-        that the organization’s AI agent orchestration platforms are not only technically 
-        superior but also aligned with market needs, customer expectations, and long-term 
+        Your task is to guide the overall strategy and vision for the company, ensuring
+        that the organization’s AI agent orchestration platforms are not only technically
+        superior but also aligned with market needs, customer expectations, and long-term
         growth objectives.
     """
 
     @LlmMixin.qna
     def plan_components(self, starting_prompt) -> str:
         return """\
-        List the essential code components required to implement the project idea. Each component should be atomic,\
-        such that a developer could implement it in isolation provided placeholders for preceding components.
+List the essential code components required to implement the project idea. Each component should be atomic,\
+such that a developer could implement it in isolation provided placeholders for preceding components.
 
-        Your responses must:
-        1. Include specific components
-        2. Be comprehensive, accurate, and complete
-        3. Use technical terms appropriate for the specific programming language and framework
-        4. Sequence components logically, with later components dependent on previous ones
-        5. Not include implementation details or code snippets
-        6. Assume all dependencies are already installed but NOT imported
-        7. Be decisive and clear, avoiding ambiguity or vagueness
-        8. Be declarative, using action verbs to describe the component.
-        ...
+Your responses must:
+1. Include specific components
+2. Be comprehensive, accurate, and complete
+3. Use technical terms appropriate for the specific programming language and framework
+4. Sequence components logically, with later components dependent on previous ones
+5. Not include implementation details or code snippets
+6. Assume all dependencies are already installed but NOT imported
+7. Be decisive and clear, avoiding ambiguity or vagueness
+8. Be declarative, using action verbs to describe the component.
+...
 
-        Project Idea:
-        {starting_prompt}
+Project Idea:
+{starting_prompt}
         """.format(
             starting_prompt=starting_prompt
         )
@@ -384,8 +363,8 @@ class Executive(Operator):
         Returns the answer
         """
         return (
-            f"Context: {context} Developer's Question: {question}\n "
-            "As the senior advisor, answer with specificity the developer's question about this component. "
+            f"Context: {context} Developer's Question: {question}\n"
+            "As the senior advisor, answer with specificity the developer's question about this component."
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
@@ -396,20 +375,20 @@ class Executive(Operator):
         Returns the summary
         """
         prompt = """Summarize what has been implemented in the current component,
-        and append it to the previously summarized components.
+and append it to the previously summarized components.
 
-        For each component summary:
-        1. Describe its full functionality using natural language.
-        2. Include file name, function name, and variable name in the description.
+For each component summary:
+1. Describe its full functionality using natural language.
+2. Include file name, function name, and variable name in the description.
 
-        Example Output:
-        1. Imported the packages numpy as np, and pandas as pd in app.py
-        2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
-        3. Populated foo with random ints in app.py
-        4. Printed average of bar and baz in the main function of app.py
+Example Output:
+1. Imported the packages numpy as np, and pandas as pd in app.py
+2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
+3. Populated foo with random ints in app.py
+4. Printed average of bar and baz in the main function of app.py
 
-        Previous Components: {summary}
-        Current Component Implementation: {implementation}
+Previous Components: {summary}
+Current Component Implementation: {implementation}
         """.format(
             summary=summary, implementation=implementation
         )
@@ -418,54 +397,43 @@ class Executive(Operator):
 
 class PromptEngineer(Operator):
     instructions = """
-        “You are a world-class AI prompt engineer. Your task is to create base prompts that will guide other AI agents in producing high-quality, reliable, and innovative results.
-        These prompts are not meant to be self-contained. It is merely a persona an AI agent will adopt while processing an explicit instruction that will be added to the base prompt later.
-        
-        Consider the following framework as you develop your prompts:
+You are a world-class AI prompt engineer. Your task is to create base prompts that will guide other AI agents in producing high-quality, reliable, and innovative results.
+These prompts are not meant to be self-contained. It is merely a persona an AI agent will adopt while processing an explicit instruction that will be added to the base prompt later.
 
-            1.	Clarity: Ensure your prompts are easy to understand and unambiguous. Unambiguous and easy to understand, ensuring that the AI knows exactly what is expected.
-            2.	Completeness: Include all necessary information and context so the AI can respond comprehensively. Including all relevant information and context to allow for a thorough response.
-            3.	Specificity: Be precise in your instructions, guiding the AI towards a specific outcome.  Guiding the AI towards a precise outcome or set of actions, reducing the likelihood of irrelevant results.
-            4.	Adaptability: Create prompts that can be easily adapted to different contexts or adjusted as needed. Flexible enough to be used in various contexts or adjusted as necessary without losing effectiveness.
-            5.	Creativity: Encourage the AI to explore creative and innovative solutions. Encouraging the AI to think outside the box and explore innovative solutions.
+Consider the following framework as you develop your prompts:
 
-        Using this framework, craft prompts that will empower AI agents to deliver the best possible outputs, whether for creative tasks, technical tasks, or any other type of challenge.”
+    1.	Clarity: Ensure your prompts are easy to understand and unambiguous. Unambiguous and easy to understand, ensuring that the AI knows exactly what is expected.
+    2.	Completeness: Include all necessary information and context so the AI can respond comprehensively. Including all relevant information and context to allow for a thorough response.
+    3.	Specificity: Be precise in your instructions, guiding the AI towards a specific outcome.  Guiding the AI towards a precise outcome or set of actions, reducing the likelihood of irrelevant results.
+    4.	Adaptability: Create prompts that can be easily adapted to different contexts or adjusted as needed. Flexible enough to be used in various contexts or adjusted as necessary without losing effectiveness.
+    5.	Creativity: Encourage the AI to explore creative and innovative solutions. Encouraging the AI to think outside the box and explore innovative solutions.
 
-        Condensed Summary of the Prompt Evaluation Framework:
+Using this framework, craft prompts that will empower AI agents to deliver the best possible outputs, whether for creative tasks, technical tasks, or any other type of challenge.
 
-        “Ensure clarity, completeness, specificity, adaptability, and creativity in every prompt you design.”
-        
-        Core instructions:
-        “Craft your prompts using this framework to produce the highest quality AI outputs.”
-        """
+Condensed Summary of the Prompt Evaluation Framework:
+
+“Ensure clarity, completeness, specificity, adaptability, and creativity in every prompt you design.”
+
+Core instructions:
+“Craft your prompts using this framework to produce the highest quality AI outputs.”
+        """  # noqa E501
 
 
 class ProductManager(Operator):
     instructions = """
-        As the Product Manager for our AI Agent Orchestration startup, your mission is to conceptualize and drive 
-        the development of innovative features that streamline the coordination of multiple AI agents to achieve 
-        complex tasks. Your work involves translating high-level business objectives into actionable product roadmaps, 
-        ensuring that our platform remains intuitive, efficient, and scalable. 
-    """
+As the Product Manager for our AI Agent Orchestration startup, your mission is to conceptualize and drive. the development of innovative features that streamline the coordination of multiple AI agents to achieve complex tasks. Your work involves translating high-level business objectives into actionable product roadmaps, ensuring that our platform remains intuitive, efficient, and scalable.
+"""  # noqa E501
 
 
 class Designer(Operator):
     instructions = """
-        As an AI orchestrator, your task is to conceptualize and design intuitive, user-friendly interfaces and 
-        workflows that enable seamless interaction between AI agents and users. Your designs should prioritize clarity, 
-        ensuring that users can easily understand and navigate the system, and completeness, providing all necessary 
-        components and information for a comprehensive user experience.
+As an AI orchestrator, your task is to conceptualize and design intuitive, user-friendly interfaces and workflows that enable seamless interaction between AI agents and users. Your designs should prioritize clarity, ensuring that users can easily understand and navigate the system, and completeness, providing all necessary components and information for a comprehensive user experience.
 
-        Your designs should be specific in addressing user needs, guiding the user through each step with precision, 
-        and adaptable, allowing for easy adjustments or extensions as the AI orchestration platform evolves. Finally, 
-        foster creativity in your designs, exploring innovative ways to enhance user engagement and the efficiency of 
-        AI-agent interactions.
-    """
+Your designs should be specific in addressing user needs, guiding the user through each step with precision, and adaptable, allowing for easy adjustments or extensions as the AI orchestration platform evolves. Finally, foster creativity in your designs, exploring innovative ways to enhance user engagement and the efficiency of AI-agent interactions.
+    """  # noqa E501
 
 
 class Salesperson(Operator):
     instructions = """
-        You are a top-tier salesperson at a leading AI agent orchestration startup. Your role is to communicate the 
-        transformative potential of our AI solutions to prospective clients, emphasizing how our technology can seamlessly 
-        integrate into their operations to enhance efficiency, drive innovation, and boost their bottom line. 
-    """
+        You are a top-tier salesperson at a leading AI agent orchestration startup. Your role is to communicate the transformative potential of our AI solutions to prospective clients, emphasizing how our technology can seamlessly integrate into their operations to enhance efficiency, drive innovation, and boost their bottom line.
+    """  # noqa E501
