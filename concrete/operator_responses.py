@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 class Response(BaseModel):
     def __str__(self):
-        return dumps(self.model_dump(), indent=2)
+        return dumps(self.model_dump(), indent=2).replace("\\n", "\n")
 
     def __repr__(self):
         return self.__str__()

@@ -46,6 +46,7 @@ class LlmMixin:
         Synchronous.
         """
         instructions = self.instructions
+        instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
         messages = [
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
@@ -102,7 +103,7 @@ class Operator(LlmMixin):
         if tools:
             query += """
 Here are your available tools:\
-Should you need the tool, populate its field with the specified syntax. Otherwise, leave its field blank."""
+Should you decide to use a tool(s), populate its field with your specified syntax. Otherwise, leave its field blank."""
             for tool in tools:
                 query += str(tool)
 
@@ -244,7 +245,7 @@ Use placeholders referencing code/functions already provided in the context. Nev
         """
         prev_components = []
         for desc, code in zip(planned_components, implementations):
-            prev_components.append(f"\nComponent description: {desc}\n****Code:**** \n{code}")
+            prev_components.append(f"\nComponent description: {desc}\nCode: \n{code}")
 
         out_str = """\
 *Task: Join the provided components to implement the following idea.*
