@@ -1,17 +1,25 @@
 import asyncio
 import json
+import os
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 import requests
-from fastapi import BackgroundTasks, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
 from concrete.clients import CLIClient
-from concrete.tools import AwsTool
+from concrete.tools import AwsTool, RestApiTool
 
 app = FastAPI()
 
@@ -90,6 +98,51 @@ async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
     background_tasks.add_task(deploy_images, response_url=payload['response_url'])
 
     return payload
+
+
+async def post_button():
+    url = "https://slack.com/api/chat.postMessage"
+    slack_token = os.getenv('SLACK_BOT_TOKEN')
+    headers = {'Content-type': 'application/json', "Authorization": f"Bearer {slack_token}"}
+    blocks = [
+        {"type": "section", "text": {"type": "mrkdwn", "text": "Deploy `main` to production"}},
+        {
+            "type": "actions",
+            "elements": [{"type": "button", "text": {"type": "plain_text", "text": "deploy"}, "style": "primary"}],
+        },
+    ]
+
+    data = {"channel": "random", "blocks": blocks}
+
+    print("Data:")
+    print(json.dumps(data, indent=2))
+
+    response = RestApiTool.post(url, headers=headers, data=json.dumps(data))
+    print(response)
+
+
+@app.post("/slack/events", status_code=200)
+async def slack_events(request: Request):
+    json_data = await request.json()
+    if json_data.get('type', None) == 'url_verification':
+        print('Verify URL')
+        challenge = json_data.get('challenge')
+        return Response(content=challenge, media_type="text/plain")
+    elif json_data.get('type', None) == 'event_callback':
+        print('Handle Event')
+        # Add a button to #github-logs
+        event = json_data.get('event')
+        print(event)
+        if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
+            print('Event is a message in #github-logs')
+            text = event.get('text')
+            print(text)
+            if 'merged' in text:
+                print('Text contains "merged"')
+                print("Adding a deploy button now")  # TODO
+                await post_button()
+
+    return Response(content="OK", media_type="text/plain")
 
 
 @app.post('/ping', status_code=200)
