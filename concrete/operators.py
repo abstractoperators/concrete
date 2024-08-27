@@ -19,7 +19,6 @@ class LlmMixin:
     def __init__(
         self,
         clients: dict[str, Client],
-        instructions: Optional[str] = None,
     ):
         self.uuid = uuid1()
         self.clients = clients
@@ -28,7 +27,7 @@ class LlmMixin:
     @abstractmethod
     def instructions(self) -> str:
         """
-        Define the operators base instructions or 'system prompt'.
+        Define the operators base instructions.
 
         Used in LlmMixin.qna
         """
@@ -47,6 +46,7 @@ class LlmMixin:
         """
         instructions = self.instructions
         instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
+        instructions += "\nFor each user request: Think about the response syntax, and how that relates to your task. Then, provide a complete and accurate response."  # noqa E501
         messages = [
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
@@ -181,51 +181,7 @@ class Developer(Operator):
         """
         return """
 Please provide complete and accurate code for the provided current component.\
-Produced code blocks should be preceded by the file where it should be placed.
 Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
-
-**Example:**
-    Context:
-    1. Imported the Flask module from the flask package
-    Current Component: Create a flask application instance named 'app'
-    Clarification: None
-
-    Output:
-    app.py
-    ```python
-    app = Flask(app)
-    ```
-
-**Example:**
-    Context:
-    1. The code imported the Flask module from the flask package
-    2. The code created a Flask application named "app"
-    3. Created a route for the root URL ('/')
-    Current Component: Create a function that will be called when the root URL is accessed.
-    Question: What should the function do?
-    Clarification: The function should do nothing. It should be a placeholder for future functionality.
-
-    Output:
-    app.py
-    ```python
-    def index():
-        pass
-    ```
-
-**Example:**
-    Context:
-        1. The code imported the Flask module from the flask package
-        2. The code created a Flask application named "app"
-        3. Created a route for the root URL ('/')
-        4. Created a placeholder function named 'index' that does nothing
-        Current Component: Create an html file that will be rendered when the root URL is accessed
-
-        Output:
-        templates/index.html
-        ```html
-        <!DOCTYPE html>
-        ```html
-
 *Context:*
 {context}
         """.format(
@@ -245,23 +201,18 @@ Use placeholders referencing code/functions already provided in the context. Nev
         """
         prev_components = []
         for desc, code in zip(planned_components, implementations):
-            prev_components.append(f"\nComponent description: {desc}\nCode: \n{code}")
+            prev_components.append(
+                f"\nComponent description: {desc}\nImplementation\nFile: {code.file_name}\nFile Contents:\n{code.file_contents}\n"  # noqa E501
+            )
 
-        out_str = """\
-*Task: Join the provided components to implement the following idea.*
-**Idea:**
-    {idea}
+        out_str = f"""\
+Task: Use ALL of the provided components to implement the original idea. Include every provided file.
+Idea: {idea}
 
+First, think about all files you intend to use in the final output. Then, combine the code from each component into those files.
 **Components:**
-    {components}
-
-**Important Details:**
-1. All necessary imports and libraries are at the top of each file
-2. Code is organized logically
-3. Resolve duplicate and conflicting code with discretion
-            """.format(
-            idea=idea, components="".join(prev_components)
-        )
+    {"".join(prev_components)}
+            """  # noqa E501
         return out_str
 
     @LlmMixin.qna
@@ -349,7 +300,6 @@ Your responses must:
 6. Assume all dependencies are already installed but NOT imported
 7. Be decisive and clear, avoiding ambiguity or vagueness
 8. Be declarative, using action verbs to describe the component.
-...
 
 Project Idea:
 {starting_prompt}
@@ -375,24 +325,22 @@ Project Idea:
         Generates a summary of completed components
         Returns the summary
         """
-        prompt = """Summarize what has been implemented in the current component,
-and append it to the previously summarized components.
+        prompt = f"""Summarize what has been implemented in the current component. Append it to the list of previously summarized components.
 
-For each component summary:
-1. Describe its full functionality using natural language.
-2. Include file name, function name, and variable name in the description.
+For its summary:
+1. Include file name, function name, and variable names.
+2. Objectively summarize the component's purpose and functionality.
+3. Be concise and clear.
 
-Example Output:
-1. Imported the packages numpy as np, and pandas as pd in app.py
-2. Instantiated a pandas dataframe named foo, with column names bar and baz in app.py
-3. Populated foo with random ints in app.py
-4. Printed average of bar and baz in the main function of app.py
+Example Syntax:
+1. Imported numpy as np from the numpy package in the file 'main.py'
+2. Created a function named 'calculate_mean' that calculates the mean of a np.array in the file 'util.py'
+3. Imported the 'calculate_mean' function in the file 'main.py'
+3. Instantiated a variable 'foo' as an np.array in the file 'main.py'
+4. Used calculate_mean to calculate the mean of 'foo' in the file 'main.py'
 
-Previous Components: {summary}
 Current Component Implementation: {implementation}
-        """.format(
-            summary=summary, implementation=implementation
-        )
+Previous Components: {summary}"""  # noqa E501
         return prompt
 
 
