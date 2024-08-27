@@ -288,7 +288,7 @@ class Executive(Operator):
     @LlmMixin.qna
     def plan_components(self, starting_prompt) -> str:
         return """\
-List the essential code components required to implement the project idea. Each component should be atomic,\
+List the essential code components required to implement the project idea. Each component should be atomic, \
 such that a developer could implement it in isolation provided placeholders for preceding components.
 
 Your responses must:

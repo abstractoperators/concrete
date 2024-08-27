@@ -13,7 +13,7 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
-from json import dumps
+import json
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -21,11 +21,26 @@ from pydantic import BaseModel, Field
 
 class Response(BaseModel):
     def __str__(self):
-        json = self.model_dump()
-        if json.get("tools"):
-            return dumps(json, indent=4).replace('\\n', '\n')
-        json.pop("tools", None)
-        return dumps(json, indent=4).replace('\\n', '\n')
+        def parse_json_strings(obj):
+            if isinstance(obj, dict):
+                return {k: parse_json_strings(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [parse_json_strings(i) for i in obj]
+            elif isinstance(obj, str):
+                try:
+                    return json.loads(obj)
+                except json.JSONDecodeError:
+                    return obj
+            else:
+                return obj
+
+        json_data = self.model_dump()
+        if not json_data.get("tools"):
+            json_data.pop("tools", None)
+
+        parsed_data = parse_json_strings(json_data)
+
+        return json.dumps(parsed_data, indent=4, ensure_ascii=False)
 
     def __repr__(self):
         return self.__str__()
