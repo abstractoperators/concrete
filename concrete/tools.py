@@ -294,7 +294,8 @@ class AwsTool(metaclass=MetaTool):
         rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
         for rule in rules:
             if (
-                rule['Conditions'][0]['Field'] == 'host-header'
+                rule['Conditions']
+                and rule['Conditions'][0]['Field'] == 'host-header'
                 and rule['Conditions'][0]['Values'][0] == f'{target_group_name}.abop.ai'
             ):
                 target_group_arn = rule['Actions'][0]['TargetGroupArn']
@@ -319,6 +320,18 @@ class AwsTool(metaclass=MetaTool):
                 HealthyThresholdCount=2,
                 UnhealthyThresholdCount=2,
             )['TargetGroups'][0]['TargetGroupArn']
+
+            elbv2_client.create_rule(
+                ListenerArn=listener_arn,
+                Priority=listener_rule_priority,
+                Conditions=[{'Field': 'host-header', 'Values': [f'{target_group_name}.abop.ai']}],
+                Actions=[
+                    {
+                        'Type': 'forward',
+                        'TargetGroupArn': target_group_arn,
+                    }
+                ],
+            )
 
         task_definition_arn = ecs_client.register_task_definition(
             family=task_name,
@@ -348,18 +361,6 @@ class AwsTool(metaclass=MetaTool):
                 'operatingSystemFamily': 'LINUX',
             },
         )['taskDefinition']['taskDefinitionArn']
-
-        elbv2_client.create_rule(
-            ListenerArn=listener_arn,
-            Priority=listener_rule_priority,
-            Conditions=[{'Field': 'host-header', 'Values': [f'{target_group_name}.abop.ai']}],
-            Actions=[
-                {
-                    'Type': 'forward',
-                    'TargetGroupArn': target_group_arn,
-                }
-            ],
-        )
 
         if (
             service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])['services']
