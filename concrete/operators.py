@@ -179,14 +179,11 @@ class Developer(Operator):
         Prompts the Operator to implement a component based off of the components context
         Returns the code for the component
         """
-        return """
-Please provide complete and accurate code for the provided current component.\
+        return f"""
+Provide complete and accurate code for the current component only. Your code for the current component will be used to implement the initial prompt.\
 Use placeholders referencing code/functions already provided in the context. Never provide unspecified code.
 *Context:*
-{context}
-        """.format(
-            context=context
-        )
+{context}"""  # noqa E501
 
     @LlmMixin.qna
     def integrate_components(

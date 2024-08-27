@@ -1,6 +1,5 @@
 import json
 from collections.abc import AsyncGenerator
-from textwrap import dedent
 from uuid import uuid1
 
 from . import prompts
@@ -67,6 +66,7 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
+                starting_prompt=self.starting_prompt,
                 max_iter=0,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
@@ -139,6 +139,7 @@ async def communicative_dehallucination(
     developer: Developer,
     summary: str,
     component: str,
+    starting_prompt: str,
     max_iter: int = 1,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """
@@ -149,6 +150,7 @@ async def communicative_dehallucination(
         developer (Developer): The developer assistant object for asking questions and implementing.
         summary (str): A summary of previously implemented components.
         component (str): The current component to be implemented.
+        starting_prompt (str): The initial prompt for the project.
         max_iter (int, optional): Maximum number of Q&A iterations.
 
     Returns:
@@ -157,10 +159,10 @@ async def communicative_dehallucination(
             - summary (str): A concise summary of what has been achieved.
     """
 
-    context = dedent(
-        f"""Previous Components summarized:\n{summary}
-    Current Component: {component}"""
-    )
+    context = f"""Previously Implemented Components summarized:\n{summary}
+Current Component: {component}
+Initial Prompt: {starting_prompt}\n"""
+
     yield Executive.__name__, str(component)
     # Iterative Q&A process
     q_and_a = []
