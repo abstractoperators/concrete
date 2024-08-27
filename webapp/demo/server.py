@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
 from concrete.clients import CLIClient
-from concrete.tools import DeployToAWS
+from concrete.tools import AwsTool
 
 app = FastAPI()
 
@@ -52,9 +52,9 @@ async def get(request: Request):
 
 
 def deploy_images(response_url: str):
-    if DeployToAWS._deploy_image(
+    if AwsTool._deploy_image(
         '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
-    ) and DeployToAWS._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'):
+    ) and AwsTool._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'):
         body = {
             "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Successfully deployed `main`"}}],
             "response_type": "in_channel",
