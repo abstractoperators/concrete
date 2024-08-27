@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from functools import wraps
 from textwrap import dedent
 from typing import Callable, List, Optional
@@ -10,7 +11,7 @@ from .operator_responses import TextResponse
 from .tools import MetaTool
 
 
-class Operator:
+class LlmMixin:
     """
     Represents the base Operator for further implementation
     """
@@ -23,10 +24,15 @@ class Operator:
         self.uuid = uuid1()
         self.clients = clients
 
-        # TODO: Move specific software prompting to its own SoftwareOperator class or mixin
-        self.instructions = instructions or (
-            "You are a software developer. " "You will answer software development questions as concisely as possible."
-        )
+    @property
+    @abstractmethod
+    def instructions(self) -> str:
+        """
+        Define the operators base instructions or 'system prompt'.
+
+        Used in LlmMixin.qna
+        """
+        pass
 
     def _qna(
         self,
@@ -79,19 +85,61 @@ class Operator:
         return _send_and_await_reply
 
 
+class Operator(LlmMixin):
+    instructions = (
+        "You are an autonomous abstract operator designed to be "
+        "a helpful, proactive, curious, and thoughtful employee or assistant. "
+        "You'll be given additional to complete a task. "
+        "You will clearly state if a task is beyond your capabilities. "
+    )
+
+    @LlmMixin.qna
+    def use_tools(self, question, tools: List[MetaTool] = []):
+
+        query = ""
+        if tools:
+            query += """Here are your available tools:\
+                Either call the tool with the specified syntax, or leave its field blank.\n"""
+            for tool in tools:
+                query += str(tool)
+
+        query += """\n\n{question}""".format(question=question)
+        return query
+
+    @LlmMixin.qna
+    def chat(cls, message: str) -> str:
+        """
+        Chat with the operator with a direct message.
+        """
+        return message
+
+
 class Developer(Operator):
     """
     Represents an Operator that produces code.
     """
 
-    def __init__(self, clients: dict[str, Client]):
-        agent_role = (
-            "You are an expert software developer. You will follow the instructions given to you to complete each task."
-            "You will follow example formatting, defaulting to no formatting if no example is provided."
-        )
-        super().__init__(clients, agent_role)
+    instructions = (
+        "You are an expert software developer. You will follow the instructions given to you to complete each task."
+        "You will follow example formatting, defaulting to no formatting if no example is provided."
+    )
 
-    @Operator.qna
+    """
+        You are a senior software engineer at an innovative AI agent orchestration startup. Your deep 
+        understanding of software architecture, AI systems, and scalable solutions empowers you to design 
+        and implement cutting-edge technologies that enhance AI capabilities.
+    """
+    """
+        Objective:
+        Your task is to apply your expertise to architect and optimize AI agent orchestration frameworks, 
+        ensuring high performance, scalability, and reliability. You will be working on complex systems 
+        that integrate multiple AI agents, enabling them to collaborate efficiently to achieve sophisticated goals.
+
+        Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. 
+        Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.
+    """
+
+    @LlmMixin.qna
     def ask_question(self, context: str) -> str:
         """
         Accept instructions and ask a question about it if necessary.
@@ -126,7 +174,7 @@ class Developer(Operator):
                 What should the function be called?"""
         )
 
-    @Operator.qna
+    @LlmMixin.qna
     def implement_component(self, context: str) -> str:
         """
         Prompts the Operator to implement a component based off of the components context
@@ -185,7 +233,7 @@ class Developer(Operator):
             context=context
         )
 
-    @Operator.qna
+    @LlmMixin.qna
     def integrate_components(
         self,
         planned_components: List[str],
@@ -198,11 +246,14 @@ class Developer(Operator):
         """
         prev_components = []
         for desc, code in zip(planned_components, implementations):
-            prev_components.append(f"\n\t****Component description****: \n{desc}\n\t****Code:**** \n{code}")
+            prev_components.append(
+                f"\n\t****Component description****: \n{desc}\n\t****Code:**** \n{code.file_name}\n{code.file_contents}"
+            )
 
+        print(prev_components)
         out_str = """\
-            *Task: Accurately and completely implement the original webpage creation task using the provided components*
-            **Webpage Idea:**
+            *Task: Accurately and completely implement the original task using the provided components*
+            **Idea:**
                 {webpage_idea}
 
             **Components:**
@@ -233,7 +284,7 @@ class Developer(Operator):
         )
         return out_str
 
-    @Operator.qna
+    @LlmMixin.qna
     def use_tools(self, question, tools: List[MetaTool] = []):
 
         query = ""
@@ -246,7 +297,7 @@ class Developer(Operator):
         query += """\n\n{question}""".format(question=question)
         return query
 
-    @Operator.qna
+    @LlmMixin.qna
     def implement_html_element(self, prompt: str) -> str:
         out_str = f"""\
         Generate an html element with the following description:\n
@@ -285,14 +336,25 @@ class Executive(Operator):
     Represents an Operator that instructs and guides other Operators.
     """
 
-    def __init__(self, clients: dict[str, Client]):
-        agent_role = (
-            "You are an expert executive software developer."
-            "You will follow the instructions given to you to complete each task."
-        )
-        super().__init__(clients, agent_role)
+    instructions = (
+        "You are an expert executive software developer."
+        "You will follow the instructions given to you to complete each task."
+    )
 
-    @Operator.qna
+    """
+        You are an executive at a cutting-edge AI agent orchestration startup. 
+        Your strategic vision and leadership drive the company’s mission to revolutionize 
+        how AI agents collaborate, enabling transformative solutions across industries.
+    """
+    """
+        Objective:
+        Your task is to guide the overall strategy and vision for the company, ensuring 
+        that the organization’s AI agent orchestration platforms are not only technically 
+        superior but also aligned with market needs, customer expectations, and long-term 
+        growth objectives.
+    """
+
+    @LlmMixin.qna
     def plan_components(self, starting_prompt) -> str:
         return """\
         List the essential code components required to implement the project idea. Each component should be atomic,\
@@ -315,7 +377,7 @@ class Executive(Operator):
             starting_prompt=starting_prompt
         )
 
-    @Operator.qna
+    @LlmMixin.qna
     def answer_question(self, context: str, question: str) -> str:
         """
         Prompts the Operator to answer a question
@@ -327,7 +389,7 @@ class Executive(Operator):
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    @Operator.qna
+    @LlmMixin.qna
     def generate_summary(self, summary: str, implementation: str) -> str:
         """
         Generates a summary of completed components
@@ -352,3 +414,58 @@ class Executive(Operator):
             summary=summary, implementation=implementation
         )
         return prompt
+
+
+class PromptEngineer(Operator):
+    instructions = """
+        “You are a world-class AI prompt engineer. Your task is to create base prompts that will guide other AI agents in producing high-quality, reliable, and innovative results.
+        These prompts are not meant to be self-contained. It is merely a persona an AI agent will adopt while processing an explicit instruction that will be added to the base prompt later.
+        
+        Consider the following framework as you develop your prompts:
+
+            1.	Clarity: Ensure your prompts are easy to understand and unambiguous. Unambiguous and easy to understand, ensuring that the AI knows exactly what is expected.
+            2.	Completeness: Include all necessary information and context so the AI can respond comprehensively. Including all relevant information and context to allow for a thorough response.
+            3.	Specificity: Be precise in your instructions, guiding the AI towards a specific outcome.  Guiding the AI towards a precise outcome or set of actions, reducing the likelihood of irrelevant results.
+            4.	Adaptability: Create prompts that can be easily adapted to different contexts or adjusted as needed. Flexible enough to be used in various contexts or adjusted as necessary without losing effectiveness.
+            5.	Creativity: Encourage the AI to explore creative and innovative solutions. Encouraging the AI to think outside the box and explore innovative solutions.
+
+        Using this framework, craft prompts that will empower AI agents to deliver the best possible outputs, whether for creative tasks, technical tasks, or any other type of challenge.”
+
+        Condensed Summary of the Prompt Evaluation Framework:
+
+        “Ensure clarity, completeness, specificity, adaptability, and creativity in every prompt you design.”
+        
+        Core instructions:
+        “Craft your prompts using this framework to produce the highest quality AI outputs.”
+        """
+
+
+class ProductManager(Operator):
+    instructions = """
+        As the Product Manager for our AI Agent Orchestration startup, your mission is to conceptualize and drive 
+        the development of innovative features that streamline the coordination of multiple AI agents to achieve 
+        complex tasks. Your work involves translating high-level business objectives into actionable product roadmaps, 
+        ensuring that our platform remains intuitive, efficient, and scalable. 
+    """
+
+
+class Designer(Operator):
+    instructions = """
+        As an AI orchestrator, your task is to conceptualize and design intuitive, user-friendly interfaces and 
+        workflows that enable seamless interaction between AI agents and users. Your designs should prioritize clarity, 
+        ensuring that users can easily understand and navigate the system, and completeness, providing all necessary 
+        components and information for a comprehensive user experience.
+
+        Your designs should be specific in addressing user needs, guiding the user through each step with precision, 
+        and adaptable, allowing for easy adjustments or extensions as the AI orchestration platform evolves. Finally, 
+        foster creativity in your designs, exploring innovative ways to enhance user engagement and the efficiency of 
+        AI-agent interactions.
+    """
+
+
+class Salesperson(Operator):
+    instructions = """
+        You are a top-tier salesperson at a leading AI agent orchestration startup. Your role is to communicate the 
+        transformative potential of our AI solutions to prospective clients, emphasizing how our technology can seamlessly 
+        integrate into their operations to enhance efficiency, drive innovation, and boost their bottom line. 
+    """

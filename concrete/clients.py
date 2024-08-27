@@ -18,11 +18,11 @@ class OpenAIClient(Client):
     Thin wrapper around open AI client
     """
 
-    def __init__(self):
+    def __init__(self, model: str | None = None, temperature: float | None = 0):
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
-        self.default_temperature = float(os.getenv("OPENAI_TEMPERATURE"))
-        self.model = "gpt-4o-mini"
+        self.default_temperature = temperature or float(os.getenv("OPENAI_TEMPERATURE"))
+        self.model = model or "gpt-4o-mini"
 
     def complete(
         self,
