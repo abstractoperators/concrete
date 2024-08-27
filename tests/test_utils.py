@@ -15,8 +15,8 @@ class ExampleClass:
         This is a method docstring.
         """
         # This is an inline comment
-        
-        
+
+
         print("Hello, \\nworld!")  # This is another inline comment
 
 def another_function():
@@ -25,15 +25,15 @@ def another_function():
 
 # A function with extra newlines and spaces
 def func_with_whitespace():
-    
+
     print("Inside function")
-     
+
     x = 10
-    
-    y = 20
-    
+
+    y = 2
+
     return x + y
-    
+
 '''
     expected = """class ExampleClass:
     def example_method(self):

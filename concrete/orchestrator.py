@@ -70,7 +70,7 @@ class SoftwareProject(StatefulMixin):
                 max_iter=0,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
-                    yield agent_or_implementation, str(message).replace('\\n', '\n')
+                    yield agent_or_implementation, str(message)
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
                     summary = message
@@ -95,7 +95,7 @@ class SoftwareProject(StatefulMixin):
                 eval(full_tool_call)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
-        yield Developer.__name__, str(files).replace('\\n', '\n')
+        yield Developer.__name__, str(files)
 
 
 class Orchestrator:
