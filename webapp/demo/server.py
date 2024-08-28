@@ -62,6 +62,7 @@ def _deploy_to_prod(response_url: str):
     Helper function for deploying latest registry images to prod.
     Also updates slack button (that triggered this function) with success/failure message.
     """
+    # TODO Add background handling of this function to return response to slack immediately
     if AwsTool._deploy_image(
         '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
         'webapp-homepage',
@@ -98,12 +99,15 @@ def _deploy_to_prod(response_url: str):
     RestApiTool.post(response_url, headers=headers, json=body)
 
 
-@app.post("/slack", status_code=200)
-async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
+@app.post("/slack/interactions", status_code=200)
+async def slack_interactions(request: Request, background_tasks: BackgroundTasks):
     """
     A slack endpoint that listens for Slack interactions https://api.slack.com/apps/A07JF384C05/interactive-messages?
     Deploys to prod on interaction (button click).
     """
+    # TODO Figure out somewhere smarter to put this? Currently Slack posts to webapp-demo-staging, which will deploy
+    # to prod. It's also weird to have Slack post to webapp-demo (prod), because then prod is responsible for deploying
+    # to prod.
     form = await request.form()
     payload = json.loads(form['payload'])
     background_tasks.add_task(_deploy_to_prod, response_url=payload['response_url'])
@@ -111,10 +115,11 @@ async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
     return payload
 
 
-async def post_button():
+def _post_button():
     """
     Posts a button to #github-logs under slack bot user.
     """
+    # TODO Add background handling of this function to return response to slack immediately
     url = "https://slack.com/api/chat.postMessage"
     slack_token = os.getenv('SLACK_BOT_TOKEN')
     headers = {'Content-type': 'application/json', "Authorization": f"Bearer {slack_token}"}
@@ -139,6 +144,7 @@ async def slack_events(request: Request):
     Handles the event where a message is posted to #github-logs, and the message contains 'merged'.
     When this happens, a button is posted to the channel.
     """
+    # TODO Separate event handling into separate functions
     json_data = await request.json()
     if json_data.get('type', None) == 'url_verification':
         challenge = json_data.get('challenge')
@@ -149,7 +155,7 @@ async def slack_events(request: Request):
         if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
             text = event.get('text')
             if 'merged' in text:
-                await post_button()
+                _post_button()
 
     return Response(content="OK", media_type="text/plain")
 
