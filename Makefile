@@ -36,6 +36,7 @@ build-dind-builder:
 
 # Build before if needed
 # Using docker compose to store some arguments
+# TODO: Parameterize based on app name
 run-webapp-demo:
 	echo "Running at localhost:8000"
 	docker compose -f docker/docker-compose.yml stop webapp-demo
