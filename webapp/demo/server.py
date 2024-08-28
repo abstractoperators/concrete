@@ -118,7 +118,6 @@ def _post_button():
     """
     Posts a button to #github-logs under slack bot user.
     """
-    # TODO Add background handling of this function to return response to slack immediately
     url = "https://slack.com/api/chat.postMessage"
     slack_token = os.getenv('SLACK_BOT_TOKEN')
     headers = {'Content-type': 'application/json', "Authorization": f"Bearer {slack_token}"}
@@ -137,7 +136,7 @@ def _post_button():
 
 
 @app.post("/slack/events", status_code=200)
-async def slack_events(request: Request):
+async def slack_events(request: Request, background_tasks: BackgroundTasks):
     """
     Listens to slack events.
     Handles the event where a message is posted to #github-logs, and the message contains 'merged'.
@@ -154,7 +153,7 @@ async def slack_events(request: Request):
         if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
             text = event.get('text')
             if 'merged' in text:
-                _post_button()
+                background_tasks.add(_post_button())
 
     return Response(content="OK", media_type="text/plain")
 
