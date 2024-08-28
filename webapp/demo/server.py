@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-import requests
 from fastapi import (
     BackgroundTasks,
     FastAPI,
@@ -18,7 +17,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
-from concrete.clients import CLIClient
 from concrete.tools import AwsTool, RestApiTool
 
 app = FastAPI()
@@ -97,7 +95,7 @@ def _deploy_to_prod(response_url: str):
             ],
         }
     headers = {'Content-type': 'application/json'}
-    requests.post(response_url, headers=headers, data=json.dumps(body), timeout=3)
+    RestApiTool.post(response_url, headers=headers, json=body)
 
 
 @app.post("/slack", status_code=200)
@@ -108,7 +106,6 @@ async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
     """
     form = await request.form()
     payload = json.loads(form['payload'])
-    CLIClient.emit(payload)
     background_tasks.add_task(_deploy_to_prod, response_url=payload['response_url'])
 
     return payload
@@ -159,9 +156,11 @@ async def slack_events(request: Request):
 
 @app.post('/ping', status_code=200)
 async def ping(request: Request):
-    form = await request.form()
-    payload = form['payload']
-    return payload
+    """
+    A simple endpoint to test if the server is running.
+    """
+    json_data = await request.json()
+    return json_data
 
 
 @app.websocket("/ws/{client_id}")
