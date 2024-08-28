@@ -63,7 +63,7 @@ class ProjectFile(Tools):
 class ProjectDirectory(Tools):
     project_name: str = Field(description="Name of the project directory")
     files: list[ProjectFile] = Field(
-        description="A list of ALL files in the project directory. Each list item represents a file"
+        description="A list of files in the project directory. Each list item represents a file"
     )
 
 
@@ -72,7 +72,9 @@ class TextResponse(Tools):
 
 
 class Summary(Tools):
-    summary: List[str] = Field(description="A list of component summaries. Each list item represents an atomic summary")
+    summary: List[str] = Field(
+        description="A list of component summaries. Each list item represents an unbroken summary"
+    )
 
 
 class PlannedComponents(Tools):

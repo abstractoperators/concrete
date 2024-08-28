@@ -59,7 +59,7 @@ async def get(request: Request):
     return templates.TemplateResponse("index.html", {'request': {}})
 
 
-def deploy_images(response_url: str):
+def deploy_to_prod(response_url: str):
     if AwsTool._deploy_image(
         '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest',
         'webapp-main',
@@ -101,7 +101,7 @@ async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
     form = await request.form()
     payload = json.loads(form['payload'])
     CLIClient.emit(payload)
-    background_tasks.add_task(deploy_images, response_url=payload['response_url'])
+    background_tasks.add_task(deploy_to_prod, response_url=payload['response_url'])
 
     return payload
 
