@@ -35,15 +35,18 @@ build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
 # Build before if needed
-run-webapp-demo: 
+# Using docker compose to store some arguments
+run-webapp-demo:
+	echo "Running at localhost:8000"
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
-run-webapp-homepage: 
+run-webapp-homepage:
+	echo "Running at localhost:5002"
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
-run-dind-builder: 
+run-dind-builder:
 	docker compose -f docker/docker-compose.yml stop dind-builder
 	docker compose -f docker/docker-compose.yml up -d dind-builder
 

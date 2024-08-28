@@ -19,9 +19,11 @@ class LlmMixin:
     def __init__(
         self,
         clients: dict[str, Client],
+        tools: list[MetaTool] | None = None,
     ):
         self.uuid = uuid1()
         self.clients = clients
+        self.tools = tools
 
     @property
     @abstractmethod
@@ -45,6 +47,7 @@ class LlmMixin:
         Synchronous.
         """
         instructions = self.instructions
+        # Improve tool use
         instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
         instructions += "\nFor each user request: Think about the response syntax, and how that relates to your task. Then, provide a complete and accurate response."  # noqa E501
         messages = [
@@ -76,13 +79,37 @@ class LlmMixin:
         Decorate something on a child object downstream to get a response from a query
 
         question_producer is expected to return a request like "Create a website that does xyz"
+
+        The decorated function will support some extra optionality:
+
+        response_format (BaseModel): Guarantee a json structured output.
+        tools (list[MetaTool]): Pass in tools for the operator to use. Supercedes use_tools
+        use_tools (bool): Prompt the operator to use tools that it has.
         """
 
         @wraps(question_producer)
         def _send_and_await_reply(*args, **kwargs):
             self = args[0]
+            # TODO: change response_format based on if use_tools is toggled
             response_format = kwargs.pop("response_format", None)
+
+            # Use `tools=...` if provided, otherwise check `use_tools` and use `self.tools` if True
+            tools = (
+                explicit_tools
+                if (explicit_tools := kwargs.pop("tools", []))
+                else (self.tools if kwargs.pop('use_tools', False) else [])
+            )
+
             query = question_producer(*args, **kwargs)
+
+            # Add additional prompt to inform agent about tools
+            if tools:
+                # LLMs don't really know what should go in what field even if output struct
+                # is guaranteed
+                query += """Here are your available tools:\
+    Either call the tool with the specified syntax, or leave its field blank.\n"""
+                for tool in tools:
+                    query += str(tool)
             return self._qna(query, response_format=response_format)
 
         return _send_and_await_reply
@@ -95,20 +122,6 @@ class Operator(LlmMixin):
         "You'll be given additional to complete a task. "
         "You will clearly state if a task is beyond your capabilities. "
     )
-
-    @LlmMixin.qna
-    def use_tools(self, question, tools: List[MetaTool] = []):
-
-        query = ""
-        if tools:
-            query += """
-Here are your available tools:\
-Should you decide to use a tool(s), populate its field with your specified syntax. Otherwise, leave its field blank."""
-            for tool in tools:
-                query += str(tool)
-
-        query += """\n\n{question}""".format(question=question)
-        return query
 
     @LlmMixin.qna
     def chat(cls, message: str) -> str:
@@ -211,19 +224,6 @@ First, think about all files you intend to use in the final output. Then, combin
     {"".join(prev_components)}
             """  # noqa E501
         return out_str
-
-    @LlmMixin.qna
-    def use_tools(self, question, tools: List[MetaTool] = []):
-
-        query = ""
-        if tools:
-            query += """Here are your available tools:\
-Either call the tool with the specified syntax, or leave its field blank.\n"""
-            for tool in tools:
-                query += str(tool)
-
-        query += """\n\n{question}""".format(question=question)
-        return query
 
     @LlmMixin.qna
     def implement_html_element(self, prompt: str) -> str:

@@ -85,7 +85,7 @@ class SoftwareProject(StatefulMixin):
             yield "executive", "Deploying to AWS"
             AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
 
-            deploy_tool_call = self.dev.use_tools(
+            deploy_tool_call = self.dev.chat(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
                 tools=[AwsTool],
                 response_format=Tools,
