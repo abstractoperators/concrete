@@ -62,7 +62,6 @@ def _deploy_to_prod(response_url: str):
     Helper function for deploying latest registry images to prod.
     Also updates slack button (that triggered this function) with success/failure message.
     """
-    # TODO Add background handling of this function to return response to slack immediately
     if AwsTool._deploy_image(
         '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
         'webapp-homepage',

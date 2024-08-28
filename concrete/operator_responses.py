@@ -21,29 +21,28 @@ from pydantic import BaseModel, Field
 
 class Response(BaseModel):
     def __str__(self):
-        def parse_json_strings(obj):
-            if isinstance(obj, dict):
-                return {k: parse_json_strings(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [parse_json_strings(i) for i in obj]
-            elif isinstance(obj, str):
-                try:
-                    return json.loads(obj)
-                except json.JSONDecodeError:
-                    return obj
-            else:
-                return obj
+        # Remove tools from output if empty to improve prompt chaining quality.
+        # Unfortunately, still affected by nesting of tools.
+        model_dict = self.model_dump(mode='json', exclude_unset=True, exclude_none=True)
+        if not model_dict.get("tools"):
+            model_dict.pop("tools", None)
 
-        json_data = self.model_dump()
-        if not json_data.get("tools"):
-            json_data.pop("tools", None)
+        # I give up on finding a better way to format this string.
+        # f'{model_str} doesn't work
+        # re.sub is more elegant, but its basically the same thing
+        model_str = (
+            json.dumps(model_dict, indent=4)
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\'", "\'")
+            .replace('\\"', '\"')
+        )
 
-        parsed_data = parse_json_strings(json_data)
-
-        return json.dumps(parsed_data, indent=4, ensure_ascii=False)
+        return model_str
 
     def __repr__(self):
-        return self.__str__()
+        model_dict = self.model_dump(mode='json', exclude_unset=True, exclude_none=True)
+        return json.dumps(model_dict, indent=4)
 
 
 class Tool(Response):

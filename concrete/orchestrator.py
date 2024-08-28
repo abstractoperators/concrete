@@ -83,7 +83,7 @@ class SoftwareProject(StatefulMixin):
             # TODO Use an actual DB instead of emulating one with a dictionary
             # TODO Figure something out safer than eval
             yield "executive", "Deploying to AWS"
-            AwsTool.results.update({files.project_name: json.loads(str(files))})
+            AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
 
             deploy_tool_call = self.dev.use_tools(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
