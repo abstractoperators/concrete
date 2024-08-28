@@ -61,8 +61,14 @@ async def get(request: Request):
 
 def deploy_images(response_url: str):
     if AwsTool._deploy_image(
-        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
-    ) and AwsTool._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'):
+        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest',
+        'webapp-main',
+        listener_rule={'field': 'host-header', 'value': 'abop.ai'},
+    ) and AwsTool._deploy_image(
+        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
+        'webapp-demo',
+        listener_rule={'field': 'host-header', 'value': 'demo.abop.ai'},
+    ):
         body = {
             "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Successfully deployed `main`"}}],
             "response_type": "in_channel",
@@ -112,7 +118,7 @@ async def post_button():
         },
     ]
 
-    data = {"channel": "random", "blocks": blocks}
+    data = {"channel": "github-logs", "blocks": blocks}
 
     print("Data:")
     print(json.dumps(data, indent=2))
