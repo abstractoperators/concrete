@@ -153,7 +153,7 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
         if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
             text = event.get('text')
             if 'merged' in text:
-                background_tasks.add(_post_button())
+                background_tasks.add_task(_post_button())
 
     return Response(content="OK", media_type="text/plain")
 
