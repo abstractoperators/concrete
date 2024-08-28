@@ -35,6 +35,7 @@ build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
 # Build before if needed
+# TODO: Parameterize based on app name
 run-webapp-demo: 
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
