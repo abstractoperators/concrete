@@ -266,11 +266,20 @@ class AwsTool(metaclass=MetaTool):
 
     @classmethod
     def _deploy_image(
-        cls, image_uri: str, custom_name: Optional[str] = None, cpu: int = 256, memory: int = 512
+        cls,
+        image_uri: str,
+        custom_name: Optional[str] = None,
+        cpu: Optional[int] = None,
+        memory: Optional[int] = None,
+        listener_rule: Optional[dict] = None,
     ) -> bool:
         """
         image_uri (str): The URI of the image to deploy.
-        """
+        custom_name (str): Custom service name, defaults to image name
+        cpu (int): The amount of CPU to allocate to the service
+        memory (int): The amount of memory to allocate to the service
+        listener_rule: Dictionary of {field: str, value: str} for the listener rule. Defaults to {'field': 'host-header', 'value': f"{service_name}.abop.ai"}}
+        """  # noqa: E501
         # TODO: separate out clients and have a better interaction for attaching vars
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
@@ -291,16 +300,24 @@ class AwsTool(metaclass=MetaTool):
         )
 
         target_group_arn = None
+        if not listener_rule:
+            rule_field = 'host-header'
+            rule_value = f'{service_name}.abop.ai'
+        else:
+            rule_field = listener_rule.get('field', None) or 'host-header'
+            rule_value = listener_rule.get('value', None) or f'{target_group_name}.abop.ai'
+
         rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
         for rule in rules:
             if (
                 rule['Conditions']
-                and rule['Conditions'][0]['Field'] == 'host-header'
-                and rule['Conditions'][0]['Values'][0] == f'{target_group_name}.abop.ai'
+                and rule['Conditions'][0]['Field'] == rule_field
+                and rule['Conditions'][0]['Values'][0] == rule_value
             ):
                 target_group_arn = rule['Actions'][0]['TargetGroupArn']
 
         if not target_group_arn:
+            # Calculate minimum unused rule priority
             rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
             if set(range(1, len(rules))) - set(rule_priorities):
                 listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
@@ -324,7 +341,7 @@ class AwsTool(metaclass=MetaTool):
             elbv2_client.create_rule(
                 ListenerArn=listener_arn,
                 Priority=listener_rule_priority,
-                Conditions=[{'Field': 'host-header', 'Values': [f'{target_group_name}.abop.ai']}],
+                Conditions=[{'Field': rule_field, 'Values': [rule_value]}],
                 Actions=[
                     {
                         'Type': 'forward',
@@ -354,8 +371,8 @@ class AwsTool(metaclass=MetaTool):
                     },
                 }
             ],
-            cpu=str(cpu),
-            memory=str(memory),
+            cpu=str(cpu) if cpu else "256",
+            memory=str(memory) if memory else "512",
             runtimePlatform={
                 'cpuArchitecture': 'ARM64',
                 'operatingSystemFamily': 'LINUX',

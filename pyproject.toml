@@ -37,7 +37,7 @@ uvicorn = "==0.30.4"
 fastapi = "==0.111.1"
 flask = "==3.0.3"
 
-[tool.poetry.group.webapp-main.dependencies]
+[tool.poetry.group.webapp-homepage.dependencies]
 gunicorn = "==22.0.0"
 uvicorn = "==0.30.4"
 fastapi = "==0.111.1"

@@ -1,17 +1,23 @@
 import asyncio
 import json
+import os
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-import requests
-from fastapi import BackgroundTasks, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
-from concrete.clients import CLIClient
-from concrete.tools import AwsTool
+from concrete.tools import AwsTool, RestApiTool
 
 app = FastAPI()
 
@@ -51,10 +57,20 @@ async def get(request: Request):
     return templates.TemplateResponse("index.html", {'request': {}})
 
 
-def deploy_images(response_url: str):
+def _deploy_to_prod(response_url: str):
+    """
+    Helper function for deploying latest registry images to prod.
+    Also updates slack button (that triggered this function) with success/failure message.
+    """
     if AwsTool._deploy_image(
-        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest', 'webapp-main'
-    ) and AwsTool._deploy_image('008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest', 'webapp-demo'):
+        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
+        'webapp-homepage',
+        listener_rule={'field': 'host-header', 'value': 'abop.ai'},
+    ) and AwsTool._deploy_image(
+        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
+        'webapp-demo',
+        listener_rule={'field': 'host-header', 'value': 'demo.abop.ai'},
+    ):
         body = {
             "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Successfully deployed `main`"}}],
             "response_type": "in_channel",
@@ -79,24 +95,76 @@ def deploy_images(response_url: str):
             ],
         }
     headers = {'Content-type': 'application/json'}
-    requests.post(response_url, headers=headers, data=json.dumps(body), timeout=3)
+    RestApiTool.post(response_url, headers=headers, json=body)
 
 
-@app.post("/slack", status_code=200)
-async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
+@app.post("/slack/interactions", status_code=200)
+async def slack_interactions(request: Request, background_tasks: BackgroundTasks):
+    """
+    A slack endpoint that listens for Slack interactions https://api.slack.com/apps/A07JF384C05/interactive-messages?
+    Deploys to prod on interaction (button click).
+    """
+    # TODO Figure out somewhere smarter to put this? Currently Slack posts to webapp-demo-staging, which will deploy
+    # to prod. It's also weird to have Slack post to webapp-demo (prod), because then prod is responsible for deploying
+    # to prod.
     form = await request.form()
     payload = json.loads(form['payload'])
-    CLIClient.emit(payload)
-    background_tasks.add_task(deploy_images, response_url=payload['response_url'])
+    background_tasks.add_task(_deploy_to_prod, response_url=payload['response_url'])
 
     return payload
+
+
+def _post_button():
+    """
+    Posts a button to #github-logs under slack bot user.
+    """
+    url = "https://slack.com/api/chat.postMessage"
+    slack_token = os.getenv('SLACK_BOT_TOKEN')
+    headers = {'Content-type': 'application/json', "Authorization": f"Bearer {slack_token}"}
+    blocks = [
+        {"type": "section", "text": {"type": "mrkdwn", "text": "Deploy `main` to production"}},
+        {
+            "type": "actions",
+            "elements": [{"type": "button", "text": {"type": "plain_text", "text": "deploy"}, "style": "primary"}],
+        },
+    ]
+
+    data = {"channel": "github-logs", "blocks": blocks}
+
+    response = RestApiTool.post(url, headers=headers, data=json.dumps(data))
+    return response
+
+
+@app.post("/slack/events", status_code=200)
+async def slack_events(request: Request, background_tasks: BackgroundTasks):
+    """
+    Listens to slack events.
+    Handles the event where a message is posted to #github-logs, and the message contains 'merged'.
+    When this happens, a button is posted to the channel.
+    """
+    # TODO Separate event handling into separate functions
+    json_data = await request.json()
+    if json_data.get('type', None) == 'url_verification':
+        challenge = json_data.get('challenge')
+        return Response(content=challenge, media_type="text/plain")
+    elif json_data.get('type', None) == 'event_callback':
+        # Add a button to #github-logs
+        event = json_data.get('event')
+        if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
+            text = event.get('text')
+            if 'merged' in text:
+                background_tasks.add(_post_button())
+
+    return Response(content="OK", media_type="text/plain")
 
 
 @app.post('/ping', status_code=200)
 async def ping(request: Request):
-    form = await request.form()
-    payload = form['payload']
-    return payload
+    """
+    A simple endpoint to test if the server is running.
+    """
+    json_data = await request.json()
+    return json_data
 
 
 @app.websocket("/ws/{client_id}")

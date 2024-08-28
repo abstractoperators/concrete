@@ -1,6 +1,5 @@
 import json
 from collections.abc import AsyncGenerator
-from textwrap import dedent
 from uuid import uuid1
 
 from . import prompts
@@ -67,10 +66,11 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
+                starting_prompt=self.starting_prompt,
                 max_iter=0,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
-                    yield agent_or_implementation, str(message).replace('\\n', '\n')
+                    yield agent_or_implementation, str(message)
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
                     summary = message
@@ -83,7 +83,7 @@ class SoftwareProject(StatefulMixin):
             # TODO Use an actual DB instead of emulating one with a dictionary
             # TODO Figure something out safer than eval
             yield "executive", "Deploying to AWS"
-            AwsTool.results.update({files.project_name: json.loads(str(files))})
+            AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
 
             deploy_tool_call = self.dev.use_tools(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
@@ -95,7 +95,7 @@ class SoftwareProject(StatefulMixin):
                 eval(full_tool_call)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
-        yield Developer.__name__, str(files).replace('\\n', '\n')
+        yield Developer.__name__, str(files)
 
 
 class Orchestrator:
@@ -139,6 +139,7 @@ async def communicative_dehallucination(
     developer: Developer,
     summary: str,
     component: str,
+    starting_prompt: str,
     max_iter: int = 1,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """
@@ -149,6 +150,7 @@ async def communicative_dehallucination(
         developer (Developer): The developer assistant object for asking questions and implementing.
         summary (str): A summary of previously implemented components.
         component (str): The current component to be implemented.
+        starting_prompt (str): The initial prompt for the project.
         max_iter (int, optional): Maximum number of Q&A iterations.
 
     Returns:
@@ -157,10 +159,10 @@ async def communicative_dehallucination(
             - summary (str): A concise summary of what has been achieved.
     """
 
-    context = dedent(
-        f"""Previous Components summarized:\n{summary}
-    Current Component: {component}"""
-    )
+    context = f"""Previously Implemented Components summarized:\n{summary}
+Current Component: {component}
+Initial Prompt: {starting_prompt}\n"""
+
     yield Executive.__name__, str(component)
     # Iterative Q&A process
     q_and_a = []

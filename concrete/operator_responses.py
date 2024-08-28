@@ -13,7 +13,7 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
-from json import dumps
+import json
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -21,10 +21,28 @@ from pydantic import BaseModel, Field
 
 class Response(BaseModel):
     def __str__(self):
-        return dumps(self.model_dump(), indent=2)
+        # Remove tools from output if empty to improve prompt chaining quality.
+        # Unfortunately, still affected by nesting of tools.
+        model_dict = self.model_dump(mode='json', exclude_unset=True, exclude_none=True)
+        if not model_dict.get("tools"):
+            model_dict.pop("tools", None)
+
+        # I give up on finding a better way to format this string.
+        # f'{model_str} doesn't work
+        # re.sub is more elegant, but its basically the same thing
+        model_str = (
+            json.dumps(model_dict, indent=4)
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\'", "\'")
+            .replace('\\"', '\"')
+        )
+
+        return model_str
 
     def __repr__(self):
-        return self.__str__()
+        model_dict = self.model_dump(mode='json', exclude_unset=True, exclude_none=True)
+        return json.dumps(model_dict, indent=4)
 
 
 class Tool(Response):
@@ -37,13 +55,15 @@ class Tools(Response):
 
 
 class ProjectFile(Tools):
-    file_name: str = Field(description="File path relative to project root")
-    file_contents: str = Field(description="File contents")
+    file_name: str = Field(description="A file path relative to root")
+    file_contents: str = Field(description="The contents of the file")
 
 
 class ProjectDirectory(Tools):
     project_name: str = Field(description="Name of the project directory")
-    files: list[ProjectFile] = Field(description="List of ProjectFiles in the directory")
+    files: list[ProjectFile] = Field(
+        description="A list of files in the project directory. Each list item represents a file"
+    )
 
 
 class TextResponse(Tools):
@@ -51,7 +71,9 @@ class TextResponse(Tools):
 
 
 class Summary(Tools):
-    summary: List[str] = Field(description="List of component summaries")
+    summary: List[str] = Field(
+        description="A list of component summaries. Each list item represents an unbroken summary"
+    )
 
 
 class PlannedComponents(Tools):
