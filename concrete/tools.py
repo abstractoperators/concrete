@@ -451,14 +451,14 @@ class GithubTool(metaclass=MetaTool):
     Facilitates interactions with github through its Restful API
     """
 
-    def __init__(self):
-        self.headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}',
-            'X-GitHub-Api-Version': '2022-11-28',
-        }
+    headers = {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': f'Bearer {os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")}',
+        'X-GitHub-Api-Version': '2022-11-28',
+    }
 
-    def make_pr(self, owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict:
+    @classmethod
+    def make_pr(cls, owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict:
         """
         Make a pull request on the target repo
 
@@ -473,4 +473,4 @@ class GithubTool(metaclass=MetaTool):
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
         json = {'title': f'[ABOP] {title}', 'head': branch, 'base': base}
-        return RestApiTool.send_post_request(url, headers=self.headers, json=json)
+        return RestApiTool.post(url, headers=cls.headers, json=json)
