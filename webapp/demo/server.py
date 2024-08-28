@@ -59,7 +59,11 @@ async def get(request: Request):
     return templates.TemplateResponse("index.html", {'request': {}})
 
 
-def deploy_to_prod(response_url: str):
+def _deploy_to_prod(response_url: str):
+    """
+    Helper function for deploying latest registry images to prod.
+    Also updates slack button (that triggered this function) with success/failure message.
+    """
     if AwsTool._deploy_image(
         '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
         'webapp-homepage',
@@ -98,15 +102,22 @@ def deploy_to_prod(response_url: str):
 
 @app.post("/slack", status_code=200)
 async def slack_endpoint(request: Request, background_tasks: BackgroundTasks):
+    """
+    A slack endpoint that listens for Slack interactions https://api.slack.com/apps/A07JF384C05/interactive-messages?
+    Deploys to prod on interaction (button click).
+    """
     form = await request.form()
     payload = json.loads(form['payload'])
     CLIClient.emit(payload)
-    background_tasks.add_task(deploy_to_prod, response_url=payload['response_url'])
+    background_tasks.add_task(_deploy_to_prod, response_url=payload['response_url'])
 
     return payload
 
 
 async def post_button():
+    """
+    Posts a button to #github-logs under slack bot user.
+    """
     url = "https://slack.com/api/chat.postMessage"
     slack_token = os.getenv('SLACK_BOT_TOKEN')
     headers = {'Content-type': 'application/json', "Authorization": f"Bearer {slack_token}"}
@@ -120,32 +131,27 @@ async def post_button():
 
     data = {"channel": "github-logs", "blocks": blocks}
 
-    print("Data:")
-    print(json.dumps(data, indent=2))
-
     response = RestApiTool.post(url, headers=headers, data=json.dumps(data))
-    print(response)
+    return response
 
 
 @app.post("/slack/events", status_code=200)
 async def slack_events(request: Request):
+    """
+    Listens to slack events.
+    Handles the event where a message is posted to #github-logs, and the message contains 'merged'.
+    When this happens, a button is posted to the channel.
+    """
     json_data = await request.json()
     if json_data.get('type', None) == 'url_verification':
-        print('Verify URL')
         challenge = json_data.get('challenge')
         return Response(content=challenge, media_type="text/plain")
     elif json_data.get('type', None) == 'event_callback':
-        print('Handle Event')
         # Add a button to #github-logs
         event = json_data.get('event')
-        print(event)
         if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
-            print('Event is a message in #github-logs')
             text = event.get('text')
-            print(text)
             if 'merged' in text:
-                print('Text contains "merged"')
-                print("Adding a deploy button now")  # TODO
                 await post_button()
 
     return Response(content="OK", media_type="text/plain")

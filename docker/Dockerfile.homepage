@@ -18,7 +18,7 @@ COPY concrete /app/concrete
 RUN poetry config virtualenvs.create false 
 RUN poetry install --only webapp-homepage,main
 
-COPY /webapp/main ./
+COPY /webapp/homepage ./
 
 RUN chmod +x ./scripts/start.sh
 

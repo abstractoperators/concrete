@@ -34,6 +34,7 @@ build-webapp-homepage:
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
+# Build before if needed
 run-webapp-demo: 
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
@@ -49,7 +50,9 @@ run-dind-builder:
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
-aws_ecr_push_main: aws_ecr_login
+
+# Build before pushing to registry
+aws_ecr_push_homepage: aws_ecr_login
 	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 aws_ecr_push_demo: aws_ecr_login

@@ -48,7 +48,7 @@ jobs:
 
             - name: Push to ECR
               run: |
-                  make aws_ecr_push_main
+                  make aws_ecr_push_homepage
                   make aws_ecr_push_demo
                 
     deploy:
