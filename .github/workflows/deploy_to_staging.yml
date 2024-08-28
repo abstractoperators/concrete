@@ -2,8 +2,6 @@ name: Deploy webapp-homepage to staging
 on:
     push:
         branches:
-          # Use your branch if you want to deploy your branch to staging env.
-            - michael/slack_endpoint
             - main
 jobs:
     build:
@@ -33,9 +31,7 @@ jobs:
                 AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                 AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                 SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-              # TODO: Maybe change this to .env.demo
-              # ATM, clients is overwriting env variables with load_dotenv, so even after docker compose loads them in
-              # With env_file, it gets overwritten by clients.
+              # TODO: Use an actual secret manager
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
@@ -44,13 +40,11 @@ jobs:
                   echo AWS_DEFAULT_REGION=us-east-1 >> .env
                   make build-webapp-homepage
                   make build-webapp-demo
-              
 
             - name: Push to ECR
               run: |
                   make aws_ecr_push_homepage
                   make aws_ecr_push_demo
-                
     deploy:
         needs: build
         runs-on: ubuntu-latest
