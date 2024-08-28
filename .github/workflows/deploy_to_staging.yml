@@ -1,4 +1,4 @@
-name: Deploy webapp-main to staging
+name: Deploy webapp-homepage to staging
 on:
     push:
         branches:
@@ -32,6 +32,7 @@ jobs:
                 OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
                 AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                 AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
               # TODO: Maybe change this to .env.demo
               # ATM, clients is overwriting env variables with load_dotenv, so even after docker compose loads them in
               # With env_file, it gets overwritten by clients.
@@ -41,7 +42,7 @@ jobs:
                   echo AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID >> .env
                   echo AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY >> .env
                   echo AWS_DEFAULT_REGION=us-east-1 >> .env
-                  make build-webapp-main
+                  make build-webapp-homepage
                   make build-webapp-demo
               
 
@@ -71,13 +72,13 @@ jobs:
 
             - name: Deploy to ECS staging using AwsTool._deploy_images
               env:
-                image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest'
+                image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest'
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --custom_name=webapp-demo-staging
-                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest --custom_name=webapp-main-staging
+                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --custom_name=webapp-homepage-staging
 
 
 # https://github.com/actions/deploy-pages/issues/329 -

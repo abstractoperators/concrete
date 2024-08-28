@@ -61,8 +61,8 @@ async def get(request: Request):
 
 def deploy_to_prod(response_url: str):
     if AwsTool._deploy_image(
-        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest',
-        'webapp-main',
+        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
+        'webapp-homepage',
         listener_rule={'field': 'host-header', 'value': 'abop.ai'},
     ) and AwsTool._deploy_image(
         '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',

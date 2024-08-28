@@ -28,8 +28,8 @@ deploysimpleflask:
 build-webapp-demo:
 	docker compose -f docker/docker-compose.yml build webapp-demo
 
-build-webapp-main:
-	docker compose -f docker/docker-compose.yml build webapp-main
+build-webapp-homepage:
+	docker compose -f docker/docker-compose.yml build webapp-homepage
 
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
@@ -38,9 +38,9 @@ run-webapp-demo:
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
-run-webapp-main: 
-	docker compose -f docker/docker-compose.yml stop webapp-main
-	docker compose -f docker/docker-compose.yml up -d webapp-main
+run-webapp-homepage: 
+	docker compose -f docker/docker-compose.yml stop webapp-homepage
+	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
 run-dind-builder: 
 	docker compose -f docker/docker-compose.yml stop dind-builder
@@ -50,8 +50,8 @@ run-dind-builder:
 aws_ecr_login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
 aws_ecr_push_main: aws_ecr_login
-	docker tag webapp-main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-main:latest
+	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest

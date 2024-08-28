@@ -38,14 +38,14 @@ services:
       - concrete_network
     platform: linux/arm64
 
-  webapp-main:
+  webapp-homepage:
     ports:
       - 8001:80
-    image: webapp-main
+    image: webapp-homepage
     build:
       context: ../
-      dockerfile: ./docker/Dockerfile.main
-    container_name: webapp-main
+      dockerfile: ./docker/Dockerfile.homepage
+    container_name: webapp-homepage
     networks:
       - concrete_network
     platform: linux/arm64
