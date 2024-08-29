@@ -42,7 +42,6 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
 
 
 class MetaAbstractOperator(type):
-
     def __new__(cls, clsname, bases, attrs):
         # identify methods and add delay functionality
         def _delay_factory(func: Callable[..., str]) -> Callable[..., AsyncResult]:

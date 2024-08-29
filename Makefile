@@ -66,6 +66,8 @@ aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 
-# Celery setup
+rabbitmq:
+	docker run -d -p 5672:5672 --name rabbitmq rabbitmq
+
 celery:
-	docker run -d -p 5672:5672 rabbitmq
+	celery -A concrete worker --loglevel=INFO
