@@ -13,7 +13,7 @@ from .tools import MetaTool
 
 class LlmMixin:
     """
-    Represents the base Operator for further implementation
+    Represents the base Operator for further implementation.
     """
 
     def __init__(
