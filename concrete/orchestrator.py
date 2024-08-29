@@ -25,7 +25,7 @@ class StatefulMixin:
 
 class SoftwareProject(StatefulMixin):
     """
-    Tracks the execution of a task or objectives
+    Tracks the execution of a task or objectives.
     """
 
     def __init__(
