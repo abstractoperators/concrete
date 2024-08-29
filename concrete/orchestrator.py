@@ -4,14 +4,10 @@ from textwrap import dedent
 from uuid import uuid1
 
 from . import prompts
-from .operator_responses import (
-    PlannedComponents,
-    ProjectDirectory,
-    ProjectFile,
-    Summary,
-    Tools,
-)
+from .clients import Client_con, OpenAIClient
+from .models.responses import PlannedComponents, ProjectDirectory, ProjectFile, Summary
 from .operators import AWSOperator, Developer, Executive
+from .operators.abstract import AbstractOperator_co
 from .state import ProjectStatus, State
 from .tools import AwsTool
 
@@ -34,47 +30,58 @@ class SoftwareProject(StatefulMixin):
         orchestrator: "Orchestrator",
         exec: Executive,
         dev: Developer,
-        clients: dict[str, Client],
+        clients: dict[str, Client_con],
         aws: AWSOperator | None = None,
         deploy: bool = False,
+        use_celery: bool = True,
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
+        self.clients = clients
         self.starting_prompt = starting_prompt
         self.exec = exec
         self.dev = dev
         self.aws = aws
+        self.exec = exec
+        self.dev = dev
         self.orchestrator = orchestrator
         self.results = None
         self.update(status=ProjectStatus.READY)
         self.deploy = deploy
+        self.use_celery = use_celery
 
-    async def do_work(self) -> AsyncGenerator[tuple[str, str], None]:
+    def do_work(self) -> AsyncGenerator[tuple[str, str], None]:
         """
         Break down prompt into smaller components and write the code for each individually.
         """
         self.update(status=ProjectStatus.WORKING)
+        if self.use_celery:
+            return self._do_work_celery()
+        return self._do_work_plain()
 
-        components = executive.plan_components(self.starting_prompt, response_format=PlannedComponents).components
-        yield executive.__name__, '\n'.join(components)
+    async def _do_work_plain(self) -> AsyncGenerator[tuple[str, str], None]:
+        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+        yield Executive.__name__, '\n'.join(components)
 
         summary = ""
         all_implementations = []
         for component in components:
             # Use communicative_dehallucination for each component
             async for agent_or_implementation, message in communicative_dehallucination(
+                self.exec,
+                self.dev,
                 summary,
                 component,
                 starting_prompt=self.starting_prompt,
                 max_iter=0,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
-                    yield agent_or_implementation, str(message)
+                    yield agent_or_implementation, message
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
                     summary = message
 
-        files = developer.integrate_components(
+        files = self.dev.integrate_components(
             components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
         )
 
@@ -94,7 +101,41 @@ class SoftwareProject(StatefulMixin):
                 eval(full_tool_call)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
-        yield developer.__name__, str(files)
+        yield Developer.__name__, str(files)
+
+    # TODO: implement using Celery task calls
+    async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
+        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+        yield Executive.__name__, '\n'.join(components)
+
+        summary = ""
+        all_implementations = []
+        for component in components:
+            # Use communicative_dehallucination for each component
+            async for agent_or_implementation, message in communicative_dehallucination(
+                self.exec,
+                self.dev,
+                summary,
+                component,
+                max_iter=0,
+            ):
+                if agent_or_implementation in (Developer.__name__, Executive.__name__):
+                    yield agent_or_implementation, message
+                else:  # last result
+                    all_implementations.append(agent_or_implementation)
+                    summary = message
+
+        files = self.dev.integrate_components(
+            components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
+        )
+
+        if self.deploy:
+            if self.aws is None:
+                raise ValueError("Cannot deploy without AWSAgent")
+            self.aws.deploy(files, self.uuid)
+
+        self.update(status=ProjectStatus.FINISHED)
+        yield Developer.__name__, str(files)
 
 
 class Orchestrator:
@@ -112,29 +153,35 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
         self.clients = {
-            "openai": OpenAIClient(),
+            'openai': OpenAIClient(),
         }
-        self.operators = {
-            "exec": Executive(self.clients),
-            "dev": Developer(self.clients),
+        self.operators: dict[str, AbstractOperator_co] = {
+            'exec': Executive(self.clients),
+            'dev': Developer(self.clients),
         }
         self.aws = AWSOperator()
         self.update(status=ProjectStatus.READY)
 
-    def process_new_project(self, starting_prompt: str, deploy: bool = False) -> AsyncGenerator[tuple[str, str], None]:
+    def process_new_project(
+        self, starting_prompt: str, deploy: bool = False, use_celery: bool = True
+    ) -> AsyncGenerator[tuple[str, str], None]:
         self.update(status=ProjectStatus.WORKING)
         current_project = SoftwareProject(
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
-            exec=self.operators["exec"],
-            dev=self.operators["dev"],
+            exec=self.operators['exec'],
+            dev=self.operators['dev'],
             orchestrator=self,
             aws=self.aws,
+            clients=self.clients,
             deploy=deploy,
+            use_celery=use_celery,
         )
         return current_project.do_work()
 
 
 async def communicative_dehallucination(
+    executive: Executive,
+    developer: Developer,
     summary: str,
     component: str,
     starting_prompt: str,
@@ -161,7 +208,7 @@ async def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
-    yield executive.__name__, component
+    yield Executive.__name__, component
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):
@@ -170,12 +217,12 @@ async def communicative_dehallucination(
         if question == "No Question":
             break
 
-        yield developer.__name__, question.text
+        yield Developer.__name__, question.text
 
         answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
-        yield executive.__name__, answer.text
+        yield Executive.__name__, answer.text
 
     if q_and_a:
         context += "\nComponent Clarifications:"
@@ -186,11 +233,11 @@ async def communicative_dehallucination(
     # Developer implements component based on clarified context
     implementation = developer.implement_component(context, response_format=ProjectFile)
 
-    yield developer.__name__, str(implementation)
+    yield Developer.__name__, str(implementation)
 
     # Generate a summary of what has been achieved
     summary = executive.generate_summary(summary, implementation, response_format=Summary)
 
-    yield executive.__name__, str(summary)
+    yield Executive.__name__, str(summary)
 
     yield implementation, str(summary)
