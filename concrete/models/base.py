@@ -31,6 +31,10 @@ class ConcreteBaseModel(BaseModel):
 
 
 class KombuMixin(BaseModel):
+    """
+    Represents a Mixin to allow serialization and deserialization of subclasses
+    """
+
     def __init_subclass__(cls, **kwargs):
         register_type(
             cls,

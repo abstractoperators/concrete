@@ -13,12 +13,14 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
-import json
 from typing import List
 
 from pydantic import Field
 
 from .base import ConcreteBaseModel, KombuMixin
+
+# TODO make responses inherit from Kombu Mixin w/o nesting issues.
+# TODO Fix tool nesting issues.
 
 
 class Response(ConcreteBaseModel):
