@@ -1,14 +1,14 @@
 from abc import abstractmethod
 from functools import wraps
 from textwrap import dedent
-from typing import Callable, List, Optional
-from uuid import UUID, uuid1
+from typing import Callable, List
+from uuid import uuid1
 
 from celery import Task, signals
 from pydantic import BaseModel
 
 from .clients import CLIClient, Client
-from .operator_responses import TextResponse
+from .models.responses import TextResponse
 from .tools import MetaTool
 
 

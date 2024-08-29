@@ -5,7 +5,6 @@ import requests
 import requests.adapters
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
-from pydantic import BaseModel
 from requests.adapters import HTTPAdapter, Retry
 
 from .models.base import ConcreteBaseModel
