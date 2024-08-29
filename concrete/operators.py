@@ -200,7 +200,7 @@ class Developer(Operator):
     @LlmMixin.qna
     def implement_component(self, context: str) -> str:
         """
-        Prompts the Operator to implement a component based off of the components context
+        Prompts the Operator to implement a component based off of the components context.
         Returns the code for the component
         """
         return f"""
