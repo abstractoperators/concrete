@@ -151,7 +151,8 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     elif json_data.get('type', None) == 'event_callback':
         event = json_data.get('event')
         if (
-            event.get('type', None) == 'message'
+            event.get('channel', None) == 'C07DQNQ7L0K'
+            and event.get('type', None) == 'message'
             and event.get('subtype', None) == 'thread_broadcast'
             and (attachments := event.get('attachments', None))
             and len(attachments) == 1
