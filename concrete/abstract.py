@@ -90,7 +90,7 @@ class MetaAbstractOperator(type):
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=MetaAbstractOperator):
-    INSTRUCTIONS = (
+    instructions = (
         "You are a software developer." "You will answer software development questions as concisely as possible."
     )
 
