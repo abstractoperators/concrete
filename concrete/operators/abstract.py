@@ -164,4 +164,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         return prepped_func
 
 
+# Define a shmexy type var
+# Covariance: If A is a subclass of B, then SomeClass[A] is considered a subclass of SomeClass[B].
 AbstractOperator_co = TypeVar('AbstractOperator_co', bound=AbstractOperator, covariant=True)

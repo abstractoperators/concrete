@@ -7,6 +7,7 @@ from uuid import uuid1
 from celery import Task, signals
 from pydantic import BaseModel
 
+from .abstract import AbstractOperator
 from .clients import CLIClient, Client
 from .models.responses import TextResponse
 from .tools import MetaTool
@@ -125,7 +126,7 @@ class LlmMixin(Task):
         return _send_and_await_reply
 
 
-class Operator(LlmMixin):
+class Operator(AbstractOperator):
     instructions = (
         "You are an autonomous abstract operator designed to be "
         "a helpful, proactive, curious, and thoughtful employee or assistant. "
@@ -133,7 +134,6 @@ class Operator(LlmMixin):
         "You will clearly state if a task is beyond your capabilities. "
     )
 
-    @LlmMixin.qna
     def chat(cls, message: str) -> str:
         """
         Chat with the operator with a direct message.
@@ -141,7 +141,7 @@ class Operator(LlmMixin):
         return message
 
 
-class Developer(Operator):
+class Developer(AbstractOperator):
     """
     Represents an Operator that produces code.
     """
@@ -159,7 +159,6 @@ class Developer(Operator):
         Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.
     """  # noqa E501
 
-    @LlmMixin.qna
     def ask_question(self, context: str) -> str:
         """
         Accept instructions and ask a question about it if necessary.
@@ -194,7 +193,6 @@ class Developer(Operator):
                 What should the function be called?"""
         )
 
-    @LlmMixin.qna
     def implement_component(self, context: str) -> str:
         """
         Prompts the Operator to implement a component based off of the components context.
@@ -206,7 +204,6 @@ Use placeholders referencing code/functions already provided in the context. Nev
 *Context:*
 {context}"""  # noqa E501
 
-    @LlmMixin.qna
     def integrate_components(
         self,
         planned_components: List[str],
@@ -233,7 +230,6 @@ First, think about all files you intend to use in the final output. Then, combin
             """  # noqa E501
         return out_str
 
-    @LlmMixin.qna
     def implement_html_element(self, prompt: str) -> str:
         out_str = f"""\
 Generate an html element with the following description:\n
@@ -267,7 +263,7 @@ Create a paragraph with the text `Hello, World!`
         return out_str
 
 
-class Executive(Operator):
+class Executive(AbstractOperator):
     """
     Represents an Operator that instructs and guides other Operators.
     """
@@ -290,7 +286,6 @@ class Executive(Operator):
         growth objectives.
     """
 
-    @LlmMixin.qna
     def plan_components(self, starting_prompt) -> str:
         return """\
 List the essential code components required to implement the project idea. Each component should be atomic, \
@@ -312,7 +307,6 @@ Project Idea:
             starting_prompt=starting_prompt
         )
 
-    @LlmMixin.qna
     def answer_question(self, context: str, question: str) -> str:
         """
         Prompts the Operator to answer a question
@@ -324,7 +318,6 @@ Project Idea:
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    @LlmMixin.qna
     def generate_summary(self, summary: str, implementation: str) -> str:
         """
         Generates a summary of completed components
@@ -349,7 +342,7 @@ Previous Components: {summary}"""  # noqa E501
         return prompt
 
 
-class PromptEngineer(Operator):
+class PromptEngineer(AbstractOperator):
     instructions = """
 You are a world-class AI prompt engineer. Your task is to create base prompts that will guide other AI agents in producing high-quality, reliable, and innovative results.
 These prompts are not meant to be self-contained. It is merely a persona an AI agent will adopt while processing an explicit instruction that will be added to the base prompt later.
@@ -373,13 +366,13 @@ Core instructions:
         """  # noqa E501
 
 
-class ProductManager(Operator):
+class ProductManager(AbstractOperator):
     instructions = """
 As the Product Manager for our AI Agent Orchestration startup, your mission is to conceptualize and drive. the development of innovative features that streamline the coordination of multiple AI agents to achieve complex tasks. Your work involves translating high-level business objectives into actionable product roadmaps, ensuring that our platform remains intuitive, efficient, and scalable.
 """  # noqa E501
 
 
-class Designer(Operator):
+class Designer(AbstractOperator):
     instructions = """
 As an AI orchestrator, your task is to conceptualize and design intuitive, user-friendly interfaces and workflows that enable seamless interaction between AI agents and users. Your designs should prioritize clarity, ensuring that users can easily understand and navigate the system, and completeness, providing all necessary components and information for a comprehensive user experience.
 
@@ -387,7 +380,7 @@ Your designs should be specific in addressing user needs, guiding the user throu
     """  # noqa E501
 
 
-class Salesperson(Operator):
+class Salesperson(AbstractOperator):
     instructions = """
         You are a top-tier salesperson at a leading AI agent orchestration startup. Your role is to communicate the transformative potential of our AI solutions to prospective clients, emphasizing how our technology can seamlessly integrate into their operations to enhance efficiency, drive innovation, and boost their bottom line.
     """  # noqa E501
