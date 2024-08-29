@@ -13,7 +13,10 @@ test:
 # Demo commands
 helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
- 
+
+helloworld_celery:
+	$(ORCHESTRATE) "Create a simple hello world program" --celery
+	
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."
 

@@ -68,7 +68,7 @@ from typing import Dict, Optional
 import boto3
 
 from .clients import CLIClient, RestApiClient
-from .operator_responses import ProjectDirectory
+from .models.responses import ProjectDirectory
 
 
 class MetaTool(type):

@@ -117,6 +117,7 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
+                starting_prompt=self.starting_prompt,
                 max_iter=0,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
