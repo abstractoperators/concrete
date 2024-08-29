@@ -58,7 +58,6 @@ class LlmMixin(Task):
         Synchronous.
         """
         instructions = self.instructions
-        # Improve tool use
         instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
         instructions += "\nFor each user request: Think about the response syntax, and how that relates to your task. Then, provide a complete and accurate response."  # noqa E501
         messages = [
@@ -76,7 +75,7 @@ class LlmMixin(Task):
         ).message
 
         if response.refusal:
-            print(f"Operator refused to answer question: {query}")
+            CLIClient(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
         answer = response.parsed
@@ -155,8 +154,6 @@ class Developer(Operator):
         You are a senior software engineer at an innovative AI agent orchestration startup. Your deep
         understanding of software architecture, AI systems, and scalable solutions empowers you to design
         and implement cutting-edge technologies that enhance AI capabilities.
-    """
-    """
         Objective:
         Your task is to apply your expertise to architect and optimize AI agent orchestration frameworks, ensuring high performance, scalability, and reliability. You will be working on complex systems that integrate multiple AI agents, enabling them to collaborate efficiently to achieve sophisticated goals.
         Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.

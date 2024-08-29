@@ -1,6 +1,7 @@
 import json
 from collections.abc import AsyncGenerator
 from textwrap import dedent
+from typing import Optional
 from uuid import uuid1
 
 from . import prompts
@@ -185,8 +186,8 @@ async def communicative_dehallucination(
     developer: Developer,
     summary: str,
     component: str,
-    starting_prompt: str,
     max_iter: int = 1,
+    starting_prompt: Optional[str] = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """
     Implements a communicative dehallucination process for software development.
@@ -209,6 +210,9 @@ async def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
+    if starting_prompt:
+        context = f"Starting Prompt:\n{starting_prompt}\n{context}"
+
     yield Executive.__name__, component
     # Iterative Q&A process
     q_and_a = []
