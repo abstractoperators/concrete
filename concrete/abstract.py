@@ -175,8 +175,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         return _send_and_await_reply
 
-        self._clients: dict[str, Client]
-
     @property
     def clients(self):
         return self._clients

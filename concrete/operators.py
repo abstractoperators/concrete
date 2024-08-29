@@ -134,7 +134,7 @@ class Operator(AbstractOperator):
         "You will clearly state if a task is beyond your capabilities. "
     )
 
-    def chat(cls, message: str) -> str:
+    def chat(cls, message: str, *args, **kwargs) -> str:
         """
         Chat with the operator with a direct message.
         """
@@ -159,7 +159,7 @@ class Developer(AbstractOperator):
         Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.
     """  # noqa E501
 
-    def ask_question(self, context: str) -> str:
+    def ask_question(self, context: str, *args, **kwargs) -> str:
         """
         Accept instructions and ask a question about it if necessary.
 
@@ -193,7 +193,7 @@ class Developer(AbstractOperator):
                 What should the function be called?"""
         )
 
-    def implement_component(self, context: str) -> str:
+    def implement_component(self, context: str, *args, **kwargs) -> str:
         """
         Prompts the Operator to implement a component based off of the components context.
         Returns the code for the component
@@ -205,10 +205,7 @@ Use placeholders referencing code/functions already provided in the context. Nev
 {context}"""  # noqa E501
 
     def integrate_components(
-        self,
-        planned_components: List[str],
-        implementations: List[str],
-        idea: str,
+        self, planned_components: List[str], implementations: List[str], idea: str, *args, **kwargs
     ) -> str:
         """
         Prompts Operator to combine code implementations of multiple components
@@ -230,7 +227,7 @@ First, think about all files you intend to use in the final output. Then, combin
             """  # noqa E501
         return out_str
 
-    def implement_html_element(self, prompt: str) -> str:
+    def implement_html_element(self, prompt: str, *args, **kwargs) -> str:
         out_str = f"""\
 Generate an html element with the following description:\n
 {prompt}
@@ -286,7 +283,7 @@ class Executive(AbstractOperator):
         growth objectives.
     """
 
-    def plan_components(self, starting_prompt) -> str:
+    def plan_components(self, starting_prompt, *args, **kwargs) -> str:
         return """\
 List the essential code components required to implement the project idea. Each component should be atomic, \
 such that a developer could implement it in isolation provided placeholders for preceding components.
@@ -307,7 +304,7 @@ Project Idea:
             starting_prompt=starting_prompt
         )
 
-    def answer_question(self, context: str, question: str) -> str:
+    def answer_question(self, context: str, question: str, *args, **kwargs) -> str:
         """
         Prompts the Operator to answer a question
         Returns the answer
@@ -318,7 +315,7 @@ Project Idea:
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    def generate_summary(self, summary: str, implementation: str) -> str:
+    def generate_summary(self, summary: str, implementation: str, *args, **kwargs) -> str:
         """
         Generates a summary of completed components
         Returns the summary
