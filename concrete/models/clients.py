@@ -3,8 +3,6 @@ from pydantic import Field
 
 from .base import ConcreteBaseModel, KombuMixin
 
-# TODO Port over concrete.clients.OpenAIClient
-
 
 class OpenAIClientModel(ConcreteBaseModel, KombuMixin):
     model: str = Field(default='gpt-4o-mini', description='Name of LLM Model')
