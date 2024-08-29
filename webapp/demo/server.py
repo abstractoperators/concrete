@@ -147,13 +147,17 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     if json_data.get('type', None) == 'url_verification':
         challenge = json_data.get('challenge')
         return Response(content=challenge, media_type="text/plain")
+
     elif json_data.get('type', None) == 'event_callback':
-        # Add a button to #github-logs
         event = json_data.get('event')
-        if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
-            attachments = event.get('attachments')
-            if 'merged' in attachments[0]['pretext']:
-                background_tasks.add_task(_post_button())
+        if (
+            (root := event.get('root', None))
+            and root.get('type', None) == 'message'
+            and (attachments := root.get('attachments', None))
+            and len(attachments) == 1
+            and 'merged' in attachments[0]['pretext']
+        ):
+            background_tasks.add_task(_post_button())
 
     return Response(content="OK", media_type="text/plain")
 
