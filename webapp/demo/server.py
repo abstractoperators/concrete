@@ -151,9 +151,9 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     elif json_data.get('type', None) == 'event_callback':
         event = json_data.get('event')
         if (
-            (root := event.get('root', None))
-            and root.get('type', None) == 'message'
-            and (attachments := root.get('attachments', None))
+            event.get('type', None) == 'message'
+            and event.get('subtype', None) == 'thread_broadcast'
+            and (attachments := event.get('attachments', None))
             and len(attachments) == 1
             and 'merged' in attachments[0]['pretext']
         ):
