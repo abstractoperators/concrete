@@ -1,15 +1,18 @@
+from abc import abstractmethod
 from collections.abc import Callable
 from functools import cache, partial, wraps
-from typing import Any, TypeVar
+from typing import Any, List, Optional, TypeVar
 
+from celery import signals
 from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
 
-from ..celery import app
-from ..clients import CLIClient, OpenAIClient
-from ..models.clients import ConcreteChatCompletion, OpenAIClientModel
-from ..models.operations import Operation
-from ..models.responses import Response, TextResponse
+from .celery import app
+from .clients import CLIClient, OpenAIClient
+from .models.clients import ConcreteChatCompletion, OpenAIClientModel
+from .models.operations import Operation
+from .models.responses import Response, TextResponse
+from .tools import MetaTool
 
 
 # TODO replace OpenAIClientModel with GenericClientModel
@@ -91,10 +94,15 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         "You are a software developer." "You will answer software development questions as concisely as possible."
     )
 
-    def __init__(self, clients: dict[str, OpenAIClient]):
+    # TODO replace OpenAIClient with GenericClient
+    def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
         self.clients = clients
         self.llm_client = 'openai'
         self.llm_client_function = 'complete'
+        self.tools = tools
+
+        # Question, what is this for?
+        signals.worker_init.connect(self.on_worker_init)
 
     def _qna(
         self,
@@ -145,11 +153,42 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             response_format: type[Response] = TextResponse,
             **kwargs,
         ):
+            response_format = kwargs.pop("response_format", None)
+
+            tools = (
+                explicit_tools
+                if (explicit_tools := kwargs.pop("tools", []))
+                else (self.tools if kwargs.pop('use_tools', False) else [])
+            )
+
             query = question_producer(*args, **kwargs)
-            CLIClient.emit(f"[prompt]: {query}")
-            return self._qna(query, instructions=instructions, response_format=response_format)
+
+            # Add additional prompt to inform agent about tools
+            if tools:
+                # LLMs don't really know what should go in what field even if output struct
+                # is guaranteed
+                query += """Here are your available tools:\
+    Either call the tool with the specified syntax, or leave its field blank.\n"""
+                for tool in tools:
+                    query += str(tool)
+            return self._qna(query, response_format=response_format)
 
         return _send_and_await_reply
+
+        self._clients: dict[str, Client]
+
+    @property
+    def clients(self):
+        return self._clients
+
+    @property
+    @abstractmethod
+    def instructions(self) -> str:
+        """
+        Define the operators base (system) instructions
+        Used in qna
+        """
+        pass
 
     @cache
     def __getattribute__(self, name: str) -> Any:

@@ -76,7 +76,7 @@ class LlmMixin(Task):
         ).message
 
         if response.refusal:
-            CLIClient(f"Operator refused to answer question: {query}")
+            CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
         answer = response.parsed
