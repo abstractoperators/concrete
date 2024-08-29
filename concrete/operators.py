@@ -87,7 +87,7 @@ class LlmMixin(Task):
     @classmethod
     def qna(cls, question_producer: Callable) -> Callable:
         """
-        Decorate something on a child object downstream to get a response from a query
+        Decorate something on a child object downstream to get a response from a query.
 
         question_producer is expected to return a request like "Create a website that does xyz"
 
