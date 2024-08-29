@@ -9,27 +9,28 @@ ENV OPENAI_TEMPERATURE=0
 
 WORKDIR /app
 
-RUN apt update && apt upgrade -y
-
+RUN apt-get update
 RUN apt-get install -y curl
 
 # Install tailscale
 RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null && \ 
     curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list && \
-    apt-get install tailscale && \
-    tailscale up --authkey tskey-auth-kZUHeFJxpM11CNTRL-w583zA12GyPuHxQar3JrxPqWw54FwreVT
+    apt-get update && \
+    apt-get install tailscale -y
 
 # temp key, remove later
 RUN pip install "poetry==$POETRY_VERSION"
 
-COPY pyproject.toml poetry.lock README.md /app/
-COPY concrete /app/concrete
-RUN poetry config virtualenvs.create false 
-RUN poetry install --only webapp-homepage,main
+COPY pyproject.toml poetry.lock README.md ./ 
+COPY concrete ./concrete
+COPY webapp ./webapp
 
-COPY /webapp/homepage ./
+RUN ls -l
 
-RUN chmod +x ./scripts/start.sh
+RUN poetry config virtualenvs.create false && \
+    poetry install --only webapp-homepage,main
+
+RUN chmod +x ./webapp/homepage/scripts/start.sh
 
 EXPOSE 80
-CMD ["./scripts/start.sh"]
+CMD ["./webapp/homepage/scripts/start.sh"]

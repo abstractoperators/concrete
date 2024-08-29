@@ -46,6 +46,9 @@ services:
       context: ../
       dockerfile: ./docker/Dockerfile.homepage
     container_name: webapp-homepage
+    env_file:
+      - path: "../.env"
+        required: false
     networks:
       - concrete_network
     platform: linux/arm64
