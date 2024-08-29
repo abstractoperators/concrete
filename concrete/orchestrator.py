@@ -144,7 +144,7 @@ class Orchestrator:
 
 class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     """
-    An Orchestrator is a set of configured Operators and a resource manager
+    An Orchestrator is a set of configured Operators and a resource manager.
 
     Provides a single entry point for common interactions with Operators
     """
