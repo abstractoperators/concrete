@@ -151,8 +151,8 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
         # Add a button to #github-logs
         event = json_data.get('event')
         if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
-            text = event.get('text')
-            if 'merged' in text:
+            attachments = event.get('attachments')
+            if 'merged' in attachments[0]['pretext']:
                 background_tasks.add_task(_post_button())
 
     return Response(content="OK", media_type="text/plain")
