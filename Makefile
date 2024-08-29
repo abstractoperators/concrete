@@ -43,7 +43,7 @@ run-webapp-demo:
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
 run-webapp-homepage:
-	echo "Running at localhost:5002"
+	echo "Running at localhost:8001"
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
