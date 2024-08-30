@@ -3,7 +3,6 @@ from collections.abc import Callable
 from functools import cache, partial, wraps
 from typing import Any, List, Optional, TypeVar
 
-from celery import signals
 from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
 
@@ -90,9 +89,6 @@ class MetaAbstractOperator(type):
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=MetaAbstractOperator):
-    instructions = (
-        "You are a software developer." "You will answer software development questions as concisely as possible."
-    )
 
     # TODO replace OpenAIClient with GenericClient
     def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
@@ -101,14 +97,11 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         self.llm_client_function = 'complete'
         self.tools = tools
 
-        # Question, what is this for?
-        signals.worker_init.connect(self.on_worker_init)
-
     def _qna(
         self,
         query: str,
+        response_format: type[Response],
         instructions: str | None = None,
-        response_format: type[Response] = TextResponse,
     ) -> Response:
         """
         "Question and Answer", given a query, return an answer.
@@ -116,12 +109,13 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         Synchronous.
         """
-        instructions = instructions or self.INSTRUCTIONS
+        instructions = instructions or self.instructions
         messages = [
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
         ]
 
+        CLIClient.emit(f'response_format: {response_format}')
         response = (
             self.clients['openai']
             .complete(
@@ -135,6 +129,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         if response.refusal:
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
+
+        CLIClient.emit(f'{type(response)}: {response}')
 
         answer = response.parsed
         return answer
@@ -150,10 +146,9 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         def _send_and_await_reply(
             *args,
             instructions: str | None = None,
-            response_format: type[Response] = TextResponse,
             **kwargs,
         ):
-            response_format = kwargs.pop("response_format", None)
+            response_format = kwargs.pop("response_format", TextResponse)
 
             tools = (
                 explicit_tools
@@ -171,13 +166,10 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     Either call the tool with the specified syntax, or leave its field blank.\n"""
                 for tool in tools:
                     query += str(tool)
-            return self._qna(query, response_format=response_format)
+            CLIClient.emit(f"[prompt]: {query}")
+            return self._qna(query, response_format=response_format, instructions=instructions)
 
         return _send_and_await_reply
-
-    @property
-    def clients(self):
-        return self._clients
 
     @property
     @abstractmethod

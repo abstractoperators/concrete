@@ -114,6 +114,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             {'role': 'user', 'content': query},
         ]
 
+        CLIClient.emit(f'response_format: {response_format}')
+
         response = (
             self.clients['openai']
             .complete(
@@ -128,6 +130,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
+        CLIClient.emit(f'{type(response)}: {response}')
         answer = response.parsed
         return answer
 
