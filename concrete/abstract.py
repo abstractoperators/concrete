@@ -175,9 +175,9 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         return _send_and_await_reply
 
-    @property
-    def clients(self):
-        return self._clients
+    # @property
+    # def clients(self):
+    #     return self._clients
 
     @property
     @abstractmethod
