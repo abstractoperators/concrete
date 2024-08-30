@@ -44,6 +44,12 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
 
 
 class MetaAbstractOperator(type):
+    """
+    This metaclass automatically creates a '_delay' version for each method in the class, allowing these methods to be executed asynchronously using Celery workers.
+
+    Classes that use this metaclass can call the asynchronous variant of a method like `some_instance.some_method.delay()`.
+    """
+
     def __new__(cls, clsname, bases, attrs):
         # identify methods and add delay functionality
         def _delay_factory(func: Callable[..., str]) -> Callable[..., AsyncResult]:
