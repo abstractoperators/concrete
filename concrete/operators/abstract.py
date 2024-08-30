@@ -1,17 +1,15 @@
-from abc import abstractmethod
 from collections.abc import Callable
 from functools import cache, partial, wraps
-from typing import Any, List, Optional, TypeVar
+from typing import Any, TypeVar
 
 from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
 
-from .celery import app
-from .clients import CLIClient, OpenAIClient
-from .models.clients import ConcreteChatCompletion, OpenAIClientModel
-from .models.operations import Operation
-from .models.responses import Response, TextResponse
-from .tools import MetaTool
+from ..celery import app
+from ..clients import CLIClient, OpenAIClient
+from ..models.clients import ConcreteChatCompletion, OpenAIClientModel
+from ..models.operations import Operation
+from ..models.responses import Response, TextResponse
 
 
 # TODO replace OpenAIClientModel with GenericClientModel
@@ -89,19 +87,20 @@ class MetaAbstractOperator(type):
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=MetaAbstractOperator):
+    INSTRUCTIONS = (
+        "You are a software developer." "You will answer software development questions as concisely as possible."
+    )
 
-    # TODO replace OpenAIClient with GenericClient
-    def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
+    def __init__(self, clients: dict[str, OpenAIClient]):
         self.clients = clients
         self.llm_client = 'openai'
         self.llm_client_function = 'complete'
-        self.tools = tools
 
     def _qna(
         self,
         query: str,
-        response_format: type[Response],
         instructions: str | None = None,
+        response_format: type[Response] = TextResponse,
     ) -> Response:
         """
         "Question and Answer", given a query, return an answer.
@@ -109,13 +108,14 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         Synchronous.
         """
-        instructions = instructions or self.instructions
+        instructions = instructions or self.INSTRUCTIONS
         messages = [
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
         ]
 
         CLIClient.emit(f'response_format: {response_format}')
+
         response = (
             self.clients['openai']
             .complete(
@@ -131,7 +131,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             raise Exception("Operator refused to answer question")
 
         CLIClient.emit(f'{type(response)}: {response}')
-
         answer = response.parsed
         return answer
 
@@ -146,43 +145,14 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         def _send_and_await_reply(
             *args,
             instructions: str | None = None,
+            response_format: type[Response] = TextResponse,
             **kwargs,
         ):
-            response_format = kwargs.pop("response_format", TextResponse)
-
-            tools = (
-                explicit_tools
-                if (explicit_tools := kwargs.pop("tools", []))
-                else (self.tools if kwargs.pop('use_tools', False) else [])
-            )
-
             query = question_producer(*args, **kwargs)
-
-            # Add additional prompt to inform agent about tools
-            if tools:
-                # LLMs don't really know what should go in what field even if output struct
-                # is guaranteed
-                query += """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.\n"""
-                for tool in tools:
-                    query += str(tool)
             CLIClient.emit(f"[prompt]: {query}")
-            return self._qna(query, response_format=response_format, instructions=instructions)
+            return self._qna(query, instructions=instructions, response_format=response_format)
 
         return _send_and_await_reply
-
-    # @property
-    # def clients(self):
-    #     return self._clients
-
-    @property
-    @abstractmethod
-    def instructions(self) -> str:
-        """
-        Define the operators base (system) instructions
-        Used in qna
-        """
-        pass
 
     @cache
     def __getattribute__(self, name: str) -> Any:
@@ -197,4 +167,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         return prepped_func
 
 
+# Define a shmexy type var
+# Covariance: If A is a subclass of B, then SomeClass[A] is considered a subclass of SomeClass[B].
 AbstractOperator_co = TypeVar('AbstractOperator_co', bound=AbstractOperator, covariant=True)
