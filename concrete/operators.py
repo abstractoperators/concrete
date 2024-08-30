@@ -12,118 +12,117 @@ from .clients import CLIClient, Client
 from .models.responses import TextResponse
 from .tools import MetaTool
 
+# class LlmMixin(Task):
+#     """
+#     Represents the base Operator for further implementation.
+#     """
 
-class LlmMixin(Task):
-    """
-    Represents the base Operator for further implementation.
-    """
+#     def __init__(
+#         self,
+#         clients: dict[str, Client],
+#         tools: list[MetaTool] | None = None,
+#     ):
+#         super().__init__()
+#         self.uuid = uuid1()
+#         self.clients = clients
+#         self.tools = tools
+#         # Question: What is this for?
+#         signals.worker_init.connect(self.on_worker_init)
 
-    def __init__(
-        self,
-        clients: dict[str, Client],
-        tools: list[MetaTool] | None = None,
-    ):
-        super().__init__()
-        self.uuid = uuid1()
-        self.clients = clients
-        self.tools = tools
-        # Question: What is this for?
-        signals.worker_init.connect(self.on_worker_init)
+#     @property
+#     @abstractmethod
+#     def instructions(self) -> str:
+#         """
+#         Define the operators base instructions.
 
-    @property
-    @abstractmethod
-    def instructions(self) -> str:
-        """
-        Define the operators base instructions.
+#         Used in LlmMixin.qna
+#         """
+#         pass
 
-        Used in LlmMixin.qna
-        """
-        pass
+#     @property
+#     def clients(self):
+#         return self._clients
 
-    @property
-    def clients(self):
-        return self._clients
+#     def on_worker_init(self, *args, **kwargs):
+#         self._clients: dict[str, Client] = kwargs['clients']
 
-    def on_worker_init(self, *args, **kwargs):
-        self._clients: dict[str, Client] = kwargs['clients']
+#     def _qna(
+#         self,
+#         query: str,
+#         response_format: BaseModel | None = None,
+#     ) -> BaseModel:
+#         """
+#         "Question and Answer", given a query, return an answer.
+#         Basically just a wrapper for OpenAI's chat completion API.
 
-    def _qna(
-        self,
-        query: str,
-        response_format: BaseModel | None = None,
-    ) -> BaseModel:
-        """
-        "Question and Answer", given a query, return an answer.
-        Basically just a wrapper for OpenAI's chat completion API.
+#         Synchronous.
+#         """
+#         instructions = self.instructions
+#         instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
+#         instructions += "\nFor each user request: Think about the response syntax, and how that relates to your task. Then, provide a complete and accurate response."  # noqa E501
+#         messages = [
+#             {'role': 'system', 'content': instructions},
+#             {'role': 'user', 'content': query},
+#         ]
 
-        Synchronous.
-        """
-        instructions = self.instructions
-        instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
-        instructions += "\nFor each user request: Think about the response syntax, and how that relates to your task. Then, provide a complete and accurate response."  # noqa E501
-        messages = [
-            {'role': 'system', 'content': instructions},
-            {'role': 'user', 'content': query},
-        ]
+#         response = (
+#             self.clients["openai"]
+#             .complete(
+#                 messages=messages,
+#                 response_format=response_format if response_format else TextResponse,
+#             )
+#             .choices[0]
+#         ).message
 
-        response = (
-            self.clients["openai"]
-            .complete(
-                messages=messages,
-                response_format=response_format if response_format else TextResponse,
-            )
-            .choices[0]
-        ).message
+#         if response.refusal:
+#             CLIClient.emit(f"Operator refused to answer question: {query}")
+#             raise Exception("Operator refused to answer question")
 
-        if response.refusal:
-            CLIClient.emit(f"Operator refused to answer question: {query}")
-            raise Exception("Operator refused to answer question")
+#         answer = response.parsed
 
-        answer = response.parsed
+#         CLIClient.emit(query)
+#         return answer
 
-        CLIClient.emit(query)
-        return answer
+#     @classmethod
+#     def qna(cls, question_producer: Callable) -> Callable:
+#         """
+#         Decorate something on a child object downstream to get a response from a query.
 
-    @classmethod
-    def qna(cls, question_producer: Callable) -> Callable:
-        """
-        Decorate something on a child object downstream to get a response from a query.
+#         question_producer is expected to return a request like "Create a website that does xyz"
 
-        question_producer is expected to return a request like "Create a website that does xyz"
+#         The decorated function will support some extra optionality:
 
-        The decorated function will support some extra optionality:
+#         response_format (BaseModel): Guarantee a json structured output.
+#         tools (list[MetaTool]): Pass in tools for the operator to use. Supercedes use_tools
+#         use_tools (bool): Prompt the operator to use tools that it has.
+#         """
 
-        response_format (BaseModel): Guarantee a json structured output.
-        tools (list[MetaTool]): Pass in tools for the operator to use. Supercedes use_tools
-        use_tools (bool): Prompt the operator to use tools that it has.
-        """
+#         @wraps(question_producer)
+#         def _send_and_await_reply(*args, **kwargs):
+#             self = args[0]
+#             # TODO: change response_format based on if use_tools is toggled
+#             response_format = kwargs.pop("response_format", None)
 
-        @wraps(question_producer)
-        def _send_and_await_reply(*args, **kwargs):
-            self = args[0]
-            # TODO: change response_format based on if use_tools is toggled
-            response_format = kwargs.pop("response_format", None)
+#             # Use `tools=...` if provided, otherwise check `use_tools` and use `self.tools` if True
+#             tools = (
+#                 explicit_tools
+#                 if (explicit_tools := kwargs.pop("tools", []))
+#                 else (self.tools if kwargs.pop('use_tools', False) else [])
+#             )
 
-            # Use `tools=...` if provided, otherwise check `use_tools` and use `self.tools` if True
-            tools = (
-                explicit_tools
-                if (explicit_tools := kwargs.pop("tools", []))
-                else (self.tools if kwargs.pop('use_tools', False) else [])
-            )
+#             query = question_producer(*args, **kwargs)
 
-            query = question_producer(*args, **kwargs)
+#             # Add additional prompt to inform agent about tools
+#             if tools:
+#                 # LLMs don't really know what should go in what field even if output struct
+#                 # is guaranteed
+#                 query += """Here are your available tools:\
+#     Either call the tool with the specified syntax, or leave its field blank.\n"""
+#                 for tool in tools:
+#                     query += str(tool)
+#             return self._qna(query, response_format=response_format)
 
-            # Add additional prompt to inform agent about tools
-            if tools:
-                # LLMs don't really know what should go in what field even if output struct
-                # is guaranteed
-                query += """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.\n"""
-                for tool in tools:
-                    query += str(tool)
-            return self._qna(query, response_format=response_format)
-
-        return _send_and_await_reply
+#         return _send_and_await_reply
 
 
 class Operator(AbstractOperator):
