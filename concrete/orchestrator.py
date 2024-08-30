@@ -110,7 +110,15 @@ class SoftwareProject(StatefulMixin):
 
     # TODO: implement using Celery task calls
     async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
-        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+        # components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+
+        components = (
+            self.exec.plan_components.delay(starting_prompt=self.starting_prompt, response_format=PlannedComponents)
+            .get()
+            .get_message_content()
+        )
+        
+        components = json.loads(components)['components']
         yield Executive.__name__, '\n'.join(components)
 
         summary = ""

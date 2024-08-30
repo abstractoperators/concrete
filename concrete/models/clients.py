@@ -9,6 +9,6 @@ class OpenAIClientModel(ConcreteBaseModel, KombuMixin):
     temperature: float = Field(default=0, description='Temperature of LLM Model')
 
 
-# What is this?
 class ConcreteChatCompletion(ChatCompletion, KombuMixin):
-    pass
+    def get_message_content(self) -> dict:
+        return self.choices[0].message.content

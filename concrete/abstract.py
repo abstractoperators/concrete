@@ -13,8 +13,9 @@ from .models.operations import Operation
 from .models.responses import Response, TextResponse
 from .tools import MetaTool
 
-
 # TODO replace OpenAIClientModel with GenericClientModel
+
+
 @app.task
 def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
     """
@@ -48,7 +49,9 @@ class MetaAbstractOperator(type):
     This metaclass automatically creates a '_delay' version for each method in the class, allowing these methods to be executed asynchronously using Celery workers.
 
     Classes that use this metaclass can call the asynchronous variant of a method like `some_instance.some_method.delay()`.
-    """
+
+    Note that .delay() returns a Celery AsyncResult object, which can be retrieved using .get() to get a ConcreteChatCompletion object.
+    """  # noqa E501
 
     def __new__(cls, clsname, bases, attrs):
         # identify methods and add delay functionality
@@ -80,7 +83,10 @@ class MetaAbstractOperator(type):
                     )
                     for name, client in (clients or self.clients).items()
                 }
-                return abstract_operation.delay(operation=operation, clients=client_models)
+                operation_result = abstract_operation.delay(
+                    operation=operation, clients=client_models
+                )  # (celery.result.AsyncResult) - need to .get()
+                return operation_result
 
             return _delay
 
@@ -121,7 +127,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             {'role': 'user', 'content': query},
         ]
 
-        CLIClient.emit(f'response_format: {response_format}')
         response = (
             self.clients['openai']
             .complete(
@@ -135,8 +140,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         if response.refusal:
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
-
-        CLIClient.emit(f'{type(response)}: {response}')
 
         answer = response.parsed
         return answer
@@ -172,7 +175,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     Either call the tool with the specified syntax, or leave its field blank.\n"""
                 for tool in tools:
                     query += str(tool)
-            CLIClient.emit(f"[prompt]: {query}")
             return self._qna(query, response_format=response_format, instructions=instructions)
 
         return _send_and_await_reply
