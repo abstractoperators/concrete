@@ -1,11 +1,18 @@
 import json
 from collections.abc import AsyncGenerator
 from textwrap import dedent
+from typing import Optional
 from uuid import uuid1
 
 from . import prompts
 from .clients import Client_con, OpenAIClient
-from .models.responses import PlannedComponents, ProjectDirectory, ProjectFile, Summary
+from .models.responses import (
+    PlannedComponents,
+    ProjectDirectory,
+    ProjectFile,
+    Summary,
+    Tools,
+)
 from .operators import AWSOperator, Developer, Executive
 from .operators.abstract import AbstractOperator_co
 from .state import ProjectStatus, State
@@ -117,6 +124,7 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
+                starting_prompt=self.starting_prompt,
                 max_iter=0,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
@@ -184,8 +192,8 @@ async def communicative_dehallucination(
     developer: Developer,
     summary: str,
     component: str,
-    starting_prompt: str,
     max_iter: int = 1,
+    starting_prompt: Optional[str] = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """
     Implements a communicative dehallucination process for software development.
@@ -208,6 +216,9 @@ async def communicative_dehallucination(
         f"""Previous Components summarized:\n{summary}
     Current Component: {component}"""
     )
+    if starting_prompt:
+        context = f"Starting Prompt:\n{starting_prompt}\n{context}"
+
     yield Executive.__name__, component
     # Iterative Q&A process
     q_and_a = []

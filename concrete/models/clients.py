@@ -9,5 +9,6 @@ class OpenAIClientModel(ConcreteBaseModel, KombuMixin):
     temperature: float = Field(default=0, description='Temperature of LLM Model')
 
 
+# What is this?
 class ConcreteChatCompletion(ChatCompletion, KombuMixin):
     pass
