@@ -5,6 +5,7 @@ from typing import Optional
 from uuid import uuid1
 
 from . import prompts
+from .abstract import AbstractOperator_co
 from .clients import Client_con, OpenAIClient
 from .models.responses import (
     PlannedComponents,
@@ -13,8 +14,7 @@ from .models.responses import (
     Summary,
     Tools,
 )
-from .operators import AWSOperator, Developer, Executive
-from .operators.abstract import AbstractOperator_co
+from .operators import Developer, Executive
 from .state import ProjectStatus, State
 from .tools import AwsTool
 
@@ -38,7 +38,6 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client_con],
-        aws: AWSOperator | None = None,
         deploy: bool = False,
         use_celery: bool = True,
     ):
@@ -48,7 +47,6 @@ class SoftwareProject(StatefulMixin):
         self.starting_prompt = starting_prompt
         self.exec = exec
         self.dev = dev
-        self.aws = aws
         self.exec = exec
         self.dev = dev
         self.orchestrator = orchestrator
@@ -138,9 +136,19 @@ class SoftwareProject(StatefulMixin):
         )
 
         if self.deploy:
-            if self.aws is None:
-                raise ValueError("Cannot deploy without AWSAgent")
-            self.aws.deploy(files, self.uuid)
+            # TODO Use an actual DB instead of emulating one with a dictionary
+            # TODO Figure something out safer than eval
+            yield "executive", "Deploying to AWS"
+            AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
+
+            deploy_tool_call = self.dev.chat(
+                f"""Deploy the provided project to AWS. The project directory is: {files}""",
+                tools=[AwsTool],
+                response_format=Tools,
+            )
+            for tool in deploy_tool_call.tools:
+                full_tool_call = f'{tool.tool_name}.{tool.tool_call}'
+                eval(full_tool_call)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)
@@ -167,7 +175,6 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             'exec': Executive(self.clients),
             'dev': Developer(self.clients),
         }
-        self.aws = AWSOperator()
         self.update(status=ProjectStatus.READY)
 
     def process_new_project(
@@ -179,7 +186,6 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             exec=self.operators['exec'],
             dev=self.operators['dev'],
             orchestrator=self,
-            aws=self.aws,
             clients=self.clients,
             deploy=deploy,
             use_celery=use_celery,
