@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable
 from functools import cache, partial, wraps
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
@@ -135,7 +135,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         except AttributeError:
             pass
 
-        return response_format(**json.loads(response.content))
+        return response_format(**json.loads(cast(str, response.content)))
 
     def qna(self, question_producer: Callable) -> Callable:
         """
