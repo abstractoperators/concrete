@@ -4,7 +4,7 @@ from openai.types.chat import ChatCompletion
 from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
-from .messages import RESPONSE_REGISTRY, Message
+from .messages import Message
 
 
 class OpenAIClientModel(ConcreteModel, KombuMixin):
@@ -13,8 +13,8 @@ class OpenAIClientModel(ConcreteModel, KombuMixin):
 
 
 class ConcreteChatCompletion(ChatCompletion, KombuMixin):
-    response_format: str = Field(description='Response format to parse completion into')
+    response_format_name: str = Field(description='Response format to parse completion into')
 
     def get_response(self) -> Message:
-        response_format: type[Message] = RESPONSE_REGISTRY[self.response_format]
+        response_format: type[Message] = Message.dereference(self.response_format_name)
         return response_format.model_validate(json.loads(self.choices[0].message.content))

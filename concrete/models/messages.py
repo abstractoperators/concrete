@@ -19,6 +19,8 @@ from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
 
+# Tracks all message types created as a sub class of Message
+# Keys are not type sensitive
 RESPONSE_REGISTRY = {}
 
 
@@ -27,14 +29,16 @@ class Message(ConcreteModel):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         registry_name = getattr(cls, '__registry_name__', cls.__name__)
-        RESPONSE_REGISTRY[registry_name] = cls
+        RESPONSE_REGISTRY[registry_name.lower()] = cls
 
-
-def get_response_type(name: str):
-    response_type = RESPONSE_REGISTRY.get(name.lower())
-    if response_type is None:
-        raise ValueError(f"Unknown response type: {name}")
-    return response_type
+    @classmethod
+    def dereference(cls, name: str):
+        """
+        Return the object class if it exists otherwise raise a ValueError.
+        """
+        if not (response_type := RESPONSE_REGISTRY.get(name.lower())):
+            raise ValueError(f"Unknown response type: {name}")
+        return response_type
 
 
 class Tool(Message):
