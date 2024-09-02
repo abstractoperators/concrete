@@ -11,6 +11,12 @@ Example:
     response = self.client.beta.chat.completions.parse(messages=messages, temperature=self.OPENAI_TEMPERATURE, **kwargs)
     message = response.choices[0].message
     message_formatted: MyClass = message.parsed
+    
+    
+# Allowed primitives
+https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
+The following types are supported for Structured Outputs:
+String, Number, Boolean, Integer, Object, Array, Enum, anyOf
 """
 
 from typing import List, Optional
