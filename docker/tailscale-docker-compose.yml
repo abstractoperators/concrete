@@ -1,4 +1,4 @@
-services:
+ services:
   tailscale-authkey1:
     image: tailscale/tailscale:latest
     container_name: ts-authkey-test
@@ -14,11 +14,7 @@ services:
       - net_admin
       - sys_module
     restart: unless-stopped
-    
+
   nginx-authkey-test:
     image: nginx
     network_mode: service:tailscale-authkey1
-
-volumes:
-  ts-authkey-test:
-    driver: local
