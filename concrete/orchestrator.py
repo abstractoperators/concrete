@@ -150,11 +150,9 @@ class SoftwareProject(StatefulMixin):
             deploy_tool_call = self.dev.chat(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
                 tools=[AwsTool],
-                response_format=Tools,
+                response_format=Tool,
             )
-            for tool in deploy_tool_call.tools:
-                full_tool_call = f'{tool.tool_name}.{tool.tool_call}'
-                eval(full_tool_call)  # nosec
+            invoke_tool(**deploy_tool_call.__dict__)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)
