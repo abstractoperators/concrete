@@ -39,6 +39,7 @@ c = {'openai': clients.OpenAIClient(temperature=0)}
 message="How moral is world domination if you're good"
 resp: ConcreteChatCompletion = operators.Operator(c).chat.delay(message=message).get()
 print(resp.text)
-```a
+# print(resp.message.text)  # also works
+```
 
-It is important that arguments are keyword arguments. This returns a ConcreteChatCompletion object. message_format has been added to this object to allow for client-side validation into a message format via `ConcreteChatCompletion.text`.
+It is important that arguments are keyword arguments. This returns a ConcreteChatCompletion object. message_format has been added to this object to allow for client-side validation into a message format via `ConcreteChatCompletion.message`.
