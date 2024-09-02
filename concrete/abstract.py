@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Callable
 from functools import cache, partial, wraps
-from typing import Any, List, Optional, TypeVar
+from typing import Any, List, Optional, TypeVar, cast
 
 from celery import signals
 from celery.result import AsyncResult
@@ -90,13 +90,10 @@ class MetaAbstractOperator(type):
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=MetaAbstractOperator):
-    instructions = (
-        "You are a software developer." "You will answer software development questions as concisely as possible."
-    )
 
     # TODO replace OpenAIClient with GenericClient
     def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
-        self.clients = clients
+        self._clients = clients
         self.llm_client = 'openai'
         self.llm_client_function = 'complete'
         self.tools = tools
@@ -116,7 +113,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         Synchronous.
         """
-        instructions = instructions or self.INSTRUCTIONS
+        instructions = cast(str, instructions or self.INSTRUCTIONS)
         messages = [
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
@@ -177,11 +174,14 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
     @property
     def clients(self):
+        """
+        Clients on an operator shouldn't be altered directly in normal operations.
+        """
         return self._clients
 
     @property
     @abstractmethod
-    def instructions(self) -> str:
+    def INSTRUCTIONS(self) -> str:
         """
         Define the operators base (system) instructions
         Used in qna

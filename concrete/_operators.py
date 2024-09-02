@@ -25,7 +25,7 @@ class LlmMixin(Task):
     ):
         super().__init__()
         self.uuid = uuid1()
-        self.clients = clients
+        self._clients = clients
         self.tools = tools
         # Question: What is this for?
         signals.worker_init.connect(self.on_worker_init)
@@ -141,7 +141,7 @@ class Operator(AbstractOperator):
         return message
 
 
-class Developer(AbstractOperator):
+class Developer(Operator):
     """
     Represents an Operator that produces code.
     """

@@ -13,14 +13,11 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import Field
 
 from .base import ConcreteBaseModel, KombuMixin
-
-# TODO make responses inherit from Kombu Mixin w/o nesting issues.
-# TODO Fix tool nesting issues.
 
 
 class Response(ConcreteBaseModel):
@@ -29,7 +26,11 @@ class Response(ConcreteBaseModel):
 
 class Tool(Response):
     tool_name: str = Field(description="Name of the tool")
-    tool_call: str = Field(description="Command to call the tool")
+    tool_function: str = Field(description="Command to call the tool")
+    tool_parameters: Optional[list[str]] = Field(None, description="Parameters to pass into the tool function call.")
+    tool_keyword_parameters: Optional[dict[str, str]] = Field(
+        None, description="Parameters specificed by keyword to pass into the tool function call."
+    )
 
 
 class Tools(Response):

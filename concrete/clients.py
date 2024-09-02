@@ -65,7 +65,6 @@ class OpenAIClient(Client):
 class CLIClient(Client):
     @classmethod
     def emit(cls, content: str):
-        # TODO: right now, make this a config setting
         if os.environ.get("ENV") != "PROD":
             print(content)
 
