@@ -181,7 +181,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
     @property
     @abstractmethod
-    def instructions(self) -> str:
+    def INSTRUCTIONS(self) -> str:
         """
         Define the operators base (system) instructions
         Used in qna

@@ -128,7 +128,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
-        # Doesn't work
         try:
             # Doesn't work for json_schema responses
             return response.parsed
