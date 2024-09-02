@@ -9,8 +9,8 @@ from openai.types.chat import ChatCompletion
 from .celery import app
 from .clients import CLIClient, OpenAIClient
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
+from .models.messages import Message, TextMessage
 from .models.operations import Operation
-from .models.responses import Response, TextResponse
 from .tools import MetaTool
 
 # TODO replace OpenAIClientModel with GenericClientModel
@@ -31,8 +31,8 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
             'response_format': {
               'type': 'json_schema',
               'json_schema': {
-                'name': TextResponse.__name__,
-                'schema': TextResponse.model_json_schema(),
+                'name': TextMessage.__name__,
+                'schema': TextMessage.model_json_schema(),
               },
               'strict': True,
             }
@@ -69,7 +69,7 @@ class MetaAbstractOperator(type):
                 clients: dict[str, OpenAIClient] | None = None,
                 client_name: str | None = None,
                 client_function: str | None = None,
-                response_format: type[Response] = TextResponse,
+                response_format: type[Message] = TextMessage,
                 **kwargs,
             ) -> AsyncResult:
 
@@ -121,9 +121,9 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     def _qna(
         self,
         query: str,
-        response_format: type[Response],
+        response_format: type[Message],
         instructions: str | None = None,
-    ) -> Response:
+    ) -> Message:
         """
         "Question and Answer", given a query, return an answer.
         Basically just a wrapper for OpenAI's chat completion API.
@@ -164,7 +164,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             instructions: str | None = None,
             **kwargs,
         ):
-            response_format = kwargs.pop("response_format", TextResponse)
+            response_format = kwargs.pop("response_format", TextMessage)
 
             tools = (
                 explicit_tools

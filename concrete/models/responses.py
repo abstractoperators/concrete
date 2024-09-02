@@ -17,12 +17,12 @@ from typing import List, Optional
 
 from pydantic import Field
 
-from .base import ConcreteBaseModel, KombuMixin
+from .base import ConcreteModel, KombuMixin
 
 RESPONSE_REGISTRY = {}
 
 
-class Response(ConcreteBaseModel):
+class Message(ConcreteModel):
     @classmethod
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -37,7 +37,7 @@ def get_response_type(name: str):
     return response_type
 
 
-class Tool(Response):
+class Tool(Message):
     tool_name: str = Field(description="Name of the tool")
     tool_function: str = Field(description="Command to call the tool")
     tool_parameters: Optional[list[str]] = Field(None, description="Parameters to pass into the tool function call.")
@@ -46,31 +46,31 @@ class Tool(Response):
     )
 
 
-class Tools(Response):
+class Tools(Message):
     tools: List[Tool] = Field(description="List of tools")
 
 
-class ProjectFile(Response, KombuMixin):
+class ProjectFile(Message, KombuMixin):
     file_name: str = Field(description="A file path relative to root")
     file_contents: str = Field(description="The contents of the file")
 
 
-class ProjectDirectory(Response, KombuMixin):
+class ProjectDirectory(Message, KombuMixin):
     project_name: str = Field(description="Name of the project directory")
     files: list[ProjectFile] = Field(
         description="A list of files in the project directory. Each list item represents a file"
     )
 
 
-class TextResponse(Response, KombuMixin):
+class TextMessage(Message, KombuMixin):
     text: str = Field(description="Text response")
 
 
-class Summary(Response, KombuMixin):
+class Summary(Message, KombuMixin):
     summary: list[str] = Field(
         description="A list of component summaries. Each list item represents an unbroken summary"
     )
 
 
-class PlannedComponents(Response, KombuMixin):
+class PlannedComponents(Message, KombuMixin):
     components: list[str] = Field(description="List of planned components")

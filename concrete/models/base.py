@@ -1,10 +1,10 @@
 import json
 
 from kombu.utils.json import register_type
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticModel
 
 
-class ConcreteBaseModel(BaseModel):
+class ConcreteModel(PydanticModel):
     def __str__(self):
         # Remove tools from output if empty to improve prompt chaining quality.
         # Unfortunately, still affected by nesting of tools.
@@ -30,7 +30,7 @@ class ConcreteBaseModel(BaseModel):
         return json.dumps(model_dict, indent=4)
 
 
-class KombuMixin(BaseModel):
+class KombuMixin(PydanticModel):
     """
     Represents a Mixin to allow serialization and deserialization of subclasses
     """
