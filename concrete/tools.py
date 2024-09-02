@@ -119,7 +119,8 @@ class MetaTool(type):
 
 def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str, tool_keyword_parameters: dict[str, str]):
     """
-    Throws AttributeError if the function doesn't exist.
+    Throws KeyError if the tool doesn't exist.
+    Throws AttributeError if the function on the tool doesn't exist.
     Throws TypeError if the parameters are wrong.
     """
     func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
