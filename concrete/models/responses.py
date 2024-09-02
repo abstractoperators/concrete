@@ -19,9 +19,6 @@ from pydantic import Field
 
 from .base import ConcreteBaseModel, KombuMixin
 
-# TODO make responses inherit from Kombu Mixin w/o nesting issues.
-# TODO Fix tool nesting issues.
-
 
 class Response(ConcreteBaseModel):
     pass
@@ -29,7 +26,11 @@ class Response(ConcreteBaseModel):
 
 class Tool(Response):
     tool_name: str = Field(description="Name of the tool")
-    tool_call: str = Field(description="Command to call the tool")
+    tool_function: str = Field(description="Command to call the tool")
+    tool_parameters: list[str] = Field(description="Parameters to pass into the tool function call.")
+    tool_keyword_parameters: dict[str, str] = Field(
+        description="Parameters specificed by keyword to pass into the tool function call."
+    )
 
 
 class Tools(Response):

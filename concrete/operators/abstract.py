@@ -47,7 +47,7 @@ class MetaAbstractOperator(type):
         def _delay_factory(func: Callable[..., str]) -> Callable[..., AsyncResult]:
 
             def _delay(
-                self: AbstractOperator,
+                self: "AbstractOperator",
                 *args,
                 clients: dict[str, OpenAIClient] | None = None,
                 client_name: str | None = None,
@@ -128,8 +128,14 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
-        answer = response.parsed
-        return answer
+        # Doesn't work
+        try:
+            # Doesn't work for json_schema responses
+            return response.parsed
+        except AttributeError:
+            pass
+
+        return response.content
 
     def qna(self, question_producer: Callable) -> Callable:
         """
@@ -153,6 +159,12 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
     @cache
     def __getattribute__(self, name: str) -> Any:
+        """
+        The first time a vanilla prompt function is called, add a delay
+        version of it under `func.delay`.
+
+        TODO: Switch over to kwarg argument on delay.
+        """
         attr = super().__getattribute__(name)
         if name.startswith("__") or name in {'qna', '_qna'} or not callable(attr):
             return attr
@@ -162,6 +174,12 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         prepped_func = self.qna(attr)
         prepped_func.delay = partial(prepped_func._delay, self)
         return prepped_func
+
+    def chat(cls, message: str, *args, **kwargs) -> str:
+        """
+        Chat with the operator with a direct message.
+        """
+        return message
 
 
 # Define a shmexy type var
