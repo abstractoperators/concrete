@@ -63,7 +63,7 @@ from typing import Dict, Optional
 import boto3
 
 from .clients import CLIClient, RestApiClient
-from .models.responses import ProjectDirectory
+from .models.messages import ProjectDirectory
 
 TOOLS_REGISTRY = {}
 

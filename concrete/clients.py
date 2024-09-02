@@ -5,10 +5,10 @@ import requests
 import requests.adapters
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
+from pydantic import BaseModel as PydanticModel
 from requests.adapters import HTTPAdapter, Retry
 
-from .models.base import ConcreteBaseModel
-from .models.responses import Response, TextResponse
+from .models.messages import Message, TextMessage
 
 
 class Client:
@@ -32,7 +32,7 @@ class OpenAIClient(Client):
     def complete(
         self,
         messages: list[dict[str, str]],
-        response_format: type[Response] | dict = TextResponse,
+        response_format: type[Message] | dict = TextMessage,
         temperature: float | None = None,
         **kwargs,
     ) -> ChatCompletion:
@@ -46,13 +46,16 @@ class OpenAIClient(Client):
         }
 
         # Pydantic Model
-        if isinstance(response_format, type(Response)):
+        if isinstance(response_format, type(Message)):
             return self.client.beta.chat.completions.parse(**request_params)
         # JSON Schema
         return self.client.chat.completions.create(**request_params)
 
     @staticmethod
-    def model_to_schema(model: type[ConcreteBaseModel]) -> dict[str, str | dict]:
+    def model_to_schema(model: type[PydanticModel]) -> dict[str, str | dict]:
+        """
+        Utility for formatting a pydantic model into a json output for OpenAI.
+        """
         return {
             'type': 'json_schema',
             'json_schema': {
