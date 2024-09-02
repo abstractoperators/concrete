@@ -44,10 +44,7 @@ class Message(ConcreteModel):
 class Tool(Message):
     tool_name: str = Field(description="Name of the tool")
     tool_function: str = Field(description="Command to call the tool")
-    tool_parameters: Optional[list[str]] = Field(None, description="Parameters to pass into the tool function call.")
-    tool_keyword_parameters: Optional[dict[str, str]] = Field(
-        None, description="Parameters specificed by keyword to pass into the tool function call."
-    )
+    tool_parameters: list[str] = Field(description="Parameters to pass into the tool function call.")
 
 
 class Tools(Message):
