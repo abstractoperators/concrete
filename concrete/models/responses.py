@@ -19,9 +19,22 @@ from pydantic import Field
 
 from .base import ConcreteBaseModel, KombuMixin
 
+RESPONSE_REGISTRY = {}
+
 
 class Response(ConcreteBaseModel):
-    pass
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        registry_name = getattr(cls, '__registry_name__', cls.__name__)
+        RESPONSE_REGISTRY[registry_name] = cls
+
+
+def get_response_type(name: str):
+    response_type = RESPONSE_REGISTRY.get(name.lower())
+    if response_type is None:
+        raise ValueError(f"Unknown response type: {name}")
+    return response_type
 
 
 class Tool(Response):

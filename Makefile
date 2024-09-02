@@ -70,5 +70,7 @@ rabbitmq:
 	docker rm -f rabbitmq || true
 	docker run -d -p 5672:5672 --name rabbitmq rabbitmq
 
+# TODO autoreload
 celery:
-	celery -A concrete worker --loglevel=INFO
+	rm logs/celery.log || true
+	celery -A concrete worker --loglevel=INFO -f logs/celery.log

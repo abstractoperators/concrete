@@ -39,9 +39,15 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
           }
         )
     """
+
     client = OpenAIClient(**clients[operation.client_name].model_dump())
     func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
-    return ConcreteChatCompletion(**func(**operation.arg_dict).model_dump())
+    res = func(**operation.arg_dict).model_dump()
+
+    response_name = operation.arg_dict['response_format']['json_schema']['name']
+    res['response_format'] = response_name
+
+    return ConcreteChatCompletion(**res)
 
 
 class MetaAbstractOperator(type):
