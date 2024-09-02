@@ -107,9 +107,6 @@ class MetaAbstractOperator(type):
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=MetaAbstractOperator):
-    instructions = (
-        "You are a software developer." "You will answer software development questions as concisely as possible."
-    )
 
     # TODO replace OpenAIClient with GenericClient
     def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
@@ -133,7 +130,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
         ]
-
         response = (
             self.clients['openai']
             .complete(
@@ -164,7 +160,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             instructions: str | None = None,
             **kwargs,
         ):
-            response_format = kwargs.pop("response_format", TextMessage)
+            response_format = kwargs.pop("message_format", TextMessage)
 
             tools = (
                 explicit_tools
@@ -195,7 +191,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
     @property
     @abstractmethod
-    def INSTRUCTIONS(self) -> str:
+    def instructions(self) -> str:
         """
         Define the operators base (system) instructions
         Used in qna
