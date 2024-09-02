@@ -14,7 +14,8 @@ test:
 helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
 
-helloworld_celery: 
+# Requires rabbitmq and celery worker to be running
+helloworld_celery:
 	$(ORCHESTRATE) "Create a simple hello world program" --celery
 	
 simpleflask:
@@ -68,9 +69,9 @@ aws_ecr_push_demo: aws_ecr_login
 
 rabbitmq:
 	docker rm -f rabbitmq || true
-	docker run -d -p 5672:5672 --name rabbitmq rabbitmq
+	docker run -d -p 5672:5672 --name rabbitmq rabbitmq &
 
-# TODO autoreload
-celery: 
+# TODO autoreload celery
+celery: rabbitmq
 	rm logs/celery.log || true
-	celery -A concrete worker --loglevel=INFO -f logs/celery.log
+	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
