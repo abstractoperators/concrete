@@ -1,4 +1,20 @@
 services:
+  tailscale-authkey1:
+      image: tailscale/tailscale:latest
+      container_name: ts-authkey-test
+      hostname: tailscale-authkey-kZU
+      environment:
+        - TS_AUTHKEY=tskey-auth-kZUHeFJxpM11CNTRL-w583zA12GyPuHxQar3JrxPqWw54FwreVT
+        - TS_STATE_DIR=/var/lib/tailscale
+        - TS_USERSPACE=false
+      volumes:
+        - ts-authkey-test:/var/lib/tailscale
+        - /dev/net/tun:/dev/net/tun
+      cap_add:
+        - net_admin
+        - sys_module
+      restart: unless-stopped
+
   webapp-demo:
     build:
       context: ../
