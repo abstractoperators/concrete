@@ -12,6 +12,7 @@ from .models.messages import (
     ProjectDirectory,
     ProjectFile,
     Summary,
+    TextMessage,
     Tool,
 )
 from .operators import Developer, Executive
@@ -65,7 +66,10 @@ class SoftwareProject(StatefulMixin):
         return self._do_work_plain()
 
     async def _do_work_plain(self) -> AsyncGenerator[tuple[str, str], None]:
-        components = self.exec.plan_components(self.starting_prompt, message_format=PlannedComponents).components
+        planned_components_resp: PlannedComponents = self.exec.plan_components(
+            self.starting_prompt, message_format=PlannedComponents
+        )  # type: ignore
+        components: list[str] = planned_components_resp.components
         yield Executive.__name__, '\n'.join(components)
 
         summary = ""
@@ -86,7 +90,7 @@ class SoftwareProject(StatefulMixin):
                     all_implementations.append(agent_or_implementation)
                     summary = message
 
-        files = self.dev.integrate_components(
+        files: ProjectDirectory = self.dev.integrate_components(  # type: ignore
             components, all_implementations, self.starting_prompt, message_format=ProjectDirectory
         )
 
@@ -96,23 +100,24 @@ class SoftwareProject(StatefulMixin):
             yield "executive", "Deploying to AWS"
             AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
 
-            deploy_tool_call = self.dev.chat(
+            deploy_tool_call: Tool = self.dev.chat(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
                 tools=[AwsTool],
                 message_format=Tool,
-            )
-            invoke_tool(**deploy_tool_call.dict())
+            )  # type: ignore
+            invoke_tool(**deploy_tool_call.model_dump())  # dict() is deprecated
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)
 
     # TODO: implement using Celery task calls
     async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
-        components = (
-            self.exec.plan_components.delay(starting_prompt=self.starting_prompt, message_format=PlannedComponents)
-            .get()
-            .get_response()
-        ).components
+        planned_components_resp: PlannedComponents = (
+            self.exec.plan_components.delay(
+                starting_prompt=self.starting_prompt, message_format=PlannedComponents
+            ).get()
+        ).message
+        components: list[str] = planned_components_resp.components
 
         yield Executive.__name__, '\n'.join(components)
 
@@ -128,27 +133,25 @@ class SoftwareProject(StatefulMixin):
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
                     summary = message
-        files = (
+        files: ProjectDirectory = (
             self.dev.integrate_components.delay(
                 planned_components=components,
                 implementations=all_implementations,
                 idea=self.starting_prompt,
                 message_format=ProjectDirectory,
-            )
-            .get()
-            .get_response()
-        )
+            ).get()
+        ).message
 
         if self.deploy:
             # TODO Use an actual DB instead of emulating one with a dictionary
             yield "executive", "Deploying to AWS"
             AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
 
-            deploy_tool_call = self.dev.chat.delay(
+            deploy_tool_call: Tool = self.dev.chat.delay(
                 message=f"Deploy the provided project to AWS. The project directory is: {files}",
                 tools=[AwsTool],
                 message_format=Tool,
-            ).get_response()
+            ).message
 
             invoke_tool(**deploy_tool_call.dict())
 
@@ -233,9 +236,9 @@ async def communicative_dehallucination(
     q_and_a = []
     for _ in range(max_iter):
         if celery:
-            question = developer.ask_question.delay(context=context).get().get_response()
+            question: TextMessage = developer.ask_question.delay(context=context).get().message
         else:
-            question = developer.ask_question(context)
+            question: TextMessage = developer.ask_question(context)  # type: ignore
 
         if question == "No Question":
             break
@@ -243,9 +246,9 @@ async def communicative_dehallucination(
         yield Developer.__name__, question.text
 
         if celery:
-            answer = executive.answer_question.delay(context=context, question=question).get().get_response()
+            answer: TextMessage = executive.answer_question.delay(context=context, question=question).get().message
         else:
-            answer = executive.answer_question(context, question)
+            answer: TextMessage = executive.answer_question(context, question)  # type: ignore
         q_and_a.append((question, answer))
 
         yield Executive.__name__, answer.text
@@ -257,22 +260,24 @@ async def communicative_dehallucination(
             context += f"\nAnswer: {answer}"
 
     if celery:
-        implementation = (
-            developer.implement_component.delay(context=context, message_format=ProjectFile).get().get_response()
+        implementation: ProjectFile = (
+            developer.implement_component.delay(context=context, message_format=ProjectFile).get().message
         )
     else:
-        implementation = developer.implement_component(context, message_format=ProjectFile)
+        implementation: ProjectFile = developer.implement_component(context, message_format=ProjectFile)  # type: ignore
 
     yield Developer.__name__, str(implementation)
 
     if celery:
-        summary = (
+        new_summary: Summary = (
             executive.generate_summary.delay(summary=summary, implementation=implementation, message_format=Summary)
             .get()
-            .get_response()
-        )
+            .message
+        )  # type: ignore
     else:
-        summary = executive.generate_summary(summary, implementation, message_format=Summary)
+        new_summary: Summary = executive.generate_summary(  # type: ignore
+            summary, implementation, message_format=Summary
+        )
 
-    yield Executive.__name__, str(summary)
-    yield implementation, str(summary)
+    yield Executive.__name__, str(new_summary)
+    yield implementation, str(new_summary)
