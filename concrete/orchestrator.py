@@ -270,14 +270,16 @@ async def communicative_dehallucination(
 
     if celery:
         new_summary: Summary = (
-            executive.generate_summary.delay(summary=summary, implementation=implementation, message_format=Summary)
+            executive.generate_summary.delay(
+                summary=summary, implementation=str(implementation), message_format=Summary
+            )
             .get()
             .message
         )  # type: ignore
     else:
         new_summary: Summary = executive.generate_summary(  # type: ignore
-            summary, implementation, message_format=Summary
-        )
+            summary, str(implementation), message_format=Summary
+        ).summary
 
     yield Executive.__name__, str(new_summary)
-    yield implementation, str(new_summary)
+    yield Executive.__name__, str(implementation)
