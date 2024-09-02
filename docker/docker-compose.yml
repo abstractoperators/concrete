@@ -1,19 +1,46 @@
 services:
-  tailscale-authkey1:
+  ts-oauth-homepage:
       image: tailscale/tailscale:latest
-      container_name: ts-authkey-test
-      hostname: tailscale-authkey-kZU
+      container_name: ts-oauth-homepage
+      hostname: ts-oauth-homepage
       environment:
-        - TS_AUTHKEY=tskey-auth-kZUHeFJxpM11CNTRL-w583zA12GyPuHxQar3JrxPqWw54FwreVT
+        - TS_AUTHKEY=${TS_AUTHKEY}
         - TS_STATE_DIR=/var/lib/tailscale
-        - TS_USERSPACE=false
+        - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
       volumes:
-        - ts-authkey-test:/var/lib/tailscale
         - /dev/net/tun:/dev/net/tun
       cap_add:
         - net_admin
         - sys_module
       restart: unless-stopped
+
+  webapp-homepage:
+    image: webapp-homepage
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.homepage
+    container_name: webapp-homepage
+    env_file:
+      - path: "../.env"
+        required: false
+    network_mode: service:ts-oauth-homepage
+    platform: linux/arm64
+    
+
+  ts-oauth-demo:
+    image: tailscale/tailscale:latest
+    container_name: ts-oauth-demo
+    hostname: ts-oauth-demo
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
 
   webapp-demo:
     build:
@@ -28,37 +55,25 @@ services:
     env_file: 
       - path: "../.env.demo"
         required: false
-    network_mode: service:tailscale-authkey1
+    network_mode: service:ts-oauth-demo
     platform: linux/arm64
 
-  dind-builder:
-    build:
-      context: ../
-      dockerfile: ./docker/Dockerfile.dind-builder
-    image: dind-builder:latest
-    container_name: dind-builder
-    privileged: true
-    volumes:
-      - /shared:/shared
-    environment:
-      - SHARED_VOLUME=/shared
-    env_file:
-      - path: "../.env.dind-builder"
-        required: false
-    platform: linux/arm64
+  # dind-builder:
+  #   build:
+  #     context: ../
+  #     dockerfile: ./docker/Dockerfile.dind-builder
+  #   image: dind-builder:latest
+  #   container_name: dind-builder
+  #   privileged: true
+  #   volumes:
+  #     - /shared:/shared
+  #   environment:
+  #     - SHARED_VOLUME=/shared
+  #   env_file:
+  #     - path: "../.env.dind-builder"
+  #       required: false
+  #   platform: linux/arm64
 
-  webapp-homepage:
-    image: webapp-homepage
-    build:
-      context: ../
-      dockerfile: ./docker/Dockerfile.homepage
-    container_name: webapp-homepage
-    env_file:
-      - path: "../.env"
-        required: false
-    network_mode: service:tailscale-authkey1
-    platform: linux/arm64
 
 volumes:
   shared-volume:
-  ts-authkey-test:
