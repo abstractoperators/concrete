@@ -44,7 +44,7 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
     func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
     res = func(**operation.arg_dict).model_dump()
 
-    response_name = operation.arg_dict['response_format']['json_schema']['name']
+    response_name = cast(dict, operation.arg_dict['response_format'])['json_schema']['name']
     res['response_format'] = response_name
 
     return ConcreteChatCompletion(**res)
