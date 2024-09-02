@@ -101,7 +101,6 @@ class MetaAbstractOperator(type):
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=MetaAbstractOperator):
-
     # TODO replace OpenAIClient with GenericClient
     def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
         self.clients = clients
@@ -118,9 +117,9 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         """
         "Question and Answer", given a query, return an answer.
         Basically just a wrapper for OpenAI's chat completion API.
-
-        Synchronous.
         """
+        CLIClient.emit(query)
+        CLIClient.emit(response_format)
         instructions = instructions or self.instructions
         messages = [
             {'role': 'system', 'content': instructions},

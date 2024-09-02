@@ -117,7 +117,7 @@ class SoftwareProject(StatefulMixin):
             .get()
             .get_message_content()
         )
-        
+
         components = json.loads(components)['components']
         yield Executive.__name__, '\n'.join(components)
 
