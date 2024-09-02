@@ -58,7 +58,7 @@ class MetaAbstractOperator(type):
         def _delay_factory(func: Callable[..., str]) -> Callable[..., AsyncResult]:
 
             def _delay(
-                self: AbstractOperator,
+                self: "AbstractOperator",
                 *args,
                 clients: dict[str, OpenAIClient] | None = None,
                 client_name: str | None = None,
