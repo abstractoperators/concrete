@@ -101,15 +101,13 @@ class SoftwareProject(StatefulMixin):
                 tools=[AwsTool],
                 response_format=Tool,
             )
-            invoke_tool(**deploy_tool_call.dict())  # nosec
+            invoke_tool(**deploy_tool_call.dict())
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)
 
     # TODO: implement using Celery task calls
     async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
-        # components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
-
         components = (
             self.exec.plan_components.delay(starting_prompt=self.starting_prompt, response_format=PlannedComponents)
             .get()
@@ -143,7 +141,6 @@ class SoftwareProject(StatefulMixin):
 
         if self.deploy:
             # TODO Use an actual DB instead of emulating one with a dictionary
-            # TODO Figure something out safer than eval
             yield "executive", "Deploying to AWS"
             AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
 
@@ -153,7 +150,7 @@ class SoftwareProject(StatefulMixin):
                 response_format=Tool,
             ).get_response()
 
-            invoke_tool(**deploy_tool_call.dict())  # nosec
+            invoke_tool(**deploy_tool_call.dict())
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)
