@@ -113,10 +113,9 @@ class SoftwareProject(StatefulMixin):
         components = (
             self.exec.plan_components.delay(starting_prompt=self.starting_prompt, response_format=PlannedComponents)
             .get()
-            .get_message_content()
-        )
+            .get_response()
+        ).components
 
-        components = json.loads(components)['components']
         yield Executive.__name__, '\n'.join(components)
 
         summary = ""
@@ -124,21 +123,22 @@ class SoftwareProject(StatefulMixin):
         for component in components:
             # Use communicative_dehallucination for each component
             async for agent_or_implementation, message in communicative_dehallucination(
-                self.exec,
-                self.dev,
-                summary,
-                component,
-                starting_prompt=self.starting_prompt,
-                max_iter=0,
+                self.exec, self.dev, summary, component, starting_prompt=self.starting_prompt, max_iter=0, celery=True
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
                     yield agent_or_implementation, message
                 else:  # last result
                     all_implementations.append(agent_or_implementation)
                     summary = message
-
-        files = self.dev.integrate_components(
-            components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
+        files = (
+            self.dev.integrate_components.delay(
+                planned_components=components,
+                implementations=all_implementations,
+                idea=self.starting_prompt,
+                response_format=ProjectDirectory,
+            )
+            .get()
+            .get_response()
         )
 
         if self.deploy:
@@ -147,11 +147,12 @@ class SoftwareProject(StatefulMixin):
             yield "executive", "Deploying to AWS"
             AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
 
-            deploy_tool_call = self.dev.chat(
-                f"""Deploy the provided project to AWS. The project directory is: {files}""",
+            deploy_tool_call = self.dev.chat.delay(
+                message=f"Deploy the provided project to AWS. The project directory is: {files}",
                 tools=[AwsTool],
                 response_format=Tool,
-            )
+            ).get_response()
+
             invoke_tool(**deploy_tool_call.dict())  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
@@ -204,6 +205,7 @@ async def communicative_dehallucination(
     component: str,
     max_iter: int = 1,
     starting_prompt: Optional[str] = None,
+    celery: bool = False,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """
     Implements a communicative dehallucination process for software development.
@@ -233,14 +235,20 @@ async def communicative_dehallucination(
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):
-        question = developer.ask_question(context)
+        if celery:
+            question = developer.ask_question.delay(context=context).get().get_response()
+        else:
+            question = developer.ask_question(context)
 
         if question == "No Question":
             break
 
         yield Developer.__name__, question.text
 
-        answer = executive.answer_question(context, question)
+        if celery:
+            answer = executive.answer_question.delay(context=context, question=question).get().get_response()
+        else:
+            answer = executive.answer_question(context, question)
         q_and_a.append((question, answer))
 
         yield Executive.__name__, answer.text
@@ -251,14 +259,23 @@ async def communicative_dehallucination(
             context += f"\nQuestion: {question}"
             context += f"\nAnswer: {answer}"
 
-    # Developer implements component based on clarified context
-    implementation = developer.implement_component(context, response_format=ProjectFile)
+    if celery:
+        implementation = (
+            developer.implement_component.delay(context=context, response_format=ProjectFile).get().get_response()
+        )
+    else:
+        implementation = developer.implement_component(context, response_format=ProjectFile)
 
     yield Developer.__name__, str(implementation)
 
-    # Generate a summary of what has been achieved
-    summary = executive.generate_summary(summary, implementation, response_format=Summary)
+    if celery:
+        summary = (
+            executive.generate_summary.delay(summary=summary, implementation=implementation, response_format=Summary)
+            .get()
+            .get_response()
+        )
+    else:
+        summary = executive.generate_summary(summary, implementation, response_format=Summary)
 
     yield Executive.__name__, str(summary)
-
     yield implementation, str(summary)

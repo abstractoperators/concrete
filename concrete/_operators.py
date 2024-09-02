@@ -205,12 +205,12 @@ For its summary:
 2. Objectively summarize the component's purpose and functionality.
 3. Be concise and clear.
 
-Example Syntax:
-1. Imported numpy as np from the numpy package in the file 'main.py'
-2. Created a function named 'calculate_mean' that calculates the mean of a np.array in the file 'util.py'
-3. Imported the 'calculate_mean' function in the file 'main.py'
-3. Instantiated a variable 'foo' as an np.array in the file 'main.py'
-4. Used calculate_mean to calculate the mean of 'foo' in the file 'main.py'
+Example Output:
+["1. Imported numpy as np from the numpy package in the file 'main.py'",
+"2. Created a function named 'calculate_mean' that calculates the mean of a np.array in the file 'util.py'",
+"3. Imported the 'calculate_mean' function in the file 'main.py'",
+"3. Instantiated a variable 'foo' as an np.array in the file 'main.py'",
+"4. Used calculate_mean to calculate the mean of 'foo' in the file 'main.py'"]
 
 Current Component Implementation: {implementation}
 Previous Components: {summary}"""  # noqa E501
