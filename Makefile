@@ -14,7 +14,7 @@ test:
 helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
 
-helloworld_celery:
+helloworld_celery: celery
 	$(ORCHESTRATE) "Create a simple hello world program" --celery
 	
 simpleflask:
@@ -71,6 +71,6 @@ rabbitmq:
 	docker run -d -p 5672:5672 --name rabbitmq rabbitmq
 
 # TODO autoreload
-celery:
+celery: rabbitmq
 	rm logs/celery.log || true
 	celery -A concrete worker --loglevel=INFO -f logs/celery.log
