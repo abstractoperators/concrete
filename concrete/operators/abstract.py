@@ -1,21 +1,19 @@
-from abc import abstractmethod
+import json
 from collections.abc import Callable
 from functools import cache, partial, wraps
-from typing import Any, List, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
 
-from .celery import app
-from .clients import CLIClient, OpenAIClient
-from .models.clients import ConcreteChatCompletion, OpenAIClientModel
-from .models.operations import Operation
-from .models.responses import Response, TextResponse
-from .tools import MetaTool
+from ..celery import app
+from ..clients import CLIClient, OpenAIClient
+from ..models.clients import ConcreteChatCompletion, OpenAIClientModel
+from ..models.operations import Operation
+from ..models.responses import Response, TextResponse
+
 
 # TODO replace OpenAIClientModel with GenericClientModel
-
-
 @app.task
 def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
     """
@@ -45,20 +43,12 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
 
 
 class MetaAbstractOperator(type):
-    """
-    This metaclass automatically creates a '_delay' version for each method in the class, allowing these methods to be executed asynchronously using Celery workers.
-
-    Classes that use this metaclass can call the asynchronous variant of a method like `some_instance.some_method.delay()`.
-
-    Note that .delay() returns a Celery AsyncResult object, which can be retrieved using .get() to get a ConcreteChatCompletion object.
-    """  # noqa E501
-
     def __new__(cls, clsname, bases, attrs):
         # identify methods and add delay functionality
         def _delay_factory(func: Callable[..., str]) -> Callable[..., AsyncResult]:
 
             def _delay(
-                self: AbstractOperator,
+                self: "AbstractOperator",
                 *args,
                 clients: dict[str, OpenAIClient] | None = None,
                 client_name: str | None = None,
@@ -83,10 +73,7 @@ class MetaAbstractOperator(type):
                     )
                     for name, client in (clients or self.clients).items()
                 }
-                operation_result = abstract_operation.delay(
-                    operation=operation, clients=client_models
-                )  # (celery.result.AsyncResult) - need to .get()
-                return operation_result
+                return abstract_operation.delay(operation=operation, clients=client_models)
 
             return _delay
 
@@ -101,28 +88,28 @@ class MetaAbstractOperator(type):
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=MetaAbstractOperator):
-    instructions = (
+    INSTRUCTIONS = (
         "You are a software developer." "You will answer software development questions as concisely as possible."
     )
 
-    # TODO replace OpenAIClient with GenericClient
-    def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
-        self._clients = clients
+    def __init__(self, clients: dict[str, OpenAIClient]):
+        self.clients = clients
         self.llm_client = 'openai'
         self.llm_client_function = 'complete'
-        self.tools = tools
 
     def _qna(
         self,
         query: str,
-        response_format: type[Response],
         instructions: str | None = None,
+        response_format: type[Response] = TextResponse,
     ) -> Response:
         """
         "Question and Answer", given a query, return an answer.
         Basically just a wrapper for OpenAI's chat completion API.
+
+        Synchronous.
         """
-        instructions = cast(str, instructions or self.instructions)
+        instructions = instructions or self.INSTRUCTIONS
         messages = [
             {'role': 'system', 'content': instructions},
             {'role': 'user', 'content': query},
@@ -142,8 +129,13 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
-        answer = response.parsed
-        return answer
+        try:
+            # Doesn't work for json_schema responses
+            return response.parsed
+        except AttributeError:
+            pass
+
+        return response_format.model_validate(json.loads(cast(str, response.content)))
 
     def qna(self, question_producer: Callable) -> Callable:
         """
@@ -156,48 +148,23 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         def _send_and_await_reply(
             *args,
             instructions: str | None = None,
+            response_format: type[Response] = TextResponse,
             **kwargs,
         ):
-            response_format = kwargs.pop("response_format", TextResponse)
-
-            tools = (
-                explicit_tools
-                if (explicit_tools := kwargs.pop("tools", []))
-                else (self.tools if kwargs.pop('use_tools', False) else [])
-            )
-
             query = question_producer(*args, **kwargs)
-
-            # Add additional prompt to inform agent about tools
-            if tools:
-                # LLMs don't really know what should go in what field even if output struct
-                # is guaranteed
-                query += """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.\n"""
-                for tool in tools:
-                    query += str(tool)
-            return self._qna(query, response_format=response_format, instructions=instructions)
+            CLIClient.emit(f"[prompt]: {query}")
+            return self._qna(query, instructions=instructions, response_format=response_format)
 
         return _send_and_await_reply
 
-    @property
-    def clients(self):
-        """
-        Clients on an operator shouldn't be altered directly in normal operations.
-        """
-        return self._clients
-
-    @property
-    @abstractmethod
-    def INSTRUCTIONS(self) -> str:
-        """
-        Define the operators base (system) instructions
-        Used in qna
-        """
-        pass
-
     @cache
     def __getattribute__(self, name: str) -> Any:
+        """
+        The first time a vanilla prompt function is called, add a delay
+        version of it under `func.delay`.
+
+        TODO: Switch over to kwarg argument on delay.
+        """
         attr = super().__getattribute__(name)
         if name.startswith("__") or name in {'qna', '_qna'} or not callable(attr):
             return attr
@@ -208,5 +175,13 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         prepped_func.delay = partial(prepped_func._delay, self)
         return prepped_func
 
+    def chat(cls, message: str, *args, **kwargs) -> str:
+        """
+        Chat with the operator with a direct message.
+        """
+        return message
 
+
+# Define a shmexy type var
+# Covariance: If A is a subclass of B, then SomeClass[A] is considered a subclass of SomeClass[B].
 AbstractOperator_co = TypeVar('AbstractOperator_co', bound=AbstractOperator, covariant=True)

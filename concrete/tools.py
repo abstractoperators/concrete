@@ -10,12 +10,7 @@ eg) [AwsTool.deploy_to_aws(example_directory_name)]
         - The benefit of keeping tools inside a toolclass is to provide the tool organized helper functions.
     b) Possible alternatives involving removal of tool class. https://stackoverflow.com/questions/20093811/how-do-i-change-the-representation-of-a-python-function. This would remove the complicated metaclass entirely in favor of a decorated function.
 
-2) TODO: Fix tool nesting.
-    a) ATM, all responses inherit from Tools class. This is good, but we only want the outermost response to have a tools field.
-    eg) ProjectFile inherits from Tools, and so does ProjectDirectory.
-    ProjectDirectory should have a list of ProjectFiles, but we only want ProjectDirectory to have tools.
-
-3) TODO: Update prompting to get good tool call behavior.
+2) TODO: Update prompting to get good tool call behavior.
 
 Example:
 In this example, TestTool is an example Tool that can be provided to an operator qna.
@@ -70,6 +65,8 @@ import boto3
 from .clients import CLIClient, RestApiClient
 from .models.responses import ProjectDirectory
 
+TOOLS_REGISTRY = {}
+
 
 class MetaTool(type):
     """
@@ -109,13 +106,25 @@ class MetaTool(type):
         attrs['_str_representation'] = f"{name} Tool with methods:\n" + "\n".join(
             f"   - {info}" for info in method_info
         )
-        return super().__new__(cls, name, bases, attrs)
+        new_class = super().__new__(cls, name, bases, attrs)
+        TOOLS_REGISTRY[name] = new_class
+        return new_class
 
     def __str__(cls):
         return cls._str_representation
 
     def __repr__(cls):
         return str(cls)
+
+
+def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str, tool_keyword_parameters: dict[str, str]):
+    """
+    Throws KeyError if the tool doesn't exist.
+    Throws AttributeError if the function on the tool doesn't exist.
+    Throws TypeError if the parameters are wrong.
+    """
+    func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
+    return func(*tool_parameters, **tool_keyword_parameters)
 
 
 class RestApiTool(metaclass=MetaTool):
