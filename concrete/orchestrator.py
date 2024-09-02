@@ -65,7 +65,7 @@ class SoftwareProject(StatefulMixin):
         return self._do_work_plain()
 
     async def _do_work_plain(self) -> AsyncGenerator[tuple[str, str], None]:
-        components = self.exec.plan_components(self.starting_prompt, response_format=PlannedComponents).components
+        components = self.exec.plan_components(self.starting_prompt, message_format=PlannedComponents).components
         yield Executive.__name__, '\n'.join(components)
 
         summary = ""
@@ -87,7 +87,7 @@ class SoftwareProject(StatefulMixin):
                     summary = message
 
         files = self.dev.integrate_components(
-            components, all_implementations, self.starting_prompt, response_format=ProjectDirectory
+            components, all_implementations, self.starting_prompt, message_format=ProjectDirectory
         )
 
         if self.deploy:
@@ -99,7 +99,7 @@ class SoftwareProject(StatefulMixin):
             deploy_tool_call = self.dev.chat(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
                 tools=[AwsTool],
-                response_format=Tool,
+                message_format=Tool,
             )
             invoke_tool(**deploy_tool_call.dict())
 
@@ -109,7 +109,7 @@ class SoftwareProject(StatefulMixin):
     # TODO: implement using Celery task calls
     async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
         components = (
-            self.exec.plan_components.delay(starting_prompt=self.starting_prompt, response_format=PlannedComponents)
+            self.exec.plan_components.delay(starting_prompt=self.starting_prompt, message_format=PlannedComponents)
             .get()
             .get_response()
         ).components
@@ -133,7 +133,7 @@ class SoftwareProject(StatefulMixin):
                 planned_components=components,
                 implementations=all_implementations,
                 idea=self.starting_prompt,
-                response_format=ProjectDirectory,
+                message_format=ProjectDirectory,
             )
             .get()
             .get_response()
@@ -147,7 +147,7 @@ class SoftwareProject(StatefulMixin):
             deploy_tool_call = self.dev.chat.delay(
                 message=f"Deploy the provided project to AWS. The project directory is: {files}",
                 tools=[AwsTool],
-                response_format=Tool,
+                message_format=Tool,
             ).get_response()
 
             invoke_tool(**deploy_tool_call.dict())
@@ -258,21 +258,21 @@ async def communicative_dehallucination(
 
     if celery:
         implementation = (
-            developer.implement_component.delay(context=context, response_format=ProjectFile).get().get_response()
+            developer.implement_component.delay(context=context, message_format=ProjectFile).get().get_response()
         )
     else:
-        implementation = developer.implement_component(context, response_format=ProjectFile)
+        implementation = developer.implement_component(context, message_format=ProjectFile)
 
     yield Developer.__name__, str(implementation)
 
     if celery:
         summary = (
-            executive.generate_summary.delay(summary=summary, implementation=implementation, response_format=Summary)
+            executive.generate_summary.delay(summary=summary, implementation=implementation, message_format=Summary)
             .get()
             .get_response()
         )
     else:
-        summary = executive.generate_summary(summary, implementation, response_format=Summary)
+        summary = executive.generate_summary(summary, implementation, message_format=Summary)
 
     yield Executive.__name__, str(summary)
     yield implementation, str(summary)

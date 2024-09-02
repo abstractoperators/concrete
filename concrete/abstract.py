@@ -28,7 +28,7 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
           'complete',
           {
             'messages': [{'role': 'user', 'content': 'pass butter'}],
-            'response_format': {
+            'message_format': {
               'type': 'json_schema',
               'json_schema': {
                 'name': TextMessage.__name__,
@@ -44,8 +44,8 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
     func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
     res = func(**operation.arg_dict).model_dump()
 
-    response_name = cast(dict, operation.arg_dict['response_format'])['json_schema']['name']
-    res['response_format'] = response_name
+    message_format_name = cast(dict, operation.arg_dict['message_format'])['json_schema']['name']
+    res['message_format_name'] = message_format_name
 
     return ConcreteChatCompletion(**res)
 
@@ -69,7 +69,7 @@ class MetaAbstractOperator(type):
                 clients: dict[str, OpenAIClient] | None = None,
                 client_name: str | None = None,
                 client_function: str | None = None,
-                response_format: type[Message] = TextMessage,
+                message_format: type[Message] = TextMessage,
                 **kwargs,
             ) -> AsyncResult:
 
@@ -78,7 +78,7 @@ class MetaAbstractOperator(type):
                     function_name=client_function or self.llm_client_function,
                     arg_dict={
                         'messages': [{'role': 'user', 'content': func(self, **kwargs)}],
-                        'response_format': OpenAIClient.model_to_schema(response_format),
+                        'message_format': OpenAIClient.model_to_schema(message_format),
                     },
                 )
                 # TODO unhardcode client conversion

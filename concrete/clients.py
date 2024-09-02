@@ -32,7 +32,7 @@ class OpenAIClient(Client):
     def complete(
         self,
         messages: list[dict[str, str]],
-        response_format: type[Message] | dict = TextMessage,
+        message_format: type[Message] | dict = TextMessage,
         temperature: float | None = None,
         **kwargs,
     ) -> ChatCompletion:
@@ -41,12 +41,12 @@ class OpenAIClient(Client):
             "messages": messages,
             "model": self.model,
             "temperature": temperature or self.default_temperature,
-            "response_format": response_format,
+            "response_format": message_format,
             **kwargs,
         }
 
         # Pydantic Model
-        if isinstance(response_format, type(Message)):
+        if isinstance(message_format, type(Message)):
             return self.client.beta.chat.completions.parse(**request_params)
         # JSON Schema
         return self.client.chat.completions.create(**request_params)

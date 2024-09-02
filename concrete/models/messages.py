@@ -11,12 +11,12 @@ Example:
     response = self.client.beta.chat.completions.parse(messages=messages, temperature=self.OPENAI_TEMPERATURE, **kwargs)
     message = response.choices[0].message
     message_formatted: MyClass = message.parsed
-    
-    
 # Allowed primitives
 https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
 The following types are supported for Structured Outputs:
 String, Number, Boolean, Integer, Object, Array, Enum, anyOf
+
+Optional is not allowed with OpenAI Structured Outputs. All fields must be required.
 """
 
 from typing import List
@@ -27,7 +27,7 @@ from .base import ConcreteModel, KombuMixin
 
 # Tracks all message types created as a sub class of Message
 # Keys are not type sensitive
-RESPONSE_REGISTRY = {}
+MESSAGE_REGISTRY = {}
 
 
 class Message(ConcreteModel):
@@ -35,16 +35,16 @@ class Message(ConcreteModel):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         registry_name = getattr(cls, '__registry_name__', cls.__name__)
-        RESPONSE_REGISTRY[registry_name.lower()] = cls
+        MESSAGE_REGISTRY[registry_name.lower()] = cls
 
     @classmethod
     def dereference(cls, name: str):
         """
         Return the object class if it exists otherwise raise a ValueError.
         """
-        if not (response_type := RESPONSE_REGISTRY.get(name.lower())):
+        if not (message_type := MESSAGE_REGISTRY.get(name.lower())):
             raise ValueError(f"Unknown response type: {name}")
-        return response_type
+        return message_type
 
 
 class Tool(Message):
@@ -71,7 +71,7 @@ class ProjectDirectory(Message, KombuMixin):
 
 
 class TextMessage(Message, KombuMixin):
-    text: str = Field(description="Text response")
+    text: str = Field(description="Text")
 
 
 class Summary(Message, KombuMixin):

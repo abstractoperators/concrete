@@ -13,8 +13,8 @@ class OpenAIClientModel(ConcreteModel, KombuMixin):
 
 
 class ConcreteChatCompletion(ChatCompletion, KombuMixin):
-    response_format_name: str = Field(description='Response format to parse completion into')
+    message_format_name: str = Field(description='Response format to parse completion into')
 
     def get_response(self) -> Message:
-        response_format: type[Message] = Message.dereference(self.response_format_name)
-        return response_format.model_validate(json.loads(self.choices[0].message.content or "{}"))
+        message_format: type[Message] = Message.dereference(self.message_format_name)
+        return message_format.model_validate(json.loads(self.choices[0].message.content or "{}"))
