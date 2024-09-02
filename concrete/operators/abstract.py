@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from functools import cache, partial, wraps
 from typing import Any, TypeVar
@@ -134,7 +135,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         except AttributeError:
             pass
 
-        return response.content
+        return response_format(**json.loads(response.content))
 
     def qna(self, question_producer: Callable) -> Callable:
         """

@@ -103,7 +103,7 @@ class SoftwareProject(StatefulMixin):
                 tools=[AwsTool],
                 response_format=Tool,
             )
-            invoke_tool(**json.loads(deploy_tool_call))  # nosec
+            invoke_tool(**deploy_tool_call.__dict__)  # nosec
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)
