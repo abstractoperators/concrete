@@ -12,7 +12,7 @@ class Operator(AbstractOperator):
         "You will clearly state if a task is beyond your capabilities. "
     )
 
-    def chat(cls, message: str, *args, **kwargs) -> str:
+    def chat(self, message: str, *args, **kwargs) -> str:
         """
         Chat with the operator with a direct message.
         """
