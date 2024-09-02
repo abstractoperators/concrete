@@ -1,129 +1,7 @@
-from abc import abstractmethod
-from functools import wraps
 from textwrap import dedent
-from typing import Callable, List
-from uuid import uuid1
-
-from celery import Task, signals
-from pydantic import BaseModel
+from typing import List
 
 from .abstract import AbstractOperator
-from .clients import CLIClient, Client
-from .models.responses import TextResponse
-from .tools import MetaTool
-
-
-class LlmMixin(Task):
-    """
-    Represents the base Operator for further implementation.
-    """
-
-    def __init__(
-        self,
-        clients: dict[str, Client],
-        tools: list[MetaTool] | None = None,
-    ):
-        super().__init__()
-        self.uuid = uuid1()
-        self._clients = clients
-        self.tools = tools
-        # Question: What is this for?
-        signals.worker_init.connect(self.on_worker_init)
-
-    @property
-    @abstractmethod
-    def instructions(self) -> str:
-        """
-        Define the operators base instructions.
-
-        Used in LlmMixin.qna
-        """
-        pass
-
-    @property
-    def clients(self):
-        return self._clients
-
-    def on_worker_init(self, *args, **kwargs):
-        self._clients: dict[str, Client] = kwargs['clients']
-
-    def _qna(
-        self,
-        query: str,
-        response_format: BaseModel | None = None,
-    ) -> BaseModel:
-        """
-        "Question and Answer", given a query, return an answer.
-        Basically just a wrapper for OpenAI's chat completion API.
-
-        Synchronous.
-        """
-        instructions = self.instructions
-        instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
-        instructions += "\nFor each user request: Think about the response syntax, and how that relates to your task. Then, provide a complete and accurate response."  # noqa E501
-        messages = [
-            {'role': 'system', 'content': instructions},
-            {'role': 'user', 'content': query},
-        ]
-
-        response = (
-            self.clients["openai"]
-            .complete(
-                messages=messages,
-                response_format=response_format if response_format else TextResponse,
-            )
-            .choices[0]
-        ).message
-
-        if response.refusal:
-            CLIClient.emit(f"Operator refused to answer question: {query}")
-            raise Exception("Operator refused to answer question")
-
-        answer = response.parsed
-
-        CLIClient.emit(query)
-        return answer
-
-    @classmethod
-    def qna(cls, question_producer: Callable) -> Callable:
-        """
-        Decorate something on a child object downstream to get a response from a query.
-
-        question_producer is expected to return a request like "Create a website that does xyz"
-
-        The decorated function will support some extra optionality:
-
-        response_format (BaseModel): Guarantee a json structured output.
-        tools (list[MetaTool]): Pass in tools for the operator to use. Supercedes use_tools
-        use_tools (bool): Prompt the operator to use tools that it has.
-        """
-
-        @wraps(question_producer)
-        def _send_and_await_reply(*args, **kwargs):
-            self = args[0]
-            # TODO: change response_format based on if use_tools is toggled
-            response_format = kwargs.pop("response_format", None)
-
-            # Use `tools=...` if provided, otherwise check `use_tools` and use `self.tools` if True
-            tools = (
-                explicit_tools
-                if (explicit_tools := kwargs.pop("tools", []))
-                else (self.tools if kwargs.pop('use_tools', False) else [])
-            )
-
-            query = question_producer(*args, **kwargs)
-
-            # Add additional prompt to inform agent about tools
-            if tools:
-                # LLMs don't really know what should go in what field even if output struct
-                # is guaranteed
-                query += """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.\n"""
-                for tool in tools:
-                    query += str(tool)
-            return self._qna(query, response_format=response_format)
-
-        return _send_and_await_reply
 
 
 class Operator(AbstractOperator):
@@ -260,7 +138,7 @@ Create a paragraph with the text `Hello, World!`
         return out_str
 
 
-class Executive(AbstractOperator):
+class Executive(Operator):
     """
     Represents an Operator that instructs and guides other Operators.
     """
@@ -339,7 +217,7 @@ Previous Components: {summary}"""  # noqa E501
         return prompt
 
 
-class PromptEngineer(AbstractOperator):
+class PromptEngineer(Operator):
     instructions = """
 You are a world-class AI prompt engineer. Your task is to create base prompts that will guide other AI agents in producing high-quality, reliable, and innovative results.
 These prompts are not meant to be self-contained. It is merely a persona an AI agent will adopt while processing an explicit instruction that will be added to the base prompt later.
@@ -363,13 +241,13 @@ Core instructions:
         """  # noqa E501
 
 
-class ProductManager(AbstractOperator):
+class ProductManager(Operator):
     instructions = """
 As the Product Manager for our AI Agent Orchestration startup, your mission is to conceptualize and drive. the development of innovative features that streamline the coordination of multiple AI agents to achieve complex tasks. Your work involves translating high-level business objectives into actionable product roadmaps, ensuring that our platform remains intuitive, efficient, and scalable.
 """  # noqa E501
 
 
-class Designer(AbstractOperator):
+class Designer(Operator):
     instructions = """
 As an AI orchestrator, your task is to conceptualize and design intuitive, user-friendly interfaces and workflows that enable seamless interaction between AI agents and users. Your designs should prioritize clarity, ensuring that users can easily understand and navigate the system, and completeness, providing all necessary components and information for a comprehensive user experience.
 
@@ -377,7 +255,7 @@ Your designs should be specific in addressing user needs, guiding the user throu
     """  # noqa E501
 
 
-class Salesperson(AbstractOperator):
+class Salesperson(Operator):
     instructions = """
         You are a top-tier salesperson at a leading AI agent orchestration startup. Your role is to communicate the transformative potential of our AI solutions to prospective clients, emphasizing how our technology can seamlessly integrate into their operations to enhance efficiency, drive innovation, and boost their bottom line.
     """  # noqa E501
