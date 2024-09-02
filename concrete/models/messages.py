@@ -19,7 +19,7 @@ The following types are supported for Structured Outputs:
 String, Number, Boolean, Integer, Object, Array, Enum, anyOf
 """
 
-from typing import List, Optional
+from typing import List
 
 from pydantic import Field
 
@@ -57,6 +57,7 @@ class Tools(Message):
     tools: List[Tool] = Field(description="List of tools")
 
 
+# N.B. KombuMixin must be added to each leaf child node class due to serializer registration
 class ProjectFile(Message, KombuMixin):
     file_name: str = Field(description="A file path relative to root")
     file_contents: str = Field(description="The contents of the file")
