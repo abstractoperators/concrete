@@ -15,7 +15,8 @@ helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
 
 # Requires rabbitmq and celery worker to be running
-helloworld_celery:
+helloworld_celery: celery
+	sleep 10
 	$(ORCHESTRATE) "Create a simple hello world program" --celery
 	
 simpleflask:
