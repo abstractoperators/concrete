@@ -17,4 +17,4 @@ class ConcreteChatCompletion(ChatCompletion, KombuMixin):
 
     def get_response(self) -> Message:
         response_format: type[Message] = Message.dereference(self.response_format_name)
-        return response_format.model_validate(json.loads(self.choices[0].message.content))
+        return response_format.model_validate(json.loads(self.choices[0].message.content or "{}"))
