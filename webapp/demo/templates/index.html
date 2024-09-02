@@ -60,7 +60,7 @@
 
         ws.onmessage = function (event) {
             const payload = JSON.parse(event.data);
-            const { agent_type, timestamp, message: messageText, completed } = payload;
+            const { operator_type, timestamp, message: messageText, completed } = payload;
 
             const messages = document.getElementById('messages');
             const messageElement = document.createElement('div');
@@ -69,7 +69,7 @@
                 var submitPrompt = document.getElementById("submitPrompt")
                 submitPrompt.disabled = false
             } else {
-                messageElement.className = `message ${agent_type.toLowerCase()}`;
+                messageElement.className = `message ${operator_type.toLowerCase()}`;
             }
 
             messageElement.innerHTML = messageText;

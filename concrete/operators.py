@@ -1,121 +1,10 @@
-from abc import abstractmethod
-from functools import wraps
 from textwrap import dedent
-from typing import Callable, List, Optional
-from uuid import uuid1
+from typing import List
 
-from pydantic import BaseModel
-
-from .clients import CLIClient, Client
-from .operator_responses import TextResponse
-from .tools import MetaTool
+from .abstract import AbstractOperator
 
 
-class LlmMixin:
-    """
-    Represents the base Operator for further implementation.
-    """
-
-    def __init__(
-        self,
-        clients: dict[str, Client],
-        tools: list[MetaTool] | None = None,
-    ):
-        self.uuid = uuid1()
-        self.clients = clients
-        self.tools = tools
-
-    @property
-    @abstractmethod
-    def instructions(self) -> str:
-        """
-        Define the operators base instructions.
-
-        Used in LlmMixin.qna
-        """
-        pass
-
-    def _qna(
-        self,
-        query: str,
-        response_format: Optional[BaseModel] = None,
-    ) -> BaseModel:
-        """
-        "Question and Answer", given a query, return an answer.
-        Basically just a wrapper for OpenAI's chat completion API.
-
-        Synchronous.
-        """
-        instructions = self.instructions
-        # Improve tool use
-        instructions += "\nIf you are provided tools, use them as specified, otherwise leave them blank."
-        instructions += "\nFor each user request: Think about the response syntax, and how that relates to your task. Then, provide a complete and accurate response."  # noqa E501
-        messages = [
-            {'role': 'system', 'content': instructions},
-            {'role': 'user', 'content': query},
-        ]
-
-        response = (
-            self.clients["openai"]
-            .complete(
-                messages=messages,
-                response_format=response_format if response_format else TextResponse,
-            )
-            .choices[0]
-        ).message
-
-        if response.refusal:
-            print(f"Operator refused to answer question: {query}")
-            raise Exception("Operator refused to answer question")
-
-        answer = response.parsed
-
-        CLIClient.emit(query)
-        return answer
-
-    @classmethod
-    def qna(cls, question_producer: Callable) -> Callable:
-        """
-        Decorate something on a child object downstream to get a response from a query
-
-        question_producer is expected to return a request like "Create a website that does xyz"
-
-        The decorated function will support some extra optionality:
-
-        response_format (BaseModel): Guarantee a json structured output.
-        tools (list[MetaTool]): Pass in tools for the operator to use. Supercedes use_tools
-        use_tools (bool): Prompt the operator to use tools that it has.
-        """
-
-        @wraps(question_producer)
-        def _send_and_await_reply(*args, **kwargs):
-            self = args[0]
-            # TODO: change response_format based on if use_tools is toggled
-            response_format = kwargs.pop("response_format", None)
-
-            # Use `tools=...` if provided, otherwise check `use_tools` and use `self.tools` if True
-            tools = (
-                explicit_tools
-                if (explicit_tools := kwargs.pop("tools", []))
-                else (self.tools if kwargs.pop('use_tools', False) else [])
-            )
-
-            query = question_producer(*args, **kwargs)
-
-            # Add additional prompt to inform agent about tools
-            if tools:
-                # LLMs don't really know what should go in what field even if output struct
-                # is guaranteed
-                query += """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.\n"""
-                for tool in tools:
-                    query += str(tool)
-            return self._qna(query, response_format=response_format)
-
-        return _send_and_await_reply
-
-
-class Operator(LlmMixin):
+class Operator(AbstractOperator):
     instructions = (
         "You are an autonomous abstract operator designed to be "
         "a helpful, proactive, curious, and thoughtful employee or assistant. "
@@ -123,8 +12,7 @@ class Operator(LlmMixin):
         "You will clearly state if a task is beyond your capabilities. "
     )
 
-    @LlmMixin.qna
-    def chat(cls, message: str) -> str:
+    def chat(self, message: str, *args, **kwargs) -> str:
         """
         Chat with the operator with a direct message.
         """
@@ -144,15 +32,12 @@ class Developer(Operator):
         You are a senior software engineer at an innovative AI agent orchestration startup. Your deep
         understanding of software architecture, AI systems, and scalable solutions empowers you to design
         and implement cutting-edge technologies that enhance AI capabilities.
-    """
-    """
         Objective:
         Your task is to apply your expertise to architect and optimize AI agent orchestration frameworks, ensuring high performance, scalability, and reliability. You will be working on complex systems that integrate multiple AI agents, enabling them to collaborate efficiently to achieve sophisticated goals.
         Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.
     """  # noqa E501
 
-    @LlmMixin.qna
-    def ask_question(self, context: str) -> str:
+    def ask_question(self, context: str, *args, **kwargs) -> str:
         """
         Accept instructions and ask a question about it if necessary.
 
@@ -186,10 +71,9 @@ class Developer(Operator):
                 What should the function be called?"""
         )
 
-    @LlmMixin.qna
-    def implement_component(self, context: str) -> str:
+    def implement_component(self, context: str, *args, **kwargs) -> str:
         """
-        Prompts the Operator to implement a component based off of the components context
+        Prompts the Operator to implement a component based off of the components context.
         Returns the code for the component
         """
         return f"""
@@ -198,12 +82,8 @@ Use placeholders referencing code/functions already provided in the context. Nev
 *Context:*
 {context}"""  # noqa E501
 
-    @LlmMixin.qna
     def integrate_components(
-        self,
-        planned_components: List[str],
-        implementations: List[str],
-        idea: str,
+        self, planned_components: List[str], implementations: List[str], idea: str, *args, **kwargs
     ) -> str:
         """
         Prompts Operator to combine code implementations of multiple components
@@ -225,8 +105,7 @@ First, think about all files you intend to use in the final output. Then, combin
             """  # noqa E501
         return out_str
 
-    @LlmMixin.qna
-    def implement_html_element(self, prompt: str) -> str:
+    def implement_html_element(self, prompt: str, *args, **kwargs) -> str:
         out_str = f"""\
 Generate an html element with the following description:\n
 {prompt}
@@ -282,8 +161,7 @@ class Executive(Operator):
         growth objectives.
     """
 
-    @LlmMixin.qna
-    def plan_components(self, starting_prompt) -> str:
+    def plan_components(self, starting_prompt, *args, **kwargs) -> str:
         return """\
 List the essential code components required to implement the project idea. Each component should be atomic, \
 such that a developer could implement it in isolation provided placeholders for preceding components.
@@ -304,8 +182,7 @@ Project Idea:
             starting_prompt=starting_prompt
         )
 
-    @LlmMixin.qna
-    def answer_question(self, context: str, question: str) -> str:
+    def answer_question(self, context: str, question: str, *args, **kwargs) -> str:
         """
         Prompts the Operator to answer a question
         Returns the answer
@@ -316,8 +193,7 @@ Project Idea:
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    @LlmMixin.qna
-    def generate_summary(self, summary: str, implementation: str) -> str:
+    def generate_summary(self, summary: str, implementation: str, *args, **kwargs) -> str:
         """
         Generates a summary of completed components
         Returns the summary
@@ -329,12 +205,12 @@ For its summary:
 2. Objectively summarize the component's purpose and functionality.
 3. Be concise and clear.
 
-Example Syntax:
-1. Imported numpy as np from the numpy package in the file 'main.py'
-2. Created a function named 'calculate_mean' that calculates the mean of a np.array in the file 'util.py'
-3. Imported the 'calculate_mean' function in the file 'main.py'
-3. Instantiated a variable 'foo' as an np.array in the file 'main.py'
-4. Used calculate_mean to calculate the mean of 'foo' in the file 'main.py'
+Example Output:
+["1. Imported numpy as np from the numpy package in the file 'main.py'",
+"2. Created a function named 'calculate_mean' that calculates the mean of a np.array in the file 'util.py'",
+"3. Imported the 'calculate_mean' function in the file 'main.py'",
+"3. Instantiated a variable 'foo' as an np.array in the file 'main.py'",
+"4. Used calculate_mean to calculate the mean of 'foo' in the file 'main.py'"]
 
 Current Component Implementation: {implementation}
 Previous Components: {summary}"""  # noqa E501

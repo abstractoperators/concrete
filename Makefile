@@ -13,7 +13,12 @@ test:
 # Demo commands
 helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
- 
+
+# Requires rabbitmq and celery worker to be running
+helloworld_celery: celery
+	sleep 10
+	$(ORCHESTRATE) "Create a simple hello world program" --celery
+	
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."
 
@@ -62,3 +67,12 @@ aws_ecr_push_homepage: aws_ecr_login
 aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+
+rabbitmq:
+	docker rm -f rabbitmq || true
+	docker run -d -p 5672:5672 --name rabbitmq rabbitmq &
+
+# TODO autoreload celery
+celery: rabbitmq
+	rm logs/celery.log || true
+	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
