@@ -135,7 +135,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         except AttributeError:
             pass
 
-        return response_format(**json.loads(cast(str, response.content)))
+        return response_format.model_validate(json.loads(cast(str, response.content)))
 
     def qna(self, question_producer: Callable) -> Callable:
         """
