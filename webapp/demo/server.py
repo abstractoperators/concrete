@@ -62,13 +62,29 @@ def _deploy_to_prod(response_url: str):
     Helper function for deploying latest registry images to prod.
     Also updates slack button (that triggered this function) with success/failure message.
     """
-    if AwsTool._deploy_image(
-        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
+    if AwsTool._deploy_service(
+        [
+            {
+                "image_uri": '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
+                "container_name": 'webapp-homepage',
+                "container_port": 80,
+            },
+        ],
         'webapp-homepage',
         listener_rule={'field': 'host-header', 'value': 'abop.ai'},
-    ) and AwsTool._deploy_image(
-        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
-        'webapp-demo',
+    ) and AwsTool._deploy_service(
+        [
+            {
+                "image_uri": '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
+                "container_name": 'webapp-demo',
+                "container_port": 80,
+            },
+            {
+                "image_uri": 'rabbitmq',
+                "container_name": 'rabbitmq',
+                "container_port": 5672,
+            },
+        ],
         listener_rule={'field': 'host-header', 'value': 'demo.abop.ai'},
     ):
         body = {

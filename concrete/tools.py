@@ -180,9 +180,11 @@ class AwsTool(metaclass=MetaTool):
         """
         project_directory_name (str): The name of the project directory to deploy.
         """
-        deployed, image_uri = cls._build_and_push_image(project_directory_name)
-        if deployed:
-            cls._deploy_image(image_uri)
+        pushed, image_uri = cls._build_and_push_image(project_directory_name)
+        if pushed:
+            cls._deploy_service(
+                [{"image_uri": image_uri, "container_name": project_directory_name, "container_port": 80}]
+            )
         else:
             CLIClient.emit("Failed to deploy project")
 
