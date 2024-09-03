@@ -210,5 +210,11 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         prepped_func.delay = partial(prepped_func._delay, self)
         return prepped_func
 
+    def chat(self, message: str, *args, **kwargs) -> str:
+        """
+        Chat with the operator with a direct message.
+        """
+        return message
+
 
 AbstractOperator_co = TypeVar('AbstractOperator_co', bound=AbstractOperator, covariant=True)
