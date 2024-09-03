@@ -71,7 +71,7 @@ jobs:
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --custom_name=webapp-demo-staging
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest rabbitmq --container_name webapp-demo rabbitmq --container_port 80 5672 --custom_name=webapp-demo-staging
                   poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --custom_name=webapp-homepage-staging
 
 
