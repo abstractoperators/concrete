@@ -58,7 +58,7 @@ import socket
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Dict, Optional, TypedDict
 
 import boto3
 
@@ -157,6 +157,16 @@ class RestApiTool(metaclass=MetaTool):
             CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
         return resp.json()  # return unwrapped data
+
+
+class Container(TypedDict):
+    """
+    Type hinting for an abstracted container object
+    """
+
+    image_uri: str
+    container_name: str
+    container_port: int
 
 
 class AwsTool(metaclass=MetaTool):
@@ -274,19 +284,23 @@ class AwsTool(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _deploy_image(
+    def _deploy_service(
         cls,
-        image_uri: str,
-        custom_name: Optional[str] = None,
-        cpu: Optional[int] = None,
-        memory: Optional[int] = None,
+        containers: list[Container],
+        service_name: Optional[str] = None,
+        cpu: int = 256,
+        memory: int = 512,
         listener_rule: Optional[dict] = None,
     ) -> bool:
         """
-        image_uri (str): The URI of the image to deploy.
-        custom_name (str): Custom service name, defaults to image name
-        cpu (int): The amount of CPU to allocate to the service
-        memory (int): The amount of memory to allocate to the service
+        containers: [{"image_uri": str, "container_name": str, "container_port": int}]
+
+        service_name (str): Custom service name, defaults to the first container name.
+
+        cpu (int): The amount of CPU to allocate to the service. Defaults to 256.
+
+        memory (int): The amount of memory to allocate to the service. Defaults to 512
+
         listener_rule: Dictionary of {field: str, value: str} for the listener rule. Defaults to {'field': 'host-header', 'value': f"{service_name}.abop.ai"}}
         """  # noqa: E501
         # TODO: separate out clients and have a better interaction for attaching vars
@@ -296,7 +310,7 @@ class AwsTool(metaclass=MetaTool):
         # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
         # May eventually move these out to env, but not first priority.
         cluster = "DemoCluster"
-        service_name = custom_name or image_uri.split("/")[-1].split(":")[0]
+        service_name = service_name or containers[0]['container_name']
         task_name = service_name
         target_group_name = service_name
         vpc = "vpc-022b256b8d0487543"
@@ -366,9 +380,9 @@ class AwsTool(metaclass=MetaTool):
             requiresCompatibilities=["FARGATE"],
             containerDefinitions=[
                 {
-                    "name": task_name,
-                    "image": image_uri,
-                    "portMappings": [{"containerPort": 80}],
+                    "name": container['container_name'],
+                    "image": container['image_uri'],
+                    "portMappings": [{"containerPort": container['container_port']}],
                     "essential": True,
                     "logConfiguration": {
                         "logDriver": "awslogs",
@@ -379,6 +393,7 @@ class AwsTool(metaclass=MetaTool):
                         },
                     },
                 }
+                for container in containers
             ],
             cpu=str(cpu) if cpu else "256",
             memory=str(memory) if memory else "512",
