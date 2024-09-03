@@ -404,7 +404,7 @@ class AwsTool(metaclass=MetaTool):
                 'operatingSystemFamily': 'LINUX',
             },
         )['taskDefinition']['taskDefinitionArn']
-
+        CLIClient.emit(task_definition_arn)
         if (
             service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])['services']
         ) and service_desc[0]['status'] == 'ACTIVE':
