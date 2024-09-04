@@ -313,7 +313,7 @@ class AwsTool(metaclass=MetaTool):
         # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
         # May eventually move these out to env, but not first priority.
         cluster = "DemoCluster"
-        service_name = service_name or containers[0]['container_name']
+        service_name = service_name or containers[0].container_name
         task_name = service_name
         target_group_name = service_name
         vpc = "vpc-022b256b8d0487543"
