@@ -159,6 +159,7 @@ class RestApiTool(metaclass=MetaTool):
         return resp.json()  # return unwrapped data
 
 
+# Kinda bad....
 class Container(TypedDict):
     """
     Type hinting for an abstracted container object
