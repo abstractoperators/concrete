@@ -10,6 +10,7 @@ ENV OPENAI_TEMPERATURE=0
 WORKDIR /app
 
 RUN apt-get update
+RUN pip install "poetry==$POETRY_VERSION"
 
 COPY pyproject.toml poetry.lock README.md ./ 
 COPY concrete ./concrete
