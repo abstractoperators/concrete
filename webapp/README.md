@@ -21,6 +21,5 @@
     * OAuth key is hinted with tags. Can re-use OAuth key for multiple services.
     * Auth keys don't have tags. Need to create a new one for each service.
 * Run `docker compose -f docker/docker-compose.yml up -d [your_service]` (see `make run-webapp-[demo|homepage]` for examples)
-* Navigate to [tailscale](https://login.tailscale.com/admin/machines) to verify that the service is running
-* Navigate to `http://<ts_service_name[-i]` to view the service. e.g. `http://ts-oauth-demo-1`
-
+* Navigate to [tailscale](https://login.tailscale.com/admin/machines) to verify that the service is running.
+* Navigate to `http://<ts_service_name[-i]` to view the service. e.g. `http://ts-oauth-demo-1`.
