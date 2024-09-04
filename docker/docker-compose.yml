@@ -56,21 +56,21 @@ services:
     network_mode: service:ts-oauth-demo
     platform: linux/arm64
 
-  # dind-builder:
-  #   build:
-  #     context: ../
-  #     dockerfile: ./docker/Dockerfile.dind-builder
-  #   image: dind-builder:latest
-  #   container_name: dind-builder
-  #   privileged: true
-  #   volumes:
-  #     - /shared:/shared
-  #   environment:
-  #     - SHARED_VOLUME=/shared
-  #   env_file:
-  #     - path: "../.env.dind-builder"
-  #       required: false
-  #   platform: linux/arm64
+  dind-builder:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.dind-builder
+    image: dind-builder:latest
+    container_name: dind-builder
+    privileged: true
+    volumes:
+      - /shared:/shared
+    environment:
+      - SHARED_VOLUME=/shared
+    env_file:
+      - path: "../.env.dind-builder"
+        required: false
+    platform: linux/arm64
 
 
 volumes:
