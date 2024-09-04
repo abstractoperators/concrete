@@ -79,11 +79,6 @@ def _deploy_to_prod(response_url: str):
                 "container_name": 'webapp-demo',
                 "container_port": 80,
             },
-            {
-                "image_uri": 'rabbitmq',
-                "container_name": 'rabbitmq',
-                "container_port": 5672,
-            },
         ],
         listener_rule={'field': 'host-header', 'value': 'demo.abop.ai'},
     ):
