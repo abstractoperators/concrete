@@ -1,5 +1,5 @@
 #!/bin/sh
-cd /app
+# cd /app
 # echo "Starting celery worker"
 # celery -A concrete worker --loglevel=DEBUG --detach --logfile=/app/celery.log
 
