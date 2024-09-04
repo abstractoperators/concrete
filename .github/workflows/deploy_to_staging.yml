@@ -64,15 +64,15 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
 
-            - name: Deploy to ECS staging using AwsTool._deploy_images
+            - name: Deploy to ECS staging using AwsTool._deploy_service
               env:
                 image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest'
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --custom_name=webapp-demo-staging
-                  poetry run python -m concrete deploy 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --custom_name=webapp-homepage-staging
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --container_name webapp-demo-staging --container_port 80 --service_name=webapp-demo-staging
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container_name webapp-homepage --container_port 80 --service_name=webapp-homepage-staging
 
 
 # https://github.com/actions/deploy-pages/issues/329 -

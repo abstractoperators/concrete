@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
-from concrete.tools import AwsTool, RestApiTool
+from concrete.tools import AwsTool, Container, RestApiTool
 
 app = FastAPI()
 
@@ -62,13 +62,24 @@ def _deploy_to_prod(response_url: str):
     Helper function for deploying latest registry images to prod.
     Also updates slack button (that triggered this function) with success/failure message.
     """
-    if AwsTool._deploy_image(
-        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
+    if AwsTool._deploy_service(
+        [
+            Container(
+                image_uri='008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
+                container_name='webapp-homepage',
+                container_port=80,
+            ),
+        ],
         'webapp-homepage',
         listener_rule={'field': 'host-header', 'value': 'abop.ai'},
-    ) and AwsTool._deploy_image(
-        '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
-        'webapp-demo',
+    ) and AwsTool._deploy_service(
+        [
+            Container(
+                image_uri='008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
+                container_name='webapp-demo',
+                container_port=80,
+            ),
+        ],
         listener_rule={'field': 'host-header', 'value': 'demo.abop.ai'},
     ):
         body = {
@@ -203,7 +214,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             so = orchestrator.SoftwareOrchestrator()
             so.update(ws=websocket, manager=manager)
             result = ""
-            async for operator_type, message in so.process_new_project(data, False):
+            async for operator_type, message in so.process_new_project(
+                starting_prompt=data, deploy=False, use_celery=False
+            ):
                 result = message
 
                 payload = {
