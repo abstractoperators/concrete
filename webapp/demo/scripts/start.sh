@@ -1,11 +1,11 @@
 #!/bin/sh
 cd /app
-echo "Starting celery worker"
-celery -A concrete worker --loglevel=DEBUG --detach --logfile=/app/celery.log
+# echo "Starting celery worker"
+# celery -A concrete worker --loglevel=DEBUG --detach --logfile=/app/celery.log
 
-# TODO supervisord?
-# Start a background process to tail the Celery log
-tail -f /app/celery.log &
+# # TODO supervisord?
+# # Start a background process to tail the Celery log
+# tail -f /app/celery.log &
 
 cd /app/webapp/demo
 echo "Starting gunicorn server"

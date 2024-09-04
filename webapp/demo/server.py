@@ -220,7 +220,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             so.update(ws=websocket, manager=manager)
             result = ""
             async for operator_type, message in so.process_new_project(
-                starting_prompt=data, deploy=False, use_celery=True
+                starting_prompt=data, deploy=False, use_celery=False
             ):
                 result = message
 
