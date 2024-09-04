@@ -1,43 +1,59 @@
-# How to launch local demo site with code deployment capabilities
+# Requirements
 
-```bash
-make localhost_demo_with_deploy
-``` 
+webapp-demo requires dind-builder to be running to have build capabilities.
 
-## Webapp Service
+webapp-demo requires environment variables. These can be placed in a `.env` file, which will be loaded at runtime by the container. The following environment variables are required:
+- `OPENAI_API_KEY`
+- For deployment (including main to prod)
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
+- For slack button
+  - `SLACK_BOT_TOKEN`
+  - Required for the slack button to send messages to channels.
 
-This service launches the demo website on local host over port 80. \
-SoftwareProject, when created with the deploy=True flag, will call Agent.AWSAgent to deploy the code on AWS ECS.\
-`AWSAgent` places Docker context into shared volume with `dind-builder`, and pings `dind-builder` service to build and deploy.
-WARNING: This assumes the services were started with docker-compose or the make command, which provides networks for each service. Using docker-compose, `AWSAgent` pings builder using `dind-builder:5002`, but will need to be changed for ECS deployment to `localhost:5002`.
 
-### Requirements
+# Slack Button
+The following is the manifest and process of setting up the Slack button
 
-Image requires OPENAI_API_KEY environment variable. 
-```bash
-export OPENAI_API_KEY = <your-api-key-here>
+```json manifest
+{
+    "display_information": {
+        "name": "GH Deploy" 
+    },
+    "features": {
+        "bot_user": {
+            "display_name": "GH Deploy",
+            "always_online": true
+        }
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "chat:write",
+                "channels:history"
+            ]
+        }
+    },
+    "settings": {
+        "event_subscriptions": {
+            "request_url": "https://webapp-demo-staging.abop.ai/slack/events",
+            "bot_events": [
+                "message.channels"
+            ]
+        },
+        "interactivity": {
+            "is_enabled": true,
+            "request_url": "https://webapp-demo-staging.abop.ai/slack"
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false
+    }
+}
 ```
 
-## dind-builder service
+Event Subscriptions: Slack sends out a post request to `request_url` whenever a `bot_event` occurs. In this case, we listen for messages being sent to channels. Refer to [message events](https://api.slack.com/events/message) for more details. Your app bot must be added to the channel in order to receive these events. 
 
-This service has 3 core functionalities that deploy the code for a flask webapp on AWS ECS Tasks.
+Server side, we respond to these requests in `webapp-demo`. The `slack/events` endpoint listens for these requests, and publishes a button to #github-logs under the condition that the message is in #github-logs, and is a merge message from the (official) Github bot. 
 
-   1. listener (`listener.sh`)
-      a. Listens on port 5002, and calls the builder
-   2. Build and push an image to AWS ECR (`build_and_push.sh`)
-      a. Takes one argument, which is the file path to Docker build context. 
-      b. Builds docker context, and makes a new ECR repository with that image. 
-      c. Calls deploy
-   3. Deploys a standalone task with that image (`deploy_to_aws.sh`)
-      a. Takes one argument, the `IMAGE_URI` of the ECR image to use (requires ECR image, otherwise need to add container authentication)
-      b. Uses pre-existing ECS_CLUSTER="DemoCluster", subnet, vpc security group, and taskexecution role (hard coded into script)
-      c. Defines a new task-definition in that cluster, and starts it.
-
-N.B.: This service **does not** handle deleting of AWS resources, so it is important to manually delete ECR repositories, running tasks, and task definitions.
-
-### Requirements
-
-Image requires environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. Currently loaded into the image via docker-compose, will need another way on ECS deployment\
-Pre-existing AWS ECS Cluster\
-Pre-existing AWS VPC w/ subnet, security group exposing inbound http and https traffic, and all outbound traffic \
-Pre-existing AWS `taskExecutionRole` allowing ECR reads
+Interactivity (e.g. Buttons): When a user interacts with any interactive modality, Slack sends a post request to `request_url`. In this case, it sends it to `webapp-demo-staging.abop.ai/slack/`. This endpoint deploys the latest commit on `main` to prod. More specifically, it deploys the latest containers in ECR (008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-<demo|homepage>:latest).

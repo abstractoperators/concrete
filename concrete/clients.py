@@ -1,16 +1,21 @@
 import os
-from typing import Dict, List, Optional
+from typing import TypeVar
 
 import requests
 import requests.adapters
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticModel
 from requests.adapters import HTTPAdapter, Retry
+
+from .models.messages import Message, TextMessage
 
 
 class Client:
     pass
+
+
+Client_con = TypeVar('Client_con', bound=Client, contravariant=True)
 
 
 class OpenAIClient(Client):
@@ -26,27 +31,43 @@ class OpenAIClient(Client):
 
     def complete(
         self,
-        messages: List[Dict[str, str]],
-        response_format: BaseModel,
-        temperature: Optional[float] = None,
+        messages: list[dict[str, str]],
+        message_format: type[Message] | dict = TextMessage,
+        temperature: float | None = None,
         **kwargs,
     ) -> ChatCompletion:
 
         request_params = {
             "messages": messages,
             "model": self.model,
-            "temperature": temperature if temperature is not None else self.default_temperature,
-            "response_format": response_format,
+            "temperature": temperature or self.default_temperature,
+            "response_format": message_format,
             **kwargs,
         }
 
-        return self.client.beta.chat.completions.parse(**request_params)
+        # Pydantic Model
+        if isinstance(message_format, type(Message)):
+            return self.client.beta.chat.completions.parse(**request_params)
+        # JSON Schema
+        return self.client.chat.completions.create(**request_params)
+
+    @staticmethod
+    def model_to_schema(model: type[PydanticModel]) -> dict[str, str | dict]:
+        """
+        Utility for formatting a pydantic model into a json output for OpenAI.
+        """
+        return {
+            'type': 'json_schema',
+            'json_schema': {
+                'name': model.__name__,
+                'schema': model.model_json_schema(),
+            },
+        }
 
 
 class CLIClient(Client):
     @classmethod
     def emit(cls, content: str):
-        # TODO: right now, make this a config setting
         if os.environ.get("ENV") != "PROD":
             print(content)
 

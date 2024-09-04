@@ -147,13 +147,18 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     if json_data.get('type', None) == 'url_verification':
         challenge = json_data.get('challenge')
         return Response(content=challenge, media_type="text/plain")
+
     elif json_data.get('type', None) == 'event_callback':
-        # Add a button to #github-logs
         event = json_data.get('event')
-        if event.get('type', None) == 'message' and event.get('channel', None) == 'C07DQNQ7L0K':  # #github-logs
-            text = event.get('text')
-            if 'merged' in text:
-                background_tasks.add_task(_post_button())
+        if (
+            event.get('channel', None) == 'C07DQNQ7L0K'
+            and event.get('type', None) == 'message'
+            and event.get('subtype', None) == 'thread_broadcast'
+            and (attachments := event.get('attachments', None))
+            and len(attachments) == 1
+            and 'merged' in attachments[0]['pretext']
+        ):
+            background_tasks.add_task(_post_button())
 
     return Response(content="OK", media_type="text/plain")
 
@@ -172,11 +177,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.connect(websocket)
 
     payload = {
-        "agent_type": "Executive",
+        "operator_type": "Executive",
         "timestamp": datetime.now().isoformat(),
         "message": (
             "Hi! Ask me to do a simple coding task.\n"
-            "I will work with a Developer agent to break down your prompt "
+            "I will work with a Developer Operator to break down your prompt "
             "into smaller tasks before combining the work back together.\n"
             "Press `Submit` to get started!"
         ),
@@ -185,7 +190,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.send_json(payload, websocket)
 
     payload = {
-        "agent_type": "Developer",
+        "operator_type": "Developer",
         "timestamp": datetime.now().isoformat(),
         "message": ("Hi! I'm the Developer!\n"),
         "completed": False,
@@ -198,11 +203,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             so = orchestrator.SoftwareOrchestrator()
             so.update(ws=websocket, manager=manager)
             result = ""
-            async for agent_type, message in so.process_new_project(data, False):
+            async for operator_type, message in so.process_new_project(data, False):
                 result = message
 
                 payload = {
-                    "agent_type": agent_type,
+                    "operator_type": operator_type,
                     "timestamp": datetime.now().isoformat(),
                     "message": (message),
                     "completed": False,
@@ -216,7 +221,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 # websocket.receive_text also "flushes" the stack of messages passed to websocket.send*
 
             payload = {
-                "agent_type": "EXECUTIVE",
+                "operator_type": "EXECUTIVE",
                 "timestamp": datetime.now().isoformat(),
                 "message": (
                     f"[Final Code]\n"

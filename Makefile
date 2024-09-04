@@ -13,7 +13,12 @@ test:
 # Demo commands
 helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
- 
+
+# Requires rabbitmq and celery worker to be running
+helloworld_celery: celery
+	sleep 10
+	$(ORCHESTRATE) "Create a simple hello world program" --celery
+	
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."
 
@@ -36,16 +41,19 @@ build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
 # Build before if needed
+# Using docker compose to store some arguments
 # TODO: Parameterize based on app name
-run-webapp-demo: 
+run-webapp-demo:
+	echo "Running at localhost:8000"
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
-run-webapp-homepage: 
+run-webapp-homepage:
+	echo "Running at localhost:8001"
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
-run-dind-builder: 
+run-dind-builder:
 	docker compose -f docker/docker-compose.yml stop dind-builder
 	docker compose -f docker/docker-compose.yml up -d dind-builder
 
@@ -60,3 +68,12 @@ aws_ecr_push_homepage: aws_ecr_login
 aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+
+rabbitmq:
+	docker rm -f rabbitmq || true
+	docker run -d -p 5672:5672 --name rabbitmq rabbitmq &
+
+# TODO autoreload celery
+celery: rabbitmq
+	rm logs/celery.log || true
+	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
