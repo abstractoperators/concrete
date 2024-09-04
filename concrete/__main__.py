@@ -3,7 +3,7 @@ import asyncio
 
 from . import orchestrator
 from .clients import CLIClient
-from .tools import AwsTool
+from .tools import AwsTool, Container
 
 parser = argparse.ArgumentParser(description="Concrete CLI")
 subparsers = parser.add_subparsers(dest="mode")
@@ -34,7 +34,7 @@ async def main():
         if not (len(args.image_uri) == len(args.container_name) == len(args.container_port)):
             parser.error("The number of image URIs, container names, and ports must be the same")
         container_info = [
-            {"image_uri": image_uri, "container_name": container_name, "container_port": container_port}
+            Container(image_uri=image_uri, container_name=container_name, container_port=container_port)
             for image_uri, container_name, container_port in zip(
                 args.image_uri, args.container_name, args.container_port
             )

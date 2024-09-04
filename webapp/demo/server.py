@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete import orchestrator
-from concrete.tools import AwsTool, RestApiTool
+from concrete.tools import AwsTool, Container, RestApiTool
 
 app = FastAPI()
 
@@ -64,21 +64,21 @@ def _deploy_to_prod(response_url: str):
     """
     if AwsTool._deploy_service(
         [
-            {
-                "image_uri": '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
-                "container_name": 'webapp-homepage',
-                "container_port": 80,
-            },
+            Container(
+                image_uri='008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
+                container_name='webapp-homepage',
+                container_port=80,
+            ),
         ],
         'webapp-homepage',
         listener_rule={'field': 'host-header', 'value': 'abop.ai'},
     ) and AwsTool._deploy_service(
         [
-            {
-                "image_uri": '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
-                "container_name": 'webapp-demo',
-                "container_port": 80,
-            },
+            Container(
+                image_uri='008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
+                container_name='webapp-demo',
+                container_port=80,
+            ),
         ],
         listener_rule={'field': 'host-header', 'value': 'demo.abop.ai'},
     ):

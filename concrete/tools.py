@@ -58,11 +58,12 @@ import socket
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict, Optional, TypedDict
+from typing import Dict, Optional
 
 import boto3
 
 from .clients import CLIClient, RestApiClient
+from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
 TOOLS_REGISTRY = {}
@@ -159,8 +160,7 @@ class RestApiTool(metaclass=MetaTool):
         return resp.json()  # return unwrapped data
 
 
-# Kinda bad....
-class Container(TypedDict):
+class Container(ConcreteModel):
     """
     Type hinting for an abstracted container object
     """
@@ -184,7 +184,7 @@ class AwsTool(metaclass=MetaTool):
         pushed, image_uri = cls._build_and_push_image(project_directory_name)
         if pushed:
             cls._deploy_service(
-                [{"image_uri": image_uri, "container_name": project_directory_name, "container_port": 80}]
+                [Container(image_uri=image_uri, container_name=project_directory_name, container_port=80)]
             )
         else:
             CLIClient.emit("Failed to deploy project")
@@ -383,9 +383,9 @@ class AwsTool(metaclass=MetaTool):
             requiresCompatibilities=["FARGATE"],
             containerDefinitions=[
                 {
-                    "name": container['container_name'],
-                    "image": container['image_uri'],
-                    "portMappings": [{"containerPort": container['container_port']}],
+                    "name": container.container_name,
+                    "image": container.image_uri,
+                    "portMappings": [{"containerPort": container.container_port}],
                     "essential": True,
                     "logConfiguration": {
                         "logDriver": "awslogs",
