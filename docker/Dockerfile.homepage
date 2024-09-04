@@ -10,22 +10,10 @@ ENV OPENAI_TEMPERATURE=0
 WORKDIR /app
 
 RUN apt-get update
-RUN apt-get install -y curl
-
-# Install tailscale
-RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null && \ 
-    curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list && \
-    apt-get update && \
-    apt-get install tailscale -y
-
-# temp key, remove later
-RUN pip install "poetry==$POETRY_VERSION"
 
 COPY pyproject.toml poetry.lock README.md ./ 
 COPY concrete ./concrete
 COPY webapp ./webapp
-
-RUN ls -l
 
 RUN poetry config virtualenvs.create false && \
     poetry install --only webapp-homepage,main
