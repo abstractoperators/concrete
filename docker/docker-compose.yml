@@ -5,7 +5,6 @@ services:
       hostname: ts-oauth-homepage
       environment:
         - TS_AUTHKEY=${TS_AUTHKEY}
-        - TS_STATE_DIR=/var/lib/tailscale
         - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
       volumes:
         - /dev/net/tun:/dev/net/tun
@@ -33,7 +32,6 @@ services:
     hostname: ts-oauth-demo
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
       - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
     volumes:
       - /dev/net/tun:/dev/net/tun
