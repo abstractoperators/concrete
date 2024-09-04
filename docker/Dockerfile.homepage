@@ -10,17 +10,16 @@ ENV OPENAI_TEMPERATURE=0
 WORKDIR /app
 
 RUN apt-get update
-
 RUN pip install "poetry==$POETRY_VERSION"
 
-COPY pyproject.toml poetry.lock README.md /app/
-COPY concrete /app/concrete
-RUN poetry config virtualenvs.create false 
-RUN poetry install --only webapp-homepage,main
+COPY pyproject.toml poetry.lock README.md ./ 
+COPY concrete ./concrete
+COPY webapp ./webapp
 
-COPY /webapp/homepage ./
+RUN poetry config virtualenvs.create false && \
+    poetry install --only webapp-homepage,main
 
-RUN chmod +x ./scripts/start.sh
+RUN chmod +x ./webapp/homepage/scripts/start.sh
 
 EXPOSE 80
-CMD ["./scripts/start.sh"]
+CMD ["./webapp/homepage/scripts/start.sh"]

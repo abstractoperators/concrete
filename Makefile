@@ -22,6 +22,7 @@ helloworld_celery: celery
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."
 
+
 # Requires dind-builder to be running
 # Need to manually delete created resources in AWS.
 # Created resources will be in ECR, ECS (tasks definitions and services), LB listener rules.
@@ -43,12 +44,10 @@ build-dind-builder:
 # Using docker compose to store some arguments
 # TODO: Parameterize based on app name
 run-webapp-demo:
-	echo "Running at localhost:8000"
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
 run-webapp-homepage:
-	echo "Running at localhost:8001"
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
