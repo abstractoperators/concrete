@@ -12,6 +12,8 @@ services:
         - net_admin
         - sys_module
       restart: unless-stopped
+      ports:
+        - "8000:80"
 
   webapp-homepage:
     image: webapp-homepage
@@ -24,7 +26,6 @@ services:
         required: false
     network_mode: service:ts-oauth-homepage
     platform: linux/arm64
-    
 
   ts-oauth-demo:
     image: tailscale/tailscale:latest
@@ -39,12 +40,14 @@ services:
       - net_admin
       - sys_module
     restart: unless-stopped
+    ports:
+      - "8001:80"
 
   webapp-demo:
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.demo
-    image: webapp-demo:latest
+    image: webapp-demo:latest 
     container_name: webapp-demo
     volumes:
       - shared-volume:/shared
@@ -55,6 +58,7 @@ services:
         required: false
     network_mode: service:ts-oauth-demo
     platform: linux/arm64
+
 
   daemons:
     build:

@@ -50,6 +50,8 @@ gunicorn = "22.0.0"
 fastapi = "0.111.1"
 uvicorn = "0.30.4"
 
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

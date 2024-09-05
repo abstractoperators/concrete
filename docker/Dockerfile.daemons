@@ -22,7 +22,7 @@ COPY concrete ./concrete
 COPY webapp/daemons ./webapp/daemons
 
 RUN poetry config virtualenvs.create false && \
-    poetry install --only daemons,main
+    poetry install --only daemons,main,tooluse
 
 RUN chmod +x ./webapp/daemons/scripts/start.sh
 
