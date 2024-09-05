@@ -76,6 +76,7 @@ def generate_installation_access_token(installation_id: int, encoded_jwt: str):
     url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
     token = RestApiTool.post(url=url, headers=headers)
     token = token['token']
+    return token
 
 
 def verify_signature(payload_body, signature_header):

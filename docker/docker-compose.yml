@@ -69,6 +69,8 @@ services:
         GH_CLIENT_ID: ${GH_CLIENT_ID}
     container_name: daemons
     image: daemons:latest
+    ports:
+      - "8000:80"
     
   dind-builder:
     build:
