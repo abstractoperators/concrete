@@ -56,6 +56,15 @@ services:
     network_mode: service:ts-oauth-demo
     platform: linux/arm64
 
+  daemons:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.daemons
+      args:
+        - GH_WEBHOOK_SECRET=${GH_WEBHOOK_SECRET}
+    container_name: daemons
+    image: daemons:latest
+    
   dind-builder:
     build:
       context: ../
