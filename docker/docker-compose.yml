@@ -61,7 +61,8 @@ services:
       context: ../
       dockerfile: ./docker/Dockerfile.daemons
       args:
-        - GH_WEBHOOK_SECRET=${GH_WEBHOOK_SECRET}
+        GH_WEBHOOK_SECRET: ${GH_WEBHOOK_SECRET}
+        GH_CLIENT_ID: ${GH_CLIENT_ID}
     container_name: daemons
     image: daemons:latest
     

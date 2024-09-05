@@ -41,7 +41,7 @@ build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
 build-daemons:
-	docker compose --env-file .env -f docker/docker-compose.yml build daemons
+	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
 
 # Build before if needed
 # Using docker compose to store some arguments
