@@ -6,4 +6,3 @@ Webhooks require a URL to be able to send requests to. This is a problem when de
 2. Start ngrok `ngrok http http://localhost:8000`
 3. Start your local server (e.g. `poetry run fastapi dev server.py`)
 4. Copy the forwarding URL from ngrok console, and use it as the webhook URL.
-5. 

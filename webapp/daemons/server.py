@@ -31,6 +31,7 @@ async def github_webhook(request: Request):
         return {"error": str(e.detail)}, e.status_code
 
     payload = json.loads(raw_payload)
+    print(installation_id := payload['installation']['id'])  # noqa
     return {"message": f"Received {payload['action']} event"}
 
 
