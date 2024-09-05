@@ -59,7 +59,6 @@ services:
     network_mode: service:ts-oauth-demo
     platform: linux/arm64
 
-
   daemons:
     build:
       context: ../

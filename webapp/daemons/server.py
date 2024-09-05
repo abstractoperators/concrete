@@ -81,7 +81,7 @@ def generate_installation_access_token(installation_id: int, encoded_jwt: str):
 
 def verify_signature(payload_body, signature_header):
     """Verify that the payload was sent from GitHub by validating SHA256.
-
+    https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
     Raise and return 403 if not authorized.
 
     Args:
