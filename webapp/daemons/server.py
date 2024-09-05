@@ -35,6 +35,10 @@ async def github_webhook(request: Request):
     return {"message": f"Received {payload['action']} event"}
 
 
+def generate_JWT():
+    pass
+
+
 def verify_signature(payload_body, signature_header):
     """Verify that the payload was sent from GitHub by validating SHA256.
 
@@ -56,4 +60,4 @@ def verify_signature(payload_body, signature_header):
 
     expected_signature = "sha256=" + hash_object.hexdigest()
     if not hmac.compare_digest(expected_signature, signature_header):
-        raise HTTPException(status_code=403, detail="Request signatures didn't match!")
+        raise HTTPException(status_code=403, detail="Request signatures didn't match")
