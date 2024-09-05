@@ -176,3 +176,6 @@ shared/
 
 # fasthtml/htmx
 .sesskey
+
+# Keys
+*.pem

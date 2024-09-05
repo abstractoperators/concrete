@@ -1,0 +1,48 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100vh;
+    margin: 0;
+    background-color: #000;
+    color: #fff;
+    padding-top: 20vh;
+}
+a.links {
+    text-decoration: none;
+    color: #eee;
+    padding: 1rem;
+    border: 0.2rem solid #ddd;
+    border-radius: 1rem;
+    transition: background-color 0.3s, color 0.3s;
+    margin: 0.3rem;
+    display: inline-block;
+    width: 10rem;
+    text-align: center;
+    font-family: 'gill sans', sans-serif;
+    box-sizing: border-box;
+}
+a.links:hover {
+    background-color: #fff;
+    color: #000;
+}
+
+h1 {
+    font-size: 1.75rem;
+    margin: 0;
+    padding: 0 0 0.5rem 0;
+    text-align: center;
+}
+
+@media screen and (width < 500px) {
+    a.links {
+        padding: 0.5rem;
+        margin: 0.2rem;
+        width: 9rem;
+        font-size: 1.5rem;
+    }
+    h1 {
+        font-size: 2rem;
+    }
+}
