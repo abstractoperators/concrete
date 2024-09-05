@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 from http.client import HTTPException
 
 from fastapi import FastAPI, Request
@@ -15,6 +16,22 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.post("/github/webhook")
+async def github_webhook(request: Request):
+    """Receive GitHub webhook events."""
+    raw_payload = await request.body()
+    signature = request.headers.get("x-hub-signature-256")
+    secret_token = "foobarbaz"  # Defined in the GitHub app settings # nosec
+
+    try:
+        verify_signature(raw_payload, secret_token, signature)
+    except HTTPException as e:
+        return {"error": str(e.detail)}, e.status_code
+
+    payload = json.loads(raw_payload)
+    return {"message": f"Received {payload['action']} event"}
 
 
 def verify_signature(payload_body, secret_token, signature_header):
