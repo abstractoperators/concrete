@@ -59,6 +59,8 @@ services:
     network_mode: service:ts-oauth-demo
     platform: linux/arm64
 
+  # TODO: Figure out why I get warning messages about args not being set, even though in the container
+  # I can see the environment variables are set correctly
   daemons:
     build:
       context: ../

@@ -22,6 +22,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class Jwt_Token:
     """
     Represents a JWT token for GitHub App authentication.
+    Manages token expiry and generation.
     """
 
     def __init__(self):
@@ -90,7 +91,7 @@ class Installation_Token:
         token = RestApiTool.post(url=url, headers=headers).get('token', '')
         self._token = token
 
-    def get_installation_token(self, installation_id: str) -> str:
+    def get_token(self, installation_id: str) -> str:
         if not self._token or self._is_expired():
             self._generate_installation_token(installation_id)
         return self._token
@@ -120,8 +121,8 @@ async def github_webhook(request: Request):
     installation_id = payload['installation']['id']
 
     global installation_token
-    installation_token = installation_token.get_token(installation_id)
-    print(installation_token)
+    token = installation_token.get_token(installation_id)
+    print(token)
     return {"message": f"Received {payload['action']} event"}
 
 
