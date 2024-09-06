@@ -18,6 +18,16 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+jwt_token = None
+
+
+class Jwt_Token:
+    token = None
+    expiry = None
+
+    def __init__(self):
+        self.PRIVATE_KEY_PATH = 'concretedaemon.2024-09-04.private-key.pem'
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
@@ -45,6 +55,10 @@ async def github_webhook(request: Request):
 
 
 def generate_JWT() -> str:
+    global jwt_token
+    if not jwt_token or jwt_token.jwt_expiry < time.time():
+        jwt_token = 1  # new token
+
     PRIVATE_KEY_PATH = 'concretedaemon.2024-09-04.private-key.pem'
     with open(PRIVATE_KEY_PATH, 'rb') as pem_file:
         signing_key = pem_file.read()
