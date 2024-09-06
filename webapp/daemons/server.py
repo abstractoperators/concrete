@@ -148,3 +148,10 @@ def verify_signature(payload_body, signature_header):
     expected_signature = "sha256=" + hash_object.hexdigest()
     if not hmac.compare_digest(expected_signature, signature_header):
         raise HTTPException(status_code=403, detail="Request signatures didn't match")
+
+
+class GitHubDaemon:
+    """
+    Represents a GitHub PR Daemon.
+    See https://www.notion.so/Proactive-D-mons-a6ad32c5b4dd4f43969b3a7c6a630c17?pvs=4
+    """
