@@ -27,6 +27,7 @@ async def root(request: Request):
 class GitHubDaemon:
     """
     Represents a GitHub PR Daemon.
+    Daemon can act on many installations, orgs/repos/branches.
     See https://www.notion.so/Proactive-D-mons-a6ad32c5b4dd4f43969b3a7c6a630c17?pvs=4
     """
 
@@ -35,6 +36,15 @@ class GitHubDaemon:
         self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
         self.jwt_token = self.Jwt_Token()
         self.installation_token = self.Installation_Token(self.jwt_token)
+        self.open_revisions: dict[str, "GitHubDaemon.OpenRevisions"] = {}  # org/repo/branch: OpenRevisions
+
+    class OpenRevisions:
+        """
+        Represents a list of open PRs for each branch.
+        Tracks information about PRs.
+        """
+
+        pass
 
     @staticmethod
     def verify_signature(payload_body, signature_header):
@@ -152,6 +162,10 @@ class GitHubDaemon:
             if not self._token or self._is_expired():
                 self._generate_installation_token(installation_id)
             return self._token
+
+        """
+        Pull the latest changes from a branch.
+        """
 
 
 gh_daemon = GitHubDaemon()
