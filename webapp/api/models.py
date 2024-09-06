@@ -7,12 +7,12 @@ class Base(DeclarativeBase):
     pass
 
 
-class Operator(DeclarativeBase):
-    __table__name = "operators"
+class Operator(Base):
+    __tablename__ = "operators"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    instructions: Mapped[str] = mapped_column()
-    title: Mapped[str] = mapped_column()
+    instructions: Mapped[str]
+    title: Mapped[str]
 
     def __repr__(self) -> str:
         return f"Operator(id={self.id!r}, instructions={self.instructions!r}, title={self.title!r})"

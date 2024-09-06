@@ -20,7 +20,7 @@ class OperatorCreate(OperatorBase):
 
 class Operator(OperatorBase, MetadataMixin):
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class OperatorUpdate(ConcreteModel):

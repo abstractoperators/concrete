@@ -44,7 +44,7 @@ def create_operator(operator: schemas.OperatorCreate, db: DbDep) -> models.Opera
 
 @app.get("/operators/", response_model=list[schemas.Operator])
 def read_operators(db: DbDep, skip: int = 0, limit: int = 100) -> list[models.Operator]:
-    return crud.get_operators(DbDep, skip, limit)
+    return crud.get_operators(db, skip, limit)
 
 
 @app.get("/operators/{operator_id}", response_model=schemas.Operator)

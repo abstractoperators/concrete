@@ -20,7 +20,6 @@ boto3 = "==1.35.3"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.5"
-pytest = "==8.2.2"
 black = "==24.4.2"
 flake8 = "==7.1.0"
 isort = "==5.13.2"
@@ -46,6 +45,12 @@ fastapi = "==0.111.1"
 
 [tool.poetry.group.webapp-api.dependencies]
 sqlalchemy = "^2.0.34"
+alembic = "^1.13.2"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.2"
+
 
 [build-system]
 requires = ["poetry-core"]

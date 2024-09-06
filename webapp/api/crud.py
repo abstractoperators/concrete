@@ -7,7 +7,7 @@ from . import models, schemas
 
 
 def get_operator(db: Session, operator_id: UUID) -> models.Operator | None:
-    stmt = select(models.Operator).where(models.Operator == operator_id)
+    stmt = select(models.Operator).where(models.Operator.id == operator_id)
     return db.scalars(stmt).first()
 
 
@@ -24,16 +24,19 @@ def create_operator(db: Session, operator: schemas.OperatorCreate) -> models.Ope
     return db_op
 
 
+# TODO: Doesn't do anything
 def update_operator(db: Session, operator_id: UUID, operator: schemas.OperatorUpdate) -> models.Operator | None:
+    print(operator.model_dump(exclude_none=True))
     stmt = (
         update(models.Operator)
-        .where(models.Operator == operator_id)
+        .where(models.Operator.id == operator_id)
         .values(operator.model_dump(exclude_none=True))
         .returning(models.Operator)
     )
     return db.scalars(stmt).first()
 
 
+# TODO: Doesn't do anything
 def delete_operator(db: Session, operator_id: UUID) -> models.Operator | None:
-    stmt = delete(models.Operator).where(models.Operator == operator_id).returning(models.Operator)
+    stmt = delete(models.Operator).where(models.Operator.id == operator_id).returning(models.Operator)
     return db.scalars(stmt).first()
