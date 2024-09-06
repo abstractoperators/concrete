@@ -18,15 +18,85 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-jwt_token = None
-
 
 class Jwt_Token:
-    token = None
-    expiry = None
+    """
+    Represents a JWT token for GitHub App authentication.
+    """
 
     def __init__(self):
+        self._token = ""  # nosec
+        self._expiry = 0
         self.PRIVATE_KEY_PATH = 'concretedaemon.2024-09-04.private-key.pem'
+        try:
+            with open(self.PRIVATE_KEY_PATH, 'rb') as pem_file:
+                self.signing_key = pem_file.read()
+        except FileNotFoundError:
+            raise HTTPException(status_code=500, detail="Failed to read private key")
+
+        self.GH_APP_CLIENT_ID = os.getenv("GH_CLIENT_ID")
+        if not self.GH_APP_CLIENT_ID:
+            raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
+
+    @property
+    def token(self):
+        if not self._token or self._is_expired():
+            self._generate_jwt()
+        return self._token
+
+    def _is_expired(self):
+        return not self._expiry or self._expiry < time.time()
+
+    def _generate_jwt(self):
+        iat = int(time.time())
+        exp = iat + 600
+        payload = {
+            'iat': iat,
+            'exp': exp,
+            'iss': self.GH_APP_CLIENT_ID,
+        }
+        self._token = jwt.encode(payload, self.signing_key, algorithm='RS256')
+        self._expiry = exp
+
+    def get_jwt(self) -> tuple[str, int]:
+        return self.token
+
+
+class Installation_Token:
+    """
+    Represents an Installation Access Token for GitHub App authentication.
+    """
+
+    def __init__(self, jwt_token: Jwt_Token):
+        self._token = ""  # nosec
+        self._expiry = 0
+        self.jwt_token = jwt_token
+
+    def _is_expired(self):
+        return not self._expiry or self._expiry < time.time()
+
+    def _generate_installation_token(self, installation_id: str):
+        """
+        installation_id (str): GitHub App installation ID. Can be found in webhook payload, or from GitHub API.
+        """
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {self.jwt_token}",
+            "X-GitHub-Version": "2022-11-28",
+        }
+        url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
+
+        self._expiry = int(time.time() + 3600)
+        token = RestApiTool.post(url=url, headers=headers).get('token', '')
+        self._token = token
+
+    def get_installation_token(self, installation_id: str) -> str:
+        if not self._token or self._is_expired():
+            self._generate_installation_token(installation_id)
+        return self._token
+
+
+jwt_token = None
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -48,33 +118,10 @@ async def github_webhook(request: Request):
     payload = json.loads(raw_payload)
     print(installation_id := payload['installation']['id'])  # noqa
 
-    encoded_jwt = generate_JWT()
-    installation_token = generate_installation_access_token(installation_id, encoded_jwt)
+    global jwt_token
+    installation_token = generate_installation_access_token(installation_id, jwt_token.token)
     print(installation_token)
     return {"message": f"Received {payload['action']} event"}
-
-
-def generate_JWT() -> str:
-    global jwt_token
-    if not jwt_token or jwt_token.jwt_expiry < time.time():
-        jwt_token = 1  # new token
-
-    PRIVATE_KEY_PATH = 'concretedaemon.2024-09-04.private-key.pem'
-    with open(PRIVATE_KEY_PATH, 'rb') as pem_file:
-        signing_key = pem_file.read()
-
-    GH_APP_CLIENT_ID = os.getenv("GH_CLIENT_ID")
-    if not GH_APP_CLIENT_ID:
-        raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
-
-    payload = {
-        'iat': int(time.time()),
-        'exp': int(time.time()) + 600,
-        'iss': GH_APP_CLIENT_ID,
-    }
-
-    encoded_jwt = jwt.encode(payload, signing_key, algorithm='RS256')
-    return encoded_jwt
 
 
 def generate_installation_access_token(installation_id: int, encoded_jwt: str):
