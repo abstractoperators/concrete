@@ -23,3 +23,6 @@
 * Run `docker compose -f docker/docker-compose.yml up -d [your_service]` (see `make run-webapp-[demo|homepage]` for examples)
 * Navigate to [tailscale](https://login.tailscale.com/admin/machines) to verify that the service is running.
 * Navigate to `http://<ts_service_name[-i]` to view the service. e.g. `http://ts-oauth-demo-1`.
+
+Optional:
+* To make localhost work, add ports to the `ts-oauth-[...]` service in `docker-compose.yml` and run as usual

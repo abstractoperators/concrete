@@ -130,7 +130,7 @@ def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str, tool_k
 
 class RestApiTool(metaclass=MetaTool):
     @classmethod
-    def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}):
+    def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
         """
         Make a GET request to the specified url
 
@@ -145,7 +145,7 @@ class RestApiTool(metaclass=MetaTool):
         return resp.json()  # return unwrapped data
 
     @classmethod
-    def post(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}):
+    def post(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
         """
         Make a POST request to the specified url
 

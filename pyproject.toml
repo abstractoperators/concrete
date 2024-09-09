@@ -48,6 +48,13 @@ sqlalchemy = "^2.0.34"
 alembic = "^1.13.2"
 
 
+[tool.poetry.group.daemons.dependencies]
+pyjwt = "2.9.0"
+gunicorn = "22.0.0"
+fastapi = "0.111.1"
+uvicorn = "0.30.4"
+
+
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.2"
 

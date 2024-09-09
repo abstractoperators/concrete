@@ -40,6 +40,9 @@ build-webapp-homepage:
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
+build-daemons:
+	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
+
 # Build before if needed
 # Using docker compose to store some arguments
 # TODO: Parameterize based on app name
@@ -55,6 +58,9 @@ run-dind-builder:
 	docker compose -f docker/docker-compose.yml stop dind-builder
 	docker compose -f docker/docker-compose.yml up -d dind-builder
 
+run-daemons:
+	docker compose -f docker/docker-compose.yml stop daemons
+	docker compose -f docker/docker-compose.yml up -d daemons
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
