@@ -24,7 +24,6 @@ def create_operator(db: Session, operator: schemas.OperatorCreate) -> models.Ope
     return db_op
 
 
-# TODO: Doesn't do anything
 def update_operator(db: Session, operator_id: UUID, operator: schemas.OperatorUpdate) -> models.Operator | None:
     print(operator.model_dump(exclude_none=True))
     stmt = (
@@ -33,10 +32,13 @@ def update_operator(db: Session, operator_id: UUID, operator: schemas.OperatorUp
         .values(operator.model_dump(exclude_none=True))
         .returning(models.Operator)
     )
-    return db.scalars(stmt).first()
+    ret = db.scalars(stmt).first()
+    db.commit()
+    return ret
 
 
-# TODO: Doesn't do anything
 def delete_operator(db: Session, operator_id: UUID) -> models.Operator | None:
     stmt = delete(models.Operator).where(models.Operator.id == operator_id).returning(models.Operator)
-    return db.scalars(stmt).first()
+    ret = db.scalars(stmt).first()
+    db.commit()
+    return ret
