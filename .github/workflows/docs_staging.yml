@@ -26,6 +26,17 @@ jobs:
               with:
                   mask-password: "true"
 
+            - name: Setup Python for poetry
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.11.9"
+
+            - name: Install Poetry
+              run: |
+                  curl -sSL https://install.python-poetry.org | python3 -
+                  poetry --version
+                  poetry install --only docs --no-cache --no-ansi
+
             - name: Build the images
               env:
                 OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}

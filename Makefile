@@ -44,7 +44,7 @@ build-daemons:
 	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
 
 build-docs:
-	mkdocs build --config-file webapp/docs/mkdocs.yml
+	$(POETRY) mkdocs build --config-file webapp/docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
 # Build before if needed
