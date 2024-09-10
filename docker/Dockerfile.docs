@@ -20,6 +20,5 @@ RUN touch README.md
 RUN poetry config virtualenvs.create false
 RUN poetry install --only docs --no-cache --no-ansi
 
-RUN chmod +x ./webapp/demo/scripts/start.sh
 EXPOSE 8000
 CMD ["mkdocs", "serve", "--config-file", "webapp/docs/mkdocs.yml", "--dev-addr=0.0.0.0:8000"]

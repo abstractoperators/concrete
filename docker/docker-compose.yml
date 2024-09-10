@@ -98,6 +98,7 @@ services:
     network_mode: service:ts-oauth-docs
     depends_on: 
       - "ts-oauth-docs"
+    platform: linux/arm64 
 
   dind-builder:
     build:

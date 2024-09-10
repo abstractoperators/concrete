@@ -32,7 +32,7 @@ jobs:
                 AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                 AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                 SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-              # TODO: Switch 
+              # TODO: Switch env file to be like how Daemons loads envs. Or use Secret Manager.
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
@@ -74,9 +74,9 @@ jobs:
                   poetry install
                   poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --container_name webapp-demo-staging --container_port 80 --service_name=webapp-demo-staging
 
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container_name webapp-homepage --container_port 80 --service_name=webapp-homepage-staging
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container_name webapp-homepage-staging --container_port 80 --service_name=webapp-homepage-staging
 
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest --container_name docs --container_port 80 --service_name=docs-staging
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest --container_name docs-staging --container_port 80 --service_name=docs-staging
                   
 
 

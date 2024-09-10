@@ -47,7 +47,7 @@ build-docs:
 	mkdocs build --config-file webapp/docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
-# Build before if needed
+# Build before if needed 
 # Using docker compose to store some arguments
 # TODO: Parameterize based on app name
 run-webapp-demo:
@@ -69,7 +69,6 @@ run-daemons:
 run-docs:
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
-# mkdocs serve --config-file webapp/docs/mkdocs.yml
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
