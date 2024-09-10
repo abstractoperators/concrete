@@ -99,14 +99,14 @@ class GitHubDaemon:
         #     new_branch='ghdaemon/test2',
         #     access_token=token,
         # )
-        GithubTool.new_file(
+        GithubTool.update_file(
             org='abstractoperators',
             repo='concrete',
             branch='ghdaemon/test2',
             commit_message='hello world!!!',
             access_token=token,
             path='test.txt',
-            file_contents="hello world",
+            file_contents="hello world234",
         )
 
     class Jwt_Token:
