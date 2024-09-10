@@ -46,6 +46,7 @@ jobs:
               run: |
                   make aws_ecr_push_homepage
                   make aws_ecr_push_demo
+                  make aws_ecr_push_docs
     deploy:
         needs: build
         runs-on: ubuntu-latest
@@ -74,7 +75,7 @@ jobs:
                   poetry install
                   poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --container_name webapp-demo-staging --container_port 80 --service_name=webapp-demo-staging
                   poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container_name webapp-homepage --container_port 80 --service_name=webapp-homepage-staging
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest --container_name webapp-homepage --container_port 80 --service_name=docs-staging
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest --container_name webapp-homepage --container_port 80 --service_name=docs
 
 
 # https://github.com/actions/deploy-pages/issues/329 -
