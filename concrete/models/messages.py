@@ -19,8 +19,6 @@ String, Number, Boolean, Integer, Object, Array, Enum, anyOf
 Optional is not allowed with OpenAI Structured Outputs. All fields must be required.
 """
 
-from typing import List
-
 from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
@@ -54,7 +52,7 @@ class Tool(Message):
 
 
 class Tools(Message):
-    tools: List[Tool] = Field(description="List of tools")
+    tools: list[Tool] = Field(description="List of tools")
 
 
 # N.B. KombuMixin must be added to each leaf child node class due to serializer registration

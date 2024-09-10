@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Callable
 from functools import cache, partial, wraps
-from typing import Any, List, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
@@ -109,7 +109,7 @@ class MetaAbstractOperator(type):
 class AbstractOperator(metaclass=MetaAbstractOperator):
 
     # TODO replace OpenAIClient with GenericClient
-    def __init__(self, clients: dict[str, OpenAIClient], tools: Optional[List[MetaTool]] = None):
+    def __init__(self, clients: dict[str, OpenAIClient], tools: list[MetaTool] | None = None):
         self._clients = clients
         self.llm_client = 'openai'
         self.llm_client_function = 'complete'

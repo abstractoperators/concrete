@@ -14,13 +14,16 @@ openai = "==1.40.5"
 astroid = "==3.2.3"
 astor = "==0.8.1"
 celery = "==5.4.0"
+sqlalchemy = "==2.0.34"
+alembic = "==1.13.2"
+
 
 [tool.poetry.group.tooluse.dependencies]
 boto3 = "==1.35.3"
 
+
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "==4.2.5"
-pytest = "==8.2.2"
 black = "==24.4.2"
 flake8 = "==7.1.0"
 isort = "==5.13.2"
@@ -29,27 +32,27 @@ pre-commit = "==3.7.1"
 mypy = "==1.11.2"
 starlette = "==0.37.2"  # for fasthtml
 
+
+[tool.poetry.group.webapp.dependencies]
+gunicorn = "==22.0.0"
+uvicorn = "==0.30.4"
+fastapi = "==0.111.1"
+
+
 [tool.poetry.group.webapp-new.dependencies]
 python-fasthtml = "==0.4.4"
 
-[tool.poetry.group.webapp-demo.dependencies]
-gunicorn = "==22.0.0"
-uvicorn = "==0.30.4"
-fastapi = "==0.111.1"
-flask = "==3.0.3"
 
-[tool.poetry.group.webapp-homepage.dependencies]
-gunicorn = "==22.0.0"
-uvicorn = "==0.30.4"
-fastapi = "==0.111.1"
+[tool.poetry.group.webapp-demo.dependencies]
+flask = "==3.0.3"
 
 
 [tool.poetry.group.daemons.dependencies]
 pyjwt = "2.9.0"
-gunicorn = "22.0.0"
-fastapi = "0.111.1"
-uvicorn = "0.30.4"
 
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.2"
 
 
 [build-system]
