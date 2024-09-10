@@ -1,9 +1,9 @@
-name: Deploy webapp-homepage to staging
+name: Deploy docs to staging
 on:
     push:
         branches:
             - main
-            - michael/kent/docs_fix
+            - kent/docs
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -26,27 +26,34 @@ jobs:
               with:
                   mask-password: "true"
 
+            - name: Setup Python for poetry
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.11.9"
+
+            - name: Install Poetry
+              run: |
+                  curl -sSL https://install.python-poetry.org | python3 -
+                  poetry --version
+                  poetry install --only docs --no-cache --no-ansi
+
             - name: Build the images
               env:
                 OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
                 AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                 AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                 SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-              # TODO: Switch env file to be like how Daemons loads envs. Or use Secret Manager.
+              # TODO: Use an actual secret manager
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
                   echo AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID >> .env
                   echo AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY >> .env
                   echo AWS_DEFAULT_REGION=us-east-1 >> .env
-                  make build-webapp-homepage
-                  make build-webapp-demo
                   make build-docs
 
             - name: Push to ECR
               run: |
-                  make aws_ecr_push_homepage
-                  make aws_ecr_push_demo
                   make aws_ecr_push_docs
     deploy:
         needs: build
@@ -68,16 +75,13 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
+              env:
+                image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest'
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --container_name webapp-demo-staging --container_port 80 --service_name=webapp-demo-staging
-
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container_name webapp-homepage-staging --container_port 80 --service_name=webapp-homepage-staging
-
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest --container_name docs-staging --container_port 80 --service_name=docs-staging
-                  
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest --container_name webapp-homepage --container_port 80 --service_name=docs
 
 
 # https://github.com/actions/deploy-pages/issues/329 -
