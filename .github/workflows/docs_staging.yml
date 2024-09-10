@@ -1,4 +1,4 @@
-name: Deploy apps to staging
+name: Deploy docs to staging
 on:
     push:
         branches:
