@@ -1,6 +1,6 @@
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, inspect
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -18,7 +18,8 @@ class Base(DeclarativeBase):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 
     def __repr__(self) -> str:
-        attrs_str = ", ".join([f"{c}={self.__table__.columns[c]!r}" for c in self.__table__.columns])
+        columns = inspect(self).mapper.columns
+        attrs_str = ", ".join([f"{c}={columns[c]!r}" for c in columns.keys()])
         return f"{self.__class__.__name__}({attrs_str})"
 
 
