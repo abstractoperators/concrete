@@ -43,6 +43,10 @@ build-dind-builder:
 build-daemons:
 	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
 
+build-docs:
+	mkdocs build --config-file webapp/docs/mkdocs.yml
+	docker build -f docker/Dockerfile.docs . --tag docs
+
 # Build before if needed
 # Using docker compose to store some arguments
 # TODO: Parameterize based on app name
@@ -61,6 +65,10 @@ run-dind-builder:
 run-daemons:
 	docker compose -f docker/docker-compose.yml stop daemons
 	docker compose -f docker/docker-compose.yml up -d daemons
+
+run-docs:
+	mkdocs serve --config-file webapp/docs/mkdocs.yml
+
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com

@@ -1,0 +1,6 @@
+site_name: Concrete
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
