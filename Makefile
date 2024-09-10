@@ -45,7 +45,7 @@ build-daemons:
 
 build-docs:
 	mkdocs build --config-file webapp/docs/mkdocs.yml
-	docker build -f docker/Dockerfile.docs . --tag docs
+	docker compose -f docker/docker-compose.yml build docs
 
 # Build before if needed
 # Using docker compose to store some arguments
@@ -67,7 +67,9 @@ run-daemons:
 	docker compose -f docker/docker-compose.yml up -d daemons
 
 run-docs:
-	mkdocs serve --config-file webapp/docs/mkdocs.yml
+	docker compose -f docker/docker-compose.yml stop docs
+	docker compose -f docker/docker-compose.yml up -d docs
+# mkdocs serve --config-file webapp/docs/mkdocs.yml
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:

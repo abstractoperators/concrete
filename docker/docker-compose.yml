@@ -29,7 +29,7 @@ services:
         - sys_module
       restart: unless-stopped
       ports:
-        - "8000:80"
+        - "8000:8000"
 
   webapp-homepage:
     image: webapp-homepage
@@ -96,8 +96,6 @@ services:
       - path: "../.env"
     image: docs
     network_mode: service:ts-oauth-docs
-    ports:
-      - "8000:80"
     depends_on: 
       - "ts-oauth-docs"
 
