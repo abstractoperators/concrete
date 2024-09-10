@@ -82,6 +82,9 @@ aws_ecr_push_homepage: aws_ecr_login
 aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+aws_ecr_push_docs: aws_ecr_login
+	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 
 rabbitmq:
 	docker rm -f rabbitmq || true
