@@ -500,3 +500,20 @@ class GithubTool(metaclass=MetaTool):
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
         json = {'title': f'[ABOP] {title}', 'head': branch, 'base': base}
         return RestApiTool.post(url, headers=cls.headers, json=json)
+
+    @classmethod
+    def make_commit(cls, owner: str, repo: str, branch: str, message: str) -> dict:
+        """
+        Make a commit on the target repo
+
+        e.g. make_commit('abstractoperators', 'concrete', 'kent/http-tool', 'This is a commit message')
+
+        Args
+            owner (str): The organization or accounts that owns the repo.
+            repo (str): The name of the repository.
+            branch (str): The branch that the commit is being made to.
+            message (str): The commit message.
+        """
+        url = f"https://api.github.com/repos/{owner}/{repo}/git/commits"
+        json = {'message': message, 'branch': branch}
+        return RestApiTool.post(url, headers=cls.headers, json=json)

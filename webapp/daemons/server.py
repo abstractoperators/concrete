@@ -34,21 +34,23 @@ class GitHubDaemon:
         self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
         self.jwt_token = self.Jwt_Token()
         self.installation_token = self.Installation_Token(self.jwt_token)
-        self.open_revisions: dict[str, "GitHubDaemon.OpenRevisions"] = {}  # org/repo/branch: OpenRevisions
+        self.open_revisions: dict[str, "GitHubDaemon.OpenPRs"] = {}  # org/repo/branch: OpenRevisions
 
     # To be replaced by DB probably
-    class OpenRevision:
+    class OpenPRs:
         """
-        Represents a list of open PRs for each branch.
-        Tracks information about PRs.
+        Manages User Open PRs + Daemon Revision branch.
+        Represents an Actor, which is messaged by the Daemon Actor.
         """
 
         org: str
         repo: str
-        target_branch: str
-        source_branch: str
-        id: int
+        base: str  # e.g. main
+        target: str  # e.g. featurebranch
+        id: int  # PR number
         diff_url: str
+
+        revision_branch: str  # Branch created by Daemon to revise PR
 
     @staticmethod
     def verify_signature(payload_body, signature_header):
@@ -78,7 +80,7 @@ class GitHubDaemon:
         """Receive GitHub webhook events."""
         raw_payload = await request.body()
         signature = request.headers.get("x-hub-signature-256")
-
+        print(f'Handling webhook event: {signature}')
         try:
             self.verify_signature(raw_payload, signature)
         except HTTPException as e:
@@ -101,7 +103,7 @@ class GitHubDaemon:
         def __init__(self):
             self._token = ""  # nosec
             self._expiry = 0
-            self.PRIVATE_KEY_PATH = 'concretedaemon.2024-09-04.private-key.pem'
+            self.PRIVATE_KEY_PATH = 'concreteoperator.2024-09-10.private-key.pem'
             try:
                 with open(self.PRIVATE_KEY_PATH, 'rb') as pem_file:
                     self.signing_key = pem_file.read()
@@ -157,6 +159,7 @@ class GitHubDaemon:
                 "Authorization": f"Bearer {self.jwt_token.token}",
                 "X-GitHub-Version": "2022-11-28",
             }
+            print(headers)
             url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
 
             self._expiry = int(time.time() + 3600)
