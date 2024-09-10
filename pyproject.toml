@@ -43,6 +43,8 @@ gunicorn = "==22.0.0"
 uvicorn = "==0.30.4"
 fastapi = "==0.111.1"
 
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = "==9.5.34"
 
 [tool.poetry.group.daemons.dependencies]
 pyjwt = "2.9.0"
