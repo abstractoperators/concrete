@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/kent/docs_fix
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -31,7 +32,7 @@ jobs:
                 AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                 AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                 SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-              # TODO: Use an actual secret manager
+              # TODO: Switch 
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
