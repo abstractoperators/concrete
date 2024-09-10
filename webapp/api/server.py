@@ -5,16 +5,15 @@ from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
-from .database import SessionLocal, engine
+from concrete.db.orm import SessionLocal, models, schemas
+
+from . import crud
 
 """
 If the db already exists and the sql models are the same, then behavior is as expected.
 If the db already exists but the sql models differ, then migrations will need to be run for DB interaction
 to function as expected.
 """
-models.Base.metadata.create_all(bind=engine)
-
 app = FastAPI()
 
 

@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
-from . import models, schemas
+from concrete.db.orm import models, schemas
 
 
 def get_operator(db: Session, operator_id: UUID) -> models.Operator | None:
