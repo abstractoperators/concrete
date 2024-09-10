@@ -12,8 +12,6 @@ from fastapi.templating import Jinja2Templates
 
 from concrete.tools import RestApiTool
 
-# TODO: Manage key expiry instead of generating a new JWT and Installation Access token every time.
-
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -38,13 +36,19 @@ class GitHubDaemon:
         self.installation_token = self.Installation_Token(self.jwt_token)
         self.open_revisions: dict[str, "GitHubDaemon.OpenRevisions"] = {}  # org/repo/branch: OpenRevisions
 
-    class OpenRevisions:
+    # To be replaced by DB probably
+    class OpenRevision:
         """
         Represents a list of open PRs for each branch.
         Tracks information about PRs.
         """
 
-        pass
+        org: str
+        repo: str
+        target_branch: str
+        source_branch: str
+        id: int
+        diff_url: str
 
     @staticmethod
     def verify_signature(payload_body, signature_header):
@@ -82,8 +86,9 @@ class GitHubDaemon:
 
         payload = json.loads(raw_payload)
         installation_id = payload['installation']['id']
-
         token = self.installation_token.get_token(installation_id)
+        if payload.get('pull_request', None):
+            print(f'Action: {payload["action"]}, PR: {payload["pull_request"]["html_url"]}')
         print(token)
         return {"message": f"Received {payload['action']} event"}
 
