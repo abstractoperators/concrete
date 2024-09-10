@@ -1,9 +1,8 @@
-name: Deploy apps to staging
+name: Deploy Demo App to staging
 on:
     push:
         branches:
             - main
-            - kent/docs
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -39,14 +38,11 @@ jobs:
                   echo AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID >> .env
                   echo AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY >> .env
                   echo AWS_DEFAULT_REGION=us-east-1 >> .env
-                  make build-webapp-homepage
                   make build-webapp-demo
 
             - name: Push to ECR
               run: |
-                  make aws_ecr_push_homepage
                   make aws_ecr_push_demo
-                  make aws_ecr_push_docs
     deploy:
         needs: build
         runs-on: ubuntu-latest
@@ -74,9 +70,6 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --container_name webapp-demo-staging --container_port 80 --service_name=webapp-demo-staging
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container_name webapp-homepage --container_port 80 --service_name=webapp-homepage-staging
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest --container_name webapp-homepage --container_port 80 --service_name=docs
-
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
