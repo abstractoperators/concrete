@@ -52,6 +52,7 @@ class testOperator(operators.Operator):
         return query
 """  # noqa: E501
 
+import base64
 import inspect
 import os
 import socket
@@ -156,6 +157,21 @@ class RestApiTool(metaclass=MetaTool):
         if not resp.ok:
             # Request failed
             CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
+            resp.raise_for_status()
+        return resp.json()  # return unwrapped data
+
+    @classmethod
+    def put(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
+        """
+        Make a PUT request to the specified url
+
+        Throws an error if the request was unsuccessful after retries
+        """
+        client = RestApiClient()
+        resp = client.put(url, headers=headers, params=params, data=data, json=json)
+        if not resp.ok:
+            # Request failed
+            CLIClient.emit(f"Failed PUT request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
         return resp.json()  # return unwrapped data
 
@@ -501,19 +517,79 @@ class GithubTool(metaclass=MetaTool):
         json = {'title': f'[ABOP] {title}', 'head': branch, 'base': base}
         return RestApiTool.post(url, headers=cls.headers, json=json)
 
-    @classmethod
-    def make_commit(cls, owner: str, repo: str, branch: str, message: str) -> dict:
-        """
-        Make a commit on the target repo
+    # @classmethod
+    # def make_commit(cls, owner: str, repo: str, branch: str, message: str) -> dict:
+    #     """
+    #     Make a commit on the target repo
 
-        e.g. make_commit('abstractoperators', 'concrete', 'kent/http-tool', 'This is a commit message')
+    #     e.g. make_commit('abstractoperators', 'concrete', 'kent/http-tool', 'This is a commit message')
+
+    #     Args
+    #         owner (str): The organization or accounts that owns the repo.
+    #         repo (str): The name of the repository.
+    #         branch (str): The branch that the commit is being made to.
+    #         message (str): The commit message.
+    #     """
+    #     url = f"https://api.github.com/repos/{owner}/{repo}/git/commits"
+    #     json = {'message': message, 'branch': branch}
+    #     return RestApiTool.post(url, headers=cls.headers, json=json)
+
+    @classmethod
+    def make_branch(cls, org: str, repo: str, base_branch: str, new_branch: str, access_token: str):
+        """
+        Make a branch called target_name from the latest commit on base_name
 
         Args
-            owner (str): The organization or accounts that owns the repo.
-            repo (str): The name of the repository.
-            branch (str): The branch that the commit is being made to.
-            message (str): The commit message.
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+            base_branch (str): The name of the branch to branch from.
+            new_branch (str): The name of the new branch
+            access_token(str): Fine-grained token with at least 'Contents' repository write access.
+                https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#create-a-reference--fine-grained-access-tokens
         """
-        url = f"https://api.github.com/repos/{owner}/{repo}/git/commits"
-        json = {'message': message, 'branch': branch}
-        return RestApiTool.post(url, headers=cls.headers, json=json)
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        # Get SHA of latest commit on base branch
+        url = f"https://api.github.com/repos/{org}/{repo}/branches/{base_branch}"
+        base_sha = RestApiTool.get(url, headers=headers)['commit']['sha']
+
+        # Create new branch from base branch
+        url = f"https://api.github.com/repos/{org}/{repo}/git/refs"
+        json = {"ref": "refs/heads/" + new_branch, "sha": base_sha}
+        RestApiTool.post(url=url, headers=headers, json=json)
+
+    @classmethod
+    def new_file(
+        cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
+    ):
+        """
+        Makes a new file on the target repo + commit.
+
+        Args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+            branch (str): The branch that the commit is being made to.
+            commit_message (str): The commit message.
+            access_token(str): Fine-grained token with at least TODO
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+        url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
+        json = {
+            "message": commit_message,
+            "content": base64.b64encode(file_contents.encode('utf-8')).decode('ascii'),
+            "branch": branch,
+        }
+        RestApiTool.put(url, headers=headers, json=json)
+
+        # # Create new commit on branch
+        # url = f"https://api.github.com/repos/{org}/{repo}/git/commits"
+        # json = {"message": commit_message, "tree": base_sha}
+        # return RestApiTool.post(url=url, headers=headers, json=json)

@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from concrete.tools import RestApiTool
+from concrete.tools import GithubTool, RestApiTool
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -80,7 +80,6 @@ class GitHubDaemon:
         """Receive GitHub webhook events."""
         raw_payload = await request.body()
         signature = request.headers.get("x-hub-signature-256")
-        print(f'Handling webhook event: {signature}')
         try:
             self.verify_signature(raw_payload, signature)
         except HTTPException as e:
@@ -92,7 +91,23 @@ class GitHubDaemon:
         if payload.get('pull_request', None):
             print(f'Action: {payload["action"]}, PR: {payload["pull_request"]["html_url"]}')
         print(token)
-        return {"message": f"Received {payload['action']} event"}
+
+        # GithubTool.make_branch(
+        #     org='abstractoperators',
+        #     repo='concrete',
+        #     base_branch='main',
+        #     new_branch='ghdaemon/test2',
+        #     access_token=token,
+        # )
+        GithubTool.new_file(
+            org='abstractoperators',
+            repo='concrete',
+            branch='ghdaemon/test2',
+            commit_message='hello world!!!',
+            access_token=token,
+            path='test.txt',
+            file_contents="hello world",
+        )
 
     class Jwt_Token:
         """
@@ -159,7 +174,6 @@ class GitHubDaemon:
                 "Authorization": f"Bearer {self.jwt_token.token}",
                 "X-GitHub-Version": "2022-11-28",
             }
-            print(headers)
             url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
 
             self._expiry = int(time.time() + 3600)
