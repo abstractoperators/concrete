@@ -44,7 +44,7 @@ build-daemons:
 	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
 
 build-docs:
-	docker run --rm -it -v ${PWD}:/docs squidfunk/mkdocs-material build
+	mkdocs build --config-file webapp/docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
 # Build before if needed
