@@ -92,22 +92,22 @@ class GitHubDaemon:
             print(f'Action: {payload["action"]}, PR: {payload["pull_request"]["html_url"]}')
         print(token)
 
-        # GithubTool.make_branch(
-        #     org='abstractoperators',
-        #     repo='concrete',
-        #     base_branch='main',
-        #     new_branch='ghdaemon/test2',
-        #     access_token=token,
-        # )
-        GithubTool.update_file(
+        GithubTool.make_branch(
             org='abstractoperators',
             repo='concrete',
-            branch='ghdaemon/test2',
-            commit_message='hello world!!!',
+            base_branch='main',
+            new_branch='ghdaemon/test2',
             access_token=token,
-            path='test.txt',
-            file_contents="hello world234",
         )
+        # GithubTool.update_file(
+        #     org='abstractoperators',
+        #     repo='concrete',
+        #     branch='ghdaemon/test2',
+        #     commit_message='hello world!!!',
+        #     access_token=token,
+        #     path='test.txt',
+        #     file_contents="hello world234",
+        # )
 
     class Jwt_Token:
         """

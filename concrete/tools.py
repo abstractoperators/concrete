@@ -63,7 +63,6 @@ from typing import Dict, Optional
 
 import boto3
 import requests
-from requests.exceptions import HTTPError
 
 from .clients import CLIClient, RestApiClient
 from .models.base import ConcreteModel
@@ -545,11 +544,11 @@ class GithubTool(metaclass=MetaTool):
         RestApiTool.post(url=url, headers=headers, json=json)
 
     @classmethod
-    def new_file(
+    def update_create_file(
         cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
     ):
         """
-        Makes a new file on the target repo + commit.
+        Updates/Create a file on the target repo + commit.
 
         Args
             org (str): Organization or account owning the repo
@@ -563,44 +562,16 @@ class GithubTool(metaclass=MetaTool):
             'Authorization': f'Bearer {access_token}',
             'X-GitHub-Api-Version': '2022-11-28',
         }
-        url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
-        json = {
-            "message": commit_message,
-            "content": base64.b64encode(file_contents.encode('utf-8')).decode('ascii'),
-            "branch": branch,
-        }
-        RestApiTool.put(url, headers=headers, json=json)
-
-    @classmethod
-    def update_file(
-        cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
-    ):
-        """
-        Updates a file on the target repo + commit.
-
-        Args
-            org (str): Organization or account owning the repo
-            repo (str): The name of the repository
-            branch (str): The branch that the commit is being made to.
-            commit_message (str): The commit message.
-            access_token(str): Fine-grained token with at least TODO
-        """
-        headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {access_token}',
-            'X-GitHub-Api-Version': '2022-11-28',
-        }
-
         # Get blob sha
         url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
         json = {'ref': branch}
-        resp = requests.get(url, headers=headers, data=json).json()
-        print(resp)
+        resp = requests.get(url, headers=headers, params=json, timeout=10)
+
         # TODO switch to RestApiTool; Handle 404 better.
-        if resp.get('status') == '404':
+        if resp.status_code == 404:
             sha = None
         else:
-            sha = resp.get('sha')
+            sha = resp.json().get('sha')
 
         url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
         json = {
@@ -608,3 +579,6 @@ class GithubTool(metaclass=MetaTool):
             "content": base64.b64encode(file_contents.encode('utf-8')).decode('ascii'),
             "branch": branch,
         }
+        if sha:
+            json['sha'] = sha
+        RestApiTool.put(url, headers=headers, json=json)
