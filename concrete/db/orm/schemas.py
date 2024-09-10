@@ -1,8 +1,16 @@
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from concrete.models.base import ConcreteModel
+
+
+# db for internal use only
+class CommonReadParameters(BaseModel):
+    db: Session
+    skip: int
+    limit: int
 
 
 class MetadataMixin(BaseModel):
@@ -42,6 +50,10 @@ class ClientBase(ConcreteModel):
     client: str = Field(description="Name of LLM client or organization. Defaults to OpenAI", default="OpenAI")
     temperature: float = Field(description="LLM temperature. Defaults to 0.", default=0)
     model: str = Field(description="Model type for LLM. Defaults to gpt-4o-mini", default="gpt-4o-mini")
+
+
+class ClientCreate(ClientBase):
+    operator_id: UUID = Field(description="ID of Operator that owns this client.")
 
 
 class Client(ClientBase, MetadataMixin, OrmMixin, OperatorChildMixin):
