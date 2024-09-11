@@ -1,6 +1,7 @@
-## Key Concepts
+# Key Concepts
+
 **[Operators](operators.md)**  
-An `Operator` represents an LLM-backed agent. Chat, command, duplicate, modify, coordinate, and deploy them with concrete. 
+An `Operator` represents an LLM-backed agent. Chat, command, duplicate, modify, coordinate, and deploy them with concrete.
 
 **Projects**  
 `Project` represents a unit of work executed on and returned to a user or another Operator.
