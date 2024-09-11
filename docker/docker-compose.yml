@@ -85,7 +85,7 @@ services:
         - sys_module
       restart: unless-stopped
       ports:
-        - "8000:8000"
+        - "8000:80"
   docs:
     build:
       context: ../

@@ -75,8 +75,6 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
-              env:
-                image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest'
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
