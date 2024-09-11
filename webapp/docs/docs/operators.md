@@ -4,7 +4,10 @@ Operators are agents with a specific prompt and a set of pre-defined interaction
 
 ### How to create your first operator  
 **Install Concrete**  
-First install python and concrete using pip: `pip install concrete`
+First install python and concrete using pip:
+```
+pip install concrete
+```
 
 **Create an operator**
 ```python
