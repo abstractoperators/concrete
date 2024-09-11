@@ -42,9 +42,9 @@ def object_not_found(object_name: str) -> Callable[[UUID], HTTPException]:
     return create_exception
 
 
-operator_not_found = object_not_found('Operator')
-client_not_found = object_not_found('Client')
-software_project_not_found = object_not_found('SoftwareProject')
+operator_not_found = object_not_found("Operator")
+client_not_found = object_not_found("Client")
+software_project_not_found = object_not_found("SoftwareProject")
 
 
 # ===CRUD operations for Operators=== #
@@ -122,6 +122,11 @@ def read_client(operator_id: UUID, client_id: UUID, db: DbDep) -> models.Client:
     return db_client
 
 
+@app.delete("/operators/{operator_id}/clients/{client_id}")
+def delete_client(operator_id: UUID, client_id: UUID, db: DbDep):
+    crud.delete_client(db, client_id, operator_id)
+
+
 # # TODO
 # @app.put("/clients/{client_id}")
 # def update_client(client_id: UUID, updated_client: OpenAIClientModel) -> OpenAIClientModel:
@@ -131,11 +136,6 @@ def read_client(operator_id: UUID, client_id: UUID, db: DbDep) -> models.Client:
 #             return updated_client
 #     raise client_not_found(client_id)
 
-
-# TODO
-@app.delete("/operators/{operator_id}/clients/{client_id}")
-def delete_client(operator_id: UUID, client_id: UUID, db: DbDep):
-    db_client = crud.delete_client(db, client_id, operator_id)
 
 # # CRUD operations for Software Projects
 # @app.post("/projects/", response_model=SoftwareProject)

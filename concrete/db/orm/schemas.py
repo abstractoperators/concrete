@@ -43,7 +43,10 @@ class OperatorUpdate(ConcreteModel):
 
 
 class ClientBase(ConcreteModel):
-    client: str = Field(description="Name of LLM client or organization. Defaults to OpenAI", default="OpenAI")
+    client: str = Field(
+        description="Name of LLM client or organization. Defaults to OpenAI",
+        default="OpenAI",
+    )
     temperature: float = Field(description="LLM temperature. Defaults to 0.", default=0)
     model: str = Field(description="Model type for LLM. Defaults to gpt-4o-mini", default="gpt-4o-mini")
 

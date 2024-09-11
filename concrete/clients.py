@@ -15,7 +15,7 @@ class Client:
     pass
 
 
-Client_con = TypeVar('Client_con', bound=Client, contravariant=True)
+Client_con = TypeVar("Client_con", bound=Client, contravariant=True)
 
 
 class OpenAIClient(Client):
@@ -57,10 +57,10 @@ class OpenAIClient(Client):
         Utility for formatting a pydantic model into a json output for OpenAI.
         """
         return {
-            'type': 'json_schema',
-            'json_schema': {
-                'name': model.__name__,
-                'schema': model.model_json_schema(),
+            "type": "json_schema",
+            "json_schema": {
+                "name": model.__name__,
+                "schema": model.model_json_schema(),
             },
         }
 
@@ -81,7 +81,10 @@ class RestApiClient(Client, requests.Session):
         # Setup retry logic for restful web http requests
         super().__init__()
         jitter_retry = Retry(
-            total=5, backoff_factor=0.1, backoff_jitter=1.25, status_forcelist=[400, 403, 404, 500, 502, 503, 504]
+            total=5,
+            backoff_factor=0.1,
+            backoff_jitter=1.25,
+            status_forcelist=[400, 403, 404, 500, 502, 503, 504],
         )
         self.mount("http://", HTTPAdapter(max_retries=jitter_retry))
         self.mount("https://", HTTPAdapter(max_retries=jitter_retry))
