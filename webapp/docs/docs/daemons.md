@@ -8,7 +8,6 @@ It will detect PRs created by users. It will create its own revision branch, mak
 ### env vars
 
 Loaded in from `.env.daemons` at build-time.
-For local development with `poetry run fastapi dev server.py`, load in env variables using `set -a; source .env.daemons`
 
 - GH_WEBHOOK_SECRET
   - Webhook secret defined in GitHub App settings.

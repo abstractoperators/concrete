@@ -15,3 +15,5 @@ An `Operator` represents an LLM-backed agent. Chat, command, duplicate, modify, 
 **Clients**  
 `Client`s are the internal interface to an API or other programmatic backend.
 
+**Daemons**
+`Daemons` are long-running processes providing an entrypoint for Operators and Tools to interact.
