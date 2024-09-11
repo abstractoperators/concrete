@@ -546,6 +546,29 @@ class GithubTool(metaclass=MetaTool):
         RestApiTool.post(url=url, headers=headers, json=json)
 
     @classmethod
+    def delete_branch(cls, org: str, repo: str, branch: str, access_token: str):
+        """
+        Deletes a branch from the target repo
+        https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#delete-a-reference
+
+        Args
+            org (str): Organization or account owning the rep
+            repo (str): Repository name
+            branch (str): Branch to delete
+            access_token(str): Fine-grained token with at least 'Contents' repository write access.
+        """
+        url = f'https://api.github.com/repos/{org}/{repo}/git/refs/{branch}'
+        headers = {
+            'accept': 'application/vnd.github+json',
+        }
+
+        resp = requests.delete(url, headers=headers, timeout=10)
+        if resp.status_code == 204:
+            CLIClient.emit(f'{branch} deleted successfully.')
+        else:
+            CLIClient.emit(f'Failed to delete {branch}.' + resp.json())
+
+    @classmethod
     def update_create_file(
         cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
     ):

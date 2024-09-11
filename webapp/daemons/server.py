@@ -88,16 +88,25 @@ class GitHubDaemon:
         installation_id = payload['installation']['id']
         token = self.installation_token.get_token(installation_id)
         if payload.get('pull_request', None):
-            print(f'Action: {payload["action"]}, PR: {payload["pull_request"]["html_url"]}')
-        print(token)
-
-        GithubTool.make_branch(
-            org='abstractoperators',
-            repo='concrete',
-            base_branch='main',
-            new_branch='ghdaemon/test2',
-            access_token=token,
-        )
+            if payload['action'] == 'opened':
+                branch_name = payload['pull_request']['head']['ref']
+                revision_branch_name = f'ghdaemon/revision/{branch_name}'
+                GithubTool.make_branch(
+                    org='abstractoperators',
+                    repo='concrete',
+                    base_branch=branch_name,
+                    new_branch=revision_branch_name,
+                    access_token=token,
+                )
+            elif payload['action'] == 'closed':
+                branch_name = payload['pull_request']['head']['ref']
+                revision_branch_name = f'ghdaemon/revision/{branch_name}'
+                GithubTool.delete_branch(
+                    org='abstractoperators',
+                    repo='concrete',
+                    branch=revision_branch_name,
+                    access_token=token,
+                )
 
     class JwtToken:
         """
