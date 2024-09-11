@@ -46,6 +46,8 @@ python-fasthtml = "==0.4.4"
 [tool.poetry.group.webapp-demo.dependencies]
 flask = "==3.0.3"
 
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = "==9.5.34"
 
 [tool.poetry.group.daemons.dependencies]
 pyjwt = "2.9.0"
