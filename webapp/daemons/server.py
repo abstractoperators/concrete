@@ -32,12 +32,12 @@ class GitHubDaemon:
     def __init__(self):
         self.router = APIRouter()
         self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
-        self.jwt_token = self.Jwt_Token()
+        self.jwt_token = self.JwtToken()
         self.installation_token = self.Installation_Token(self.jwt_token)
         self.open_revisions: dict[str, "GitHubDaemon.OpenPRs"] = {}  # org/repo/branch: OpenRevisions
 
     # To be replaced by DB probably
-    class OpenPRs:
+    class OpenPr:
         """
         Manages User Open PRs + Daemon Revision branch.
         Represents an Actor, which is messaged by the Daemon Actor.
@@ -99,17 +99,8 @@ class GitHubDaemon:
             new_branch='ghdaemon/test2',
             access_token=token,
         )
-        # GithubTool.update_file(
-        #     org='abstractoperators',
-        #     repo='concrete',
-        #     branch='ghdaemon/test2',
-        #     commit_message='hello world!!!',
-        #     access_token=token,
-        #     path='test.txt',
-        #     file_contents="hello world234",
-        # )
 
-    class Jwt_Token:
+    class JwtToken:
         """
         Represents a JWT token for GitHub App authentication.
         Manages token expiry and generation.
@@ -118,7 +109,7 @@ class GitHubDaemon:
         def __init__(self):
             self._token = ""  # nosec
             self._expiry = 0
-            self.PRIVATE_KEY_PATH = 'concreteoperator.2024-09-10.private-key.pem'
+            self.PRIVATE_KEY_PATH = os.environ.get("GH_PRIVATE_KEY_PATH")
             try:
                 with open(self.PRIVATE_KEY_PATH, 'rb') as pem_file:
                     self.signing_key = pem_file.read()
@@ -157,7 +148,7 @@ class GitHubDaemon:
         Represents an Installation Access Token for GitHub App authentication.
         """
 
-        def __init__(self, jwt_token: "GitHubDaemon.Jwt_Token"):
+        def __init__(self, jwt_token: "GitHubDaemon.JwtToken"):
             self._token = ""  # nosec
             self._expiry = 0
             self.jwt_token = jwt_token
@@ -185,16 +176,6 @@ class GitHubDaemon:
                 self._generate_installation_token(installation_id)
             return self._token
 
-        """
-        Pull the latest changes from a branch.
-        """
-
 
 gh_daemon = GitHubDaemon()
 app.include_router(gh_daemon.router)
-
-
-@app.get("/url-list")
-def get_all_urls():
-    url_list = [{"path": route.path, "name": route.name} for route in app.routes]
-    return url_list
