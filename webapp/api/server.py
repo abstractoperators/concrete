@@ -28,8 +28,8 @@ def get_db():
 DbDep = Annotated[Session, Depends(get_db)]
 
 
-def get_common_read_params(db: DbDep, skip: int = 0, limit: int = 100) -> schemas.CommonReadParameters:
-    return schemas.CommonReadParameters(db=db, skip=skip, limit=limit)
+def get_common_read_params(skip: int = 0, limit: int = 100) -> schemas.CommonReadParameters:
+    return schemas.CommonReadParameters(skip=skip, limit=limit)
 
 
 CommonReadDep = Annotated[schemas.CommonReadParameters, Depends(get_common_read_params)]
@@ -42,9 +42,9 @@ def object_not_found(object_name: str) -> Callable[[UUID], HTTPException]:
     return create_exception
 
 
-operator_not_found = object_not_found('Operator')
-client_not_found = object_not_found('Client')
-software_project_not_found = object_not_found('SoftwareProject')
+operator_not_found = object_not_found("Operator")
+client_not_found = object_not_found("Client")
+software_project_not_found = object_not_found("SoftwareProject")
 
 
 # ===CRUD operations for Operators=== #
@@ -54,9 +54,9 @@ def create_operator(operator: schemas.OperatorCreate, db: DbDep) -> models.Opera
 
 
 @app.get("/operators/", response_model=list[schemas.Operator])
-def read_operators(common_read_params: CommonReadDep) -> list[models.Operator]:
+def read_operators(common_read_params: CommonReadDep, db: DbDep) -> list[models.Operator]:
     return crud.get_operators(
-        common_read_params.db,
+        db,
         common_read_params.skip,
         common_read_params.limit,
     )
@@ -96,18 +96,18 @@ def create_client(operator_id: UUID, client: schemas.ClientCreate, db: DbDep) ->
 
 
 @app.get("/clients/", response_model=list[schemas.Client])
-def read_clients(common_read_params: CommonReadDep) -> list[models.Client]:
+def read_clients(common_read_params: CommonReadDep, db: DbDep) -> list[models.Client]:
     return crud.get_clients(
-        common_read_params.db,
+        db,
         skip=common_read_params.skip,
         limit=common_read_params.limit,
     )
 
 
 @app.get("/operators/{operator_id}/clients/", response_model=list[schemas.Client])
-def read_operator_clients(operator_id: UUID, common_read_params: CommonReadDep) -> list[models.Client]:
+def read_operator_clients(operator_id: UUID, common_read_params: CommonReadDep, db: DbDep) -> list[models.Client]:
     return crud.get_clients(
-        common_read_params.db,
+        db,
         operator_id=operator_id,
         skip=common_read_params.skip,
         limit=common_read_params.limit,
@@ -122,6 +122,11 @@ def read_client(operator_id: UUID, client_id: UUID, db: DbDep) -> models.Client:
     return db_client
 
 
+@app.delete("/operators/{operator_id}/clients/{client_id}")
+def delete_client(operator_id: UUID, client_id: UUID, db: DbDep):
+    crud.delete_client(db, client_id, operator_id)
+
+
 # # TODO
 # @app.put("/clients/{client_id}")
 # def update_client(client_id: UUID, updated_client: OpenAIClientModel) -> OpenAIClientModel:
@@ -129,16 +134,6 @@ def read_client(operator_id: UUID, client_id: UUID, db: DbDep) -> models.Client:
 #         if client.id == client_id:
 #             clients_db[index] = updated_client
 #             return updated_client
-#     raise client_not_found(client_id)
-
-
-# # TODO
-# @app.delete("/clients/{client_id}")
-# def delete_client(client_id: UUID):
-#     for index, client in enumerate(clients_db):
-#         if client.id == client_id:
-#             del clients_db[index]
-#             return
 #     raise client_not_found(client_id)
 
 

@@ -36,7 +36,7 @@ async def github_webhook(request: Request):
         return {"error": str(e.detail)}, e.status_code
 
     payload = json.loads(raw_payload)
-    print(installation_id := payload['installation']['id'])  # noqa
+    print(installation_id := payload["installation"]["id"])  # noqa
 
     encoded_jwt = generate_JWT()
     installation_token = generate_installation_access_token(installation_id, encoded_jwt)
@@ -45,8 +45,8 @@ async def github_webhook(request: Request):
 
 
 def generate_JWT() -> str:
-    PRIVATE_KEY_PATH = 'concretedaemon.2024-09-04.private-key.pem'
-    with open(PRIVATE_KEY_PATH, 'rb') as pem_file:
+    PRIVATE_KEY_PATH = "concretedaemon.2024-09-04.private-key.pem"
+    with open(PRIVATE_KEY_PATH, "rb") as pem_file:
         signing_key = pem_file.read()
 
     GH_APP_CLIENT_ID = os.getenv("GH_CLIENT_ID")
@@ -54,12 +54,12 @@ def generate_JWT() -> str:
         raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
 
     payload = {
-        'iat': int(time.time()),
-        'exp': int(time.time()) + 600,
-        'iss': GH_APP_CLIENT_ID,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 600,
+        "iss": GH_APP_CLIENT_ID,
     }
 
-    encoded_jwt = jwt.encode(payload, signing_key, algorithm='RS256')
+    encoded_jwt = jwt.encode(payload, signing_key, algorithm="RS256")
     return encoded_jwt
 
 
@@ -73,9 +73,9 @@ def generate_installation_access_token(installation_id: int, encoded_jwt: str):
         "Authorization": f"Bearer {encoded_jwt}",
         "X-GitHub-Version": "2022-11-28",
     }
-    url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
+    url = f"https://api.github.com/app/installations/{installation_id}/access_tokens"
     token = RestApiTool.post(url=url, headers=headers)
-    token = token['token']
+    token = token["token"]
     return token
 
 
@@ -96,7 +96,7 @@ def verify_signature(payload_body, signature_header):
     if not signature_header:
         raise HTTPException(status_code=403, detail="x-hub-signature-256 header is missing")
 
-    hash_object = hmac.new(GH_WEBHOOK_SECRET.encode('utf-8'), msg=payload_body, digestmod=hashlib.sha256)
+    hash_object = hmac.new(GH_WEBHOOK_SECRET.encode("utf-8"), msg=payload_body, digestmod=hashlib.sha256)
 
     expected_signature = "sha256=" + hash_object.hexdigest()
     if not hmac.compare_digest(expected_signature, signature_header):

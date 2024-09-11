@@ -50,7 +50,7 @@ def delete_operator(db: Session, operator_id: UUID) -> models.Operator | None:
 
 
 def create_client(db: Session, client: schemas.ClientCreate, operator: models.Operator) -> models.Client:
-    client = models.Client(**client.model_dump() | {'operator': operator})
+    client = models.Client(**client.model_dump() | {"operator": operator})
     db.add(client)
     db.commit()
     db.refresh(client)
@@ -78,6 +78,17 @@ def get_clients(
         .limit(limit)
     )
     return db.scalars(stmt).all()
+
+
+def delete_client(db: Session, client_id: UUID, operator_id: UUID):
+    stmt = (
+        delete(models.Client)
+        .where(models.Client.id == client_id)
+        .where(models.Client.operator_id == operator_id)
+        .returning(models.Client)
+    )
+    db.scalars(stmt).first()
+    db.commit()
 
 
 # def update_operator(db: Session, operator_id: UUID, operator: schemas.OperatorUpdate) -> models.Operator | None:
