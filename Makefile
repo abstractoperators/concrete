@@ -85,10 +85,6 @@ aws_ecr_push_docs: aws_ecr_login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 
-aws_ecr_push_docs: aws_ecr_login
-	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
-
 rabbitmq:
 	docker rm -f rabbitmq || true
 	docker run -d -p 5672:5672 --name rabbitmq rabbitmq &
