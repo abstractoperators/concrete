@@ -1,4 +1,5 @@
 """
+TODO: Move this to docs
 Tools for integration with OpenAI's Structured Outputs (and any other LLM that supports structured output).
 
 Use: Tools are used to provide operators methods that can be used to complete a task. Tools are defined as classes with methods that can be called. Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
@@ -10,6 +11,7 @@ eg) [AwsTool.deploy_to_aws(example_directory_name)]
         - The benefit of keeping tools inside a toolclass is to provide the tool organized helper functions.
     b) Possible alternatives involving removal of tool class. https://stackoverflow.com/questions/20093811/how-do-i-change-the-representation-of-a-python-function. This would remove the complicated metaclass entirely in favor of a decorated function.
 
+#  ¿ Do we still need this ?
 2) TODO: Update prompting to get good tool call behavior.
 
 Example:
@@ -619,3 +621,30 @@ class GithubTool(metaclass=MetaTool):
         if sha:
             json['sha'] = sha
         RestApiTool.put(url, headers=headers, json=json)
+
+
+class ToolTool(metaclass=MetaTool):
+    """
+    Functools like interactions with other tools as functions
+    """
+
+    @classmethod
+    def partial(cls):
+        """Set some parameters and return a new function"""
+        pass
+
+    @classmethod
+    def multi(cls):
+        """Run some other tool multiple times"""
+        pass
+
+    @classmethod
+    def chain(cls):
+        """Run two or more tools in succession"""
+        pass
+
+    @classmethod
+    def pipe(cls):
+        """Use a tool and feed its output as input into another tool"""
+        # TODO: Use type checking to see that this is valid
+        pass
