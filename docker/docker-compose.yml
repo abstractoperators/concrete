@@ -72,7 +72,35 @@ services:
     image: daemons:latest
     ports:
       - "8000:80"
-    
+  
+  ts-oauth-docs:
+      image: tailscale/tailscale:latest
+      container_name: ts-oauth-docs
+      hostname: ts-oauth-docs
+      environment:
+        - TS_AUTHKEY=${TS_AUTHKEY}
+        - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+      volumes:
+        - /dev/net/tun:/dev/net/tun
+      cap_add:
+        - net_admin
+        - sys_module
+      restart: unless-stopped
+      ports:
+        - "8000:80"
+  docs:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.docs
+    container_name: docs
+    env_file:
+      - path: "../.env"
+    image: docs
+    network_mode: service:ts-oauth-docs
+    depends_on: 
+      - "ts-oauth-docs"
+    platform: linux/arm64 
+
   dind-builder:
     build:
       context: ../

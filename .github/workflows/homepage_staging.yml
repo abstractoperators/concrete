@@ -1,4 +1,4 @@
-name: Deploy webapp-homepage to staging
+name: Deploy Homepage to staging
 on:
     push:
         branches:
@@ -39,12 +39,10 @@ jobs:
                   echo AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY >> .env
                   echo AWS_DEFAULT_REGION=us-east-1 >> .env
                   make build-webapp-homepage
-                  make build-webapp-demo
 
             - name: Push to ECR
               run: |
                   make aws_ecr_push_homepage
-                  make aws_ecr_push_demo
     deploy:
         needs: build
         runs-on: ubuntu-latest
@@ -65,15 +63,11 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
-              env:
-                image_uri: '008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest'
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --container_name webapp-demo-staging --container_port 80 --service_name=webapp-demo-staging
                   poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container_name webapp-homepage --container_port 80 --service_name=webapp-homepage-staging
-
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
