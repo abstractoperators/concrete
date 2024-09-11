@@ -325,6 +325,8 @@ class AwsTool(metaclass=MetaTool):
             "/f7cec30e1ac2e4a4/451389d914171f05"
         )
 
+        # TODO: Load balancer should be able to point to multiple containers on a single service.
+        # e.g.) service_name.container1; atm, consider only the first container to route traffic to.
         target_group_arn = None
         if not listener_rule:
             rule_field = 'host-header'
@@ -353,7 +355,7 @@ class AwsTool(metaclass=MetaTool):
             target_group_arn = elbv2_client.create_target_group(
                 Name=target_group_name,
                 Protocol='HTTP',
-                Port=80,
+                Port=containers[0].container_port,
                 VpcId=vpc,
                 TargetType='ip',
                 HealthCheckEnabled=True,
@@ -436,7 +438,7 @@ class AwsTool(metaclass=MetaTool):
                     {
                         "targetGroupArn": target_group_arn,
                         "containerName": task_name,
-                        "containerPort": 80,
+                        "containerPort": containers[0].container_port,
                     }
                 ],
                 enableECSManagedTags=True,
