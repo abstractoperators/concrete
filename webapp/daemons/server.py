@@ -32,7 +32,7 @@ class GitHubDaemon:
         self.router = APIRouter()
         self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
         self.jwt_token = self.JwtToken()
-        self.installation_token = self.Installation_Token(self.jwt_token)
+        self.installation_token = self.InstallationToken(self.jwt_token)
         self.open_revisions: dict[str, "GitHubDaemon.OpenPRs"] = {}  # org/repo/branch: OpenRevisions
 
     # To be replaced by DB probably
@@ -142,7 +142,7 @@ class GitHubDaemon:
         def get_jwt(self) -> tuple[str, int]:
             return self.token
 
-    class Installation_Token:
+    class InstallationToken:
         """
         Represents an Installation Access Token for GitHub App authentication.
         """
