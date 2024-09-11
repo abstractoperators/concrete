@@ -106,9 +106,9 @@ class GitHubDaemon:
         """
 
         def __init__(self):
-            self._token = ""  # nosec
-            self._expiry = 0
-            self.PRIVATE_KEY_PATH = os.environ.get("GH_PRIVATE_KEY_PATH")
+            self._token: str = ""  # nosec
+            self._expiry: float = 0
+            self.PRIVATE_KEY_PATH: str = os.environ.get("GH_PRIVATE_KEY_PATH")
             try:
                 with open(self.PRIVATE_KEY_PATH, 'rb') as pem_file:
                     self.signing_key = pem_file.read()
@@ -148,8 +148,8 @@ class GitHubDaemon:
         """
 
         def __init__(self, jwt_token: "GitHubDaemon.JwtToken"):
-            self._token = ""  # nosec
-            self._expiry = 0
+            self._token: str = ""  # nosec
+            self._expiry: float = 0
             self.jwt_token = jwt_token
 
         def _is_expired(self):
