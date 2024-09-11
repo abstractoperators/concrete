@@ -87,8 +87,9 @@ class GitHubDaemon:
         payload = json.loads(raw_payload)
         installation_id = payload['installation']['id']
         token = self.installation_token.get_token(installation_id)
+        print(payload, token)
         if payload.get('pull_request', None):
-            if payload['action'] == 'opened':
+            if payload['action'] == 'opened' or payload['action'] == 'reopened':
                 branch_name = payload['pull_request']['head']['ref']
                 revision_branch_name = f'ghdaemon/revision/{branch_name}'
                 GithubTool.make_branch(

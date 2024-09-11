@@ -543,6 +543,7 @@ class GithubTool(metaclass=MetaTool):
         # Create new branch from base branch
         url = f"https://api.github.com/repos/{org}/{repo}/git/refs"
         json = {"ref": "refs/heads/" + new_branch, "sha": base_sha}
+        CLIClient.emit(f"Creating branch {new_branch} from {base_branch}")
         RestApiTool.post(url=url, headers=headers, json=json)
 
     @classmethod
@@ -557,16 +558,18 @@ class GithubTool(metaclass=MetaTool):
             branch (str): Branch to delete
             access_token(str): Fine-grained token with at least 'Contents' repository write access.
         """
-        url = f'https://api.github.com/repos/{org}/{repo}/git/refs/{branch}'
+        url = f'https://api.github.com/repos/{org}/{repo}/git/refs/heads/{branch}'
         headers = {
-            'accept': 'application/vnd.github+json',
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
         }
 
         resp = requests.delete(url, headers=headers, timeout=10)
         if resp.status_code == 204:
             CLIClient.emit(f'{branch} deleted successfully.')
         else:
-            CLIClient.emit(f'Failed to delete {branch}.' + resp.json())
+            CLIClient.emit(f'Failed to delete {branch}.' + str(resp.json()))
 
     @classmethod
     def update_create_file(
