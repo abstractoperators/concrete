@@ -47,7 +47,7 @@ build-docs:
 	$(POETRY) mkdocs build --config-file webapp/docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
-# Build before if needed
+# Build before if needed 
 # Using docker compose to store some arguments
 # TODO: Parameterize based on app name
 run-webapp-demo:
@@ -69,7 +69,6 @@ run-daemons:
 run-docs:
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
-# mkdocs serve --config-file webapp/docs/mkdocs.yml
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
@@ -82,6 +81,10 @@ aws_ecr_push_homepage: aws_ecr_login
 aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+aws_ecr_push_docs: aws_ecr_login
+	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
+
 aws_ecr_push_docs: aws_ecr_login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
