@@ -139,6 +139,7 @@ class RestApiTool(metaclass=MetaTool):
             CLIClient.emit(f"Failed DELETE request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
         return resp.json()
+
     @classmethod
     def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
         """
