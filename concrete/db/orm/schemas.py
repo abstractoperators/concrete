@@ -1,14 +1,11 @@
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
 from concrete.models.base import ConcreteModel
 
 
-# db for internal use only
 class CommonReadParameters(BaseModel):
-    db: Session
     skip: int
     limit: int
 
@@ -24,7 +21,6 @@ class OrmMixin(BaseModel):
 
 class OperatorChildMixin(BaseModel):
     operator_id: UUID
-    operator: "Operator"
 
 
 class OperatorBase(ConcreteModel):

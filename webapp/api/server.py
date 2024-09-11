@@ -28,8 +28,8 @@ def get_db():
 DbDep = Annotated[Session, Depends(get_db)]
 
 
-def get_common_read_params(db: DbDep, skip: int = 0, limit: int = 100) -> schemas.CommonReadParameters:
-    return schemas.CommonReadParameters(db=db, skip=skip, limit=limit)
+def get_common_read_params(skip: int = 0, limit: int = 100) -> schemas.CommonReadParameters:
+    return schemas.CommonReadParameters(skip=skip, limit=limit)
 
 
 CommonReadDep = Annotated[schemas.CommonReadParameters, Depends(get_common_read_params)]
@@ -54,9 +54,9 @@ def create_operator(operator: schemas.OperatorCreate, db: DbDep) -> models.Opera
 
 
 @app.get("/operators/", response_model=list[schemas.Operator])
-def read_operators(common_read_params: CommonReadDep) -> list[models.Operator]:
+def read_operators(common_read_params: CommonReadDep, db: DbDep) -> list[models.Operator]:
     return crud.get_operators(
-        common_read_params.db,
+        db,
         common_read_params.skip,
         common_read_params.limit,
     )
@@ -96,18 +96,18 @@ def create_client(operator_id: UUID, client: schemas.ClientCreate, db: DbDep) ->
 
 
 @app.get("/clients/", response_model=list[schemas.Client])
-def read_clients(common_read_params: CommonReadDep) -> list[models.Client]:
+def read_clients(common_read_params: CommonReadDep, db: DbDep) -> list[models.Client]:
     return crud.get_clients(
-        common_read_params.db,
+        db,
         skip=common_read_params.skip,
         limit=common_read_params.limit,
     )
 
 
 @app.get("/operators/{operator_id}/clients/", response_model=list[schemas.Client])
-def read_operator_clients(operator_id: UUID, common_read_params: CommonReadDep) -> list[models.Client]:
+def read_operator_clients(operator_id: UUID, common_read_params: CommonReadDep, db: DbDep) -> list[models.Client]:
     return crud.get_clients(
-        common_read_params.db,
+        db,
         operator_id=operator_id,
         skip=common_read_params.skip,
         limit=common_read_params.limit,
@@ -132,15 +132,10 @@ def read_client(operator_id: UUID, client_id: UUID, db: DbDep) -> models.Client:
 #     raise client_not_found(client_id)
 
 
-# # TODO
-# @app.delete("/clients/{client_id}")
-# def delete_client(client_id: UUID):
-#     for index, client in enumerate(clients_db):
-#         if client.id == client_id:
-#             del clients_db[index]
-#             return
-#     raise client_not_found(client_id)
-
+# TODO
+@app.delete("/operators/{operator_id}/clients/{client_id}")
+def delete_client(operator_id: UUID, client_id: UUID, db: DbDep):
+    db_client = crud.delete_client(db, client_id, operator_id)
 
 # # CRUD operations for Software Projects
 # @app.post("/projects/", response_model=SoftwareProject)

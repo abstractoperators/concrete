@@ -79,6 +79,14 @@ def get_clients(
     )
     return db.scalars(stmt).all()
 
+def delete_client( 
+    db: Session,
+    client_id: UUID,
+    operator_id: UUID
+):
+    stmt = delete(models.Client).where(models.Client.id == client_id).where(models.Client.operator_id == operator_id).returning(models.Client)
+    db.scalars(stmt).first()
+    db.commit()
 
 # def update_operator(db: Session, operator_id: UUID, operator: schemas.OperatorUpdate) -> models.Operator | None:
 #     print(operator.model_dump(exclude_none=True))
