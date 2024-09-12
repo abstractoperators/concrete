@@ -648,3 +648,6 @@ class ToolTool(metaclass=MetaTool):
         """Use a tool and feed its output as input into another tool"""
         # TODO: Use type checking to see that this is valid
         pass
+
+
+T2 = ToolTool
