@@ -1,53 +1,81 @@
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String, inspect
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    declared_attr,
-    mapped_column,
-    relationship,
-)
+from sqlmodel import Field, Relationship, SQLModel
 
 
-class Base(DeclarativeBase):
-    @declared_attr.directive
-    def __tablename__(cls) -> str:
-        return cls.__name__.lower()
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-
+class Base(SQLModel):
     def __repr__(self) -> str:
-        columns = inspect(self).mapper.columns
-        attrs_str = ", ".join([f"{c}={columns[c]!r}" for c in columns.keys()])
-        return f"{self.__class__.__name__}({attrs_str})"
+        return self.model_dump_json(indent=4, exclude_unset=True, exclude_none=True)
 
 
-class Operator(Base):
-    instructions: Mapped[str]
-    title: Mapped[str] = mapped_column(String(32))
+class MetadataMixin(SQLModel):
+    id: UUID = Field(primary_key=True, default_factory=uuid4)
 
-    clients: Mapped[list["Client"]] = relationship(
+
+# Operator Models
+
+
+class OperatorBase(Base):
+    instructions: str = Field(description="Instructions and role of the operator.")
+    title: str = Field(description="Title of the operator.", max_length=32)
+
+
+class OperatorUpdate(Base):
+    instructions: str | None = Field(description="Instructions and role of the operator.", default=None)
+    title: str | None = Field(description="Title of the operator.", max_length=32, default=None)
+
+
+class OperatorCreate(OperatorBase):
+    pass
+
+
+# TODO: data models with pseudo-relationships
+# https://sqlmodel.tiangolo.com/tutorial/fastapi/relationships/#data-models-without-relationship-attributes
+class Operator(OperatorBase, MetadataMixin, table=True):
+    clients: list["Client"] = Relationship(
         back_populates="operator",
-        cascade="all, delete-orphan",
+        cascade_delete=True,
     )
-    tools: Mapped[list["Tool"]] = relationship(
-        back_populates="operator",
-        cascade="all, delete-orphan",
-    )
+    tools: list["Tool"] = Relationship(back_populates="operator")
 
 
-class Client(Base):
-    client: Mapped[str] = mapped_column(
-        String(32), default="OpenAI"
+# Client Models
+
+
+class ClientBase(Base):
+    client: str = Field(
+        description="Name of LLM client or organization. Defaults to OpenAI",
+        default="OpenAI",
+        max_length=32,
     )  # TODO: change to more constrained type once use case is better understood
-    temperature: Mapped[float] = mapped_column(default=0)
-    model: Mapped[str] = mapped_column(String(32), default="gpt-4o-mini")
+    temperature: float = Field(description="LLM temperature. Defaults to 0.", default=0)
+    model: str = Field(
+        description="Model type for LLM. Defaults to gpt-4o-mini",
+        default="gpt-4o-mini",
+        max_length=32,
+    )
 
-    operator_id: Mapped[UUID] = mapped_column(ForeignKey("operator.id"))
-    operator: Mapped[Operator] = relationship(back_populates="clients")
+    operator_id: UUID = Field(
+        description="ID of Operator that owns this client.",
+        foreign_key="operator.id",
+        ondelete="CASCADE",
+    )
 
 
-class Tool(Base):
-    operator_id: Mapped[UUID] = mapped_column(ForeignKey("operator.id"))
-    operator: Mapped[Operator] = relationship(back_populates="tools")
+class ClientCreate(ClientBase):
+    pass
+
+
+class Client(ClientBase, MetadataMixin, table=True):
+    operator: Operator = Relationship(back_populates="clients")
+
+
+# Tool Models
+
+
+class ToolBase(Base):
+    pass
+
+
+class Tool(ToolBase, MetadataMixin, table=True):
+    operators: list[Operator] = Relationship(back_populates="tools")
