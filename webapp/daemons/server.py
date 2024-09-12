@@ -33,10 +33,10 @@ class GitHubDaemon:
         self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
         self.jwt_token = self.JwtToken()
         self.installation_token = self.InstallationToken(self.jwt_token)
-        self.open_revisions: dict[str, "GitHubDaemon.OpenPRs"] = {}  # org/repo/branch: OpenRevisions
+        self.open_revisions: dict[str, "GitHubDaemon.Revision"] = {}  # org/repo/branch: OpenRevisions
 
     # To be replaced by DB probably
-    class OpenPr:
+    class Revision:
         """
         Manages User Open PRs + Daemon Revision branch.
         Represents an Actor, which is messaged by the Daemon Actor.
@@ -44,12 +44,12 @@ class GitHubDaemon:
 
         org: str
         repo: str
-        base: str  # e.g. main
-        target: str  # e.g. featurebranch
-        id: int  # PR number
-        diff_url: str
+        target: str
 
-        revision_branch: str  # Branch created by Daemon to revise PR
+        def __init__(self, org: str, repo: str, target: str):
+            self.org = org
+            self.repo = repo
+            self.target = target
 
     @staticmethod
     def verify_signature(payload_body, signature_header):
@@ -99,6 +99,12 @@ class GitHubDaemon:
                     new_branch=revision_branch_name,
                     access_token=token,
                 )
+                self.open_revisions['abstractoperators/concrete/' + revision_branch_name] = self.Revision(
+                    org='abstractoperators',
+                    repo='concrete',
+                    target=branch_name,
+                )
+
             elif payload['action'] == 'closed':
                 branch_name = payload['pull_request']['head']['ref']
                 revision_branch_name = f'ghdaemon/revision/{branch_name}'
@@ -108,6 +114,7 @@ class GitHubDaemon:
                     branch=revision_branch_name,
                     access_token=token,
                 )
+                self.open_revisions.pop('abstractoperators/concrete/' + revision_branch_name, None)
 
     class JwtToken:
         """
