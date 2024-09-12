@@ -183,5 +183,5 @@ shared/
 # Keys
 *.pem
 
-#
-/webapp/docs/site
+# mkdocs™
+.site/
