@@ -44,7 +44,7 @@ build-daemons:
 	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
 
 build-docs:
-	$(POETRY) mkdocs build --config-file webapp/docs/mkdocs.yml
+	$(POETRY) mkdocs build --config-file config/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
 # Build before if needed 
@@ -72,7 +72,9 @@ run-docs:
 
 # Run locally
 local-docs:
-	mkdocs serve --config-file webapp/docs/mkdocs.yml
+	poetry run mkdocs build --config-file config/mkdocs.yml
+	mkdocs serve --config-file config/mkdocs.yml
+
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
