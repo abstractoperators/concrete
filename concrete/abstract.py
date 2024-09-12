@@ -109,8 +109,10 @@ class MetaAbstractOperator(type):
 class AbstractOperator(metaclass=MetaAbstractOperator):
 
     # TODO replace OpenAIClient with GenericClient
-    def __init__(self, clients: dict[str, OpenAIClient], tools: list[MetaTool] | None = None):
-        self._clients = clients
+    def __init__(self, clients: dict[str, OpenAIClient] | None, tools: list[MetaTool] | None = None):
+        if clients is None:
+            clients = {'openai': OpenAIClient()}
+        self._clients = cast(dict[str, OpenAIClient], clients)
         self.llm_client = 'openai'
         self.llm_client_function = 'complete'
         self.tools = tools

@@ -45,6 +45,13 @@ class Message(ConcreteModel):
         return message_type
 
 
+# N.B. KombuMixin must be added to each leaf child node class due to serializer registration
+
+
+class TextMessage(Message, KombuMixin):
+    text: str = Field(description="Text")
+
+
 class Tool(Message):
     tool_name: str = Field(description="Name of the tool")
     tool_function: str = Field(description="Command to call the tool")
@@ -55,7 +62,6 @@ class Tools(Message):
     tools: list[Tool] = Field(description="List of tools")
 
 
-# N.B. KombuMixin must be added to each leaf child node class due to serializer registration
 class ProjectFile(Message, KombuMixin):
     file_name: str = Field(description="A file path relative to root")
     file_contents: str = Field(description="The contents of the file")
@@ -66,10 +72,6 @@ class ProjectDirectory(Message, KombuMixin):
     files: list[ProjectFile] = Field(
         description="A list of files in the project directory. Each list item represents a file"
     )
-
-
-class TextMessage(Message, KombuMixin):
-    text: str = Field(description="Text")
 
 
 class Summary(Message, KombuMixin):
