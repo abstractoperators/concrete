@@ -9,3 +9,5 @@ Concrete is an AI agent orchestration platform.
 ### [Projects](projects.md)
 
 ### [Daemons](daemons.md)
+
+### [Developer Guide](developer_guide.md)
