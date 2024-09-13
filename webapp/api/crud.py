@@ -146,3 +146,24 @@ def update_tool(db: Session):
 
 def delete_tool(db: Session):
     pass
+
+
+# ===Message=== #
+def create_message(db: Session):
+    pass
+
+
+def get_message(db: Session):
+    pass
+
+
+def get_messages(db: Session):
+    pass
+
+
+def update_message(db: Session):
+    pass
+
+
+def delete_message(db: Session):
+    pass
