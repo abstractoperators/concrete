@@ -149,6 +149,7 @@ class RestApiTool(metaclass=MetaTool):
         """
         client = RestApiClient()
         resp = client.get(url, headers=headers, params=params, data=data)
+
         if not resp.ok:
             CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
