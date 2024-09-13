@@ -127,21 +127,22 @@ def delete_client(db: Session, client_id: UUID, operator_id: UUID) -> Client | N
     )
 
 
-# def update_operator(db: Session, operator_id: UUID, operator: schemas.OperatorUpdate) -> models.Operator | None:
-#     print(operator.model_dump(exclude_none=True))
-#     stmt = (
-#         update(models.Operator)
-#         .where(models.Operator.id == operator_id)
-#         .values(operator.model_dump(exclude_none=True))
-#         .returning(models.Operator)
-#     )
-#     ret = db.scalars(stmt).first()
-#     db.commit()
-#     return ret
+# ===Tool=== #
+def create_tool(db: Session):
+    pass
 
 
-# def delete_operator(db: Session, operator_id: UUID) -> models.Operator | None:
-#     stmt = delete(models.Operator).where(models.Operator.id == operator_id).returning(models.Operator)
-#     ret = db.scalars(stmt).first()
-#     db.commit()
-#     return ret
+def get_tool(db: Session):
+    pass
+
+
+def get_tools(db: Session):
+    pass
+
+
+def update_tool(db: Session):
+    pass
+
+
+def delete_tool(db: Session):
+    pass

@@ -19,27 +19,27 @@ prompt_parser.add_argument(
 
 deploy_parser = subparsers.add_parser("deploy", help="Deploy image URIs to AWS")
 deploy_parser.add_argument(
-    "--image_uri",
+    "--image-uri",
     type=str,
     nargs="+",
     required=True,
     help="The image URIs to deploy to AWS",
 )
 deploy_parser.add_argument(
-    "--container_name",
+    "--container-name",
     type=str,
     nargs="+",
     required=True,
     help="The custom names for the containers",
 )
 deploy_parser.add_argument(
-    "--container_port",
+    "--container-port",
     type=int,
     nargs="+",
     required=True,
     help="The ports for the containers",
 )
-deploy_parser.add_argument("--service_name", type=str, required=False, help="The service name to deploy to AWS")
+deploy_parser.add_argument("--service-name", type=str, required=False, help="The service name to deploy to AWS")
 args = parser.parse_args()
 
 
