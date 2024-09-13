@@ -1,0 +1,24 @@
+FROM python:3.11.9-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV POETRY_VERSION=1.8
+ENV POETRY_HOME=/opt/poetry
+ENV PATH=$POETRY_HOME/bin:$PATH
+ENV OPENAI_TEMPERATURE=0
+ENV POETRY_NO_INTERACTION=1 
+
+WORKDIR /app
+
+RUN apt-get update
+
+RUN pip install "poetry==$POETRY_VERSION"
+
+COPY . .
+
+RUN touch README.md
+RUN poetry config virtualenvs.create false
+RUN poetry install --only docs --no-cache --no-ansi
+
+EXPOSE 80
+CMD ["poetry", "run", "mkdocs", "serve", "--config-file", "config/mkdocs.yml", "--dev-addr=0.0.0.0:80"]

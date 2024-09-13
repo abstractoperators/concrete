@@ -1,0 +1,77 @@
+name: Deploy Demo App to staging
+on:
+    push:
+        branches:
+            - main
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            - name: Configure AWS credentials for ECR
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+                  aws-region: us-east-1
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+              with:
+                  mask-password: "true"
+
+            - name: Build the images
+              env:
+                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
+                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+              # TODO: Use an actual secret manager
+              run: |
+                  echo OPENAI_TEMPERATURE=0 > .env
+                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
+                  echo AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID >> .env
+                  echo AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY >> .env
+                  echo AWS_DEFAULT_REGION=us-east-1 >> .env
+                  make build-webapp-demo
+
+            - name: Push to ECR
+              run: |
+                  make aws_ecr_push_demo
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Setup Python for poetry
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.11.9"
+
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Configure AWS Credentials for ECS
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+                  aws-region: us-east-1
+
+            - name: Deploy to ECS staging using AwsTool._deploy_service
+              run: |
+                  curl -sSL https://install.python-poetry.org | python3 -
+                  poetry --version
+                  poetry install
+                  poetry run python -m concrete deploy --image_uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest --container_name webapp-demo-staging --container_port 80 --service_name=webapp-demo-staging
+
+# https://github.com/actions/deploy-pages/issues/329 -
+# https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
+# The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).
+permissions:
+  id-token: write 
+  contents: read

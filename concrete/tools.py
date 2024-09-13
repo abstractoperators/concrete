@@ -52,6 +52,7 @@ class testOperator(operators.Operator):
         return query
 """  # noqa: E501
 
+import base64
 import inspect
 import os
 import socket
@@ -61,6 +62,7 @@ from textwrap import dedent
 from typing import Dict, Optional
 
 import boto3
+import requests
 
 from .clients import CLIClient, RestApiClient
 from .models.base import ConcreteModel
@@ -118,22 +120,26 @@ class MetaTool(type):
         return str(cls)
 
 
-def invoke_tool(
-    tool_name: str,
-    tool_function: str,
-    tool_parameters: str,
-    tool_keyword_parameters: dict[str, str],
-):
+def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str):
     """
     Throws KeyError if the tool doesn't exist.
     Throws AttributeError if the function on the tool doesn't exist.
     Throws TypeError if the parameters are wrong.
     """
     func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
-    return func(*tool_parameters, **tool_keyword_parameters)
+    return func(*tool_parameters)
 
 
 class RestApiTool(metaclass=MetaTool):
+    @classmethod
+    def delete(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
+        client = RestApiClient()
+        resp = client.delete(url, headers=headers, params=params, data=data)
+        if not resp.ok:
+            CLIClient.emit(f"Failed DELETE request to {url}: {resp.status_code} {resp.json()}")
+            resp.raise_for_status()
+        return resp.json()
+
     @classmethod
     def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
         """
@@ -144,7 +150,6 @@ class RestApiTool(metaclass=MetaTool):
         client = RestApiClient()
         resp = client.get(url, headers=headers, params=params, data=data)
         if not resp.ok:
-            # Request failed
             CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
         return resp.json()  # return unwrapped data
@@ -166,8 +171,21 @@ class RestApiTool(metaclass=MetaTool):
         client = RestApiClient()
         resp = client.post(url, headers=headers, params=params, data=data, json=json)
         if not resp.ok:
-            # Request failed
             CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
+            resp.raise_for_status()
+        return resp.json()  # return unwrapped data
+
+    @classmethod
+    def put(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
+        """
+        Make a PUT request to the specified url
+
+        Throws an error if the request was unsuccessful after retries
+        """
+        client = RestApiClient()
+        resp = client.put(url, headers=headers, params=params, data=data, json=json)
+        if not resp.ok:
+            CLIClient.emit(f"Failed PUT request to {url}: {resp.status_code} {resp.json()}")
             resp.raise_for_status()
         return resp.json()  # return unwrapped data
 
@@ -343,6 +361,8 @@ class AwsTool(metaclass=MetaTool):
             "/f7cec30e1ac2e4a4/451389d914171f05"
         )
 
+        # TODO: Load balancer should be able to point to multiple containers on a single service.
+        # e.g.) service_name.container1; atm, consider only the first container to route traffic to.
         target_group_arn = None
         if not listener_rule:
             rule_field = "host-header"
@@ -370,8 +390,8 @@ class AwsTool(metaclass=MetaTool):
 
             target_group_arn = elbv2_client.create_target_group(
                 Name=target_group_name,
-                Protocol="HTTP",
-                Port=80,
+                Protocol='HTTP',
+                Port=containers[0].container_port,
                 VpcId=vpc,
                 TargetType="ip",
                 HealthCheckEnabled=True,
@@ -454,7 +474,7 @@ class AwsTool(metaclass=MetaTool):
                     {
                         "targetGroupArn": target_group_arn,
                         "containerName": task_name,
-                        "containerPort": 80,
+                        "containerPort": containers[0].container_port,
                     }
                 ],
                 enableECSManagedTags=True,
@@ -518,3 +538,97 @@ class GithubTool(metaclass=MetaTool):
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
         json = {"title": f"[ABOP] {title}", "head": branch, "base": base}
         return RestApiTool.post(url, headers=cls.headers, json=json)
+
+    @classmethod
+    def make_branch(cls, org: str, repo: str, base_branch: str, new_branch: str, access_token: str):
+        """
+        Make a branch called target_name from the latest commit on base_name
+
+        Args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+            base_branch (str): The name of the branch to branch from.
+            new_branch (str): The name of the new branch
+            access_token(str): Fine-grained token with at least 'Contents' repository write access.
+                https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#create-a-reference--fine-grained-access-tokens
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        # Get SHA of latest commit on base branch
+        url = f"https://api.github.com/repos/{org}/{repo}/branches/{base_branch}"
+        base_sha = RestApiTool.get(url, headers=headers)['commit']['sha']
+
+        # Create new branch from base branch
+        url = f"https://api.github.com/repos/{org}/{repo}/git/refs"
+        json = {"ref": "refs/heads/" + new_branch, "sha": base_sha}
+        CLIClient.emit(f"Creating branch {new_branch} from {base_branch}")
+        RestApiTool.post(url=url, headers=headers, json=json)
+
+    @classmethod
+    def delete_branch(cls, org: str, repo: str, branch: str, access_token: str):
+        """
+        Deletes a branch from the target repo
+        https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#delete-a-reference
+
+        Args
+            org (str): Organization or account owning the rep
+            repo (str): Repository name
+            branch (str): Branch to delete
+            access_token(str): Fine-grained token with at least 'Contents' repository write access.
+        """
+        url = f'https://api.github.com/repos/{org}/{repo}/git/refs/heads/{branch}'
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        resp = requests.delete(url, headers=headers, timeout=10)
+        if resp.status_code == 204:
+            CLIClient.emit(f'{branch} deleted successfully.')
+        else:
+            CLIClient.emit(f'Failed to delete {branch}.' + str(resp.json()))
+
+    @classmethod
+    def update_create_file(
+        cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
+    ):
+        """
+        Updates/Create a file on the target repo + commit.
+
+        Args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+            branch (str): The branch that the commit is being made to.
+            commit_message (str): The commit message.
+            access_token(str): Fine-grained token with at least TODO
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+        # Get blob sha
+        url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
+        json = {'ref': branch}
+        resp = requests.get(url, headers=headers, params=json, timeout=10)
+
+        # TODO switch to RestApiTool; Handle 404 better.
+        if resp.status_code == 404:
+            sha = None
+        else:
+            sha = resp.json().get('sha')
+
+        url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
+        json = {
+            "message": commit_message,
+            "content": base64.b64encode(file_contents.encode('utf-8')).decode('ascii'),
+            "branch": branch,
+        }
+        if sha:
+            json['sha'] = sha
+        RestApiTool.put(url, headers=headers, json=json)

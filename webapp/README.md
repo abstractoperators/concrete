@@ -26,3 +26,11 @@
 
 Optional:
 * To make localhost work, add ports to the `ts-oauth-[...]` service in `docker-compose.yml` and run as usual
+
+## Docs server
+Use the make commands from root of concrete
+
+```bash
+make build-docs
+make run-docs
+```

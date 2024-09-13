@@ -43,7 +43,11 @@ build-dind-builder:
 build-daemons:
 	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
 
-# Build before if needed
+build-docs:
+	$(POETRY) mkdocs build --config-file config/mkdocs.yml
+	docker compose -f docker/docker-compose.yml build docs
+
+# Build before if needed 
 # Using docker compose to store some arguments
 # TODO: Parameterize based on app name
 run-webapp-demo:
@@ -61,6 +65,17 @@ run-dind-builder:
 run-daemons:
 	docker compose -f docker/docker-compose.yml stop daemons
 	docker compose -f docker/docker-compose.yml up -d daemons
+
+run-docs:
+	docker compose -f docker/docker-compose.yml stop docs
+	docker compose -f docker/docker-compose.yml up -d docs
+
+# Run locally
+local-docs:
+	poetry run mkdocs build --config-file config/mkdocs.yml
+	mkdocs serve --config-file config/mkdocs.yml
+
+
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
@@ -72,6 +87,9 @@ aws_ecr_push_homepage: aws_ecr_login
 aws_ecr_push_demo: aws_ecr_login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+aws_ecr_push_docs: aws_ecr_login
+	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 
 rabbitmq:
 	docker rm -f rabbitmq || true

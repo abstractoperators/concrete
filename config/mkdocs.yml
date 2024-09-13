@@ -1,0 +1,30 @@
+site_name: Concrete
+repo_url: https://github.com/abstractoperators/concrete
+repo_name: abstractoperators/concrete
+docs_dir: ../docs
+site_dir: ../site
+theme:
+  name: material
+  logo: favicon.ico
+  features:
+    - navigation.tabs
+    - navigation.sections
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to system preference
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+extra_css:
+  - stylesheets/extra.css
