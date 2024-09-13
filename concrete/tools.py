@@ -619,3 +619,24 @@ class GithubTool(metaclass=MetaTool):
         if sha:
             json['sha'] = sha
         RestApiTool.put(url, headers=headers, json=json)
+
+    @classmethod
+    def retrieve_diff(cls, org: str, repo: str, base_branch: str, compare_branch: str, access_token: str):
+        """
+        Retrieves diff of latest commit on compare_branch compared to base_branch.
+
+        Args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+            base_branch (str): The name of the branch to compare against.
+            compare_branch (str): The name of the branch to compare.
+            access_token(str): Fine-grained token with at least 'Contents' repository read access.
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base_branch}...{compare_branch}'
+        return RestApiTool.get(url, headers=headers)
