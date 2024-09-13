@@ -208,6 +208,9 @@ class GitHubDaemon(Webhook):
             return self._token
 
 
-hooks = [GitHubDaemon()]
+hooks = [gh_daemon := GitHubDaemon()]
 for hook in hooks:
     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
+
+
+gh_daemon.get_changed_files('abstractoperators', 'concrete', 'main', 'michael/gh_daemon_commits')

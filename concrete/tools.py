@@ -582,7 +582,7 @@ class GithubTool(metaclass=MetaTool):
             CLIClient.emit(f'Failed to delete {branch}.' + str(resp.json()))
 
     @classmethod
-    def update_create_file(
+    def put_file(
         cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
     ):
         """
@@ -622,7 +622,7 @@ class GithubTool(metaclass=MetaTool):
         RestApiTool.put(url, headers=headers, json=json)
 
     @classmethod
-    def retrieve_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+    def get_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str):
         """
         Retrieves diff of base compared to compare.
 
@@ -642,4 +642,13 @@ class GithubTool(metaclass=MetaTool):
         url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{compare}'
         diff_url = RestApiTool.get(url, headers=headers)['diff_url']
         diff = RestApiTool.get(diff_url)
-        return diff
+        return diff.replace('\\n', '\n')
+
+    @classmethod
+    def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token):
+        """
+        Returns a list of changed files between two commits
+        """
+        diff = GithubTool.get_diff(org, repo, base, compare, access_token)
+        files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
+        return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
