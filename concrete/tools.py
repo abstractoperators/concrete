@@ -63,6 +63,7 @@ from typing import Dict, Optional
 
 import boto3
 import requests
+from requests import Response
 
 from .clients import CLIClient, RestApiClient
 from .models.base import ConcreteModel
@@ -132,13 +133,22 @@ def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str, tool_k
 
 class RestApiTool(metaclass=MetaTool):
     @classmethod
+    def _process_response(cls, resp: Response, url: str | None):
+        if not resp.ok:
+            CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
+            resp.raise_for_status()
+        content_type = resp.headers.get('content-type', '')
+        if 'application/json' in content_type:
+            return resp.json()
+        if 'text' in content_type:
+            return resp.text
+        return resp.content
+
+    @classmethod
     def delete(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
         client = RestApiClient()
         resp = client.delete(url, headers=headers, params=params, data=data)
-        if not resp.ok:
-            CLIClient.emit(f"Failed DELETE request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()
+        return cls._process_response(resp, url)
 
     @classmethod
     def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
@@ -149,11 +159,7 @@ class RestApiTool(metaclass=MetaTool):
         """
         client = RestApiClient()
         resp = client.get(url, headers=headers, params=params, data=data)
-
-        if not resp.ok:
-            CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+        return cls._process_response(resp, url)
 
     @classmethod
     def post(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
@@ -164,10 +170,7 @@ class RestApiTool(metaclass=MetaTool):
         """
         client = RestApiClient()
         resp = client.post(url, headers=headers, params=params, data=data, json=json)
-        if not resp.ok:
-            CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+        return cls._process_response(resp, url)
 
     @classmethod
     def put(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
@@ -178,10 +181,7 @@ class RestApiTool(metaclass=MetaTool):
         """
         client = RestApiClient()
         resp = client.put(url, headers=headers, params=params, data=data, json=json)
-        if not resp.ok:
-            CLIClient.emit(f"Failed PUT request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+        return cls._process_response(resp, url)
 
 
 class Container(ConcreteModel):
@@ -622,15 +622,15 @@ class GithubTool(metaclass=MetaTool):
         RestApiTool.put(url, headers=headers, json=json)
 
     @classmethod
-    def retrieve_diff(cls, org: str, repo: str, base_branch: str, compare_branch: str, access_token: str):
+    def retrieve_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str):
         """
-        Retrieves diff of latest commit on compare_branch compared to base_branch.
+        Retrieves diff of base compared to compare.
 
         Args
             org (str): Organization or account owning the repo
             repo (str): The name of the repository
-            base_branch (str): The name of the branch to compare against.
-            compare_branch (str): The name of the branch to compare.
+            base (str): The name of the branch to compare against.
+            compare (str): The name of the branch to compare.
             access_token(str): Fine-grained token with at least 'Contents' repository read access.
         """
         headers = {
@@ -639,5 +639,7 @@ class GithubTool(metaclass=MetaTool):
             'X-GitHub-Api-Version': '2022-11-28',
         }
 
-        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base_branch}...{compare_branch}'
-        return RestApiTool.get(url, headers=headers)
+        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{compare}'
+        diff_url = RestApiTool.get(url, headers=headers)['diff_url']
+        diff = RestApiTool.get(diff_url)
+        return diff
