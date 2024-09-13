@@ -3,9 +3,10 @@ import hmac
 import json
 import os
 import time
+from abc import ABC, abstractmethod
 
 import jwt
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -22,15 +23,29 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-class GitHubDaemon:
+class Webhook(ABC):
+    """
+    Represents a Webhook.
+    """
+
+    def __init__(self, route: str):
+        self.route = route
+
+    @abstractmethod
+    async def webhook_handler(self, request: Request):
+        pass
+
+
+class GitHubDaemon(Webhook):
     """
     Represents a GitHub PR Daemon.
     Daemon can act on many installations, orgs/repos/branches.
     """
 
     def __init__(self):
-        self.router = APIRouter()
-        self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
+        super().__init__("/github/webhook")
+        # self.router = APIRouter()
+        # self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
         self.jwt_token = self.JwtToken()
         self.installation_token = self.InstallationToken(self.jwt_token)
         self.open_revisions: dict[str, "GitHubDaemon.Revision"] = {}  # org/repo/branch: OpenRevisions
@@ -52,7 +67,7 @@ class GitHubDaemon:
             self.target = target
 
     @staticmethod
-    def verify_signature(payload_body, signature_header):
+    def _verify_signature(payload_body, signature_header):
         """Verify that the payload was sent from GitHub by validating SHA256.
         https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
         Raise and return 403 if not authorized.
@@ -75,12 +90,12 @@ class GitHubDaemon:
         if not hmac.compare_digest(expected_signature, signature_header):
             raise HTTPException(status_code=403, detail="Request signatures didn't match")
 
-    async def github_webhook(self, request: Request):
+    async def webhook_handler(self, request: Request):
         """Receive GitHub webhook events."""
         raw_payload = await request.body()
         signature = request.headers.get("x-hub-signature-256")
         try:
-            self.verify_signature(raw_payload, signature)
+            self._verify_signature(raw_payload, signature)
         except HTTPException as e:
             return {"error": str(e.detail)}, e.status_code
 
@@ -193,5 +208,6 @@ class GitHubDaemon:
             return self._token
 
 
-gh_daemon = GitHubDaemon()
-app.include_router(gh_daemon.router)
+hooks = [GitHubDaemon()]
+for hook in hooks:
+    app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
