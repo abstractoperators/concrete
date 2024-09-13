@@ -21,4 +21,4 @@ RUN poetry config virtualenvs.create false
 RUN poetry install --only docs --no-cache --no-ansi
 
 EXPOSE 80
-CMD ["poetry", "run", "mkdocs", "serve", "--config-file", "webapp/docs/mkdocs.yml", "--dev-addr=0.0.0.0:80"]
+CMD ["poetry", "run", "mkdocs", "serve", "--config-file", "config/mkdocs.yml", "--dev-addr=0.0.0.0:80"]

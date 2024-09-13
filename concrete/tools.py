@@ -120,17 +120,26 @@ class MetaTool(type):
         return str(cls)
 
 
-def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str, tool_keyword_parameters: dict[str, str]):
+def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str):
     """
     Throws KeyError if the tool doesn't exist.
     Throws AttributeError if the function on the tool doesn't exist.
     Throws TypeError if the parameters are wrong.
     """
     func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
-    return func(*tool_parameters, **tool_keyword_parameters)
+    return func(*tool_parameters)
 
 
 class RestApiTool(metaclass=MetaTool):
+    @classmethod
+    def delete(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
+        client = RestApiClient()
+        resp = client.delete(url, headers=headers, params=params, data=data)
+        if not resp.ok:
+            CLIClient.emit(f"Failed DELETE request to {url}: {resp.status_code} {resp.json()}")
+            resp.raise_for_status()
+        return resp.json()
+
     @classmethod
     def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
         """
