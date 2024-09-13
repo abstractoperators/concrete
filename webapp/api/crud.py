@@ -8,12 +8,27 @@ from concrete.db.orm.models import (
     Base,
     Client,
     ClientCreate,
+    ClientUpdate,
     Operator,
     OperatorCreate,
     OperatorUpdate,
 )
 
-M = TypeVar('M', bound=Base)
+M = TypeVar("M", bound=Base)
+N = TypeVar("N", bound=Base)
+
+
+def update_generic(db: Session, model: M | None, model_update: N) -> M | None:
+    if model is None:
+        return None
+
+    fields_payload = model_update.model_dump(exclude_none=True)
+    for value in fields_payload:
+        setattr(model, value, fields_payload[value])
+    db.commit()
+    db.refresh(model)
+
+    return model
 
 
 def delete_generic(db: Session, model: M | None) -> M | None:
@@ -48,17 +63,11 @@ def get_operators(db: Session, skip: int = 0, limit: int = 100) -> Sequence[Oper
 
 
 def update_operator(db: Session, operator_id: UUID, operator_update: OperatorUpdate) -> Operator | None:
-    operator = get_operator(db, operator_id)
-    if operator is None:
-        return None
-
-    fields_payload = operator_update.model_dump(exclude_none=True)
-    for value in fields_payload:
-        setattr(operator, value, fields_payload[value])
-    db.commit()
-    db.refresh(operator)
-
-    return operator
+    return update_generic(
+        db,
+        get_operator(db, operator_id),
+        operator_update,
+    )
 
 
 def delete_operator(db: Session, operator_id: UUID) -> Operator | None:
@@ -96,6 +105,19 @@ def get_clients(
         .limit(limit)
     )
     return db.scalars(stmt).all()
+
+
+def update_client(
+    db: Session,
+    client_id: UUID,
+    operator_id: UUID,
+    client_update: ClientUpdate,
+) -> Client | None:
+    return update_generic(
+        db,
+        get_client(db, client_id, operator_id),
+        client_update,
+    )
 
 
 def delete_client(db: Session, client_id: UUID, operator_id: UUID) -> Client | None:

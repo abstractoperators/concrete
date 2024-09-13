@@ -62,10 +62,25 @@ class ClientBase(Base):
     )
 
 
+class ClientUpdate(Base):
+    client: str | None = Field(
+        description="Name of LLM client or organization",
+        default=None,
+        max_length=32,
+    )  # TODO: change to more constrained type once use case is better understood
+    temperature: float | None = Field(description="LLM temperature", default=None)
+    model: str | None = Field(
+        description="Model type for LLM.",
+        default=None,
+        max_length=32,
+    )
+
+
 class ClientCreate(ClientBase):
     pass
 
 
+# TODO: data models with pseudo-relationships
 class Client(ClientBase, MetadataMixin, table=True):
     operator: Operator = Relationship(back_populates="clients")
 
