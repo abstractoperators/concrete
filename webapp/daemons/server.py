@@ -91,7 +91,9 @@ class GitHubDaemon(Webhook):
             raise HTTPException(status_code=403, detail="Request signatures didn't match")
 
     async def webhook_handler(self, request: Request):
-        """Receive GitHub webhook events."""
+        """
+        Receive and respond to GH webhook events.
+        """
         raw_payload = await request.body()
         signature = request.headers.get("x-hub-signature-256")
         try:
@@ -211,6 +213,3 @@ class GitHubDaemon(Webhook):
 hooks = [gh_daemon := GitHubDaemon()]
 for hook in hooks:
     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
-
-
-gh_daemon.get_changed_files('abstractoperators', 'concrete', 'main', 'michael/gh_daemon_commits')
