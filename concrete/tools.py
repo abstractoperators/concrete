@@ -637,7 +637,7 @@ class GithubTool(metaclass=MetaTool):
         url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{compare}'
         diff_url = RestApiTool.get(url, headers=headers)['diff_url']
         diff = RestApiTool.get(diff_url)
-        return diff.replace('\\n', '\n')
+        return diff
 
     @classmethod
     def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str):
