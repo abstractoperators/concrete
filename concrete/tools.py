@@ -59,12 +59,13 @@ import socket
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import boto3
 import requests
+from requests import Response
 
-from .clients import CLIClient, RestApiClient
+from .clients import CLIClient, HTTPClient
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -130,64 +131,52 @@ def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str):
     return func(*tool_parameters)
 
 
-class RestApiTool(metaclass=MetaTool):
+class HTTPTool(metaclass=MetaTool):
     @classmethod
-    def delete(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
-        client = RestApiClient()
-        resp = client.delete(url, headers=headers, params=params, data=data)
+    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
         if not resp.ok:
-            CLIClient.emit(f"Failed DELETE request to {url}: {resp.status_code} {resp.json()}")
+            CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
-        return resp.json()
+        return resp.content
 
     @classmethod
-    def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
+    def request(cls, method: str, url: str, **kwargs) -> Union[dict, str, bytes]:
         """
-        Make a GET request to the specified url
-
-        Throws an error if the request was unsuccessful after retries
+        Make an HTTP request to the specified url
+        Throws an error if the request was unsuccessful
         """
-        client = RestApiClient()
-        resp = client.get(url, headers=headers, params=params, data=data)
-        if not resp.ok:
-            CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+        resp = HTTPClient().request(method, url, **kwargs)
+        return cls._process_response(resp, url)
 
     @classmethod
-    def post(
-        cls,
-        url: str,
-        headers: dict = {},
-        params: dict = {},
-        data: dict = {},
-        json: dict = {},
-    ) -> dict:
-        """
-        Make a POST request to the specified url
-
-        Throws an error if the request was unsuccessful after retries
-        """
-        client = RestApiClient()
-        resp = client.post(url, headers=headers, params=params, data=data, json=json)
-        if not resp.ok:
-            CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+    def get(cls, url: str, **kwargs) -> Response:
+        return cls.request('GET', url, **kwargs)
 
     @classmethod
-    def put(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
-        """
-        Make a PUT request to the specified url
+    def post(cls, url: str, **kwargs) -> Response:
+        return cls.request('POST', url, **kwargs)
 
-        Throws an error if the request was unsuccessful after retries
-        """
-        client = RestApiClient()
-        resp = client.put(url, headers=headers, params=params, data=data, json=json)
+    @classmethod
+    def put(cls, url: str, **kwargs) -> Response:
+        return cls.request('PUT', url, **kwargs)
+
+    @classmethod
+    def delete(cls, url: str, **kwargs) -> Response:
+        return cls.request('DELETE', url, **kwargs)
+
+
+class RestApiTool(HTTPTool):
+    @classmethod
+    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
         if not resp.ok:
-            CLIClient.emit(f"Failed PUT request to {url}: {resp.status_code} {resp.json()}")
+            CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+        content_type = resp.headers.get('content-type', '')
+        if 'application/json' in content_type:
+            return resp.json()
+        if 'text' in content_type:
+            return resp.text
+        return resp.content
 
 
 class Container(ConcreteModel):
@@ -594,7 +583,7 @@ class GithubTool(metaclass=MetaTool):
             CLIClient.emit(f'Failed to delete {branch}.' + str(resp.json()))
 
     @classmethod
-    def update_create_file(
+    def put_file(
         cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
     ):
         """
@@ -632,3 +621,35 @@ class GithubTool(metaclass=MetaTool):
         if sha:
             json['sha'] = sha
         RestApiTool.put(url, headers=headers, json=json)
+
+    @classmethod
+    def get_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+        """
+        Retrieves diff of base compared to compare.
+
+        Args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+            base (str): The name of the branch to compare against.
+            compare (str): The name of the branch to compare.
+            access_token(str): Fine-grained token with at least 'Contents' repository read access.
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{compare}'
+        diff_url = RestApiTool.get(url, headers=headers)['diff_url']
+        diff = RestApiTool.get(diff_url)
+        return diff
+
+    @classmethod
+    def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+        """
+        Returns a list of changed files between two commits
+        """
+        diff = GithubTool.get_diff(org, repo, base, compare, access_token)
+        files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
+        return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
