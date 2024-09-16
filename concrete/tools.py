@@ -645,7 +645,7 @@ class GithubTool(metaclass=MetaTool):
         return diff.replace('\\n', '\n')
 
     @classmethod
-    def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token):
+    def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str):
         """
         Returns a list of changed files between two commits
         """

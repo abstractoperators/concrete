@@ -36,10 +36,11 @@ class Webhook(ABC):
         pass
 
 
-class GitHubDaemon(Webhook):
+class AOGitHubDaemon(Webhook):
     """
     Represents a GitHub PR Daemon.
     Daemon can act on many installations, orgs/repos/branches.
+    TODO: AOGitHubDaemon -> GitHubDaemon. Should be installable on any repository, and not hardcoded to abop.
     """
 
     def __init__(self):
@@ -48,7 +49,7 @@ class GitHubDaemon(Webhook):
         # self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
         self.jwt_token = self.JwtToken()
         self.installation_token = self.InstallationToken(self.jwt_token)
-        self.open_revisions: dict[str, "GitHubDaemon.Revision"] = {}  # org/repo/branch: OpenRevisions
+        self.open_revisions: dict[str, "AOGitHubDaemon.Revision"] = {}  # org/repo/branch: OpenRevisions
 
     # To be replaced by DB probably
     class Revision:
@@ -181,7 +182,7 @@ class GitHubDaemon(Webhook):
         Represents an Installation Access Token for GitHub App authentication.
         """
 
-        def __init__(self, jwt_token: "GitHubDaemon.JwtToken"):
+        def __init__(self, jwt_token: "AOGitHubDaemon.JwtToken"):
             self._token: str = ""  # nosec
             self._expiry: float = 0
             self.jwt_token = jwt_token
@@ -210,6 +211,6 @@ class GitHubDaemon(Webhook):
             return self._token
 
 
-hooks = [gh_daemon := GitHubDaemon()]
+hooks = [gh_daemon := AOGitHubDaemon()]
 for hook in hooks:
     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
