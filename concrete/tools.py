@@ -59,13 +59,13 @@ import socket
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import boto3
 import requests
 from requests import Response
 
-from .clients import CLIClient, RestApiClient
+from .clients import CLIClient
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -131,9 +131,43 @@ def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str):
     return func(*tool_parameters)
 
 
-class RestApiTool(metaclass=MetaTool):
+class HTTPTool(metaclass=MetaTool):
     @classmethod
-    def _process_response(cls, resp: Response, url: str | None):
+    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
+        if not resp.ok:
+            CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
+            resp.raise_for_status()
+        return resp.content
+
+    @classmethod
+    def request(cls, method: str, url: str, **kwargs) -> Union[dict, str, bytes]:
+        """
+        Make an HTTP request to the specified url
+        Throws an error if the request was unsuccessful
+        """
+        resp = requests.request(method, url, **kwargs)
+        return cls._process_response(resp, url)
+
+    @classmethod
+    def get(cls, url: str, **kwargs) -> Response:
+        return cls.request('GET', url, **kwargs)
+
+    @classmethod
+    def post(cls, url: str, **kwargs) -> Response:
+        return cls.request('POST', url, **kwargs)
+
+    @classmethod
+    def put(cls, url: str, **kwargs) -> Response:
+        return cls.request('PUT', url, **kwargs)
+
+    @classmethod
+    def delete(cls, url: str, **kwargs) -> Response:
+        return cls.request('DELETE', url, **kwargs)
+
+
+class RestApiTool(HTTPTool):
+    @classmethod
+    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
         if not resp.ok:
             CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
@@ -143,45 +177,6 @@ class RestApiTool(metaclass=MetaTool):
         if 'text' in content_type:
             return resp.text
         return resp.content
-
-    @classmethod
-    def delete(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
-        client = RestApiClient()
-        resp = client.delete(url, headers=headers, params=params, data=data)
-        return cls._process_response(resp, url)
-
-    @classmethod
-    def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
-        """
-        Make a GET request to the specified url
-
-        Throws an error if the request was unsuccessful after retries
-        """
-        client = RestApiClient()
-        resp = client.get(url, headers=headers, params=params, data=data)
-        return cls._process_response(resp, url)
-
-    @classmethod
-    def post(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
-        """
-        Make a POST request to the specified url
-
-        Throws an error if the request was unsuccessful after retries
-        """
-        client = RestApiClient()
-        resp = client.post(url, headers=headers, params=params, data=data, json=json)
-        return cls._process_response(resp, url)
-
-    @classmethod
-    def put(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
-        """
-        Make a PUT request to the specified url
-
-        Throws an error if the request was unsuccessful after retries
-        """
-        client = RestApiClient()
-        resp = client.put(url, headers=headers, params=params, data=data, json=json)
-        return cls._process_response(resp, url)
 
 
 class Container(ConcreteModel):

@@ -45,8 +45,6 @@ class AOGitHubDaemon(Webhook):
 
     def __init__(self):
         super().__init__("/github/webhook")
-        # self.router = APIRouter()
-        # self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
         self.jwt_token = self.JwtToken()
         self.installation_token = self.InstallationToken(self.jwt_token)
         self.open_revisions: dict[str, "AOGitHubDaemon.Revision"] = {}  # org/repo/branch: OpenRevisions
