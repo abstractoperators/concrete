@@ -72,7 +72,7 @@ class CLIClient(Client):
             print(content)
 
 
-class RestApiClient(Client, requests.Session):
+class HTTPClient(Client, requests.Session):
     """
     Set up requests.session to access
     """

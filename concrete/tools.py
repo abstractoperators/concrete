@@ -65,7 +65,7 @@ import boto3
 import requests
 from requests import Response
 
-from .clients import CLIClient
+from .clients import CLIClient, HTTPClient
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -145,7 +145,7 @@ class HTTPTool(metaclass=MetaTool):
         Make an HTTP request to the specified url
         Throws an error if the request was unsuccessful
         """
-        resp = requests.request(method, url, **kwargs)
+        resp = HTTPClient().request(method, url, **kwargs)
         return cls._process_response(resp, url)
 
     @classmethod
