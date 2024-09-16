@@ -72,7 +72,7 @@ class CLIClient(Client):
             print(content)
 
 
-class RestApiClient(Client, requests.Session):
+class HTTPClient(Client, requests.Session):
     """
     Set up requests.session to access
     """
@@ -81,7 +81,11 @@ class RestApiClient(Client, requests.Session):
         # Setup retry logic for restful web http requests
         super().__init__()
         jitter_retry = Retry(
-            total=5, backoff_factor=0.1, backoff_jitter=1.25, status_forcelist=[400, 403, 404, 500, 502, 503, 504]
+            total=5,
+            backoff_factor=0.1,
+            backoff_jitter=1.25,
+            status_forcelist=[400, 403, 404, 500, 502, 503, 504],
+            raise_on_status=False,
         )
         self.mount("http://", HTTPAdapter(max_retries=jitter_retry))
         self.mount("https://", HTTPAdapter(max_retries=jitter_retry))
