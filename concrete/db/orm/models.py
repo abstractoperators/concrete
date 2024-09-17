@@ -69,4 +69,5 @@ class RepoNode(Node):
     org: Mapped[str] = mapped_column(String(50))
     repo: Mapped[str] = mapped_column(String(50))
     type: Mapped[str] = mapped_column(String(50))  # directory/file/chunk?
+    name: Mapped[str] = mapped_column(String(50))
     summary: Mapped[str] = mapped_column(String)

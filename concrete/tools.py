@@ -13,7 +13,7 @@ import requests
 from requests import Response
 
 from .clients import CLIClient, HTTPClient
-from .db.orm import models, schemas
+from .db.orm import SessionLocal, crud, models, schemas
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -597,21 +597,13 @@ class GithubTool(metaclass=MetaTool):
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
 
 
-def create_node(db: Session, node: schemas.NodeCreate) -> models.Operator:
-    db_op = models.Node(**node.model_dump())
-    db.add(db_op)
-    db.commit()
-    db.refresh(db_op)
-    return db_op
-
-
 class KnowledgeGraphTool(metaclass=MetaTool):
     """
     Converts a repository into a knowledge graph.
     """
 
     @classmethod
-    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str) -> models.Node:
+    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str) -> models.RepoNode:
         """
         Converts a repository into a knowledge graph.
 
@@ -624,8 +616,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # 2 pass approach: Forward pass to chunk, backward pass to populate
         # Forward pass: Chunk the repo into nodes
         # Backward pass: Populate the nodes with summaries
-        to_summarize = []  # Stack of nodes to summarize.
-        to_chunk = Queue()  # Queue of nodes to chunk.
+        to_summarize: list[schemas.RepoNodeUpdate] = []  # Stack of nodes to summarize. # noqa
+        to_chunk: list[schemas.RepoNodeCreate] = Queue()  # Queue of nodes to chunk.
 
         # Conceptually, root node is the repo itself.
         # Children nodes, shall be files and directories
@@ -633,6 +625,18 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         root_node = schemas.NodeCreate(summary="placeholder", domain=f"repo/{org}/{repo}")
         to_chunk.put(root_node)
-
+        db = SessionLocal()
         while to_chunk:
             node = to_chunk.get()
+            crud.create_node(db=db, node=node)
+
+    def _chunk(self, node: schemas.NodeCreate) -> list[schemas.NodeCreate]:
+        """
+        Chunks a node into smaller nodes.
+        """
+        raise NotImplementedError
+        # if node.type == 'directory':
+        #     # Chunk the directory
+        #     # For each child, create a node and add to the queue
+        #     for child in node.children:
+        #         to_chunk.put(child)

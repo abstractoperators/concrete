@@ -62,7 +62,6 @@ class NodeBase(ConcreteModel):
     """
 
     summary: str = Field(description="Summary of the node.")
-    domain: str = Field(description="Association of the node.")
     parent_id: UUID | None = Field(default=None, description="ID of the parent node.")  # root has no parent
 
 
@@ -72,5 +71,24 @@ class NodeCreate(NodeBase):
 
 class NodeUpdate(ConcreteModel):
     summary: str | None = Field(default=None, description="Summary of the node.")
-    domain: str | None = Field(default=None, description="Domain knowledge association of the node.")
     parent_id: int | None = Field(default=None, description="ID of the parent node.")
+
+
+class RepoNode(NodeBase):
+    org: str = Field(description="Organization to which the repo belongs.")
+    repo: str = Field(description="Repository name.")
+    type: str = Field(description="Type of the node. directory/file/chunk")
+    name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")  # idk yet
+    summary: str = Field(description="Summary of the node.")
+
+
+class RepoNodeUpdate(NodeUpdate):
+    org: str | None = Field(description="Organization to which the repo belongs.")
+    repo: str | None = Field(description="Repository name.")
+    type: str | None = Field(description="Type of the node. directory/file/chunk")
+    name: str | None = Field(description="Name of the chunk. eg README.md, module.py/func_foo")  # idk yet
+    summary: str | None = Field(description="Summary of the node.")
+
+
+class RepoNodeCreate(RepoNode):
+    pass
