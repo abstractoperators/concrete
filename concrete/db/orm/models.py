@@ -1,8 +1,10 @@
+from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
+from .setup import engine
 
 
 class Base(SQLModel):
@@ -234,12 +236,17 @@ class NodeCreate(NodeBase):
     pass
 
 
-class Node(Base, MetadataMixin, table=True):
+class Node(NodeBase, MetadataMixin, table=True):
     children: list["Node"] = Relationship(
         back_populates="parent",
         cascade_delete=True,
     )
-    parent: "Node" | None = Relationship(back_populates="children")
+    parent: Optional["Node"] = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs={"remote_side": "node.c.id"},
+    )
 
 
 # TODO create user model for owner
+
+SQLModel.metadata.create_all(bind=engine)

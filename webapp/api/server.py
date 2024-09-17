@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session
 
+from concrete.db import crud
 from concrete.db.orm import SessionLocal
 from concrete.db.orm.models import (
     Client,
@@ -18,7 +19,6 @@ from concrete.db.orm.models import (
     OrchestratorUpdate,
 )
 
-from . import crud
 from .models import CommonReadParameters
 
 """

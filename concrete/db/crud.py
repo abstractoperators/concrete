@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlmodel import Session, select
 
-from concrete.db.orm.models import (
+from .orm.models import (
     Base,
     Client,
     ClientCreate,
