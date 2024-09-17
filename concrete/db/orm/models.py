@@ -55,7 +55,7 @@ class Tool(Base):
 
 
 class Node(Base):
-    parent_id: Mapped[UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("node.id"), nullable=True)
+    parent_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("node.id"), nullable=True)
     summary: Mapped[str] = mapped_column(String(50))
     domain: Mapped[str] = mapped_column(String(50))
     children: Mapped[List["Node"]] = relationship(
