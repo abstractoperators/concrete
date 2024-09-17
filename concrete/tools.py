@@ -108,7 +108,7 @@ class MetaTool(type):
                 method_signature = f"{attr}({', '.join(params)}){return_str}"
                 method_info.append(f"{method_signature}\n\t{docstring}")
 
-        attrs['_str_representation'] = f"{name} Tool with methods:\n" + "\n".join(
+        attrs["_str_representation"] = f"{name} Tool with methods:\n" + "\n".join(
             f"   - {info}" for info in method_info
         )
         new_class = super().__new__(cls, name, bases, attrs)
@@ -204,7 +204,13 @@ class AwsTool(metaclass=MetaTool):
         pushed, image_uri = cls._build_and_push_image(project_directory_name)
         if pushed:
             cls._deploy_service(
-                [Container(image_uri=image_uri, container_name=project_directory_name, container_port=80)]
+                [
+                    Container(
+                        image_uri=image_uri,
+                        container_name=project_directory_name,
+                        container_port=80,
+                    )
+                ]
             )
         else:
             CLIClient.emit("Failed to deploy project")
@@ -298,7 +304,7 @@ class AwsTool(metaclass=MetaTool):
         for _ in range(30):
             try:
                 res = ecr_client.describe_images(repositoryName=repo_name)
-                if res['imageDetails'] and res['imageDetails'][0]['imagePushedAt'] > cur_time:
+                if res["imageDetails"] and res["imageDetails"][0]["imagePushedAt"] > cur_time:
                     return True
             except ecr_client.exceptions.RepositoryNotFoundException:
                 pass
@@ -349,24 +355,24 @@ class AwsTool(metaclass=MetaTool):
         # e.g.) service_name.container1; atm, consider only the first container to route traffic to.
         target_group_arn = None
         if not listener_rule:
-            rule_field = 'host-header'
-            rule_value = f'{service_name}.abop.ai'
+            rule_field = "host-header"
+            rule_value = f"{service_name}.abop.ai"
         else:
-            rule_field = listener_rule.get('field', None) or 'host-header'
-            rule_value = listener_rule.get('value', None) or f'{target_group_name}.abop.ai'
+            rule_field = listener_rule.get("field", None) or "host-header"
+            rule_value = listener_rule.get("value", None) or f"{target_group_name}.abop.ai"
 
-        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)["Rules"]
         for rule in rules:
             if (
-                rule['Conditions']
-                and rule['Conditions'][0]['Field'] == rule_field
-                and rule['Conditions'][0]['Values'][0] == rule_value
+                rule["Conditions"]
+                and rule["Conditions"][0]["Field"] == rule_field
+                and rule["Conditions"][0]["Values"][0] == rule_value
             ):
-                target_group_arn = rule['Actions'][0]['TargetGroupArn']
+                target_group_arn = rule["Actions"][0]["TargetGroupArn"]
 
         if not target_group_arn:
             # Calculate minimum unused rule priority
-            rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
+            rule_priorities = [int(rule["Priority"]) for rule in rules if rule["Priority"] != "default"]
             if set(range(1, len(rules))) - set(rule_priorities):
                 listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
             else:
@@ -377,23 +383,23 @@ class AwsTool(metaclass=MetaTool):
                 Protocol='HTTP',
                 Port=containers[0].container_port,
                 VpcId=vpc,
-                TargetType='ip',
+                TargetType="ip",
                 HealthCheckEnabled=True,
-                HealthCheckPath='/',
+                HealthCheckPath="/",
                 HealthCheckIntervalSeconds=30,
                 HealthCheckTimeoutSeconds=5,
                 HealthyThresholdCount=2,
                 UnhealthyThresholdCount=2,
-            )['TargetGroups'][0]['TargetGroupArn']
+            )["TargetGroups"][0]["TargetGroupArn"]
 
             elbv2_client.create_rule(
                 ListenerArn=listener_arn,
                 Priority=listener_rule_priority,
-                Conditions=[{'Field': rule_field, 'Values': [rule_value]}],
+                Conditions=[{"Field": rule_field, "Values": [rule_value]}],
                 Actions=[
                     {
-                        'Type': 'forward',
-                        'TargetGroupArn': target_group_arn,
+                        "Type": "forward",
+                        "TargetGroupArn": target_group_arn,
                     }
                 ],
             )
@@ -423,13 +429,13 @@ class AwsTool(metaclass=MetaTool):
             cpu=str(cpu) if cpu else "256",
             memory=str(memory) if memory else "512",
             runtimePlatform={
-                'cpuArchitecture': 'ARM64',
-                'operatingSystemFamily': 'LINUX',
+                "cpuArchitecture": "ARM64",
+                "operatingSystemFamily": "LINUX",
             },
-        )['taskDefinition']['taskDefinitionArn']
+        )["taskDefinition"]["taskDefinitionArn"]
         if (
-            service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])['services']
-        ) and service_desc[0]['status'] == 'ACTIVE':
+            service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])["services"]
+        ) and service_desc[0]["status"] == "ACTIVE":
             CLIClient.emit(f"Service {service_name} found. Updating service.")
             ecs_client.update_service(
                 cluster=cluster,
@@ -484,9 +490,9 @@ class AwsTool(metaclass=MetaTool):
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
             if (
-                res['services']
-                and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']
-                and res['services'][0]['pendingCount'] == 0
+                res["services"]
+                and res["services"][0]["desiredCount"] == res["services"][0]["runningCount"]
+                and res["services"][0]["pendingCount"] == 0
             ):
                 return True
             time.sleep(10)
@@ -500,9 +506,9 @@ class GithubTool(metaclass=MetaTool):
     """
 
     headers = {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")}',
-        'X-GitHub-Api-Version': '2022-11-28',
+        "Accept": "application/vnd.github+json",
+        "Authorization": f'Bearer {os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")}',
+        "X-GitHub-Api-Version": "2022-11-28",
     }
 
     @classmethod
@@ -520,7 +526,7 @@ class GithubTool(metaclass=MetaTool):
             base (str): The title of the branch that changes are being merged into.
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
-        json = {'title': f'[ABOP] {title}', 'head': branch, 'base': base}
+        json = {"title": f"[ABOP] {title}", "head": branch, "base": base}
         return RestApiTool.post(url, headers=cls.headers, json=json)
 
     @classmethod

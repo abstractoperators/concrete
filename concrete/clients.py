@@ -15,7 +15,7 @@ class Client:
     pass
 
 
-Client_con = TypeVar('Client_con', bound=Client, contravariant=True)
+Client_con = TypeVar("Client_con", bound=Client, contravariant=True)
 
 
 class OpenAIClient(Client):
@@ -57,10 +57,10 @@ class OpenAIClient(Client):
         Utility for formatting a pydantic model into a json output for OpenAI.
         """
         return {
-            'type': 'json_schema',
-            'json_schema': {
-                'name': model.__name__,
-                'schema': model.model_json_schema(),
+            "type": "json_schema",
+            "json_schema": {
+                "name": model.__name__,
+                "schema": model.model_json_schema(),
             },
         }
 

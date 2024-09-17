@@ -8,7 +8,7 @@ class ConcreteModel(PydanticModel):
     def __str__(self):
         # Remove tools from output if empty to improve prompt chaining quality.
         # Unfortunately, still affected by nesting of tools.
-        model_dict = self.model_dump(mode='json', exclude_unset=True, exclude_none=True)
+        model_dict = self.model_dump(mode="json", exclude_unset=True, exclude_none=True)
         if not model_dict.get("tools"):
             model_dict.pop("tools", None)
 
@@ -19,14 +19,14 @@ class ConcreteModel(PydanticModel):
             json.dumps(model_dict, indent=4)
             .replace("\\n", "\n")
             .replace("\\t", "\t")
-            .replace("\\'", "\'")
-            .replace('\\"', '\"')
+            .replace("\\'", "'")
+            .replace('\\"', '"')
         )
 
         return model_str
 
     def __repr__(self):
-        model_dict = self.model_dump(mode='json', exclude_unset=True, exclude_none=True)
+        model_dict = self.model_dump(mode="json", exclude_unset=True, exclude_none=True)
         return json.dumps(model_dict, indent=4)
 
 

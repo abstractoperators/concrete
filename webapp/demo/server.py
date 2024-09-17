@@ -54,7 +54,7 @@ manager = ConnectionManager()
 
 @app.get("/")
 async def get(request: Request):
-    return templates.TemplateResponse("index.html", {'request': {}})
+    return templates.TemplateResponse("index.html", {"request": {}})
 
 
 def _deploy_to_prod(response_url: str):
@@ -65,25 +65,30 @@ def _deploy_to_prod(response_url: str):
     if AwsTool._deploy_service(
         [
             Container(
-                image_uri='008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest',
-                container_name='webapp-homepage',
+                image_uri="008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest",
+                container_name="webapp-homepage",
                 container_port=80,
             ),
         ],
-        'webapp-homepage',
-        listener_rule={'field': 'host-header', 'value': 'abop.ai'},
+        "webapp-homepage",
+        listener_rule={"field": "host-header", "value": "abop.ai"},
     ) and AwsTool._deploy_service(
         [
             Container(
-                image_uri='008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest',
-                container_name='webapp-demo',
+                image_uri="008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest",
+                container_name="webapp-demo",
                 container_port=80,
             ),
         ],
-        listener_rule={'field': 'host-header', 'value': 'demo.abop.ai'},
+        listener_rule={"field": "host-header", "value": "demo.abop.ai"},
     ):
         body = {
-            "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Successfully deployed `main`"}}],
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Successfully deployed `main`"},
+                }
+            ],
             "response_type": "in_channel",
             "replace_original": True,
         }
@@ -95,17 +100,24 @@ def _deploy_to_prod(response_url: str):
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Deploy failed. Attempt deploy `main` to production again?"},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Deploy failed. Attempt deploy `main` to production again?",
+                    },
                 },
                 {
                     "type": "actions",
                     "elements": [
-                        {"type": "button", "text": {"type": "plain_text", "text": "DEPLOY"}, "style": "primary"}
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "DEPLOY"},
+                            "style": "primary",
+                        }
                     ],
                 },
             ],
         }
-    headers = {'Content-type': 'application/json'}
+    headers = {"Content-type": "application/json"}
     RestApiTool.post(response_url, headers=headers, json=body)
 
 
@@ -119,8 +131,8 @@ async def slack_interactions(request: Request, background_tasks: BackgroundTasks
     # to prod. It's also weird to have Slack post to webapp-demo (prod), because then prod is responsible for deploying
     # to prod.
     form = await request.form()
-    payload = json.loads(form['payload'])
-    background_tasks.add_task(_deploy_to_prod, response_url=payload['response_url'])
+    payload = json.loads(form["payload"])
+    background_tasks.add_task(_deploy_to_prod, response_url=payload["response_url"])
 
     return payload
 
@@ -130,13 +142,25 @@ def _post_button():
     Posts a button to #github-logs under slack bot user.
     """
     url = "https://slack.com/api/chat.postMessage"
-    slack_token = os.getenv('SLACK_BOT_TOKEN')
-    headers = {'Content-type': 'application/json', "Authorization": f"Bearer {slack_token}"}
+    slack_token = os.getenv("SLACK_BOT_TOKEN")
+    headers = {
+        "Content-type": "application/json",
+        "Authorization": f"Bearer {slack_token}",
+    }
     blocks = [
-        {"type": "section", "text": {"type": "mrkdwn", "text": "Deploy `main` to production"}},
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "Deploy `main` to production"},
+        },
         {
             "type": "actions",
-            "elements": [{"type": "button", "text": {"type": "plain_text", "text": "deploy"}, "style": "primary"}],
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "deploy"},
+                    "style": "primary",
+                }
+            ],
         },
     ]
 
@@ -155,26 +179,26 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     """
     # TODO Separate event handling into separate functions
     json_data = await request.json()
-    if json_data.get('type', None) == 'url_verification':
-        challenge = json_data.get('challenge')
+    if json_data.get("type", None) == "url_verification":
+        challenge = json_data.get("challenge")
         return Response(content=challenge, media_type="text/plain")
 
-    elif json_data.get('type', None) == 'event_callback':
-        event = json_data.get('event')
+    elif json_data.get("type", None) == "event_callback":
+        event = json_data.get("event")
         if (
-            event.get('channel', None) == 'C07DQNQ7L0K'
-            and event.get('type', None) == 'message'
-            and event.get('subtype', None) == 'thread_broadcast'
-            and (attachments := event.get('attachments', None))
+            event.get("channel", None) == "C07DQNQ7L0K"
+            and event.get("type", None) == "message"
+            and event.get("subtype", None) == "thread_broadcast"
+            and (attachments := event.get("attachments", None))
             and len(attachments) == 1
-            and 'merged' in attachments[0]['pretext']
+            and "merged" in attachments[0]["pretext"]
         ):
             background_tasks.add_task(_post_button())
 
     return Response(content="OK", media_type="text/plain")
 
 
-@app.post('/ping', status_code=200)
+@app.post("/ping", status_code=200)
 async def ping(request: Request):
     """
     A simple endpoint to test if the server is running.
