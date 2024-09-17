@@ -623,22 +623,29 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # Children nodes, shall be files and directories
         # Subsequent children nodes shall be files, directories, and arbitrary code chunks (as determined by the LLM?)
 
+        # Init
         root_node = schemas.NodeCreate(summary="placeholder", domain=f"repo/{org}/{repo}")
         to_chunk.put(root_node)
         db = SessionLocal()
-        while to_chunk:
-            node = to_chunk.get()
-            crud.create_node(db=db, node=node)
+        crud.create_node(db=db, node=root_node)
 
-    def _chunk(self, parent: schemas.RepoNodeCreate) -> list[schemas.RepoNodeCreate]:
+        while to_chunk:
+            children = KnowledgeGraphTool._chunk(to_chunk.get())
+            for child in children:
+                to_chunk.put(child)
+
+    @classmethod
+    def _chunk(cls, parent: schemas.RepoNodeCreate) -> list[schemas.RepoNodeCreate]:
         """
         Chunks a node into smaller nodes.
+        Adds children nodes to database, and returns them for further chunking.
+        michael: I hate recursive programming -> I'm going to do it with two functions.
         """
         children: list[schemas.RepoNodeCreate] = []
         if parent.type == 'directory':
             contents = os.listdir(parent.path)
             for content in contents:
-                if os.path.isfile(content):
+                if os.path.isfile(content) and content.endswith('.py'):  # TODO: more file types
                     child = schemas.RepoNodeCreate(
                         org=parent.org,
                         repo=parent.repo,
@@ -658,9 +665,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     children.append(child)
 
         elif parent.type == 'file':
-            # TODO support decomposition of other file types.
-            if parent.path.endswith('.py'):
-                contents = self._chunk_python_file(parent.path)
+            with open(parent.path, 'r') as f:
+                contents = f.read()
+            # TODO, use LLM or AST to chunk the file into smaller nodes.
 
         # Create all children nodes w/ parent link
         db = SessionLocal()
