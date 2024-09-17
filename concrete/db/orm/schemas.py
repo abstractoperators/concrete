@@ -54,3 +54,23 @@ class ToolBase(ConcreteModel):
 
 class Tool(ToolBase, MetadataMixin, OrmMixin, OperatorChildMixin):
     pass
+
+
+# Nodes for knowledge graph
+class NodeBase(ConcreteModel):
+    summary: str = Field(description="A summary of the associated domain knowledge")
+    assoc: str = Field(description="Domain knowledge the node summary is associated with")
+    parents: list["Node"] = Field(description="Parent nodes of this node", default=[])
+    children: list["Node"] = Field(description="Child nodes of this node", default=[])
+
+
+class Node(NodeBase, MetadataMixin, OrmMixin):
+    pass
+
+
+class NodeCreate(Node):
+    pass
+
+
+class NodeUpdate(ConcreteModel):
+    pass
