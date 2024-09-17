@@ -66,6 +66,7 @@ import requests
 from requests import Response
 
 from .clients import CLIClient, HTTPClient
+from .db.orm.models import Node
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -653,3 +654,22 @@ class GithubTool(metaclass=MetaTool):
         diff = GithubTool.get_diff(org, repo, base, compare, access_token)
         files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
+
+
+class KnowledgeGraphTool(metaclass=MetaTool):
+    """
+    Converts a repository into a knowledge graph.
+    """
+
+    @classmethod
+    def repo_to_knowledge(cls, org: str, repo: str, access_token: str) -> Node:
+        """
+        Converts a repository into a knowledge graph.
+
+        args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+        Returns
+            Node: The root node of the knowledge graph
+        """
+        raise NotImplementedError("This tool is not yet implemented.")

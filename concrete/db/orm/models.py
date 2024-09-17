@@ -189,4 +189,57 @@ class Message(MessageBase, MetadataMixin, table=True):
     pass
 
 
+# Knowledge Graph Models
+
+
+class NodeBase(Base):
+    """
+    Base model for a Node.
+    """
+
+    summary: str = Field(description="Summary of the node.", max_length=50)
+    # TODO: Better solution for domain. ATM, it's going to look like repo/abop/concrete/[file_path]/[chunk].
+    # This solution is slow and not scalable.
+    domain: str = Field(
+        description="Association of the node.", max_length=50
+    )  # Refers to what the node is summarizing, like a file/dir/function
+    parent_id: UUID | None = Field(
+        default=None,
+        description="ID of the parent node.",
+        foreign_key="node.id",
+        ondelete="CASCADE",
+    )
+
+
+class NodeUpdate(Base):
+    summary: str | None = Field(
+        default=None,
+        description="Summary of the node.",
+        max_length=50,
+    )
+    domain: str | None = Field(
+        default=None,
+        description="Domain knowledge association of the node.",
+        max_length=50,
+    )
+    parent_id: UUID | None = Field(
+        default=None,
+        description="ID of the parent node.",
+        foreign_key="node.id",
+        ondelete="CASCADE",
+    )
+
+
+class NodeCreate(NodeBase):
+    pass
+
+
+class Node(Base, MetadataMixin, table=True):
+    children: list["Node"] = Relationship(
+        back_populates="parent",
+        cascade_delete=True,
+    )
+    parent: "Node" | None = Relationship(back_populates="children")
+
+
 # TODO create user model for owner
