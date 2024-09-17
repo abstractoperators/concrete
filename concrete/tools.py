@@ -1,57 +1,3 @@
-"""
-Tools for integration with OpenAI's Structured Outputs (and any other LLM that supports structured output).
-
-Use: Tools are used to provide operators methods that can be used to complete a task. Tools are defined as classes with methods that can be called. Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
-A returned tool syntax is expected to be evaluated using eval(tool_name.tool_call(params))
-eg) [AwsTool.deploy_to_aws(example_directory_name)]
-
-1) String representation of the tool tells operator what tools are available
-    a) Currently implemented with a metaclass defining __str__ for a class (a metaclass instance). The benefit of this is that the class does not need to be instantiated to get its string representation. Similarly, with staticmethods, the class does not need to be instantiated to use its methods
-        - The benefit of keeping tools inside a toolclass is to provide the tool organized helper functions.
-    b) Possible alternatives involving removal of tool class. https://stackoverflow.com/questions/20093811/how-do-i-change-the-representation-of-a-python-function. This would remove the complicated metaclass entirely in favor of a decorated function.
-
-2) TODO: Update prompting to get good tool call behavior.
-
-Example:
-In this example, TestTool is an example Tool that can be provided to an operator qna.
-Tools should have syntax documented in their docstrings so the operator knows how to use them.
-
-class TestTool(metaclass=ToolClass):
-    @classmethod
-    def test(cls, idk: str, another: int = 5) -> str:
-        '''idk: (Description of idk goes here)
-        another: (Description of another goes here)
-        Returns a string
-        '''
-        return f"Tested {idk}!"
-
-    def another_method(self):
-        pass
-
-
-class testOperator(operators.Operator):
-    def __init__(
-        self,
-        clients={'openai': OpenAIClient()},
-        instructions=("You are a software developer. You will answer completely, concisely, and accurately."
-        "When provided tools, you will first answer, then use tools to complete the task."),
-    ):
-        super().__init__(clients, instructions)
-
-    @operators.Operator.qna
-    def use_tools(self, question, tools: List[MetaTool]):
-
-        query = ""
-        if tools:
-            query += '''Here are your available tools:\
-                Either call the tool with its specified syntax, or leave its field blank.\n'''
-            for tool in tools:
-                query += str(tool)
-
-        query += '''\n\n{question}'''.format(question=question)
-        return query
-"""  # noqa: E501
-
 import base64
 import inspect
 import os
@@ -67,6 +13,7 @@ from requests import Response
 
 from .clients import CLIClient, HTTPClient
 from .db.orm.models import Node
+from .db.orm.schemas import NodeCreate
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -656,7 +603,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def repo_to_knowledge(cls, org: str, repo: str, access_token: str) -> Node:
+    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str) -> Node:
         """
         Converts a repository into a knowledge graph.
 
@@ -666,4 +613,14 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns
             Node: The root node of the knowledge graph
         """
-        raise NotImplementedError("This tool is not yet implemented.")
+        # 2 pass approach: Forward pass to chunk, backward pass to populate
+        # Forward pass: Chunk the repo into nodes
+        # Backward pass: Populate the nodes with summaries
+        to_summarize = []  # Stack of nodes to summarize.
+        to_chunk = []  # Queue of nodes to chunk.
+
+        # Conceptually, root node is the repo itself.
+        # Children nodes, shall be files and directories
+        # Subsequent children nodes shall be files, directories, and arbitrary code chunks (as determined by the LLM?)
+
+        root_node = schemas.NodeCreate
