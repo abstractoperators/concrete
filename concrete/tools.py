@@ -647,3 +647,11 @@ class GithubTool(metaclass=MetaTool):
         diff = GithubTool.get_diff(org, repo, base, compare, access_token)
         files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
+
+
+class RepoToKnowledgeGraphTool(metaclass=MetaTool):
+    """
+    Converts a directory into a repository knowledge graph.
+    """
+
+    pass

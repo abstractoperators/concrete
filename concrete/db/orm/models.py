@@ -57,7 +57,9 @@ class Tool(Base):
 class Node(Base):
     parent_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("node.id"), nullable=True)
     summary: Mapped[str] = mapped_column(String(50))
-    domain: Mapped[str] = mapped_column(String(50))
+    # TODO: Better solution for domain. ATM, it's going to look like repo/abop/concrete/[file_path]/[chunk].
+    # This solution is slow and not scalable.
+    domain: Mapped[str] = mapped_column(String(50))  # Refers to what the node is summarizing, like a file/dir/function
     children: Mapped[List["Node"]] = relationship(
         "Node", back_populates="parent", cascade="all, delete-orphan", primaryjoin="Node.id == foreign(Node.parent_id)"
     )
