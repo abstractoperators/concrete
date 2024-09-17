@@ -4,6 +4,7 @@ import os
 import socket
 import time
 from datetime import datetime, timezone
+from queue import Queue
 from textwrap import dedent
 from typing import Dict, Optional, Union
 
@@ -12,8 +13,7 @@ import requests
 from requests import Response
 
 from .clients import CLIClient, HTTPClient
-from .db.orm.models import Node
-from .db.orm.schemas import NodeCreate
+from .db.orm import models, schemas
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -603,7 +603,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str) -> Node:
+    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str) -> models.Node:
         """
         Converts a repository into a knowledge graph.
 
@@ -617,10 +617,15 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # Forward pass: Chunk the repo into nodes
         # Backward pass: Populate the nodes with summaries
         to_summarize = []  # Stack of nodes to summarize.
-        to_chunk = []  # Queue of nodes to chunk.
+        to_chunk = Queue()  # Queue of nodes to chunk.
 
         # Conceptually, root node is the repo itself.
         # Children nodes, shall be files and directories
         # Subsequent children nodes shall be files, directories, and arbitrary code chunks (as determined by the LLM?)
 
-        root_node = schemas.NodeCreate
+        # TODO handle
+        root_node = schemas.NodeCreate(summary="placeholder", domain=f"repo/{org}/{repo}")
+        to_chunk.put(root_node)
+
+        while to_chunk:
+            node = to_chunk.get()
