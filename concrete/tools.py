@@ -656,7 +656,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def repo_to_knowledge(cls, org: str, repo: str, access_token: str) -> Node | None:
+    def repo_to_knowledge(cls, org: str, repo: str, access_token: str) -> Node:
         """
         Converts a repository into a knowledge graph.
 
@@ -666,4 +666,4 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns
             Node: The root node of the knowledge graph
         """
-        return None
+        raise NotImplementedError("This tool is not yet implemented.")
