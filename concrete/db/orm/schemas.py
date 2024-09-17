@@ -62,7 +62,7 @@ class NodeBase(ConcreteModel):
     """
 
     summary: str = Field(description="Summary of the node.")
-    assoc: str = Field(description="Association of the node.")
+    domain: str = Field(description="Association of the node.")
 
 
 class NodeCreate(NodeBase):
@@ -77,10 +77,9 @@ class Node(NodeBase, MetadataMixin, OrmMixin):
     id: UUID
     parent_id: int | None = Field(default=None, description="ID of the parent node.")
     children: list["Node"] | None = Field(default_factory=list, description="Child nodes of this node.")
-    parent: "Node" | None = Field(default=None, description="Parent node of this node.")
 
 
 class NodeUpdate(ConcreteModel):
     summary: str | None = Field(default=None, description="Summary of the node.")
-    assoc: str | None = Field(default=None, description="Domain knowledge association of the node.")
+    domain: str | None = Field(default=None, description="Domain knowledge association of the node.")
     parent_id: int | None = Field(default=None, description="ID of the parent node.")
