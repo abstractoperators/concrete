@@ -63,20 +63,11 @@ class NodeBase(ConcreteModel):
 
     summary: str = Field(description="Summary of the node.")
     domain: str = Field(description="Association of the node.")
-
-
-class NodeCreate(NodeBase):
     parent_id: UUID | None = Field(default=None, description="ID of the parent node.")  # root has no parent
 
 
-class Node(NodeBase, MetadataMixin, OrmMixin):
-    """
-    Full representation of a Node
-    """
-
-    id: UUID
-    parent_id: int | None = Field(default=None, description="ID of the parent node.")
-    children: list["Node"] | None = Field(default_factory=list, description="Child nodes of this node.")
+class NodeCreate(NodeBase):
+    pass
 
 
 class NodeUpdate(ConcreteModel):

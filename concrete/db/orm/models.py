@@ -1,8 +1,7 @@
 from typing import List
 from uuid import uuid4
 
-from sqlalchemy import ForeignKey, String, inspect
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import UUID, ForeignKey, String, inspect
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -17,7 +16,7 @@ class Base(DeclarativeBase):
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(UUID, primary_key=True, default=uuid4)
 
     def __repr__(self) -> str:
         columns = inspect(self).mapper.columns
