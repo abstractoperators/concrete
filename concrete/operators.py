@@ -77,7 +77,12 @@ Use placeholders referencing code/functions already provided in the context. Nev
 {context}"""  # noqa E501
 
     def integrate_components(
-        self, planned_components: List[str], implementations: List[str], idea: str, *args, **kwargs
+        self,
+        planned_components: List[str],
+        implementations: List[str],
+        idea: str,
+        *args,
+        **kwargs,
     ) -> str:
         """
         Prompts Operator to combine code implementations of multiple components

@@ -99,3 +99,7 @@ rabbitmq:
 celery: rabbitmq
 	rm logs/celery.log || true
 	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
+
+# local swagger UI
+local-api:
+	uvicorn webapp.api.server:app --reload

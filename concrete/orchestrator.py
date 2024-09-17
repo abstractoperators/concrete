@@ -70,7 +70,7 @@ class SoftwareProject(StatefulMixin):
             self.starting_prompt, message_format=PlannedComponents
         )  # type: ignore
         components: list[str] = planned_components_resp.components
-        yield Executive.__name__, '\n'.join(components)
+        yield Executive.__name__, "\n".join(components)
 
         summary = ""
         all_implementations = []
@@ -91,7 +91,10 @@ class SoftwareProject(StatefulMixin):
                     summary = message
 
         files: ProjectDirectory = self.dev.integrate_components(  # type: ignore
-            components, all_implementations, self.starting_prompt, message_format=ProjectDirectory
+            components,
+            all_implementations,
+            self.starting_prompt,
+            message_format=ProjectDirectory,
         )
 
         if self.deploy:
@@ -119,14 +122,20 @@ class SoftwareProject(StatefulMixin):
         ).message
         components: list[str] = planned_components_resp.components
 
-        yield Executive.__name__, '\n'.join(components)
+        yield Executive.__name__, "\n".join(components)
 
         summary = ""
         all_implementations = []
         for component in components:
             # Use communicative_dehallucination for each component
             async for agent_or_implementation, message in communicative_dehallucination(
-                self.exec, self.dev, summary, component, starting_prompt=self.starting_prompt, max_iter=0, celery=True
+                self.exec,
+                self.dev,
+                summary,
+                component,
+                starting_prompt=self.starting_prompt,
+                max_iter=0,
+                celery=True,
             ):
                 if agent_or_implementation in (Developer.__name__, Executive.__name__):
                     yield agent_or_implementation, message
@@ -174,11 +183,11 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
         self.clients = {
-            'openai': OpenAIClient(),
+            "openai": OpenAIClient(),
         }
         self.operators: dict[str, AbstractOperator_co] = {
-            'exec': Executive(self.clients),
-            'dev': Developer(self.clients),
+            "exec": Executive(self.clients),
+            "dev": Developer(self.clients),
         }
         self.update(status=ProjectStatus.READY)
 
@@ -188,8 +197,8 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.update(status=ProjectStatus.WORKING)
         current_project = SoftwareProject(
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
-            exec=self.operators['exec'],
-            dev=self.operators['dev'],
+            exec=self.operators["exec"],
+            dev=self.operators["dev"],
             orchestrator=self,
             clients=self.clients,
             deploy=deploy,
@@ -271,7 +280,9 @@ async def communicative_dehallucination(
     if celery:
         new_summary: Summary = (
             executive.generate_summary.delay(
-                summary=summary, implementation=str(implementation), message_format=Summary
+                summary=summary,
+                implementation=str(implementation),
+                message_format=Summary,
             )
             .get()
             .message

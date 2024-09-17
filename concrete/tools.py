@@ -59,12 +59,14 @@ import socket
 import time
 from datetime import datetime, timezone
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import boto3
 import requests
+from requests import Response
 
-from .clients import CLIClient, RestApiClient
+from .clients import CLIClient, HTTPClient
+from .db.orm.models import Node
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -106,7 +108,7 @@ class MetaTool(type):
                 method_signature = f"{attr}({', '.join(params)}){return_str}"
                 method_info.append(f"{method_signature}\n\t{docstring}")
 
-        attrs['_str_representation'] = f"{name} Tool with methods:\n" + "\n".join(
+        attrs["_str_representation"] = f"{name} Tool with methods:\n" + "\n".join(
             f"   - {info}" for info in method_info
         )
         new_class = super().__new__(cls, name, bases, attrs)
@@ -120,67 +122,62 @@ class MetaTool(type):
         return str(cls)
 
 
-def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str, tool_keyword_parameters: dict[str, str]):
+def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str):
     """
     Throws KeyError if the tool doesn't exist.
     Throws AttributeError if the function on the tool doesn't exist.
     Throws TypeError if the parameters are wrong.
     """
     func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
-    return func(*tool_parameters, **tool_keyword_parameters)
+    return func(*tool_parameters)
 
 
-class RestApiTool(metaclass=MetaTool):
+class HTTPTool(metaclass=MetaTool):
     @classmethod
-    def delete(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
-        client = RestApiClient()
-        resp = client.delete(url, headers=headers, params=params, data=data)
+    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
         if not resp.ok:
-            CLIClient.emit(f"Failed DELETE request to {url}: {resp.status_code} {resp.json()}")
+            CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
-        return resp.json()
+        return resp.content
 
     @classmethod
-    def get(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}) -> dict:
+    def request(cls, method: str, url: str, **kwargs) -> Union[dict, str, bytes]:
         """
-        Make a GET request to the specified url
-
-        Throws an error if the request was unsuccessful after retries
+        Make an HTTP request to the specified url
+        Throws an error if the request was unsuccessful
         """
-        client = RestApiClient()
-        resp = client.get(url, headers=headers, params=params, data=data)
-        if not resp.ok:
-            CLIClient.emit(f"Failed GET request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+        resp = HTTPClient().request(method, url, **kwargs)
+        return cls._process_response(resp, url)
 
     @classmethod
-    def post(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
-        """
-        Make a POST request to the specified url
-
-        Throws an error if the request was unsuccessful after retries
-        """
-        client = RestApiClient()
-        resp = client.post(url, headers=headers, params=params, data=data, json=json)
-        if not resp.ok:
-            CLIClient.emit(f"Failed POST request to {url}: {resp.status_code} {resp.json()}")
-            resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+    def get(cls, url: str, **kwargs) -> Response:
+        return cls.request('GET', url, **kwargs)
 
     @classmethod
-    def put(cls, url: str, headers: dict = {}, params: dict = {}, data: dict = {}, json: dict = {}) -> dict:
-        """
-        Make a PUT request to the specified url
+    def post(cls, url: str, **kwargs) -> Response:
+        return cls.request('POST', url, **kwargs)
 
-        Throws an error if the request was unsuccessful after retries
-        """
-        client = RestApiClient()
-        resp = client.put(url, headers=headers, params=params, data=data, json=json)
+    @classmethod
+    def put(cls, url: str, **kwargs) -> Response:
+        return cls.request('PUT', url, **kwargs)
+
+    @classmethod
+    def delete(cls, url: str, **kwargs) -> Response:
+        return cls.request('DELETE', url, **kwargs)
+
+
+class RestApiTool(HTTPTool):
+    @classmethod
+    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
         if not resp.ok:
-            CLIClient.emit(f"Failed PUT request to {url}: {resp.status_code} {resp.json()}")
+            CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
-        return resp.json()  # return unwrapped data
+        content_type = resp.headers.get('content-type', '')
+        if 'application/json' in content_type:
+            return resp.json()
+        if 'text' in content_type:
+            return resp.text
+        return resp.content
 
 
 class Container(ConcreteModel):
@@ -207,7 +204,13 @@ class AwsTool(metaclass=MetaTool):
         pushed, image_uri = cls._build_and_push_image(project_directory_name)
         if pushed:
             cls._deploy_service(
-                [Container(image_uri=image_uri, container_name=project_directory_name, container_port=80)]
+                [
+                    Container(
+                        image_uri=image_uri,
+                        container_name=project_directory_name,
+                        container_port=80,
+                    )
+                ]
             )
         else:
             CLIClient.emit("Failed to deploy project")
@@ -301,7 +304,7 @@ class AwsTool(metaclass=MetaTool):
         for _ in range(30):
             try:
                 res = ecr_client.describe_images(repositoryName=repo_name)
-                if res['imageDetails'] and res['imageDetails'][0]['imagePushedAt'] > cur_time:
+                if res["imageDetails"] and res["imageDetails"][0]["imagePushedAt"] > cur_time:
                     return True
             except ecr_client.exceptions.RepositoryNotFoundException:
                 pass
@@ -352,24 +355,24 @@ class AwsTool(metaclass=MetaTool):
         # e.g.) service_name.container1; atm, consider only the first container to route traffic to.
         target_group_arn = None
         if not listener_rule:
-            rule_field = 'host-header'
-            rule_value = f'{service_name}.abop.ai'
+            rule_field = "host-header"
+            rule_value = f"{service_name}.abop.ai"
         else:
-            rule_field = listener_rule.get('field', None) or 'host-header'
-            rule_value = listener_rule.get('value', None) or f'{target_group_name}.abop.ai'
+            rule_field = listener_rule.get("field", None) or "host-header"
+            rule_value = listener_rule.get("value", None) or f"{target_group_name}.abop.ai"
 
-        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)["Rules"]
         for rule in rules:
             if (
-                rule['Conditions']
-                and rule['Conditions'][0]['Field'] == rule_field
-                and rule['Conditions'][0]['Values'][0] == rule_value
+                rule["Conditions"]
+                and rule["Conditions"][0]["Field"] == rule_field
+                and rule["Conditions"][0]["Values"][0] == rule_value
             ):
-                target_group_arn = rule['Actions'][0]['TargetGroupArn']
+                target_group_arn = rule["Actions"][0]["TargetGroupArn"]
 
         if not target_group_arn:
             # Calculate minimum unused rule priority
-            rule_priorities = [int(rule['Priority']) for rule in rules if rule['Priority'] != 'default']
+            rule_priorities = [int(rule["Priority"]) for rule in rules if rule["Priority"] != "default"]
             if set(range(1, len(rules))) - set(rule_priorities):
                 listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
             else:
@@ -380,23 +383,23 @@ class AwsTool(metaclass=MetaTool):
                 Protocol='HTTP',
                 Port=containers[0].container_port,
                 VpcId=vpc,
-                TargetType='ip',
+                TargetType="ip",
                 HealthCheckEnabled=True,
-                HealthCheckPath='/',
+                HealthCheckPath="/",
                 HealthCheckIntervalSeconds=30,
                 HealthCheckTimeoutSeconds=5,
                 HealthyThresholdCount=2,
                 UnhealthyThresholdCount=2,
-            )['TargetGroups'][0]['TargetGroupArn']
+            )["TargetGroups"][0]["TargetGroupArn"]
 
             elbv2_client.create_rule(
                 ListenerArn=listener_arn,
                 Priority=listener_rule_priority,
-                Conditions=[{'Field': rule_field, 'Values': [rule_value]}],
+                Conditions=[{"Field": rule_field, "Values": [rule_value]}],
                 Actions=[
                     {
-                        'Type': 'forward',
-                        'TargetGroupArn': target_group_arn,
+                        "Type": "forward",
+                        "TargetGroupArn": target_group_arn,
                     }
                 ],
             )
@@ -426,13 +429,13 @@ class AwsTool(metaclass=MetaTool):
             cpu=str(cpu) if cpu else "256",
             memory=str(memory) if memory else "512",
             runtimePlatform={
-                'cpuArchitecture': 'ARM64',
-                'operatingSystemFamily': 'LINUX',
+                "cpuArchitecture": "ARM64",
+                "operatingSystemFamily": "LINUX",
             },
-        )['taskDefinition']['taskDefinitionArn']
+        )["taskDefinition"]["taskDefinitionArn"]
         if (
-            service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])['services']
-        ) and service_desc[0]['status'] == 'ACTIVE':
+            service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])["services"]
+        ) and service_desc[0]["status"] == "ACTIVE":
             CLIClient.emit(f"Service {service_name} found. Updating service.")
             ecs_client.update_service(
                 cluster=cluster,
@@ -487,9 +490,9 @@ class AwsTool(metaclass=MetaTool):
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
             if (
-                res['services']
-                and res["services"][0]['desiredCount'] == res['services'][0]['runningCount']
-                and res['services'][0]['pendingCount'] == 0
+                res["services"]
+                and res["services"][0]["desiredCount"] == res["services"][0]["runningCount"]
+                and res["services"][0]["pendingCount"] == 0
             ):
                 return True
             time.sleep(10)
@@ -503,9 +506,9 @@ class GithubTool(metaclass=MetaTool):
     """
 
     headers = {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")}',
-        'X-GitHub-Api-Version': '2022-11-28',
+        "Accept": "application/vnd.github+json",
+        "Authorization": f'Bearer {os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")}',
+        "X-GitHub-Api-Version": "2022-11-28",
     }
 
     @classmethod
@@ -523,7 +526,7 @@ class GithubTool(metaclass=MetaTool):
             base (str): The title of the branch that changes are being merged into.
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
-        json = {'title': f'[ABOP] {title}', 'head': branch, 'base': base}
+        json = {"title": f"[ABOP] {title}", "head": branch, "base": base}
         return RestApiTool.post(url, headers=cls.headers, json=json)
 
     @classmethod
@@ -581,7 +584,7 @@ class GithubTool(metaclass=MetaTool):
             CLIClient.emit(f'Failed to delete {branch}.' + str(resp.json()))
 
     @classmethod
-    def update_create_file(
+    def put_file(
         cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
     ):
         """
@@ -619,3 +622,54 @@ class GithubTool(metaclass=MetaTool):
         if sha:
             json['sha'] = sha
         RestApiTool.put(url, headers=headers, json=json)
+
+    @classmethod
+    def get_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+        """
+        Retrieves diff of base compared to compare.
+
+        Args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+            base (str): The name of the branch to compare against.
+            compare (str): The name of the branch to compare.
+            access_token(str): Fine-grained token with at least 'Contents' repository read access.
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{compare}'
+        diff_url = RestApiTool.get(url, headers=headers)['diff_url']
+        diff = RestApiTool.get(diff_url)
+        return diff
+
+    @classmethod
+    def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+        """
+        Returns a list of changed files between two commits
+        """
+        diff = GithubTool.get_diff(org, repo, base, compare, access_token)
+        files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
+        return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
+
+
+class KnowledgeGraphTool(metaclass=MetaTool):
+    """
+    Converts a repository into a knowledge graph.
+    """
+
+    @classmethod
+    def repo_to_knowledge(cls, org: str, repo: str, access_token: str) -> Node:
+        """
+        Converts a repository into a knowledge graph.
+
+        args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+        Returns
+            Node: The root node of the knowledge graph
+        """
+        raise NotImplementedError("This tool is not yet implemented.")

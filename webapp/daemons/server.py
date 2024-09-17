@@ -3,9 +3,10 @@ import hmac
 import json
 import os
 import time
+from abc import ABC, abstractmethod
 
 import jwt
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -22,21 +23,34 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-class GitHubDaemon:
+class Webhook(ABC):
+    """
+    Represents a Webhook.
+    """
+
+    def __init__(self, route: str):
+        self.route = route
+
+    @abstractmethod
+    async def webhook_handler(self, request: Request):
+        pass
+
+
+class AOGitHubDaemon(Webhook):
     """
     Represents a GitHub PR Daemon.
     Daemon can act on many installations, orgs/repos/branches.
+    TODO: AOGitHubDaemon -> GitHubDaemon. Should be installable on any repository, and not hardcoded to abop.
     """
 
     def __init__(self):
-        self.router = APIRouter()
-        self.router.add_api_route("/github/webhook", self.github_webhook, methods=["POST"])
+        super().__init__("/github/webhook")
         self.jwt_token = self.JwtToken()
         self.installation_token = self.InstallationToken(self.jwt_token)
-        self.open_revisions: dict[str, "GitHubDaemon.OpenPRs"] = {}  # org/repo/branch: OpenRevisions
+        self.open_revisions: dict[str, "AOGitHubDaemon.Revision"] = {}  # org/repo/branch: OpenRevisions
 
     # To be replaced by DB probably
-    class OpenPr:
+    class Revision:
         """
         Manages User Open PRs + Daemon Revision branch.
         Represents an Actor, which is messaged by the Daemon Actor.
@@ -44,15 +58,15 @@ class GitHubDaemon:
 
         org: str
         repo: str
-        base: str  # e.g. main
-        target: str  # e.g. featurebranch
-        id: int  # PR number
-        diff_url: str
+        target: str
 
-        revision_branch: str  # Branch created by Daemon to revise PR
+        def __init__(self, org: str, repo: str, target: str):
+            self.org = org
+            self.repo = repo
+            self.target = target
 
     @staticmethod
-    def verify_signature(payload_body, signature_header):
+    def _verify_signature(payload_body, signature_header):
         """Verify that the payload was sent from GitHub by validating SHA256.
         https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
         Raise and return 403 if not authorized.
@@ -75,12 +89,14 @@ class GitHubDaemon:
         if not hmac.compare_digest(expected_signature, signature_header):
             raise HTTPException(status_code=403, detail="Request signatures didn't match")
 
-    async def github_webhook(self, request: Request):
-        """Receive GitHub webhook events."""
+    async def webhook_handler(self, request: Request):
+        """
+        Receive and respond to GH webhook events.
+        """
         raw_payload = await request.body()
         signature = request.headers.get("x-hub-signature-256")
         try:
-            self.verify_signature(raw_payload, signature)
+            self._verify_signature(raw_payload, signature)
         except HTTPException as e:
             return {"error": str(e.detail)}, e.status_code
 
@@ -99,6 +115,12 @@ class GitHubDaemon:
                     new_branch=revision_branch_name,
                     access_token=token,
                 )
+                self.open_revisions['abstractoperators/concrete/' + revision_branch_name] = self.Revision(
+                    org='abstractoperators',
+                    repo='concrete',
+                    target=branch_name,
+                )
+
             elif payload['action'] == 'closed':
                 branch_name = payload['pull_request']['head']['ref']
                 revision_branch_name = f'ghdaemon/revision/{branch_name}'
@@ -108,6 +130,7 @@ class GitHubDaemon:
                     branch=revision_branch_name,
                     access_token=token,
                 )
+                self.open_revisions.pop('abstractoperators/concrete/' + revision_branch_name, None)
 
     class JwtToken:
         """
@@ -157,7 +180,7 @@ class GitHubDaemon:
         Represents an Installation Access Token for GitHub App authentication.
         """
 
-        def __init__(self, jwt_token: "GitHubDaemon.JwtToken"):
+        def __init__(self, jwt_token: "AOGitHubDaemon.JwtToken"):
             self._token: str = ""  # nosec
             self._expiry: float = 0
             self.jwt_token = jwt_token
@@ -186,5 +209,6 @@ class GitHubDaemon:
             return self._token
 
 
-gh_daemon = GitHubDaemon()
-app.include_router(gh_daemon.router)
+hooks = [gh_daemon := AOGitHubDaemon()]
+for hook in hooks:
+    app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])

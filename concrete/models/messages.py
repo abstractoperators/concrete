@@ -32,7 +32,7 @@ class Message(ConcreteModel):
     @classmethod
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        registry_name = getattr(cls, '__registry_name__', cls.__name__)
+        registry_name = getattr(cls, "__registry_name__", cls.__name__)
         MESSAGE_REGISTRY[registry_name.lower()] = cls
 
     @classmethod
