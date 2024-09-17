@@ -66,6 +66,7 @@ import requests
 from requests import Response
 
 from .clients import CLIClient, HTTPClient
+from .db.orm.models import Node
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -649,9 +650,20 @@ class GithubTool(metaclass=MetaTool):
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
 
 
-class RepoToKnowledgeGraphTool(metaclass=MetaTool):
+class KnowledgeGraphTool(metaclass=MetaTool):
     """
-    Converts a directory into a repository knowledge graph.
+    Converts a repository into a knowledge graph.
     """
 
-    pass
+    @classmethod
+    def repo_to_knowledge(cls, org: str, repo: str, access_token: str) -> Node | None:
+        """
+        Converts a repository into a knowledge graph.
+
+        args
+            org (str): Organization or account owning the repo
+            repo (str): The name of the repository
+        Returns
+            Node: The root node of the knowledge graph
+        """
+        return None
