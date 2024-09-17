@@ -597,6 +597,14 @@ class GithubTool(metaclass=MetaTool):
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
 
 
+def create_node(db: Session, node: schemas.NodeCreate) -> models.Operator:
+    db_op = models.Node(**node.model_dump())
+    db.add(db_op)
+    db.commit()
+    db.refresh(db_op)
+    return db_op
+
+
 class KnowledgeGraphTool(metaclass=MetaTool):
     """
     Converts a repository into a knowledge graph.
@@ -623,7 +631,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # Children nodes, shall be files and directories
         # Subsequent children nodes shall be files, directories, and arbitrary code chunks (as determined by the LLM?)
 
-        # TODO handle
         root_node = schemas.NodeCreate(summary="placeholder", domain=f"repo/{org}/{repo}")
         to_chunk.put(root_node)
 

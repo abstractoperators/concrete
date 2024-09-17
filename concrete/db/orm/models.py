@@ -68,5 +68,5 @@ class Node(Base):
 class RepoNode(Node):
     org: Mapped[str] = mapped_column(String(50))
     repo: Mapped[str] = mapped_column(String(50))
-    scope: Mapped[str] = mapped_column(String(50))  # e.g. ex_dir, ex_file, ex_func, ex_class, etc
+    type: Mapped[str] = mapped_column(String(50))  # directory/file/chunk?
     summary: Mapped[str] = mapped_column(String)
