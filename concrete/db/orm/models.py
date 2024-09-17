@@ -1,6 +1,7 @@
-from uuid import UUID, uuid4
+from typing import List
+from uuid import uuid4
 
-from sqlalchemy import ForeignKey, String, inspect
+from sqlalchemy import UUID, ForeignKey, String, inspect
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -15,7 +16,7 @@ class Base(DeclarativeBase):
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(UUID, primary_key=True, default=uuid4)
 
     def __repr__(self) -> str:
         columns = inspect(self).mapper.columns
@@ -51,3 +52,18 @@ class Client(Base):
 class Tool(Base):
     operator_id: Mapped[UUID] = mapped_column(ForeignKey("operator.id"))
     operator: Mapped[Operator] = relationship(back_populates="tools")
+
+
+class Node(Base):
+    parent_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("node.id"), nullable=True)
+    summary: Mapped[str] = mapped_column(String(50))
+    # TODO: Better solution for domain. ATM, it's going to look like repo/abop/concrete/[file_path]/[chunk].
+    # This solution is slow and not scalable.
+    domain: Mapped[str] = mapped_column(String(50))  # Refers to what the node is summarizing, like a file/dir/function
+    children: Mapped[List["Node"]] = relationship(
+        "Node", back_populates="parent", cascade="all, delete-orphan", primaryjoin="Node.id == foreign(Node.parent_id)"
+    )
+
+    parent: Mapped["Node | None"] = relationship(
+        "Node", back_populates="children", primaryjoin="foreign(Node.parent_id) == remote(Node.id)"
+    )

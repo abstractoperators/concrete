@@ -54,3 +54,23 @@ class ToolBase(ConcreteModel):
 
 class Tool(ToolBase, MetadataMixin, OrmMixin, OperatorChildMixin):
     pass
+
+
+class NodeBase(ConcreteModel):
+    """
+    Base model for a Node.
+    """
+
+    summary: str = Field(description="Summary of the node.")
+    domain: str = Field(description="Association of the node.")
+    parent_id: UUID | None = Field(default=None, description="ID of the parent node.")  # root has no parent
+
+
+class NodeCreate(NodeBase):
+    pass
+
+
+class NodeUpdate(ConcreteModel):
+    summary: str | None = Field(default=None, description="Summary of the node.")
+    domain: str | None = Field(default=None, description="Domain knowledge association of the node.")
+    parent_id: int | None = Field(default=None, description="ID of the parent node.")
