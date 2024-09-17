@@ -51,3 +51,14 @@ class Client(Base):
 class Tool(Base):
     operator_id: Mapped[UUID] = mapped_column(ForeignKey("operator.id"))
     operator: Mapped[Operator] = relationship(back_populates="tools")
+
+
+class Node(Base):
+    """
+    Represents a node in a knowledge graph.
+    """
+
+    summary: Mapped[str]  # A summary of the node contents
+    assoc: Mapped[str]  # What domain knowledge the node summary is associated with
+    parents: Mapped[list["Node"]]  # The parent nodes of this node
+    children: Mapped[list["Node"]]  # The child nodes of this node
