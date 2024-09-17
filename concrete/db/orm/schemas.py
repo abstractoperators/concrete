@@ -56,21 +56,31 @@ class Tool(ToolBase, MetadataMixin, OrmMixin, OperatorChildMixin):
     pass
 
 
-# Nodes for knowledge graph
 class NodeBase(ConcreteModel):
-    summary: str = Field(description="A summary of the associated domain knowledge")
-    assoc: str = Field(description="Domain knowledge the node summary is associated with")
-    parents: list["Node"] = Field(description="Parent nodes of this node", default=[])
-    children: list["Node"] = Field(description="Child nodes of this node", default=[])
+    """
+    Base model for a Node.
+    """
+
+    summary: str = Field(description="Summary of the node.")
+    assoc: str = Field(description="Association of the node.")
+
+
+class NodeCreate(NodeBase):
+    parent_id: int | None = Field(default=None, description="ID of the parent node.")  # root has no parent
 
 
 class Node(NodeBase, MetadataMixin, OrmMixin):
-    pass
+    """
+    Full representation of a Node
+    """
 
-
-class NodeCreate(Node):
-    pass
+    id: UUID
+    parent_id: int | None = Field(default=None, description="ID of the parent node.")
+    children: list["Node"] | None = Field(default_factory=list, description="Child nodes of this node.")
+    parent: "Node" | None = Field(default=None, description="Parent node of this node.")
 
 
 class NodeUpdate(ConcreteModel):
-    pass
+    summary: str | None = Field(default=None, description="Summary of the node.")
+    assoc: str | None = Field(default=None, description="Domain knowledge association of the node.")
+    parent_id: int | None = Field(default=None, description="ID of the parent node.")
