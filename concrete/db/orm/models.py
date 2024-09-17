@@ -14,6 +14,47 @@ class MetadataMixin(SQLModel):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
 
 
+# Relationship Models
+
+
+class OperatorToolLink(Base, table=True):
+    operator_id: UUID = Field(foreign_key="operator.id", primary_key=True)
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+
+
+# Orchestrator Models
+
+
+class OrchestratorBase(Base):
+    type_name: str = Field(description="type of orchestrator", max_length=32)
+    title: str = Field(description="Title of the orchestrator.", max_length=32)
+    owner: str = Field(description="name of owner", max_length=32)
+
+
+class OrchestratorUpdate(Base):
+    title: str | None = Field(
+        description="Title of the orchestrator.",
+        max_length=32,
+        default=None,
+    )
+    owner: str | None = Field(
+        description="name of owner",
+        max_length=32,
+        default=None,
+    )
+
+
+class OrchestratorCreate(OrchestratorBase):
+    pass
+
+
+class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
+    operators: list["Operator"] = Relationship(
+        back_populates="orchestrator",
+        cascade_delete=True,
+    )
+
+
 # Operator Models
 
 
@@ -43,8 +84,8 @@ class Operator(OperatorBase, MetadataMixin, table=True):
         back_populates="operator",
         cascade_delete=True,
     )
-    tools: list["Tool"] = Relationship(back_populates="operator")
-    orchestrator: "Orchestrator" = Relationship(back_populates="orchestrator")
+    tools: list["Tool"] = Relationship(back_populates="operators", link_model=OperatorToolLink)
+    orchestrator: "Orchestrator" = Relationship(back_populates="operators")
 
 
 # Client Models
@@ -63,6 +104,10 @@ class ClientBase(Base):
         max_length=32,
     )
 
+    orchestrator_id: UUID = Field(
+        description="ID of Orchestrator that owns the Operator of this client.",
+        foreign_key="orchestrator.id",
+    )
     operator_id: UUID = Field(
         description="ID of Operator that owns this client.",
         foreign_key="operator.id",
@@ -110,7 +155,7 @@ class ToolCreate(ToolBase):
 
 
 class Tool(ToolBase, MetadataMixin, table=True):
-    operators: list[Operator] = Relationship(back_populates="tools")
+    operators: list[Operator] = Relationship(back_populates="tools", link_model=OperatorToolLink)
 
 
 # Message Models
@@ -141,40 +186,7 @@ class MessageCreate(MessageBase):
 
 
 class Message(MessageBase, MetadataMixin, table=True):
-    orchestrator: "Orchestrator" = Relationship(back_populates="orchestrator")
-
-
-# Orchestrator Models
-
-
-class OrchestratorBase(Base):
-    type_name: str = Field(description="type of orchestrator", max_length=32)
-    title: str = Field(description="Title of the orchestrator.", max_length=32)
-    owner: str = Field(description="name of owner", max_length=32)
-
-
-class OrchestratorUpdate(Base):
-    title: str | None = Field(
-        description="Title of the orchestrator.",
-        max_length=32,
-        default=None,
-    )
-    owner: str | None = Field(
-        description="name of owner",
-        max_length=32,
-        default=None,
-    )
-
-
-class OrchestratorCreate(OrchestratorBase):
     pass
-
-
-class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
-    operators: list[Operator] = Relationship(
-        back_populates="operators",
-        cascade_delete=True,
-    )
 
 
 # TODO create user model for owner

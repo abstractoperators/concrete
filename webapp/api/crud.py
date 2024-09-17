@@ -15,6 +15,9 @@ from concrete.db.orm.models import (
     Operator,
     OperatorCreate,
     OperatorUpdate,
+    Orchestrator,
+    OrchestratorCreate,
+    OrchestratorUpdate,
     Tool,
     ToolCreate,
     ToolUpdate,
@@ -68,11 +71,19 @@ def get_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Opera
 
 def get_operators(
     db: Session,
-    orchestrator_id: UUID,
+    orchestrator_id: UUID | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Operator]:
-    stmt = select(Operator).where(Operator.orchestrator_id == orchestrator_id).offset(skip).limit(limit)
+    stmt = (
+        (
+            select(Operator)
+            if orchestrator_id is None
+            else select(Operator).where(Operator.orchestrator_id == orchestrator_id)
+        )
+        .offset(skip)
+        .limit(limit)
+    )
     return db.scalars(stmt).all()
 
 
@@ -106,19 +117,31 @@ def create_client(db: Session, client_create: ClientCreate) -> Client:
     )
 
 
-def get_client(db: Session, client_id: UUID, operator_id: UUID) -> Client | None:
-    stmt = select(Client).where(Client.id == client_id).where(Client.operator_id == operator_id)
+def get_client(db: Session, client_id: UUID, operator_id: UUID, orchestrator_id: UUID) -> Client | None:
+    stmt = (
+        select(Client)
+        .where(Client.id == client_id)
+        .where(Client.operator_id == operator_id)
+        .where(Client.orchestrator_id == orchestrator_id)
+    )
     return db.scalars(stmt).first()
 
 
 def get_clients(
     db: Session,
+    orchestrator_id: UUID | None = None,
     operator_id: UUID | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Client]:
     stmt = (
-        (select(Client) if operator_id is None else (select(Client).where(Client.operator_id == operator_id)))
+        (
+            select(Client)
+            if (orchestrator_id is None) or (operator_id is None)
+            else (
+                select(Client).where(Client.operator_id == operator_id).where(Client.orchestrator_id == orchestrator_id)
+            )
+        )
         .offset(skip)
         .limit(limit)
     )
@@ -129,19 +152,25 @@ def update_client(
     db: Session,
     client_id: UUID,
     operator_id: UUID,
+    orchestrator_id: UUID,
     client_update: ClientUpdate,
 ) -> Client | None:
     return update_generic(
         db,
-        get_client(db, client_id, operator_id),
+        get_client(db, client_id, operator_id, orchestrator_id),
         client_update,
     )
 
 
-def delete_client(db: Session, client_id: UUID, operator_id: UUID) -> Client | None:
+def delete_client(
+    db: Session,
+    client_id: UUID,
+    operator_id: UUID,
+    orchestrator_id: UUID,
+) -> Client | None:
     return delete_generic(
         db,
-        get_client(db, client_id, operator_id),
+        get_client(db, client_id, operator_id, orchestrator_id),
     )
 
 
@@ -238,4 +267,40 @@ def delete_message(
 
 
 # ===Orchestrator=== #
-# TODO
+
+
+def create_orchestrator(db: Session, orchestrator_create: OrchestratorCreate) -> Orchestrator:
+    return create_generic(db, Orchestrator(**orchestrator_create.model_dump()))
+
+
+def get_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | None:
+    stmt = select(Orchestrator).where(Orchestrator.id == orchestrator_id)
+    return db.scalars(stmt).first()
+
+
+def get_orchestrators(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+) -> Sequence[Orchestrator]:
+    stmt = select(Orchestrator).offset(skip).limit(limit)
+    return db.scalars(stmt).all()
+
+
+def update_orchestrator(
+    db: Session,
+    orchestrator_id: UUID,
+    orchestrator_update: OrchestratorUpdate,
+) -> Orchestrator | None:
+    return update_generic(
+        db,
+        get_orchestrator(db, orchestrator_id),
+        orchestrator_update,
+    )
+
+
+def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | None:
+    return delete_generic(
+        db,
+        get_orchestrator(db, orchestrator_id),
+    )
