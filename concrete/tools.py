@@ -630,13 +630,40 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             node = to_chunk.get()
             crud.create_node(db=db, node=node)
 
-    def _chunk(self, node: schemas.NodeCreate) -> list[schemas.NodeCreate]:
+    def _chunk(self, parent: schemas.RepoNodeCreate) -> list[schemas.RepoNodeCreate]:
         """
         Chunks a node into smaller nodes.
         """
-        raise NotImplementedError
-        # if node.type == 'directory':
-        #     # Chunk the directory
-        #     # For each child, create a node and add to the queue
-        #     for child in node.children:
-        #         to_chunk.put(child)
+        children: list[schemas.RepoNodeCreate] = []
+        if parent.type == 'directory':
+            contents = os.listdir(parent.path)
+            for content in contents:
+                if os.path.isfile(content):
+                    child = schemas.RepoNodeCreate(
+                        org=parent.org,
+                        repo=parent.repo,
+                        type='file',
+                        name=content,
+                        path=os.path.join(parent.path, content),
+                    )
+                    children.append(child)
+                elif os.path.isdir(content):  # probably unnecessary, but explicit /shrug
+                    child = schemas.RepoNodeCreate(
+                        org=parent.org,
+                        repo=parent.repo,
+                        type='directory',
+                        name=content,
+                        path=os.path.join(parent.path, content),
+                    )
+                    children.append(child)
+
+        elif parent.type == 'file':
+            # TODO support decomposition of other file types.
+            if parent.path.endswith('.py'):
+                contents = self._chunk_python_file(parent.path)
+
+        # Create all children nodes w/ parent link
+        db = SessionLocal()
+        for child in children:
+            crud.create_node(db=db, node=child, parent_id=parent.id)
+        return children
