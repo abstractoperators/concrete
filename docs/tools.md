@@ -1,5 +1,5 @@
 ## Tools
-`Tool`s allow an operator to interact with the real world or internet.
+`Tools` allow an operator to interact with the real world or internet.
 
 Some tools we have supported are:  
 - AWSTool
