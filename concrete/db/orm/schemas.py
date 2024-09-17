@@ -66,7 +66,7 @@ class NodeBase(ConcreteModel):
 
 
 class NodeCreate(NodeBase):
-    parent_id: int | None = Field(default=None, description="ID of the parent node.")  # root has no parent
+    parent_id: UUID | None = Field(default=None, description="ID of the parent node.")  # root has no parent
 
 
 class Node(NodeBase, MetadataMixin, OrmMixin):
