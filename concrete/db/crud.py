@@ -304,3 +304,11 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
         db,
         get_orchestrator(db, orchestrator_id),
     )
+
+
+def create_node(db: Session, node: schemas.NodeCreate) -> models.Operator:
+    db_op = models.Node(**node.model_dump())
+    db.add(db_op)
+    db.commit()
+    db.refresh(db_op)
+    return db_op

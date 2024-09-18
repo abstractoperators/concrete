@@ -200,8 +200,6 @@ class NodeBase(Base):
     """
 
     summary: str = Field(description="Summary of the node.", max_length=50)
-    # TODO: Better solution for domain. ATM, it's going to look like repo/abop/concrete/[file_path]/[chunk].
-    # This solution is slow and not scalable.
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
