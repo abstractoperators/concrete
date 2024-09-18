@@ -44,8 +44,8 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
     func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
     res = func(**operation.arg_dict).model_dump()
 
-    message_format_name = cast(dict, operation.arg_dict['message_format'])['json_schema']['name']
-    res['message_format_name'] = message_format_name
+    message_format_name = cast(dict, operation.arg_dict["message_format"])["json_schema"]["name"]
+    res["message_format_name"] = message_format_name
 
     return ConcreteChatCompletion(**res)
 
@@ -77,8 +77,8 @@ class MetaAbstractOperator(type):
                     client_name=client_name or self.llm_client,
                     function_name=client_function or self.llm_client_function,
                     arg_dict={
-                        'messages': [{'role': 'user', 'content': func(self, **kwargs)}],
-                        'message_format': OpenAIClient.model_to_schema(message_format),
+                        "messages": [{"role": "user", "content": func(self, **kwargs)}],
+                        "message_format": OpenAIClient.model_to_schema(message_format),
                     },
                 )
                 # TODO unhardcode client conversion
@@ -97,7 +97,7 @@ class MetaAbstractOperator(type):
             return _delay
 
         for attr in attrs:
-            if attr.startswith("__") or attr in {'_qna', 'qna'} or not callable(attrs[attr]):
+            if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(attrs[attr]):
                 continue
 
             attrs[attr]._delay = _delay_factory(attrs[attr])
@@ -111,8 +111,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     # TODO replace OpenAIClient with GenericClient
     def __init__(self, clients: dict[str, OpenAIClient], tools: list[MetaTool] | None = None):
         self._clients = clients
-        self.llm_client = 'openai'
-        self.llm_client_function = 'complete'
+        self.llm_client = "openai"
+        self.llm_client_function = "complete"
         self.tools = tools
 
     def _qna(
@@ -127,11 +127,11 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         """
         instructions = cast(str, instructions or self.instructions)
         messages = [
-            {'role': 'system', 'content': instructions},
-            {'role': 'user', 'content': query},
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": query},
         ]
         response = (
-            self.clients['openai']
+            self.clients["openai"]
             .complete(
                 messages=messages,
                 response_format=response_format,
@@ -165,7 +165,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             tools = (
                 explicit_tools
                 if (explicit_tools := kwargs.pop("tools", []))
-                else (self.tools if kwargs.pop('use_tools', False) else [])
+                else (self.tools if kwargs.pop("use_tools", False) else [])
             )
 
             query = question_producer(*args, **kwargs)
@@ -201,7 +201,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     @cache
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
-        if name.startswith("__") or name in {'qna', '_qna'} or not callable(attr):
+        if name.startswith("__") or name in {"qna", "_qna"} or not callable(attr):
             return attr
 
         CLIClient.emit(f"[operator]: {self.__class__.__name__}")
@@ -217,4 +217,4 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         return message
 
 
-AbstractOperator_co = TypeVar('AbstractOperator_co', bound=AbstractOperator, covariant=True)
+AbstractOperator_co = TypeVar("AbstractOperator_co", bound=AbstractOperator, covariant=True)

@@ -8,12 +8,12 @@ from .messages import Message
 
 
 class OpenAIClientModel(ConcreteModel, KombuMixin):
-    model: str = Field(default='gpt-4o-mini', description='Name of LLM Model')
-    temperature: float = Field(default=0, description='Temperature of LLM Model')
+    model: str = Field(default="gpt-4o-mini", description="Name of LLM Model")
+    temperature: float = Field(default=0, description="Temperature of LLM Model")
 
 
 class ConcreteChatCompletion(ChatCompletion, KombuMixin):
-    message_format_name: str = Field(description='Response format to parse completion into')
+    message_format_name: str = Field(description="Response format to parse completion into")
 
     # Nice-to-have: dynamic dereferencing of attrs fetched on ConcreteChatCompletion through __getattribute__
     # e.g. ConcreteChatCompletion.components == ConcreteChatCompletion.message.components
