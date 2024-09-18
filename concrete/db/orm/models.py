@@ -231,20 +231,35 @@ class Node(NodeBase, MetadataMixin, table=True):
     )
 
 
-class RepoNodeBase(NodeBase):
-    org: str = Field(description="Organization to which the repo belongs.")
-    repo: str = Field(description="Repository name.")
-    type: str = Field(description="Type of the node. directory/file/chunk")
-    name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")  # idk yet
+# Figure out an elegant solution to inherit from Node
+# https://github.com/fastapi/sqlmodel/issues/488
+# https://docs.sqlalchemy.org/en/20/orm/inheritance.html
+# https://docs.sqlalchemy.org/en/20/orm/self_referential.html
+# https://docs.sqlalchemy.org/en/20/_modules/examples/adjacency_list/adjacency_list.html
+
+
+class RepoNodeBase(Base):
+    org: str = Field(description="Organization to which the repo belongs.", index=True)
+    repo: str = Field(description="Repository name.", index=True)
+    partition_type: str = Field(description="Type of the node. directory/file/chunk")
+    name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")
     summary: str = Field(description="Summary of the node.")
+    parent_id: UUID | None = Field(
+        default=None,
+        description="ID of the parent node.",
+        foreign_key="reponode.id",
+        ondelete="CASCADE",
+    )
+    abs_path: str = Field(description="")
 
 
-class RepoNodeUpdate(RepoNodeBase):
-    org: str | None = Field(description="Organization to which the repo belongs.")
-    repo: str | None = Field(description="Repository name.")
-    type: str | None = Field(description="Type of the node. directory/file/chunk")
-    name: str | None = Field(description="Name of the chunk. eg README.md, module.py/func_foo")  # idk yet
-    summary: str | None = Field(description="Summary of the node.")
+class RepoNodeUpdate(NodeUpdate):
+    org: str | None = Field(description="Organization to which the repo belongs.", default=None)
+    repo: str | None = Field(description="Repository name.", default=None)
+    type: str | None = Field(description="Type of the node. directory/file/chunk", default=None)
+    name: str | None = Field(description="Name of the chunk. eg README.md, module.py/func_foo", default=None)
+    summary: str | None = Field(description="Summary of the node.", default=None)
+    abs_path: str | None = Field(description="", default=None)
 
 
 class RepoNodeCreate(RepoNodeBase):
@@ -252,7 +267,14 @@ class RepoNodeCreate(RepoNodeBase):
 
 
 class RepoNode(RepoNodeBase, MetadataMixin, table=True):
-    pass
+    children: list["RepoNode"] = Relationship(
+        back_populates="parent",
+        cascade_delete=True,
+    )
+    parent: Optional["RepoNode"] = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs={"remote_side": "reponode.c.id"},
+    )
 
 
 SQLModel.metadata.create_all(bind=engine)

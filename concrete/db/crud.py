@@ -20,6 +20,9 @@ from .orm.models import (
     Orchestrator,
     OrchestratorCreate,
     OrchestratorUpdate,
+    RepoNode,
+    RepoNodeCreate,
+    RepoNodeUpdate,
     Tool,
     ToolCreate,
     ToolUpdate,
@@ -309,8 +312,25 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
 
 
 def create_node(db: Session, node_create: NodeCreate) -> Node:
-    db_op = Node(**Node.model_dump())
+    db_op = Node(**node_create.model_dump())
     db.add(db_op)
     db.commit()
     db.refresh(db_op)
     return db_op
+
+
+def create_repo_node(db: Session, repo_node_create: RepoNodeCreate) -> RepoNode:
+    db_op = RepoNode(**repo_node_create.model_dump())
+    db.add(db_op)
+    db.commit()
+    db.refresh(db_op)
+    return db_op
+
+
+def get_repo_node(db: Session, repo_node_id: UUID) -> RepoNode | None:
+    stmt = select(RepoNode).where(RepoNode.id == repo_node_id)
+    return db.scalars(stmt).first()
+
+
+def update_repo_node(db: Session, repo_node_id: UUID, repo_node_update: RepoNodeUpdate) -> RepoNode | None:
+    return update_generic(db, get_repo_node(db, repo_node_id), repo_node_update)

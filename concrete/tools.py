@@ -15,7 +15,8 @@ import requests
 from requests import Response
 
 from .clients import CLIClient, HTTPClient
-from .db.orm import SessionLocal, crud, models, schemas
+from .db import crud
+from .db.orm import SessionLocal, models
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -624,21 +625,24 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # 2 pass approach: Forward pass to chunk, backward pass to populate
         # Forward pass: Chunk the repo into nodes
         # Backward pass: Populate the nodes with summaries
-        to_summarize: list[schemas.RepoNodeUpdate] = []  # Stack of nodes to summarize. # noqa
-        to_chunk: list[schemas.RepoNodeCreate] = Queue()  # Queue of nodes to chunk.
+        to_summarize: list[models.RepoNodeUpdate] = []  # Stack of nodes to summarize. # noqa
+        to_chunk: list[models.RepoNodeCreate] = Queue()  # Queue of nodes to chunk.
 
         # Conceptually, root node is the repo itself.
         # Children nodes, shall be files and directories
         # Subsequent children nodes shall be files, directories, and arbitrary code chunks (as determined by the LLM?)
 
         # Init
-        root_node = schemas.NodeCreate(summary="placeholder", domain=f"repo/{org}/{repo}")
+        root_node = models.RepoNodeCreate(
+            org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
+        )
         to_chunk.put(root_node)
         db = SessionLocal()
-        crud.create_node(db=db, node=root_node)
+        crud.create_repo_node(db=db, repo_node_create=root_node)
 
         while to_chunk:
             children = KnowledgeGraphTool._chunk(to_chunk.get())
+            print(children)
             for child in children:
                 to_chunk.put(child)
 
@@ -655,53 +659,60 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         while nodes:
             node = nodes.pop()
             parent, children = node, node.children
-            graph.add_edges_from([(parent, child) for child in children])
+            graph.add_edges_from([(parent.name, child.name) for child in children])
         plt.figure(figsize=(10, 6))
         pos = nx.spring_layout(graph)
         nx.draw(graph, pos, with_labels=True, node_color='lightblue', node_size=3000, font_size=10, font_weight='bold')
 
         # Show the plot
         plt.axis('off')
-        plt.tight_layout()
         plt.show()
 
     @classmethod
-    def _chunk(cls, parent: schemas.RepoNodeCreate) -> list[schemas.RepoNodeCreate]:
+    def _chunk(cls, parent: models.RepoNodeCreate) -> list[models.RepoNodeCreate]:
         """
         Chunks a node into smaller nodes.
         Adds children nodes to database, and returns them for further chunking.
         michael: I hate recursive programming -> I'm going to do it with two functions.
         """
-        children: list[schemas.RepoNodeCreate] = []
-        if parent.type == 'directory':
-            contents = os.listdir(parent.path)
-            for content in contents:
-                if os.path.isfile(content) and content.endswith('.py'):  # TODO: more file types
-                    child = schemas.RepoNodeCreate(
+        print(parent)
+        children: list[models.RepoNodeCreate] = []
+        if parent.partition_type == 'directory':
+            files_and_directories = os.listdir(parent.abs_path)
+            for file_or_dir in files_and_directories:
+                child = None
+                path = os.path.join(parent.abs_path, file_or_dir)
+                print(f'Processing {path}')
+                if os.path.isfile(path) and path.endswith('.py'):  # TODO: more file types
+                    child = models.RepoNodeCreate(
                         org=parent.org,
                         repo=parent.repo,
-                        type='file',
-                        name=content,
-                        path=os.path.join(parent.path, content),
+                        partition_type='file',
+                        name=file_or_dir,
+                        summary='foo',
+                        abs_path=path,
+                        parent_id=parent.id,
                     )
-                    children.append(child)
-                elif os.path.isdir(content):  # probably unnecessary, but explicit /shrug
-                    child = schemas.RepoNodeCreate(
+                elif os.path.isdir(path):  # probably unnecessary, but explicit /shrug
+                    child = models.RepoNodeCreate(
                         org=parent.org,
                         repo=parent.repo,
-                        type='directory',
-                        name=content,
-                        path=os.path.join(parent.path, content),
+                        partition_type='directory',
+                        name=file_or_dir,
+                        summary='foo',
+                        abs_path=path,
                     )
+
+                if child:
                     children.append(child)
 
-        elif parent.type == 'file':
-            with open(parent.path, 'r') as f:
-                contents = f.read()
+        elif parent.partition_type == 'file':
+            # with open(parent.path, 'r') as f:
+            #     contents = f.read()
+            print(f"Reading file {parent.abs_path}")
             # TODO, use LLM or AST to chunk the file into smaller nodes.
 
         # Create all children nodes w/ parent link
         db = SessionLocal()
-        for child in children:
-            crud.create_node(db=db, node=child, parent_id=parent.id)
-        return children
+        print(children)
+        return [crud.create_repo_node(db=db, repo_node_create=child) for child in children]
