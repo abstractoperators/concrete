@@ -4,10 +4,11 @@ import inspect
 import os
 import socket
 import time
+from collections import defaultdict
 from datetime import datetime, timezone
 from queue import Queue
 from textwrap import dedent
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, cast
 from uuid import UUID
 
 import boto3
@@ -18,7 +19,7 @@ from requests import Response
 
 from .clients import CLIClient, HTTPClient
 from .db import crud
-from .db.orm import SessionLocal, models
+from .db.orm import Session, SessionLocal, models
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -618,9 +619,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def repo_to_knowledge(
-        cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None
-    ) -> models.RepoNode:
+    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
         """
         Converts a repository into a knowledge graph.
 
@@ -634,7 +633,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # Forward pass: Chunk the repo into nodes
         # Backward pass: Populate the nodes with summaries
         # to_summarize: list[UUID] = []  # Stack of nodes to summarize. # noqa
-        to_chunk = Queue()  # Queue of nodes to chunk.
+        to_chunk: Queue = Queue()  # Queue of nodes to chunk.
 
         # Conceptually, root node is the repo itself.
         # Children nodes, shall be files and directories
@@ -644,7 +643,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         root_node = models.RepoNodeCreate(
             org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
         )
-        db = SessionLocal()
+
+        db = cast(Session, SessionLocal())
         root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
         to_chunk.put(root_node_id)
         db.close()
@@ -664,28 +664,73 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 to_chunk.put(child)
             print("Remaining:", to_chunk.qsize())
 
-        root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
-        KnowledgeGraphTool._plot(root_node)
+        return root_node_id
 
     @classmethod
-    def _plot(cls, node: models.RepoNode) -> str:
+    def _plot(cls, root_node_id: UUID):
         """
         Plots a knowledge graph node into a graph. Useful for debugging & testing.
         """
 
-        graph = nx.Graph()
-        nodes = [node]
-        while nodes:
-            node = nodes.pop()
-            parent, children = node, node.children
-            graph.add_edges_from([(parent.name, child.name) for child in children])
-        plt.figure(figsize=(10, 6))
-        pos = nx.spring_layout(graph)
-        nx.draw(graph, pos, with_labels=True, node_color='lightblue', node_size=3000, font_size=10, font_weight='bold')
+        graph = nx.DiGraph()
+        nodes: Queue[UUID] = Queue()
+        nodes.put(root_node_id)
+        while not nodes.empty():
+            node_id = nodes.get()
+            db = cast(Session, SessionLocal())
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                continue
+            db.close()
 
-        # Show the plot
+            parent, children = node, node.children
+            graph.add_edges_from([(parent.abs_path, child.abs_path) for child in children])
+            for child in children:
+                nodes.put(child.id)
+
+        def custom_layout(G):
+            root = list(G.nodes)[0]  # Assuming the first node is the root
+            pos = {}
+            level_width = defaultdict(int)
+
+            def dfs(node, level, x):
+                nonlocal pos, level_width
+                pos[node] = (x, -level)
+                level_width[level] = max(level_width[level], x)
+                children = list(G.successors(node))
+                for i, child in enumerate(children):
+                    dfs(child, level + 1, x + i - (len(children) - 1) / 2)
+
+            dfs(root, 0, 0)
+            return pos
+
+        plt.figure(figsize=(40, 15), dpi=300)
+
+        pos = custom_layout(graph)
+
+        nx.draw(
+            graph,
+            pos,
+            with_labels=True,
+            node_color='lightblue',
+            node_size=3000,
+            font_size=10,
+            font_weight='bold',
+            edge_color='gray',
+            width=1,
+            alpha=0.7,
+            arrows=True,
+            arrowsize=20,
+            arrowstyle='->',
+            node_shape='o',
+        )  # Circular nodes
+
         plt.axis('off')
+
+        # Save the figure as a high-quality vector image
+        plt.savefig('knowledge_graph.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
+        plt.close()
 
     @classmethod
     def should_ignore(cls, name, ignore_patterns):
@@ -693,23 +738,46 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             if pattern.endswith('/'):
                 # Directory pattern
                 if fnmatch.fnmatch(name + '/', pattern) or fnmatch.fnmatch(name, pattern[:-1]):
+                    print(f'Ignoring {name} due to pattern {pattern}')
                     return True
             else:
                 # File pattern
                 if fnmatch.fnmatch(name, pattern):
+                    print(f'Ignoring {name} due to pattern {pattern}')
                     return True
 
         return False
 
     @classmethod
-    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[models.RepoNodeCreate]:
+    def _chunk_python(cls, parent_id: UUID) -> list[models.RepoNodeCreate]:
+        """
+        Chunks a python file into smaller nodes.
+        Adds children nodes to database, and returns them for further chunking.
+        """
+        db = cast(Session, SessionLocal())
+        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+        if parent is None:
+            return []
+        db.close()
+
+        children: list[models.RepoNodeCreate] = []
+        if parent.partition_type == 'file':
+            with open(parent.abs_path, 'r') as f:
+                contents = f.read()  # noqa
+
+        return children
+
+    @classmethod
+    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
         """
         Chunks a node into smaller nodes.
         Adds children nodes to database, and returns them for further chunking.
         michael: I hate recursive programming -> I'm going to do it with two functions.
         """
-        db = SessionLocal()
+        db = cast(Session, SessionLocal())
         parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+        if parent is None:
+            return []
         db.close()
         children: list[models.RepoNodeCreate] = []
         if parent.partition_type == 'directory':
@@ -721,7 +789,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 child = None
                 path = os.path.join(parent.abs_path, file_or_dir)
 
-                if os.path.isfile(path) and path.endswith('.py'):  # TODO: more file types
+                if os.path.isfile(path):  # TODO: more file types
                     child = models.RepoNodeCreate(
                         org=parent.org,
                         repo=parent.repo,
@@ -748,7 +816,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     children.append(child)
 
         elif parent.partition_type == 'file':
-            pass
+            if parent.abs_path.endswith('.py'):
+                children = cls._chunk_python(parent.id)
             # with open(parent.path, 'r') as f:
             #     contents = f.read()
             # TODO, use LLM or AST to chunk the file into smaller nodes.
@@ -760,4 +829,5 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             child_node = crud.create_repo_node(db=db, repo_node_create=child)
             db.close()
             res.append(child_node.id)
+
         return res
