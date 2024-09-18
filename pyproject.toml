@@ -31,6 +31,8 @@ bandit = "==1.7.9"
 pre-commit = "==3.7.1"
 mypy = "==1.11.2"
 starlette = "==0.37.2"  # for fasthtml
+networkx = "==3.3" # For plotting knowledge graph
+matplotlib = "==3.9.2"
 
 
 [tool.poetry.group.webapp.dependencies]

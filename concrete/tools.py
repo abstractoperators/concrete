@@ -9,6 +9,8 @@ from textwrap import dedent
 from typing import Dict, Optional, Union
 
 import boto3
+import matplotlib.pyplot as plt
+import networkx as nx
 import requests
 from requests import Response
 
@@ -633,6 +635,29 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             children = KnowledgeGraphTool._chunk(to_chunk.get())
             for child in children:
                 to_chunk.put(child)
+
+        KnowledgeGraphTool._plot(root_node)
+
+    @classmethod
+    def _plot(cls, node: models.RepoNode) -> str:
+        """
+        Plots a knowledge graph node into a graph. Useful for debugging & testing.
+        """
+
+        graph = nx.Graph()
+        nodes = [node]
+        while nodes:
+            node = nodes.pop()
+            parent, children = node, node.children
+            graph.add_edges_from([(parent, child) for child in children])
+        plt.figure(figsize=(10, 6))
+        pos = nx.spring_layout(graph)
+        nx.draw(graph, pos, with_labels=True, node_color='lightblue', node_size=3000, font_size=10, font_weight='bold')
+
+        # Show the plot
+        plt.axis('off')
+        plt.tight_layout()
+        plt.show()
 
     @classmethod
     def _chunk(cls, parent: schemas.RepoNodeCreate) -> list[schemas.RepoNodeCreate]:
