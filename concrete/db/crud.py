@@ -12,6 +12,8 @@ from .orm.models import (
     Message,
     MessageCreate,
     MessageUpdate,
+    Node,
+    NodeCreate,
     Operator,
     OperatorCreate,
     OperatorUpdate,
@@ -306,8 +308,8 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
     )
 
 
-def create_node(db: Session, node: schemas.NodeCreate) -> models.Operator:
-    db_op = models.Node(**node.model_dump())
+def create_node(db: Session, node_create: NodeCreate) -> Node:
+    db_op = Node(**Node.model_dump())
     db.add(db_op)
     db.commit()
     db.refresh(db_op)

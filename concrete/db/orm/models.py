@@ -237,25 +237,26 @@ class Node(NodeBase, MetadataMixin, table=True):
     )
 
 
+class RepoNode(NodeBase):
+    org: str = Field(description="Organization to which the repo belongs.")
+    repo: str = Field(description="Repository name.")
+    type: str = Field(description="Type of the node. directory/file/chunk")
+    name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")  # idk yet
+    summary: str = Field(description="Summary of the node.")
+
+
+class RepoNodeUpdate(NodeUpdate):
+    org: str | None = Field(description="Organization to which the repo belongs.")
+    repo: str | None = Field(description="Repository name.")
+    type: str | None = Field(description="Type of the node. directory/file/chunk")
+    name: str | None = Field(description="Name of the chunk. eg README.md, module.py/func_foo")  # idk yet
+    summary: str | None = Field(description="Summary of the node.")
+
+
+class RepoNodeCreate(RepoNode):
+    pass
+
+
 # TODO create user model for owner
 
 SQLModel.metadata.create_all(bind=engine)
-
-
-# class Node(Base):
-#     parent_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("node.id"), nullable=True)
-#     children: Mapped[List["Node"]] = relationship(
-#         "Node", back_populates="parent", cascade="all, delete-orphan", primaryjoin="Node.id == foreign(Node.parent_id)"
-#     )
-
-#     parent: Mapped["Node | None"] = relationship(
-#         "Node", back_populates="children", primaryjoin="foreign(Node.parent_id) == remote(Node.id)"
-#     )
-
-
-# class RepoNode(Node):
-#     org: Mapped[str] = mapped_column(String(50))
-#     repo: Mapped[str] = mapped_column(String(50))
-#     type: Mapped[str] = mapped_column(String(50))  # directory/file/chunk?
-#     name: Mapped[str] = mapped_column(String(50))
-#     summary: Mapped[str] = mapped_column(String)
