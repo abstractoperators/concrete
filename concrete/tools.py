@@ -1,4 +1,5 @@
 import base64
+import fnmatch
 import inspect
 import os
 import socket
@@ -7,6 +8,7 @@ from datetime import datetime, timezone
 from queue import Queue
 from textwrap import dedent
 from typing import Dict, Optional, Union
+from uuid import UUID
 
 import boto3
 import matplotlib.pyplot as plt
@@ -43,7 +45,11 @@ class MetaTool(type):
                 for param_name, param in signature.parameters.items():
                     param_str = param_name
                     if param.annotation != inspect.Parameter.empty:
-                        param_str += f": {param.annotation.__name__}"
+                        if hasattr(param.annotation, '__name__'):
+                            param_str += f": {param.annotation.__name__}"
+                        else:
+                            # Handle Union types
+                            param_str += f": {str(param.annotation)}"
                     if param.default != inspect.Parameter.empty:
                         param_str += f" = {param.default}"
                     params.append(param_str)
@@ -612,7 +618,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str) -> models.RepoNode:
+    def repo_to_knowledge(
+        cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None
+    ) -> models.RepoNode:
         """
         Converts a repository into a knowledge graph.
 
@@ -625,8 +633,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # 2 pass approach: Forward pass to chunk, backward pass to populate
         # Forward pass: Chunk the repo into nodes
         # Backward pass: Populate the nodes with summaries
-        to_summarize: list[models.RepoNodeUpdate] = []  # Stack of nodes to summarize. # noqa
-        to_chunk: list[models.RepoNodeCreate] = Queue()  # Queue of nodes to chunk.
+        # to_summarize: list[UUID] = []  # Stack of nodes to summarize. # noqa
+        to_chunk = Queue()  # Queue of nodes to chunk.
 
         # Conceptually, root node is the repo itself.
         # Children nodes, shall be files and directories
@@ -636,16 +644,27 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         root_node = models.RepoNodeCreate(
             org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
         )
-        to_chunk.put(root_node)
         db = SessionLocal()
-        crud.create_repo_node(db=db, repo_node_create=root_node)
+        root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
+        to_chunk.put(root_node_id)
+        db.close()
 
-        while to_chunk:
-            children = KnowledgeGraphTool._chunk(to_chunk.get())
-            print(children)
+        # Get paths to ignore through .gitignore
+        if rel_gitignore_path:
+            with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
+                ignore_paths = f.readlines()
+                ignore_paths = [path.strip() for path in ignore_paths if path.strip() and not path.startswith('#')]
+                ignore_paths.append('.git')
+        else:
+            ignore_paths = ['.git', '.venv']
+
+        while len(to_chunk.queue) > 0:
+            children = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
             for child in children:
                 to_chunk.put(child)
+            print("Remaining:", to_chunk.qsize())
 
+        root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
         KnowledgeGraphTool._plot(root_node)
 
     @classmethod
@@ -669,20 +688,39 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         plt.show()
 
     @classmethod
-    def _chunk(cls, parent: models.RepoNodeCreate) -> list[models.RepoNodeCreate]:
+    def should_ignore(cls, name, ignore_patterns):
+        for pattern in ignore_patterns:
+            if pattern.endswith('/'):
+                # Directory pattern
+                if fnmatch.fnmatch(name + '/', pattern) or fnmatch.fnmatch(name, pattern[:-1]):
+                    return True
+            else:
+                # File pattern
+                if fnmatch.fnmatch(name, pattern):
+                    return True
+
+        return False
+
+    @classmethod
+    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[models.RepoNodeCreate]:
         """
         Chunks a node into smaller nodes.
         Adds children nodes to database, and returns them for further chunking.
         michael: I hate recursive programming -> I'm going to do it with two functions.
         """
-        print(parent)
+        db = SessionLocal()
+        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+        db.close()
         children: list[models.RepoNodeCreate] = []
         if parent.partition_type == 'directory':
             files_and_directories = os.listdir(parent.abs_path)
+            files_and_directories = [
+                f for f in files_and_directories if not KnowledgeGraphTool.should_ignore(f, ignore_paths)
+            ]
             for file_or_dir in files_and_directories:
                 child = None
                 path = os.path.join(parent.abs_path, file_or_dir)
-                print(f'Processing {path}')
+
                 if os.path.isfile(path) and path.endswith('.py'):  # TODO: more file types
                     child = models.RepoNodeCreate(
                         org=parent.org,
@@ -693,6 +731,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                         abs_path=path,
                         parent_id=parent.id,
                     )
+                    print(f'Processing python file {path}')
                 elif os.path.isdir(path):  # probably unnecessary, but explicit /shrug
                     child = models.RepoNodeCreate(
                         org=parent.org,
@@ -701,18 +740,24 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                         name=file_or_dir,
                         summary='foo',
                         abs_path=path,
+                        parent_id=parent.id,
                     )
+                    print(f'Processing directory {path}')
 
-                if child:
+                if child is not None:
                     children.append(child)
 
         elif parent.partition_type == 'file':
+            pass
             # with open(parent.path, 'r') as f:
             #     contents = f.read()
-            print(f"Reading file {parent.abs_path}")
             # TODO, use LLM or AST to chunk the file into smaller nodes.
 
         # Create all children nodes w/ parent link
-        db = SessionLocal()
-        print(children)
-        return [crud.create_repo_node(db=db, repo_node_create=child) for child in children]
+        res = []
+        for child in children:
+            db = SessionLocal()
+            child_node = crud.create_repo_node(db=db, repo_node_create=child)
+            db.close()
+            res.append(child_node.id)
+        return res

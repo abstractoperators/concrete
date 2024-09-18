@@ -3,6 +3,7 @@ import os
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import create_engine
 
+# TODO Remove; in-memory is worse because it's harder to examine.
 if os.path.exists("sql_app.db"):
     os.remove("sql_app.db")
 SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL", "sqlite:///sql_app.db")
