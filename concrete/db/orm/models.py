@@ -199,7 +199,6 @@ class NodeBase(Base):
     Base model for a Node.
     """
 
-    summary: str = Field(description="Summary of the node.", max_length=50)
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
@@ -209,11 +208,6 @@ class NodeBase(Base):
 
 
 class NodeUpdate(Base):
-    summary: str | None = Field(
-        default=None,
-        description="Summary of the node.",
-        max_length=50,
-    )
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
@@ -237,7 +231,7 @@ class Node(NodeBase, MetadataMixin, table=True):
     )
 
 
-class RepoNode(NodeBase):
+class RepoNodeBase(NodeBase):
     org: str = Field(description="Organization to which the repo belongs.")
     repo: str = Field(description="Repository name.")
     type: str = Field(description="Type of the node. directory/file/chunk")
@@ -245,7 +239,7 @@ class RepoNode(NodeBase):
     summary: str = Field(description="Summary of the node.")
 
 
-class RepoNodeUpdate(NodeUpdate):
+class RepoNodeUpdate(RepoNodeBase):
     org: str | None = Field(description="Organization to which the repo belongs.")
     repo: str | None = Field(description="Repository name.")
     type: str | None = Field(description="Type of the node. directory/file/chunk")
@@ -253,10 +247,12 @@ class RepoNodeUpdate(NodeUpdate):
     summary: str | None = Field(description="Summary of the node.")
 
 
-class RepoNodeCreate(RepoNode):
+class RepoNodeCreate(RepoNodeBase):
     pass
 
 
-# TODO create user model for owner
+class RepoNode(RepoNodeBase, MetadataMixin, table=True):
+    pass
+
 
 SQLModel.metadata.create_all(bind=engine)
