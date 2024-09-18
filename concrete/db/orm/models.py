@@ -202,9 +202,6 @@ class NodeBase(Base):
     summary: str = Field(description="Summary of the node.", max_length=50)
     # TODO: Better solution for domain. ATM, it's going to look like repo/abop/concrete/[file_path]/[chunk].
     # This solution is slow and not scalable.
-    domain: str = Field(
-        description="Association of the node.", max_length=50
-    )  # Refers to what the node is summarizing, like a file/dir/function
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
@@ -217,11 +214,6 @@ class NodeUpdate(Base):
     summary: str | None = Field(
         default=None,
         description="Summary of the node.",
-        max_length=50,
-    )
-    domain: str | None = Field(
-        default=None,
-        description="Domain knowledge association of the node.",
         max_length=50,
     )
     parent_id: UUID | None = Field(
@@ -252,20 +244,20 @@ class Node(NodeBase, MetadataMixin, table=True):
 SQLModel.metadata.create_all(bind=engine)
 
 
-class Node(Base):
-    parent_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("node.id"), nullable=True)
-    children: Mapped[List["Node"]] = relationship(
-        "Node", back_populates="parent", cascade="all, delete-orphan", primaryjoin="Node.id == foreign(Node.parent_id)"
-    )
+# class Node(Base):
+#     parent_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("node.id"), nullable=True)
+#     children: Mapped[List["Node"]] = relationship(
+#         "Node", back_populates="parent", cascade="all, delete-orphan", primaryjoin="Node.id == foreign(Node.parent_id)"
+#     )
 
-    parent: Mapped["Node | None"] = relationship(
-        "Node", back_populates="children", primaryjoin="foreign(Node.parent_id) == remote(Node.id)"
-    )
+#     parent: Mapped["Node | None"] = relationship(
+#         "Node", back_populates="children", primaryjoin="foreign(Node.parent_id) == remote(Node.id)"
+#     )
 
 
-class RepoNode(Node):
-    org: Mapped[str] = mapped_column(String(50))
-    repo: Mapped[str] = mapped_column(String(50))
-    type: Mapped[str] = mapped_column(String(50))  # directory/file/chunk?
-    name: Mapped[str] = mapped_column(String(50))
-    summary: Mapped[str] = mapped_column(String)
+# class RepoNode(Node):
+#     org: Mapped[str] = mapped_column(String(50))
+#     repo: Mapped[str] = mapped_column(String(50))
+#     type: Mapped[str] = mapped_column(String(50))  # directory/file/chunk?
+#     name: Mapped[str] = mapped_column(String(50))
+#     summary: Mapped[str] = mapped_column(String)
