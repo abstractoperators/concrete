@@ -237,19 +237,23 @@ class Node(NodeBase, MetadataMixin, table=True):
 # https://docs.sqlalchemy.org/en/20/orm/self_referential.html
 # https://docs.sqlalchemy.org/en/20/_modules/examples/adjacency_list/adjacency_list.html
 
+# Inheritance might be bad
+# https://sqlmodel.tiangolo.com/tutorial/fastapi/multiple-models/#docs-ui-with-hero-responses
+# https://sqlmodel.tiangolo.com/tutorial/fastapi/relationships/#models-with-relationships
 
-class RepoNodeBase(Base):
+
+class RepoNodeBase(NodeBase):
     org: str = Field(description="Organization to which the repo belongs.", index=True)
     repo: str = Field(description="Repository name.", index=True)
     partition_type: str = Field(description="Type of the node. directory/file/chunk")
     name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")
     summary: str = Field(description="Summary of the node.")
-    parent_id: UUID | None = Field(
-        default=None,
-        description="ID of the parent node.",
-        foreign_key="reponode.id",
-        ondelete="CASCADE",
-    )
+    # parent_id: UUID | None = Field(
+    #     default=None,
+    #     description="ID of the parent node.",
+    #     foreign_key="reponode.id",
+    #     ondelete="CASCADE",
+    # )
     abs_path: str = Field(description="")
 
 

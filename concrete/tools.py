@@ -3,6 +3,7 @@ import fnmatch
 import inspect
 import os
 import socket
+import textwrap
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -15,11 +16,13 @@ import boto3
 import matplotlib.pyplot as plt
 import networkx as nx
 import requests
+from networkx.drawing.nx_agraph import graphviz_layout, write_dot
 from requests import Response
+from sqlalchemy.orm import Session
 
 from .clients import CLIClient, HTTPClient
 from .db import crud
-from .db.orm import Session, SessionLocal, models
+from .db.orm import SessionLocal, models
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -649,12 +652,12 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         to_chunk.put(root_node_id)
         db.close()
 
-        # Get paths to ignore through .gitignore
         if rel_gitignore_path:
             with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
                 ignore_paths = f.readlines()
                 ignore_paths = [path.strip() for path in ignore_paths if path.strip() and not path.startswith('#')]
                 ignore_paths.append('.git')
+                ignore_paths.append('.github')
         else:
             ignore_paths = ['.git', '.venv']
 
@@ -669,71 +672,61 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     @classmethod
     def _plot(cls, root_node_id: UUID):
         """
-        Plots a knowledge graph node into a graph. Useful for debugging & testing.
+        Plots a knowledge graph node into a graph using Graphviz's 'dot' layout.
+        Useful for debugging & testing.
         """
 
-        graph = nx.DiGraph()
+        G = nx.DiGraph()
+
         nodes: Queue[UUID] = Queue()
         nodes.put(root_node_id)
+
         while not nodes.empty():
             node_id = nodes.get()
             db = cast(Session, SessionLocal())
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
                 continue
+            parent, children = node, node.children
             db.close()
 
-            parent, children = node, node.children
-            graph.add_edges_from([(parent.abs_path, child.abs_path) for child in children])
+            G.add_node(parent.abs_path)
             for child in children:
+                G.add_node(child.abs_path)
+                G.add_edge(parent.abs_path, child.abs_path)
                 nodes.put(child.id)
 
-        def custom_layout(G):
-            root = list(G.nodes)[0]  # Assuming the first node is the root
-            pos = {}
-            level_width = defaultdict(int)
-
-            def dfs(node, level, x):
-                nonlocal pos, level_width
-                pos[node] = (x, -level)
-                level_width[level] = max(level_width[level], x)
-                children = list(G.successors(node))
-                for i, child in enumerate(children):
-                    dfs(child, level + 1, x + i - (len(children) - 1) / 2)
-
-            dfs(root, 0, 0)
-            return pos
-
         plt.figure(figsize=(40, 15), dpi=300)
+        pos = graphviz_layout(G, prog='twopi', args='-Goverlap="prism",-Granksep="2.0"')
 
-        pos = custom_layout(graph)
+        def wrap_label(label, width=10):
+            return '\n'.join(textwrap.wrap(label, width=width))
+
+        wrapped_labels = {node: wrap_label(node, width=10) for node in G.nodes()}
 
         nx.draw(
-            graph,
+            G,
             pos,
             with_labels=True,
+            labels=wrapped_labels,
             node_color='lightblue',
-            node_size=3000,
-            font_size=10,
-            font_weight='bold',
-            edge_color='gray',
+            node_size=4000,
+            font_size=8,
             width=1,
-            alpha=0.7,
+            alpha=0.8,
             arrows=True,
             arrowsize=20,
             arrowstyle='->',
-            node_shape='o',
-        )  # Circular nodes
+            node_shape='s',
+        )
 
         plt.axis('off')
-
-        # Save the figure as a high-quality vector image
-        plt.savefig('knowledge_graph.png', format='png', dpi=300, bbox_inches='tight')
+        plt.savefig('knowledge_graph.png', format='png', dpi=300)
         plt.show()
         plt.close()
 
     @classmethod
-    def should_ignore(cls, name, ignore_patterns):
+    def _should_ignore(cls, name, ignore_patterns):
         for pattern in ignore_patterns:
             if pattern.endswith('/'):
                 # Directory pattern
@@ -747,6 +740,30 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     return True
 
         return False
+
+    @classmethod
+    def _update(cls, node_id: UUID) -> None:
+        """
+        Propagates summary of node up the tree. Does not update the node itself.
+
+        Args:
+            node_id (UUID): The ID of the node to update.
+        """
+        # 1) Update the node
+        # 2) Recursively update the parent node.
+        # Notes: How do I summarize a node?
+        # If there are no children and it's a file, summarize the file
+        # If there are no children and it's a directory, summary = directory name
+        # If there are children and it's a file: Children must be some kind of code chunk. Summary should be summary of the file + overview of each child node. # noqa
+        # IF there are children and it's a directory: Children are files and directories. Summary should be summary of the directory + overview of each child node. # noqa
+
+        db = cast(Session, SessionLocal())
+        node = crud.get_repo_node(db=db, repo_node_id=node_id)
+        db.close()
+        if node is None:
+            return
+        node.parent_id = None
+        print(node.parent_id)
 
     @classmethod
     def _chunk_python(cls, parent_id: UUID) -> list[models.RepoNodeCreate]:
@@ -783,7 +800,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         if parent.partition_type == 'directory':
             files_and_directories = os.listdir(parent.abs_path)
             files_and_directories = [
-                f for f in files_and_directories if not KnowledgeGraphTool.should_ignore(f, ignore_paths)
+                f for f in files_and_directories if not KnowledgeGraphTool._should_ignore(f, ignore_paths)
             ]
             for file_or_dir in files_and_directories:
                 child = None
