@@ -16,7 +16,7 @@ import boto3
 import matplotlib.pyplot as plt
 import networkx as nx
 import requests
-from networkx.drawing.nx_agraph import graphviz_layout, write_dot
+from networkx.drawing.nx_agraph import graphviz_layout
 from requests import Response
 from sqlalchemy.orm import Session
 
@@ -697,7 +697,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 nodes.put(child.id)
 
         plt.figure(figsize=(40, 15), dpi=300)
-        pos = graphviz_layout(G, prog='twopi', args='-Goverlap="prism",-Granksep="2.0"')
+        # pos = graphviz_layout(G, prog='twopi', args='-Goverlap="prism",-Granksep="2.0"')
+        pos = graphviz_layout(G, prog='dot', args='-Granksep="1",-Gnodesep="3"')
 
         def wrap_label(label, width=10):
             return '\n'.join(textwrap.wrap(label, width=width))
