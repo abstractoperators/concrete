@@ -677,7 +677,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             node_id = stack.pop()
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is not None:
-                if not node.children:
+                if not node.children and node.abs_path.endswith('.py'):
                     leaf_node_ids.append(node.id)
                 else:
                     stack.extend([child.id for child in node.children])
@@ -809,9 +809,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Summarizes contents of a file
         """
-        with open(path, 'r') as f:
-            contents = f.read()
         from concrete.operators import Executive
+
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            contents = f.read()
 
         clients = {
             "openai": OpenAIClient(),
@@ -820,9 +821,58 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         return exec.chat(
             f"""Summarize the following file. Be concise, and capture the main functionalities of the file.
 Return the summary in one paragraph.
+Your summary should follow the format:
+<file name> Summary: <overall summary of the file>
 
+Children Summaries:
+    N/A
+
+Following is the file contents and its name
+File Name: {os.path.basename(path)}
 File Contents: {contents}"""
         ).text
+
+    @classmethod
+    def _summarize_directory(cls, path: str) -> str:
+        """
+        Summarizes contents of a directory. Prerequisite on child nodes being summarized already.
+        """
+        db = cast(Session, SessionLocal())
+        children = crud.get_repo_nodes_by_parent(db=db, parent_path=path)
+        children_summaries = "\n\n".join([child.summary for child in children if child.summary])
+        db.close()
+
+        from concrete.operators import Executive
+
+        exec = Executive({"openai": OpenAIClient()})
+        return exec.chat(
+            f"""Summarize the following directory. Be concise, and capture the main functionalities of the directory.
+Your returned summary should follow the format:
+<directory name> Summary: <overall summary of the directory>
+Children Summaries:
+    - Child Name: <child Name>
+      Child Summary: <child summary>
+    - Child Name: <child Name>
+      Child Summary: <child summary>
+
+Here are the children summaries. Children can be either files or directories. They have a similar summary format.
+{children_summaries}""")
+
+    @classmethod
+    def _summarize(clas, parent_id: UUID) -> str:
+        """
+        Summarizes a node.
+        If the node is a directory, it summarizes its children.
+        If the node is a file, it summarizes its contents.
+        """
+        db = cast(Session, SessionLocal())
+        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+        if parent is None:
+            return ''
+        if parent.partition_type == 'directory':
+            return KnowledgeGraphTool._summarize_directory(parent.abs_path)
+        elif parent.partition_type == 'file':
+            return KnowledgeGraphTool._summarize_file(parent.abs_path)
 
     @classmethod
     def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
