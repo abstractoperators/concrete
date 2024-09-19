@@ -682,7 +682,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         while node_ids:
             for node_id in node_ids.pop():
-                KnowledgeGraphTool._summarize(node_id)
+                summary = KnowledgeGraphTool._summarize(node_id)
+                node_update = models.RepoNodeUpdate(summary=summary)
+                crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
+        db.close()
 
     @classmethod
     def _plot(cls, root_node_id: UUID):
@@ -792,18 +795,22 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
         if parent is None:
             return ''
+        parent_summary = parent.summary
+        child_summary = child.summary
+        child_abs_path = child.abs_path
+        db.close()
 
         from concrete.operators import Executive
 
         clients = {'openai': OpenAIClient()}
         exec = Executive(clients)
-        exec.chat(
+        return exec.chat(
             f"""Given the following parent summary structure:
-Parent Summary: <{parent.summary}>
+Parent Summary: <{parent_summary}>
 
 Your task is to update this summary with the new child summary:
-Child Name: <{child.abs_path}>
-Child Summary: <{child.summary}>
+Child Name: <{child_abs_path}>
+Child Summary: <{child_summary}>
 
 Follow these steps:
 1. If the parent summary is empty, initialize it with the child summary.
@@ -827,7 +834,7 @@ Guidelines:
 - Each child summary should accurately represent its corresponding node.
 
 Your response should be the updated parent summary in the specified format."""
-        )
+        ).text
 
     @classmethod
     def _summarize_leaf(cls, leaf_node_id: UUID) -> str:
@@ -840,6 +847,7 @@ Your response should be the updated parent summary in the specified format."""
         leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
         if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == 'file':
             path = leaf_node.abs_path
+        db.close()
 
         from concrete.operators import Executive
 
@@ -902,7 +910,7 @@ Children Summaries:
 
 Here are the children summaries. Children can be either files or directories. They have a similar summary format.
 {children_summaries}"""
-        )
+        ).text
 
     @classmethod
     def _summarize(clas, node_id: UUID) -> str:
