@@ -651,6 +651,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 ignore_paths = [path.strip() for path in ignore_paths if path.strip() and not path.startswith('#')]
                 ignore_paths.append('.git')
                 ignore_paths.append('.github')
+                ignore_paths.append('poetry.lock')
         else:
             ignore_paths = ['.git', '.venv']
 
@@ -660,28 +661,39 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 to_chunk.put(child)
             print("Remaining:", to_chunk.qsize())
 
-        # Populate the knowledge graph with summaries
-        # Call _update on all leaf nodes
+        KnowledgeGraphTool._populate_summaries(root_node_id)
+
+        return root_node_id
+
+    @classmethod
+    def _populate_summaries(cls, root_node_id: UUID):
+        """
+        Summarizes all leaf nodes, and propagates them up the tree.
+        """
         leaf_node_ids = []
+        stack = [root_node_id]
         db = cast(Session, SessionLocal())
-        root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
-        if root_node is not None:
-            for child in root_node.children:
-                if not child.children:
-                    leaf_node_ids.append(child.id)
+        while stack:
+            node_id = stack.pop()
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is not None:
+                if not node.children:
+                    leaf_node_ids.append(node.id)
+                else:
+                    stack.extend([child.id for child in node.children])
 
         for leaf_node_id in leaf_node_ids:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
-            if leaf_node is not None and leaf_node.partition_type == 'file':
+            if leaf_node is not None and leaf_node.summary == '' and leaf_node.partition_type == 'file':
                 child_summary = KnowledgeGraphTool._summarize_file(
                     crud.get_repo_node(db=db, repo_node_id=leaf_node_id).abs_path
                 )  # Summarize the file # noqa
                 child_update = models.RepoNodeUpdate(summary=child_summary)
+                print(f'Updating and propagating leaf node {leaf_node.abs_path} with summary')
                 crud.update_repo_node(
                     db=db, repo_node_id=leaf_node_id, repo_node_update=child_update
                 )  # Update the node with its summary # noqa
                 KnowledgeGraphTool._propagate_summaries(leaf_node_id)  # Propagate the summary up the tree
-        return root_node_id
 
     @classmethod
     def _plot(cls, root_node_id: UUID):
@@ -745,13 +757,13 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         for pattern in ignore_patterns:
             if pattern.endswith('/'):
                 # Directory pattern
-                if fnmatch.fnmatch(name + '/', pattern) or fnmatch.fnmatch(name, pattern[:-1]):
-                    print(f'Ignoring {name} due to pattern {pattern}')
+                if fnmatch.fnmatch(name + '/', pattern):
+                    print(f'Ignoring directory {name} due to pattern {pattern}')
                     return True
             else:
                 # File pattern
                 if fnmatch.fnmatch(name, pattern):
-                    print(f'Ignoring {name} due to pattern {pattern}')
+                    print(f'Ignoring file {name} due to pattern {pattern}')
                     return True
 
         return False
@@ -840,7 +852,7 @@ File Contents: {contents}"""
                     repo=parent.repo,
                     partition_type=partition_type,
                     name=file_or_dir,
-                    summary='foo',
+                    summary='',
                     abs_path=path,
                     parent_id=parent.id,
                 )
