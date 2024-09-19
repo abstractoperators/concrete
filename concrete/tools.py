@@ -624,7 +624,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     @classmethod
     def repo_to_knowledge(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
         """
-        Converts a repository into a knowledge graph.
+        Converts a repository into an unpopulated knowledge graph.
 
         args
             org (str): Organization or account owning the repo
@@ -632,17 +632,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns
             Node: The root node of the knowledge graph
         """
-        # 2 pass approach: Forward pass to chunk, backward pass to populate
-        # Forward pass: Chunk the repo into nodes
-        # Backward pass: Populate the nodes with summaries
-        # to_summarize: list[UUID] = []  # Stack of nodes to summarize. # noqa
-        to_chunk: Queue = Queue()  # Queue of nodes to chunk.
+        to_chunk: Queue[UUID] = Queue()
 
-        # Conceptually, root node is the repo itself.
-        # Children nodes, shall be files and directories
-        # Subsequent children nodes shall be files, directories, and arbitrary code chunks (as determined by the LLM?)
-
-        # Init
         root_node = models.RepoNodeCreate(
             org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
         )
@@ -743,7 +734,13 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _update(cls, node_id: UUID) -> None:
+    def _update_llm(cls, parent_summary: str, child_summary: str):
+        """
+        Returns the updated parent summary after adding/replacing the child summary.
+        """
+
+    @classmethod
+    def _update(cls, node_id: UUID | None) -> None:
         """
         Propagates summary of node up the tree. Does not update the node itself.
 
@@ -757,14 +754,23 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         # If there are no children and it's a directory, summary = directory name
         # If there are children and it's a file: Children must be some kind of code chunk. Summary should be summary of the file + overview of each child node. # noqa
         # IF there are children and it's a directory: Children are files and directories. Summary should be summary of the directory + overview of each child node. # noqa
+        if node_id is None:
+            return None
 
         db = cast(Session, SessionLocal())
         node = crud.get_repo_node(db=db, repo_node_id=node_id)
+        if node is not None:
+            parent_id = node.parent_id
+            if parent_id is not None:
+                child_summary = node.summary
+                parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+                if parent is not None:
+                    parent.summary += child_summary
+                    crud.update_repo_node(db=db, repo_node=parent)
+                    cls._update(parent_id)
+            pass
+
         db.close()
-        if node is None:
-            return
-        node.parent_id = None
-        print(node.parent_id)
 
     @classmethod
     def _chunk_python(cls, parent_id: UUID) -> list[models.RepoNodeCreate]:
