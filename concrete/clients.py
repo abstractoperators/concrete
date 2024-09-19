@@ -8,11 +8,11 @@ from openai import OpenAI, RateLimitError
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel as PydanticModel
 from requests.adapters import HTTPAdapter, Retry
-from tenacity import (
+from tenacity import (  # for exponential backoff
     retry,
     retry_if_exception_type,
     stop_after_attempt,
-    wait_incrementing,
+    wait_random_exponential,
 )
 
 from .models.messages import Message, TextMessage
@@ -37,8 +37,8 @@ class OpenAIClient(Client):
         self.model = model or "gpt-4o-mini"
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_incrementing(start=datetime.timedelta(seconds=120), increment=datetime.timedelta(seconds=60)),
+        wait=wait_random_exponential(min=1, max=60),
+        stop=stop_after_attempt(6),
         retry=retry_if_exception_type(RateLimitError),
         reraise=True,
     )

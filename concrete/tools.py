@@ -646,15 +646,12 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         to_chunk.put(root_node_id)
         db.close()
 
+        ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
         if rel_gitignore_path:
             with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
-                ignore_paths = f.readlines()
-                ignore_paths = [path.strip() for path in ignore_paths if path.strip() and not path.startswith('#')]
-                ignore_paths.append('.git')
-                ignore_paths.append('.github')
-                ignore_paths.append('poetry.lock')
-        else:
-            ignore_paths = ['.git', '.venv']
+                gitignore = f.readlines()
+                gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
+                ignore_paths.extend(gitignore)
 
         while len(to_chunk.queue) > 0:
             children = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)

@@ -3228,25 +3228,6 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
-name = "pydot"
-version = "3.0.1"
-description = "Python interface to Graphviz's Dot"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "pydot-3.0.1-py3-none-any.whl", hash = "sha256:43f1e878dc1ff7c1c2e3470a6999d4e9e97771c5c862440c2f0af0ba844c231f"},
-    {file = "pydot-3.0.1.tar.gz", hash = "sha256:e18cf7f287c497d77b536a3d20a46284568fea390776dface6eabbdf1b1b5efc"},
-]
-
-[package.dependencies]
-pyparsing = ">=3.0.9"
-
-[package.extras]
-dev = ["chardet", "parameterized", "ruff"]
-release = ["zest.releaser[recommended]"]
-tests = ["chardet", "parameterized", "ruff", "tox", "unittest-parallel"]
-
-[[package]]
 name = "pyflakes"
 version = "3.2.0"
 description = "passive checker of Python programs"
@@ -4816,4 +4797,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "==3.11.9"
-content-hash = "8678b64db6a6f3bad00150d997a8c205c5aa7b7ed7a944029fd06285de0a3741"
+content-hash = "767c15c7b77385e571cc579939071fc63add5f0e739b5541ff3290f6dd361794"

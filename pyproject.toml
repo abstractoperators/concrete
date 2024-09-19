@@ -17,12 +17,17 @@ celery = "==5.4.0"
 sqlalchemy = "==2.0.34"
 alembic = "==1.13.2"
 sqlmodel = "==0.0.22"
-chardet = "^5.2.0"
-tenacity = "^9.0.0"
+tenacity = "==9.0.0"
 
 
 [tool.poetry.group.tooluse.dependencies]
 boto3 = "==1.35.3"
+chardet = "==5.2.0"
+# Plotting knowledge graph
+graphviz = "==0.20.3"
+pygraphviz = "==1.13"
+matplotlib = "==3.9.2"
+networkx = "==3.3" # For plotting knowledge graph
 
 
 [tool.poetry.group.dev.dependencies]
@@ -34,11 +39,6 @@ bandit = "==1.7.9"
 pre-commit = "==3.7.1"
 mypy = "==1.11.2"
 starlette = "==0.37.2"  # for fasthtml
-networkx = "==3.3" # For plotting knowledge graph
-matplotlib = "==3.9.2"
-pydot = "^3.0.1"
-graphviz = "^0.20.3"
-pygraphviz = "^1.13"
 
 
 [tool.poetry.group.webapp.dependencies]
