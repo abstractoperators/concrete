@@ -12,6 +12,7 @@ from typing import Dict, Optional, Union, cast
 from uuid import UUID
 
 import boto3
+import chardet
 import matplotlib.pyplot as plt
 import networkx as nx
 import requests
@@ -661,39 +662,30 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 to_chunk.put(child)
             print("Remaining:", to_chunk.qsize())
 
-        KnowledgeGraphTool._populate_summaries(root_node_id)
+        KnowledgeGraphTool._summarize_from_leaves(root_node_id)
 
         return root_node_id
 
     @classmethod
-    def _populate_summaries(cls, root_node_id: UUID):
+    def _summarize_from_leaves(cls, root_node_id: UUID):
         """
         Summarizes all leaf nodes, and propagates them up the tree.
         """
-        leaf_node_ids = []
-        stack = [root_node_id]
+        node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
         db = cast(Session, SessionLocal())
-        while stack:
-            node_id = stack.pop()
-            node = crud.get_repo_node(db=db, repo_node_id=node_id)
-            if node is not None:
-                if not node.children and node.abs_path.endswith('.py'):
-                    leaf_node_ids.append(node.id)
-                else:
-                    stack.extend([child.id for child in node.children])
+        while node_ids[-1] != []:
+            to_append = []
+            for node_id in node_ids[-1]:
+                node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                children = node.children
+                children_ids = [child.id for child in children]
+                to_append.extend(children_ids)
+            node_ids.append(to_append)
+        node_ids.pop()  # Remove the empty list at the end
 
-        for leaf_node_id in leaf_node_ids:
-            leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
-            if leaf_node is not None and leaf_node.summary == '' and leaf_node.partition_type == 'file':
-                child_summary = KnowledgeGraphTool._summarize_file(
-                    crud.get_repo_node(db=db, repo_node_id=leaf_node_id).abs_path
-                )  # Summarize the file # noqa
-                child_update = models.RepoNodeUpdate(summary=child_summary)
-                print(f'Updating and propagating leaf node {leaf_node.abs_path} with summary')
-                crud.update_repo_node(
-                    db=db, repo_node_id=leaf_node_id, repo_node_update=child_update
-                )  # Update the node with its summary # noqa
-                KnowledgeGraphTool._propagate_summaries(leaf_node_id)  # Propagate the summary up the tree
+        while node_ids:
+            for node_id in node_ids.pop():
+                KnowledgeGraphTool._summarize(node_id)
 
     @classmethod
     def _plot(cls, root_node_id: UUID):
@@ -753,7 +745,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         plt.close()
 
     @classmethod
-    def _should_ignore(cls, name, ignore_patterns):
+    def _should_ignore(cls, name: str, ignore_patterns: str) -> bool:
+        """
+        Helper function for deciding whether a file should be in the knowledge graph.
+        """
         for pattern in ignore_patterns:
             if pattern.endswith('/'):
                 # Directory pattern
@@ -767,20 +762,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     return True
 
         return False
-
-    @classmethod
-    def _get_updated_parent_summary(cls, parent_summary: str, child_summary: str, child_name: str) -> str:
-        """
-        Returns the updated parent summary after adding/replacing the child summary.
-        """
-        from concrete.operators import Executive
-
-        clients = {
-            "openai": OpenAIClient(),
-        }
-        exec = Executive(clients)
-        response = exec.update_summary(parent_summary, child_summary, child_name).text
-        return response
 
     @classmethod
     def _propagate_summaries(cls, child_id: UUID) -> None:
@@ -805,41 +786,108 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         db.close()
 
     @classmethod
-    def _summarize_file(cls, path: str) -> str:
+    def _get_updated_parent_summary(cls, child_node_id: UUID) -> str:
         """
-        Summarizes contents of a file
+        Updates parent with child summary. Similar to _summarize_children, but only for a single child.
         """
+        db = SessionLocal()
+        child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
+        parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
+        if parent is None:
+            return ''
+
         from concrete.operators import Executive
 
-        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-            contents = f.read()
+        clients = {'openai': OpenAIClient()}
+        exec = Executive(clients)
+        exec.chat(
+            f"""Given the following parent summary structure:
+Parent Summary: <{parent.summary}>
+
+Your task is to update this summary with the new child summary:
+Child Name: <{child.abs_path}>
+Child Summary: <{child.summary}>
+
+Follow these steps:
+1. If the parent summary is empty, initialize it with the child summary.
+2. If the parent summary exists:
+   a. Add the new child summary if it's not already present.
+   b. If a summary for this child already exists, replace it with the new one.
+   c. Update the Overall Summary to reflect all children.
+3. Maintain this structure for the parent summary:
+
+Overall Summary: <summary of all children>
+
+Child Summaries:
+   - Child Name: <child_name>
+     Child Summary: <summary of the child>
+   - Child Name: <child_name>
+     Child Summary: <summary of the child>
+   ...
+
+Guidelines:
+- Ensure the Overall Summary provides a concise overview of all children.
+- Each child summary should accurately represent its corresponding node.
+
+Your response should be the updated parent summary in the specified format."""
+        )
+
+    @classmethod
+    def _summarize_leaf(cls, leaf_node_id: UUID) -> str:
+        """
+        Summarizes contents of a leaf node.
+        TODO: Assumes that the leaf is a file - so generated summary is based on file contents.
+        Eventually, this should be able to summarize functions/classes in a file.
+        """
+        db = SessionLocal()
+        leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
+        if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == 'file':
+            path = leaf_node.abs_path
+
+        from concrete.operators import Executive
+
+        with open(path, 'rb') as file:
+            raw_data = file.read()
+        result = chardet.detect(raw_data)
+        encoding = result['encoding']
+        print(f"Detected encoding: {encoding}")
+        try:
+            if encoding is None:
+                encoding = 'utf-8'
+            contents = raw_data.decode(encoding)
+        except UnicodeDecodeError:
+            contents = raw_data.decode('utf-8', errors='replace')
 
         clients = {
             "openai": OpenAIClient(),
         }
         exec = Executive(clients)
         return exec.chat(
-            f"""Summarize the following file. Be concise, and capture the main functionalities of the file.
+            f"""Summarize the following contents. Be concise, and capture all functionalities.
 Return the summary in one paragraph.
 Your summary should follow the format:
-<file name> Summary: <overall summary of the file>
+<Name> Summary: <summary of contents>
 
 Children Summaries:
     N/A
 
-Following is the file contents and its name
-File Name: {os.path.basename(path)}
-File Contents: {contents}"""
+Following is the contents and its name
+Contents Name: {path}
+Contents: {contents}"""
         ).text
 
     @classmethod
-    def _summarize_directory(cls, path: str) -> str:
+    def _summarize_from_children(cls, repo_node_id: UUID) -> str:
         """
-        Summarizes contents of a directory. Prerequisite on child nodes being summarized already.
+        Summarizes a nodes children. Prerequisite on child nodes being summarized already.
         """
         db = cast(Session, SessionLocal())
-        children = crud.get_repo_nodes_by_parent(db=db, parent_path=path)
-        children_summaries = "\n\n".join([child.summary for child in children if child.summary])
+        parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
+        children = parent.children
+        children_ids = [child.id for child in children]
+        children_summaries = "\n\n".join(
+            [crud.get_repo_node(db=db, repo_node_id=child_id).summary for child_id in children_ids]
+        )
         db.close()
 
         from concrete.operators import Executive
@@ -856,23 +904,29 @@ Children Summaries:
       Child Summary: <child summary>
 
 Here are the children summaries. Children can be either files or directories. They have a similar summary format.
-{children_summaries}""")
+{children_summaries}"""
+        )
 
     @classmethod
-    def _summarize(clas, parent_id: UUID) -> str:
+    def _summarize(clas, node_id: UUID) -> str:
         """
         Summarizes a node.
         If the node is a directory, it summarizes its children.
         If the node is a file, it summarizes its contents.
         """
         db = cast(Session, SessionLocal())
-        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-        if parent is None:
+        node = crud.get_repo_node(db=db, repo_node_id=node_id)
+        if node is None:
             return ''
-        if parent.partition_type == 'directory':
-            return KnowledgeGraphTool._summarize_directory(parent.abs_path)
-        elif parent.partition_type == 'file':
-            return KnowledgeGraphTool._summarize_file(parent.abs_path)
+        node_id = node.id
+        db.close()
+
+        # TODO: File can potentially have children in the future. ATM, only directories have children
+        print(f"Summarizing {node.abs_path}")
+        if node.partition_type == 'directory':
+            return KnowledgeGraphTool._summarize_from_children(node_id)
+        elif node.partition_type == 'file':
+            return KnowledgeGraphTool._summarize_leaf(node_id)
 
     @classmethod
     def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:

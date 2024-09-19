@@ -192,51 +192,6 @@ Project Idea:
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    def update_summary(
-        self,
-        parent_summary: str,
-        child_summary: str,
-        child_summary_name: str,
-        *args,
-        **kwargs,
-    ) -> str:
-        """
-        Updates a parent node summary with a child node summary.
-        Used for Knowledge Graph updates.
-        """
-        prompt = f"""
-Given the following parent summary structure:
-Parent Summary: <{parent_summary}>
-
-Your task is to update this summary with the new child summary:
-Child Name: <{child_summary_name}>
-Child Summary: <{child_summary}>
-
-Follow these steps:
-1. If the parent summary is empty, initialize it with the child summary.
-2. If the parent summary exists:
-   a. Add the new child summary if it's not already present.
-   b. If a summary for this child already exists, replace it with the new one.
-   c. Update the Overall Summary to reflect all children.
-3. Maintain this structure for the parent summary:
-
-Overall Summary: <summary of all children>
-
-Child Summaries:
-   - Child Name: <child_name>
-     Child Summary: <summary of the child>
-   - Child Name: <child_name>
-     Child Summary: <summary of the child>
-   ...
-
-Guidelines:
-- Ensure the Overall Summary provides a concise overview of all children.
-- Each child summary should accurately represent its corresponding node.
-
-Your response should be the updated parent summary in the specified format.
-"""  # noqa
-        return prompt
-
     def generate_summary(self, summary: str, implementation: str, *args, **kwargs) -> str:
         """
         Generates a summary of completed components

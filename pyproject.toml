@@ -17,6 +17,7 @@ celery = "==5.4.0"
 sqlalchemy = "==2.0.34"
 alembic = "==1.13.2"
 sqlmodel = "==0.0.22"
+chardet = "^5.2.0"
 
 
 [tool.poetry.group.tooluse.dependencies]

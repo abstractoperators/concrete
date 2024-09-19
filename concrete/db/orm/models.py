@@ -242,7 +242,7 @@ class Node(NodeBase, MetadataMixin, table=True):
 # https://sqlmodel.tiangolo.com/tutorial/fastapi/relationships/#models-with-relationships
 
 
-class RepoNodeBase:
+class RepoNodeBase(Base):
     org: str = Field(description="Organization to which the repo belongs.", index=True)
     repo: str = Field(description="Repository name.", index=True)
     partition_type: str = Field(description="Type of the node. directory/file/chunk")
