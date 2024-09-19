@@ -20,6 +20,8 @@ from networkx.drawing.nx_agraph import graphviz_layout
 from requests import Response
 from sqlalchemy.orm import Session
 
+from concrete.clients import OpenAIClient
+
 from .clients import CLIClient, HTTPClient
 from .db import crud
 from .db.orm import SessionLocal, models
@@ -734,10 +736,18 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _update_llm(cls, parent_summary: str, child_summary: str):
+    def _update_llm(cls, parent_summary: str, child_summary: str, child_name: str):
         """
         Returns the updated parent summary after adding/replacing the child summary.
         """
+        from concrete.operators import Executive
+
+        clients = {
+            "openai": OpenAIClient(),
+        }
+        exec = Executive(clients)
+        response = exec.update_summary(parent_summary, child_summary, child_name).text
+        print(response)
 
     @classmethod
     def _update(cls, node_id: UUID | None) -> None:
