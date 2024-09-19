@@ -5,7 +5,6 @@ import os
 import socket
 import textwrap
 import time
-from collections import defaultdict
 from datetime import datetime, timezone
 from queue import Queue
 from textwrap import dedent
@@ -634,6 +633,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns
             Node: The root node of the knowledge graph
         """
+        # Create the knowledge graph
         to_chunk: Queue[UUID] = Queue()
 
         root_node = models.RepoNodeCreate(
@@ -660,6 +660,27 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 to_chunk.put(child)
             print("Remaining:", to_chunk.qsize())
 
+        # Populate the knowledge graph with summaries
+        # Call _update on all leaf nodes
+        leaf_node_ids = []
+        db = cast(Session, SessionLocal())
+        root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
+        if root_node is not None:
+            for child in root_node.children:
+                if not child.children:
+                    leaf_node_ids.append(child.id)
+
+        for leaf_node_id in leaf_node_ids:
+            leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
+            if leaf_node is not None and leaf_node.partition_type == 'file':
+                child_summary = KnowledgeGraphTool._summarize_file(
+                    crud.get_repo_node(db=db, repo_node_id=leaf_node_id).abs_path
+                )  # Summarize the file # noqa
+                child_update = models.RepoNodeUpdate(summary=child_summary)
+                crud.update_repo_node(
+                    db=db, repo_node_id=leaf_node_id, repo_node_update=child_update
+                )  # Update the node with its summary # noqa
+                KnowledgeGraphTool._propagate_summaries(leaf_node_id)  # Propagate the summary up the tree
         return root_node_id
 
     @classmethod
@@ -736,7 +757,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         return False
 
     @classmethod
-    def _update_llm(cls, parent_summary: str, child_summary: str, child_name: str):
+    def _get_updated_parent_summary(cls, parent_summary: str, child_summary: str, child_name: str) -> str:
         """
         Returns the updated parent summary after adding/replacing the child summary.
         """
@@ -747,59 +768,49 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         }
         exec = Executive(clients)
         response = exec.update_summary(parent_summary, child_summary, child_name).text
-        print(response)
+        return response
 
     @classmethod
-    def _update(cls, node_id: UUID | None) -> None:
+    def _propagate_summaries(cls, child_id: UUID) -> None:
         """
         Propagates summary of node up the tree. Does not update the node itself.
 
         Args:
             node_id (UUID): The ID of the node to update.
         """
-        # 1) Update the node
-        # 2) Recursively update the parent node.
-        # Notes: How do I summarize a node?
-        # If there are no children and it's a file, summarize the file
-        # If there are no children and it's a directory, summary = directory name
-        # If there are children and it's a file: Children must be some kind of code chunk. Summary should be summary of the file + overview of each child node. # noqa
-        # IF there are children and it's a directory: Children are files and directories. Summary should be summary of the directory + overview of each child node. # noqa
-        if node_id is None:
-            return None
-
         db = cast(Session, SessionLocal())
-        node = crud.get_repo_node(db=db, repo_node_id=node_id)
-        if node is not None:
-            parent_id = node.parent_id
+        child = crud.get_repo_node(db=db, repo_node_id=child_id)
+        if child is not None:
+            parent_id = child.parent_id
             if parent_id is not None:
-                child_summary = node.summary
                 parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-                if parent is not None:
-                    parent.summary += child_summary
-                    crud.update_repo_node(db=db, repo_node=parent)
-                    cls._update(parent_id)
-            pass
-
+                updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(
+                    parent.summary, child.summary, child.name
+                )
+                parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
+                crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
+                KnowledgeGraphTool._propagate_summaries(parent_id)
         db.close()
 
     @classmethod
-    def _chunk_python(cls, parent_id: UUID) -> list[models.RepoNodeCreate]:
+    def _summarize_file(cls, path: str) -> str:
         """
-        Chunks a python file into smaller nodes.
-        Adds children nodes to database, and returns them for further chunking.
+        Summarizes contents of a file
         """
-        db = cast(Session, SessionLocal())
-        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-        if parent is None:
-            return []
-        db.close()
+        with open(path, 'r') as f:
+            contents = f.read()
+        from concrete.operators import Executive
 
-        children: list[models.RepoNodeCreate] = []
-        if parent.partition_type == 'file':
-            with open(parent.abs_path, 'r') as f:
-                contents = f.read()  # noqa
+        clients = {
+            "openai": OpenAIClient(),
+        }
+        exec = Executive(clients)
+        return exec.chat(
+            f"""Summarize the following file. Be concise, and capture the main functionalities of the file.
+Return the summary in one paragraph.
 
-        return children
+File Contents: {contents}"""
+        ).text
 
     @classmethod
     def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
@@ -820,41 +831,24 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 f for f in files_and_directories if not KnowledgeGraphTool._should_ignore(f, ignore_paths)
             ]
             for file_or_dir in files_and_directories:
-                child = None
                 path = os.path.join(parent.abs_path, file_or_dir)
 
-                if os.path.isfile(path):  # TODO: more file types
-                    child = models.RepoNodeCreate(
-                        org=parent.org,
-                        repo=parent.repo,
-                        partition_type='file',
-                        name=file_or_dir,
-                        summary='foo',
-                        abs_path=path,
-                        parent_id=parent.id,
-                    )
-                    print(f'Processing python file {path}')
-                elif os.path.isdir(path):  # probably unnecessary, but explicit /shrug
-                    child = models.RepoNodeCreate(
-                        org=parent.org,
-                        repo=parent.repo,
-                        partition_type='directory',
-                        name=file_or_dir,
-                        summary='foo',
-                        abs_path=path,
-                        parent_id=parent.id,
-                    )
-                    print(f'Processing directory {path}')
-
-                if child is not None:
-                    children.append(child)
+                partition_type = 'directory' if os.path.isdir(path) else 'file'
+                print(f'Creating {partition_type} {file_or_dir}')
+                child = models.RepoNodeCreate(
+                    org=parent.org,
+                    repo=parent.repo,
+                    partition_type=partition_type,
+                    name=file_or_dir,
+                    summary='foo',
+                    abs_path=path,
+                    parent_id=parent.id,
+                )
+                children.append(child)
 
         elif parent.partition_type == 'file':
-            if parent.abs_path.endswith('.py'):
-                children = cls._chunk_python(parent.id)
-            # with open(parent.path, 'r') as f:
-            #     contents = f.read()
-            # TODO, use LLM or AST to chunk the file into smaller nodes.
+            pass
+            # Can possibly create child nodes for functions/classes in the file
 
         # Create all children nodes w/ parent link
         res = []
