@@ -4,16 +4,16 @@
 Pyenv allows you to manage multiple versions of Python on your computer. It can configure a default Python version globally or on a directory basis.
 
 ```shell
-curl https://pyenv.run | bash #to install Pyenv
+curl https://pyenv.run | bash  # to install Pyenv
 
 echo -e 'export PYENV_ROOT="$HOME/.pyenv"\nexport PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-echo -e 'eval "$(pyenv init --path)"\n eval "$(pyenv init -)"' >> ~/.bashrc #to set up environment variables
+echo -e 'eval "$(pyenv init --path)"\n eval "$(pyenv init -)"' >> ~/.bashrc  # to set up environment variables
 
-exec "$SHELL" #restarts the terminal shell process
+exec "$SHELL"  # restarts the terminal shell process
 
-pyenv –version #to confirm Pyenv has installed successfully
+pyenv –version  # to confirm Pyenv has installed successfully
 
-pyenv install 3.11.9 #to install Python 3.11.9
+pyenv install 3.11.9  # to install Python 3.11.9
 
 pyenv global 3.11.9
 
