@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "concrete-operators"
-version = "0.1.5"
+version = "0.1.7"
 description = "AI Agent Orchestration Platform"
 authors = ["Abstract Operators <hello@abstractoperators.ai>"]
 readme = "README.md"
@@ -15,12 +15,8 @@ astroid = "==3.2.3"
 astor = "==0.8.1"
 celery = "==5.4.0"
 sqlalchemy = "==2.0.34"
-alembic = "==1.13.2"
 sqlmodel = "==0.0.22"
-
-
-[tool.poetry.group.tooluse.dependencies]
-boto3 = "==1.35.3"
+boto3 = "==1.35.3"  # TODO: Separate into extras
 
 
 [tool.poetry.group.dev.dependencies]
@@ -32,6 +28,7 @@ bandit = "==1.7.9"
 pre-commit = "==3.7.1"
 mypy = "==1.11.2"
 starlette = "==0.37.2"  # for fasthtml
+alembic = "==1.13.2"
 
 
 [tool.poetry.group.webapp.dependencies]
