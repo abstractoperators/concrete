@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "concrete-operators"
-version = "0.1.5"
+version = "0.1.7"
 description = "AI Agent Orchestration Platform"
 authors = ["Abstract Operators <hello@abstractoperators.ai>"]
 readme = "README.md"
@@ -15,7 +15,6 @@ astroid = "==3.2.3"
 astor = "==0.8.1"
 celery = "==5.4.0"
 sqlalchemy = "==2.0.34"
-alembic = "==1.13.2"
 sqlmodel = "==0.0.22"
 tenacity = "==9.0.0"
 
@@ -27,7 +26,7 @@ chardet = "==5.2.0"
 graphviz = "==0.20.3"
 pygraphviz = "==1.13"
 matplotlib = "==3.9.2"
-networkx = "==3.3" # For plotting knowledge graph
+networkx = "==3.3"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -39,6 +38,7 @@ bandit = "==1.7.9"
 pre-commit = "==3.7.1"
 mypy = "==1.11.2"
 starlette = "==0.37.2"  # for fasthtml
+alembic = "==1.13.2"
 
 
 [tool.poetry.group.webapp.dependencies]
