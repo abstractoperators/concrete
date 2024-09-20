@@ -877,36 +877,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         from concrete.operators import Executive
 
         exec = Executive(clients={'openai': OpenAIClient()})
-        return exec.chat(
-            f"""Given the following parent summary structure:
-Parent Summary: <{parent_summary}>
-
-Your task is to update this summary with the new child summary:
-Child Name: <{child_abs_path}>
-Child Summary: <{child_summary}>
-
-Follow these steps:
-1. If the parent summary is empty, initialize it with the child summary.
-2. If the parent summary exists:
-   a. Add the new child summary if it's not already present.
-   b. If a summary for this child already exists, replace it with the new one.
-   c. Update the Overall Summary to reflect all children.
-3. Maintain this structure for the parent summary:
-
-Overall Summary: <summary of all children>
-
-Child Summaries:
-   - Child Name: <child_name>
-     Child Summary: <summary of the child>
-   - Child Name: <child_name>
-     Child Summary: <summary of the child>
-   ...
-
-Guidelines:
-- Ensure the Overall Summary provides a concise overview of all children.
-- Each child summary should accurately represent its corresponding node.
-
-Your response should be the updated parent summary in the specified format."""
+        return exec.update_parent_summary(
+            parent_summary=parent_summary, child_name=child_abs_path, child_summary=child_summary
         ).text
 
     @classmethod
@@ -936,16 +908,7 @@ Your response should be the updated parent summary in the specified format."""
         from concrete.operators import Executive
 
         exec = Executive(clients={"openai": OpenAIClient()})
-        return exec.chat(
-            f"""Summarize the following contents. Be concise, and capture all functionalities.
-Return the summary in one paragraph.
-Your summary should follow the format:
-<Name> Summary: <summary of contents>
-
-Following is the contents and its name
-Name: {path}
-Contents: {contents}"""
-        ).text
+        return exec.summarize_file(contents=contents, file_name=path).text
 
     @classmethod
     def _summarize_from_children(cls, repo_node_id: UUID) -> str:

@@ -215,6 +215,52 @@ Current Component Implementation: {implementation}
 Previous Components: {summary}"""  # noqa E501
         return prompt
 
+    def update_parent_summary(self, parent_summary: str, child_summary: str, child_name: str, *args, **kwargs) -> str:
+        """
+        Updates the parent summary with the child summary
+        Returns the updated parent summary
+        """
+        return f"""Given the following parent summary structure:
+Parent Summary: <{parent_summary}>
+
+Your task is to update this summary with the new child summary:
+Child Name: <{child_name}>
+Child Summary: <{child_summary}>
+
+Follow these steps:
+1. If the parent summary is empty, initialize it with the child summary.
+2. If the parent summary exists:
+   a. Add the new child summary if it's not already present.
+   b. If a summary for this child already exists, replace it with the new one.
+   c. Update the Overall Summary to reflect all children.
+3. Maintain this structure for the parent summary:
+
+Overall Summary: <summary of all children>
+
+Child Summaries:
+   - Child Name: <child_name>
+     Child Summary: <summary of the child>
+   - Child Name: <child_name>
+     Child Summary: <summary of the child>
+   ...
+
+Guidelines:
+- Ensure the Overall Summary provides a concise overview of all children.
+- Each child summary should accurately represent its corresponding node.
+
+Your response should be the updated parent summary in the specified format."""
+
+    def summarize_file(self, contents: str, file_name: str, *args, **kwargs) -> str:
+        return f"""Summarize the following contents. Be concise, and capture all functionalities.
+Return the summary in one paragraph.
+Following is the contents and its name
+Name: {file_name}
+Contents: {contents}
+
+Your summary should follow the format:
+<Name> Summary: <summary of contents>
+"""
+
 
 class PromptEngineer(Operator):
     instructions = """
