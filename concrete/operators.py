@@ -261,6 +261,20 @@ Your summary should follow the format:
 <Name> Summary: <summary of contents>
 """
 
+    def summarize_from_children(self, children_summaries: list[str], *args, **kwargs) -> str:
+        joined_summaries = "\n\n".join(children_summaries)
+        return f"""Summarize the following directory. Be concise, and capture the main functionalities of the directory.
+Your returned summary should follow the format:
+<directory name> Summary: <overall summary of the directory>
+Children Summaries:
+    - Child Name: <child Name>
+      Child Summary: <child summary>
+    - Child Name: <child Name>
+      Child Summary: <child summary>
+
+Here are the children summaries. Children can be either files or directories. They have a similar summary format.
+{joined_summaries}"""
+
 
 class PromptEngineer(Operator):
     instructions = """

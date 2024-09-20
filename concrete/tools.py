@@ -21,7 +21,7 @@ from concrete.clients import OpenAIClient
 
 from .clients import CLIClient, HTTPClient
 from .db import crud
-from .db.orm import SessionLocal, models
+from .db.orm import Session, models
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -638,10 +638,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
         )
 
-        db = SessionLocal()
-        root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
-        to_chunk.put(root_node_id)
-        db.close()
+        with Session() as db:
+            root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
+            to_chunk.put(root_node_id)
 
         ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
         if rel_gitignore_path:
@@ -666,11 +665,11 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Chunks a node into smaller nodes.
         Adds children nodes to database, and returns them for further chunking.
         """
-        db = SessionLocal()
-        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-        if parent is None:
-            return []
-        db.close()
+        with Session() as db:
+            parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+            if parent is None:
+                return []
+
         children: list[models.RepoNodeCreate] = []
         if parent.partition_type == 'directory':
             files_and_directories = os.listdir(parent.abs_path)
@@ -699,9 +698,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         res = []
         for child in children:
-            db = SessionLocal()
-            child_node = crud.create_repo_node(db=db, repo_node_create=child)
-            db.close()
+            with Session() as db:
+                child_node = crud.create_repo_node(db=db, repo_node_create=child)
             res.append(child_node.id)
 
         return res
@@ -737,12 +735,11 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         while not nodes.empty():
             node_id = nodes.get()
-            db = SessionLocal()
-            node = crud.get_repo_node(db=db, repo_node_id=node_id)
-            if node is None:
-                continue
-            parent, children = node, node.children
-            db.close()
+            with Session() as db:
+                node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                if node is None:
+                    continue
+                parent, children = node, node.children
 
             for child in children:
                 G.add_node(child.abs_path)
@@ -791,12 +788,11 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             vert_gap = height / (max([level for level in levels]) + 1)
             return make_pos({})
 
-        db = SessionLocal()
-        root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
-        if not root_node:
-            db.close()
-            return
-        db.close()
+        with Session() as db:
+            root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
+            if not root_node:
+                db.close()
+                return
         graph_root_node = root_node.abs_path
         pos = _hierarchy_pos(G, root=graph_root_node)
 
@@ -821,23 +817,22 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Summarize all nodes in reverse order of depth. Prerequisite on the graph being built.
         """
         node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
-        db = SessionLocal()
-        while node_ids[-1] != []:
-            to_append = []
-            for node_id in node_ids[-1]:
-                node = crud.get_repo_node(db=db, repo_node_id=node_id)
-                if node is not None:
-                    children = node.children
-                    children_ids = [child.id for child in children]
-                    to_append.extend(children_ids)
-            node_ids.append(to_append)
+        with Session() as db:
+            while node_ids[-1] != []:
+                to_append = []
+                for node_id in node_ids[-1]:
+                    node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                    if node is not None:
+                        children = node.children
+                        children_ids = [child.id for child in children]
+                        to_append.extend(children_ids)
+                node_ids.append(to_append)
 
-        while node_ids:
-            for node_id in node_ids.pop():
-                summary = KnowledgeGraphTool._summarize(node_id)
-                node_update = models.RepoNodeUpdate(summary=summary)
-                crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
-        db.close()
+            while node_ids:
+                for node_id in node_ids.pop():
+                    summary = KnowledgeGraphTool._summarize(node_id)
+                    node_update = models.RepoNodeUpdate(summary=summary)
+                    crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
 
     @classmethod
     def _propagate_summaries(cls, child_id: UUID) -> None:
@@ -847,33 +842,32 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Args:
             child_id (UUID): The id of the child node whose summary should be propagated.
         """
-        db = SessionLocal()
-        child = crud.get_repo_node(db=db, repo_node_id=child_id)
-        if child is not None:
-            parent_id = child.parent_id
-            if parent_id is not None:
-                updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(child_node_id=child_id)
-                parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
-                crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
-                KnowledgeGraphTool._propagate_summaries(parent_id)
-        db.close()  # TODO: Close session before recursion
+        with Session() as db:
+            child = crud.get_repo_node(db=db, repo_node_id=child_id)
+            if child is not None:
+                parent_id = child.parent_id
+                if parent_id is not None:
+                    updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(child_node_id=child_id)
+                    parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
+                    crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
+                    KnowledgeGraphTool._propagate_summaries(parent_id)
+        # TODO: Close session before recursion
 
     @classmethod
     def _get_updated_parent_summary(cls, child_node_id: UUID) -> str:
         """
         Returns an updated parent summary based on the existing summaries of a parent and child node.
         """
-        db = SessionLocal()
-        child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
-        if child is not None and (parent_id := child.parent_id) is not None:
-            parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-        if child is None or parent is None:
-            raise ValueError(f'_get_updated_parent_summary: child or parent not found for {child_node_id}')
+        with Session() as db:
+            child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
+            if child is not None and (parent_id := child.parent_id) is not None:
+                parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+            if child is None or parent is None:
+                raise ValueError(f'_get_updated_parent_summary: child or parent not found for {child_node_id}')
 
-        parent_summary = parent.summary
-        child_summary = child.summary
-        child_abs_path = child.abs_path
-        db.close()
+            parent_summary = parent.summary
+            child_summary = child.summary
+            child_abs_path = child.abs_path
         from concrete.operators import Executive
 
         exec = Executive(clients={'openai': OpenAIClient()})
@@ -888,11 +882,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         TODO: Current implementation assumes that the leaf is a file - so generated summary is based on file contents.
         Eventually, this should be able to summarize functions/classes in a file.
         """
-        db = SessionLocal()
-        leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
-        if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == 'file':
-            path = leaf_node.abs_path
-        db.close()
+        with Session() as db:
+            leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
+            if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == 'file':
+                path = leaf_node.abs_path
 
         with open(path, 'rb') as file:
             raw_data = file.read()
@@ -915,36 +908,23 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Summarizes a nodes children. Prerequisite on child nodes being summarized already.
         """
-        db = SessionLocal()
-        parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
-        if parent is None:
-            raise ValueError(f"Node {repo_node_id} not found.")
+        with Session() as db:
+            parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
+            if parent is None:
+                raise ValueError(f"Node {repo_node_id} not found.")
 
-        children = parent.children
-        children_ids = [child.id for child in children]
-        children_summaries: list[str] = []
-        for child_id in children_ids:
-            child = crud.get_repo_node(db=db, repo_node_id=child_id)
-            if child is not None:
-                children_summaries.append(child.summary)
-        db.close()
-        joined_children_summaries = '\n\n'.join(children_summaries)
+            children = parent.children
+            children_ids = [child.id for child in children]
+            children_summaries: list[str] = []
+            for child_id in children_ids:
+                child = crud.get_repo_node(db=db, repo_node_id=child_id)
+                if child is not None:
+                    children_summaries.append(child.summary)
+
         from concrete.operators import Executive
 
         exec = Executive({"openai": OpenAIClient()})
-        return exec.chat(
-            f"""Summarize the following directory. Be concise, and capture the main functionalities of the directory.
-Your returned summary should follow the format:
-<directory name> Summary: <overall summary of the directory>
-Children Summaries:
-    - Child Name: <child Name>
-      Child Summary: <child summary>
-    - Child Name: <child Name>
-      Child Summary: <child summary>
-
-Here are the children summaries. Children can be either files or directories. They have a similar summary format.
-{joined_children_summaries}"""
-        ).text
+        return exec.summarize_from_children(children_summaries).text
 
     @classmethod
     def _summarize(clas, node_id: UUID) -> str:
@@ -953,12 +933,11 @@ Here are the children summaries. Children can be either files or directories. Th
         If the node is a directory, it summarizes its children.
         If the node is a file, it summarizes its contents.
         """
-        db = SessionLocal()
-        node = crud.get_repo_node(db=db, repo_node_id=node_id)
-        if node is None:
-            return ''
-        node_id = node.id
-        db.close()
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                return ''
+            node_id = node.id
 
         # TODO: File can potentially have children in the future. ATM, only directories have children
         CLIClient.emit(f"Summarizing {node.abs_path}")
