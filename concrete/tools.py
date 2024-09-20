@@ -626,14 +626,14 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     def repo_to_knowledge(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
         """
         Converts a repository into an unpopulated knowledge graph.
+        Stored in reponode table. Recursive programming is pain -> use a queue.
 
         args
             org (str): Organization or account owning the repo
             repo (str): The name of the repository
         Returns
-            Node: The root node of the knowledge graph
+            UUID: The root node id of the knowledge graph.
         """
-        # Create the knowledge graph
         to_chunk: Queue[UUID] = Queue()
 
         root_node = models.RepoNodeCreate(
@@ -641,7 +641,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         )
 
         db = SessionLocal()
-        db
         root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
         to_chunk.put(root_node_id)
         db.close()
@@ -654,9 +653,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 ignore_paths.extend(gitignore)
 
         while len(to_chunk.queue) > 0:
-            children = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
-            for child in children:
-                to_chunk.put(child)
+            children_ids = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
+            for child_id in children_ids:
+                to_chunk.put(child_id)
             print("Remaining:", to_chunk.qsize())
 
         KnowledgeGraphTool._summarize_from_leaves(root_node_id)
@@ -664,29 +663,69 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         return root_node_id
 
     @classmethod
-    def _summarize_from_leaves(cls, root_node_id: UUID):
+    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
         """
-        Summarizes all leaf nodes, and propagates them up the tree.
+        Chunks a node into smaller nodes.
+        Adds children nodes to database, and returns them for further chunking.
         """
-        node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
         db = SessionLocal()
-        while node_ids[-1] != []:
-            to_append = []
-            for node_id in node_ids[-1]:
-                node = crud.get_repo_node(db=db, repo_node_id=node_id)
-                if node is not None:
-                    children = node.children
-                    children_ids = [child.id for child in children]
-                    to_append.extend(children_ids)
-            node_ids.append(to_append)
-        node_ids.pop()  # Remove the empty list at the end
-
-        while node_ids:
-            for node_id in node_ids.pop():
-                summary = KnowledgeGraphTool._summarize(node_id)
-                node_update = models.RepoNodeUpdate(summary=summary)
-                crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
+        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+        if parent is None:
+            return []
         db.close()
+        children: list[models.RepoNodeCreate] = []
+        if parent.partition_type == 'directory':
+            files_and_directories = os.listdir(parent.abs_path)
+            files_and_directories = [
+                f for f in files_and_directories if not KnowledgeGraphTool._should_ignore(f, ignore_paths)
+            ]
+            for file_or_dir in files_and_directories:
+                path = os.path.join(parent.abs_path, file_or_dir)
+
+                partition_type = 'directory' if os.path.isdir(path) else 'file'
+                print(f'Creating {partition_type} {file_or_dir}')
+                child = models.RepoNodeCreate(
+                    org=parent.org,
+                    repo=parent.repo,
+                    partition_type=partition_type,
+                    name=file_or_dir,
+                    summary='',
+                    abs_path=path,
+                    parent_id=parent.id,
+                )
+                children.append(child)
+
+        elif parent.partition_type == 'file':
+            pass
+            # Can possibly create child nodes for functions/classes in the file
+
+        res = []
+        for child in children:
+            db = SessionLocal()
+            child_node = crud.create_repo_node(db=db, repo_node_create=child)
+            db.close()
+            res.append(child_node.id)
+
+        return res
+
+    @classmethod
+    def _should_ignore(cls, name: str, ignore_patterns: str) -> bool:
+        """
+        Helper function for deciding whether a file/dir should be in the knowledge graph.
+        """
+        for pattern in ignore_patterns:
+            if pattern.endswith('/'):
+                # Directory pattern
+                if fnmatch.fnmatch(name + '/', pattern):
+                    print(f'Ignoring directory {name} due to pattern {pattern}')
+                    return True
+            else:
+                # File pattern
+                if fnmatch.fnmatch(name, pattern):
+                    print(f'Ignoring file {name} due to pattern {pattern}')
+                    return True
+
+        return False
 
     @classmethod
     def _plot(cls, root_node_id: UUID):
@@ -694,9 +733,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Plots a knowledge graph node into a graph using Graphviz's 'dot' layout.
         Useful for debugging & testing.
         """
-
         G = nx.DiGraph()
-
         nodes: Queue[UUID] = Queue()
         nodes.put(root_node_id)
 
@@ -709,7 +746,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             parent, children = node, node.children
             db.close()
 
-            G.add_node(parent.abs_path)
             for child in children:
                 G.add_node(child.abs_path)
                 G.add_edge(parent.abs_path, child.abs_path)
@@ -718,10 +754,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         plt.figure(figsize=(40, 15), dpi=300)
         pos = graphviz_layout(G, prog='dot', args='-Granksep="1",-Gnodesep="3"')
 
-        def wrap_label(label, width=10):
-            return '\n'.join(textwrap.wrap(label, width=width))
-
-        wrapped_labels = {node: wrap_label(node, width=10) for node in G.nodes()}
+        wrapped_labels = {node: '\n'.join(textwrap.wrap(node, width=12)) for node in G.nodes()}
 
         nx.draw(
             G,
@@ -745,31 +778,37 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         plt.close()
 
     @classmethod
-    def _should_ignore(cls, name: str, ignore_patterns: str) -> bool:
+    def _summarize_from_leaves(cls, root_node_id: UUID):
         """
-        Helper function for deciding whether a file should be in the knowledge graph.
+        Summarize all nodes in reverse order of depth. Prerequisite on the graph being built.
         """
-        for pattern in ignore_patterns:
-            if pattern.endswith('/'):
-                # Directory pattern
-                if fnmatch.fnmatch(name + '/', pattern):
-                    print(f'Ignoring directory {name} due to pattern {pattern}')
-                    return True
-            else:
-                # File pattern
-                if fnmatch.fnmatch(name, pattern):
-                    print(f'Ignoring file {name} due to pattern {pattern}')
-                    return True
+        node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
+        db = SessionLocal()
+        while node_ids[-1] != []:
+            to_append = []
+            for node_id in node_ids[-1]:
+                node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                if node is not None:
+                    children = node.children
+                    children_ids = [child.id for child in children]
+                    to_append.extend(children_ids)
+            node_ids.append(to_append)
+        node_ids.pop()  # Remove the empty list at the end
 
-        return False
+        while node_ids:
+            for node_id in node_ids.pop():
+                summary = KnowledgeGraphTool._summarize(node_id)
+                node_update = models.RepoNodeUpdate(summary=summary)
+                crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
+        db.close()
 
     @classmethod
     def _propagate_summaries(cls, child_id: UUID) -> None:
         """
-        Propagates summary of node up the tree. Does not update the node itself.
+        Recursively updates parent summaries. Prerequisite on the graph being built.
 
         Args:
-            node_id (UUID): The ID of the node to update.
+            child_id (UUID): The id of the child node whose summary should be propagated.
         """
         db = SessionLocal()
         child = crud.get_repo_node(db=db, repo_node_id=child_id)
@@ -780,7 +819,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
                 crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
                 KnowledgeGraphTool._propagate_summaries(parent_id)
-        db.close()
+        db.close()  # TODO: Close session before recursion
 
     @classmethod
     def _get_updated_parent_summary(cls, child_node_id: UUID) -> str:
@@ -798,11 +837,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         child_summary = child.summary
         child_abs_path = child.abs_path
         db.close()
-
         from concrete.operators import Executive
 
-        clients = {'openai': OpenAIClient()}
-        exec = Executive(clients)
+        exec = Executive(clients={'openai': OpenAIClient()})
         return exec.chat(
             f"""Given the following parent summary structure:
 Parent Summary: <{parent_summary}>
@@ -839,7 +876,7 @@ Your response should be the updated parent summary in the specified format."""
     def _summarize_leaf(cls, leaf_node_id: UUID) -> str:
         """
         Summarizes contents of a leaf node.
-        TODO: Assumes that the leaf is a file - so generated summary is based on file contents.
+        TODO: Current implementation assumes that the leaf is a file - so generated summary is based on file contents.
         Eventually, this should be able to summarize functions/classes in a file.
         """
         db = SessionLocal()
@@ -848,13 +885,10 @@ Your response should be the updated parent summary in the specified format."""
             path = leaf_node.abs_path
         db.close()
 
-        from concrete.operators import Executive
-
         with open(path, 'rb') as file:
             raw_data = file.read()
         result = chardet.detect(raw_data)
         encoding = result['encoding']
-        print(f"Detected encoding: {encoding}")
         try:
             if encoding is None:
                 encoding = 'utf-8'
@@ -862,21 +896,17 @@ Your response should be the updated parent summary in the specified format."""
         except UnicodeDecodeError:
             contents = raw_data.decode('utf-8', errors='replace')
 
-        clients = {
-            "openai": OpenAIClient(),
-        }
-        exec = Executive(clients)
+        from concrete.operators import Executive
+
+        exec = Executive(clients={"openai": OpenAIClient()})
         return exec.chat(
             f"""Summarize the following contents. Be concise, and capture all functionalities.
 Return the summary in one paragraph.
 Your summary should follow the format:
 <Name> Summary: <summary of contents>
 
-Children Summaries:
-    N/A
-
 Following is the contents and its name
-Contents Name: {path}
+Name: {path}
 Contents: {contents}"""
         ).text
 
@@ -887,13 +917,18 @@ Contents: {contents}"""
         """
         db = SessionLocal()
         parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
+        if parent is None:
+            raise ValueError(f"Node {repo_node_id} not found.")
+
         children = parent.children
         children_ids = [child.id for child in children]
-        children_summaries = "\n\n".join(
-            [crud.get_repo_node(db=db, repo_node_id=child_id).summary for child_id in children_ids]
-        )
+        children_summaries: list[str] = []
+        for child_id in children_ids:
+            child = crud.get_repo_node(db=db, repo_node_id=child_id)
+            if child is not None:
+                children_summaries.append(child.summary)
         db.close()
-
+        joined_children_summaries = '\n\n'.join(children_summaries)
         from concrete.operators import Executive
 
         exec = Executive({"openai": OpenAIClient()})
@@ -908,7 +943,7 @@ Children Summaries:
       Child Summary: <child summary>
 
 Here are the children summaries. Children can be either files or directories. They have a similar summary format.
-{children_summaries}"""
+{joined_children_summaries}"""
         ).text
 
     @classmethod
@@ -931,51 +966,4 @@ Here are the children summaries. Children can be either files or directories. Th
             return KnowledgeGraphTool._summarize_from_children(node_id)
         elif node.partition_type == 'file':
             return KnowledgeGraphTool._summarize_leaf(node_id)
-
-    @classmethod
-    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
-        """
-        Chunks a node into smaller nodes.
-        Adds children nodes to database, and returns them for further chunking.
-        michael: I hate recursive programming -> I'm going to do it with two functions.
-        """
-        db = SessionLocal()
-        parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-        if parent is None:
-            return []
-        db.close()
-        children: list[models.RepoNodeCreate] = []
-        if parent.partition_type == 'directory':
-            files_and_directories = os.listdir(parent.abs_path)
-            files_and_directories = [
-                f for f in files_and_directories if not KnowledgeGraphTool._should_ignore(f, ignore_paths)
-            ]
-            for file_or_dir in files_and_directories:
-                path = os.path.join(parent.abs_path, file_or_dir)
-
-                partition_type = 'directory' if os.path.isdir(path) else 'file'
-                print(f'Creating {partition_type} {file_or_dir}')
-                child = models.RepoNodeCreate(
-                    org=parent.org,
-                    repo=parent.repo,
-                    partition_type=partition_type,
-                    name=file_or_dir,
-                    summary='',
-                    abs_path=path,
-                    parent_id=parent.id,
-                )
-                children.append(child)
-
-        elif parent.partition_type == 'file':
-            pass
-            # Can possibly create child nodes for functions/classes in the file
-
-        # Create all children nodes w/ parent link
-        res = []
-        for child in children:
-            db = SessionLocal()
-            child_node = crud.create_repo_node(db=db, repo_node_create=child)
-            db.close()
-            res.append(child_node.id)
-
-        return res
+        return ''
