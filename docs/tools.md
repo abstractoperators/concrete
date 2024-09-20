@@ -24,7 +24,8 @@ In this example, TestTool is an example Tool that can be provided to an operator
 Tools should have syntax documented in their docstrings so the operator knows how to use them.
 
 ```python
-class Arithmetic(metaclass=ToolClass):
+from concrete.tools import MetaTool
+class Arithmetic(metaclass=MetaTool):
     @classmethod
     def add(cls, x: int, y: int) -> int:
         '''
@@ -50,4 +51,25 @@ class Arithmetic(metaclass=ToolClass):
 
 tool_call = operators.Operator().chat("Use your provided tools to calculate the sum of 945 and 624", [Arithmetic], message_format=Tool)
 res = invoke_tool(**tool_call.model_dump())
+```
+
+### How Tools Work
+When you pass Tools to an Operator, AO converts the tool into a string representation. This string representation is given to the Operator in its chat completion prompt. The Operator uses its discretion to decide which (if any) tool to use, and returns a syntactically correct Tool call.
+
+An example trace of `Arithmetic.__str__` looks something like
+```python
+print(Arithmetic)
+'''
+Arithmetic Tool with methods:
+   - add(cls, x: int, y: int) -> int
+        x (int): The first number
+        y (int): The second number
+
+        Returns the sum of x and y
+   - subtract(cls, x: int, y: int) -> int
+        x (int): The first number
+        y (int): The second number
+
+        Returns the difference of x and y
+'''
 ```
