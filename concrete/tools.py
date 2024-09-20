@@ -789,11 +789,11 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         db = SessionLocal()
         child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
-        if child is not None:
-            parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
+        if child is not None and (parent_id := child.parent_id) is not None:
+            parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+        if child is None or parent is None:
+            raise ValueError(f'_get_updated_parent_summary: child or parent not found for {child_node_id}')
 
-        if parent is None:
-            return ''
         parent_summary = parent.summary
         child_summary = child.summary
         child_abs_path = child.abs_path
