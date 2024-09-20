@@ -18,7 +18,7 @@ import networkx as nx
 import requests
 from networkx.drawing.nx_agraph import graphviz_layout
 from requests import Response
-from sqlalchemy.orm import Session
+from sqlmodel.orm.session import Session
 
 from concrete.clients import OpenAIClient
 
@@ -642,6 +642,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         )
 
         db = cast(Session, SessionLocal())
+        db
         root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
         to_chunk.put(root_node_id)
         db.close()
@@ -715,7 +716,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 nodes.put(child.id)
 
         plt.figure(figsize=(40, 15), dpi=300)
-        # pos = graphviz_layout(G, prog='twopi', args='-Goverlap="prism",-Granksep="2.0"')
         pos = graphviz_layout(G, prog='dot', args='-Granksep="1",-Gnodesep="3"')
 
         def wrap_label(label, width=10):
