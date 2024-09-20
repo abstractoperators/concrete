@@ -19,3 +19,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat(request: Request):
+    messages = [
+        {"Executive": "I am the executive!"},
+        {"Operator 1": "I am operator 1!"},
+        {"Operator 2": "I am operator 2!"},
+        {"Operator 3": "I am operator 3!"},
+    ]
+    return templates.TemplateResponse("group_chat.html", {"request": request, "messages": messages})
