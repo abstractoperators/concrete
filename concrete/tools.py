@@ -621,9 +621,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def repo_to_knowledge(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
+    def parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
         """
-        Converts a repository into an unpopulated knowledge graph.
+        Converts a directory into an unpopulated knowledge graph.
         Stored in reponode table. Recursive programming is pain -> use a queue.
 
         args
@@ -654,7 +654,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             children_ids = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
             for child_id in children_ids:
                 to_chunk.put(child_id)
-            print("Remaining:", to_chunk.qsize())
+            CLIClient.emit(f"Remaining: {to_chunk.qsize()}")
 
         KnowledgeGraphTool._summarize_from_leaves(root_node_id)
 
@@ -681,7 +681,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 path = os.path.join(parent.abs_path, file_or_dir)
 
                 partition_type = 'directory' if os.path.isdir(path) else 'file'
-                print(f'Creating {partition_type} {file_or_dir}')
+                CLIClient.emit(f'Creating {partition_type} {file_or_dir}')
                 child = models.RepoNodeCreate(
                     org=parent.org,
                     repo=parent.repo,
@@ -715,12 +715,12 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             if pattern.endswith('/'):
                 # Directory pattern
                 if fnmatch.fnmatch(name + '/', pattern):
-                    print(f'Ignoring directory {name} due to pattern {pattern}')
+                    CLIClient.emit(f'Ignoring directory {name} due to pattern {pattern}')
                     return True
             else:
                 # File pattern
                 if fnmatch.fnmatch(name, pattern):
-                    print(f'Ignoring file {name} due to pattern {pattern}')
+                    CLIClient.emit(f'Ignoring file {name} due to pattern {pattern}')
                     return True
 
         return False
@@ -831,7 +831,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     children_ids = [child.id for child in children]
                     to_append.extend(children_ids)
             node_ids.append(to_append)
-        node_ids.pop()  # Remove the empty list at the end
 
         while node_ids:
             for node_id in node_ids.pop():
@@ -999,7 +998,7 @@ Here are the children summaries. Children can be either files or directories. Th
         db.close()
 
         # TODO: File can potentially have children in the future. ATM, only directories have children
-        print(f"Summarizing {node.abs_path}")
+        CLIClient.emit(f"Summarizing {node.abs_path}")
         if node.partition_type == 'directory':
             return KnowledgeGraphTool._summarize_from_children(node_id)
         elif node.partition_type == 'file':
