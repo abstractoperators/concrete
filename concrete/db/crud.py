@@ -312,19 +312,11 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
 
 
 def create_node(db: Session, node_create: NodeCreate) -> Node:
-    db_op = Node(**node_create.model_dump())
-    db.add(db_op)
-    db.commit()
-    db.refresh(db_op)
-    return db_op
+    return create_generic(db, Node(**node_create.model_dump()))
 
 
 def create_repo_node(db: Session, repo_node_create: RepoNodeCreate) -> RepoNode:
-    db_op = RepoNode(**repo_node_create.model_dump())
-    db.add(db_op)
-    db.commit()
-    db.refresh(db_op)
-    return db_op
+    return create_generic(db, RepoNode(**repo_node_create.model_dump()))
 
 
 def get_repo_node(db: Session, repo_node_id: UUID) -> RepoNode | None:
