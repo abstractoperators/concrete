@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 from queue import Queue
 from textwrap import dedent
-from typing import Dict, Optional, Union, cast
+from typing import Dict, Optional, Union
 from uuid import UUID
 
 import boto3
@@ -18,7 +18,6 @@ import networkx as nx
 import requests
 from networkx.drawing.nx_agraph import graphviz_layout
 from requests import Response
-from sqlmodel.orm.session import Session
 
 from concrete.clients import OpenAIClient
 
@@ -772,7 +771,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Args:
             node_id (UUID): The ID of the node to update.
         """
-        db = Session, SessionLocal()
+        db = SessionLocal()
         child = crud.get_repo_node(db=db, repo_node_id=child_id)
         if child is not None:
             parent_id = child.parent_id
@@ -786,11 +785,13 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     @classmethod
     def _get_updated_parent_summary(cls, child_node_id: UUID) -> str:
         """
-        Updates parent with child summary. Similar to _summarize_children, but only for a single child.
+        Returns an updated parent summary based on the existing summaries of a parent and child node.
         """
         db = SessionLocal()
         child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
-        parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
+        if child is not None:
+            parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
+
         if parent is None:
             return ''
         parent_summary = parent.summary
