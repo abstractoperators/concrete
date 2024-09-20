@@ -102,4 +102,8 @@ celery: rabbitmq
 
 # local swagger UI
 local-api:
-	uvicorn webapp.api.server:app --reload
+	$(POETRY) fastapi dev webapp/api/server.py
+
+# local webapp-main
+local-webapp-main:
+	$(POETRY) fastapi dev webapp/main/server.py

@@ -1,12 +1,108 @@
 :root {
     --sans-serif-family: "Kantumruy Pro", sans-serif;
     --serif-family: "Judson", serif;
+    --rounding-rectangle: 16px;
+    --secondary-100: #FFEBFE;
+    --space-200: 8px;
+    --schemes-on-primary: #FFF;
+
+    --icon-large-container: 56px;
+
+    --icon-small-size: 24px;
+    --icon-small-height: 28px;
+    --icon-small-letter-spacing: 0px;
+
+    --circle-large: 40px;
+
+    --header-small-size: 24px;
+    --header-small-height: 28px;
+    --header-small-letter-spacing: 0px;
 }
 
-h1, h2 {
+.icon {
     font-family: var(--sans-serif-family);
+    font-style: normal;
 }
 
-ul {
+
+h3 {
+    color: #000;
+    text-align: left;
     font-family: var(--sans-serif-family);
+    font-size: var(--header-small-size);
+    font-style: normal;
+    font-weight: 700;
+    line-height: var(--header-small-height);
+    letter-spacing: var(--header-small-letter-spacing);
+}
+
+.operator-card-list {
+    display: flex;
+    width: 321px;
+    padding: var(--space-200);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-200);
+
+    background: var(--schemes-on-primary);
+}
+
+.operator-card {
+    display: flex;
+    width: 30em;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--rounding-rectangle);
+    background: var(--secondary-100);
+    box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.25);
+}
+
+.operator-avatar-and-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+}
+
+.operator-avatar-container {
+    width: var(--icon-large-container, 56px);
+    height: var(--icon-large-container, 56px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.operator-avatar-mask {
+    width: var(--circle-large);
+    height: var(--circle-large);
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.operator-avatar-mask img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.operator-avatar-text {
+    position: absolute;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    flex-shrink: 0;
+
+    color: #000;
+    text-align: center;
+    font-family: var(--sans-serif-family);
+    font-size: var(--icon-small-size);
+    font-style: normal;
+    font-weight: 500;
+    line-height: var(--icon-small-height);
+    letter-spacing: var(--icon-small-letter-spacing);
 }
