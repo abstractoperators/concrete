@@ -146,6 +146,7 @@ class HTTPTool(metaclass=MetaTool):
         Make an HTTP request to the specified url
         Throws an error if the request was unsuccessful
         """
+        print(method, url, kwargs)
         resp = HTTPClient().request(method, url, **kwargs)
         return cls._process_response(resp, url)
 

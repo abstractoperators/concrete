@@ -6,11 +6,13 @@ import time
 from abc import ABC, abstractmethod
 
 import jwt
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from concrete.clients import OpenAIClient
+from concrete.operators import Operator
 from concrete.tools import GithubTool, RestApiTool
 
 app = FastAPI()
@@ -34,6 +36,50 @@ class Webhook(ABC):
     @abstractmethod
     async def webhook_handler(self, request: Request):
         pass
+
+
+class SlackDaemon(Webhook):
+    def __init__(self):
+        super().__init__("/slack/webhook")
+
+    async def webhook_handler(self, request: Request, background_tasks: BackgroundTasks):
+        json_data = await request.json()
+        if json_data.get("type", None) == "url_verification":
+            challenge = json_data.get("challenge")
+            return Response(content=challenge, media_type="text/plain")
+
+        if json_data.get("type", None) == "event_callback":
+            if (event := json_data.get("event", {})) and (event.get("type", "")) == "app_mention":
+                text = event.get("text", "")
+                channel = event.get("channel", "")
+                if text and channel:
+                    background_tasks.add_task(self._respond, text, channel)
+
+        return Response(content="OK", media_type="text/plain")
+
+    def _respond(self, text: str, channel: str):
+        response_text = self._respond_to_message(text)
+        print(response_text)
+        self._post_message(channel, response_text)
+
+    def _post_message(self, channel: str, text: str):
+        """
+        Posts a message to channel as the bot user.
+        """
+        url = "https://slack.com/api/chat.postMessage"
+        slack_token = os.getenv("SLACK_BOT_TOKEN")
+        headers = {
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {slack_token}",
+        }
+
+        data = {"channel": channel, "text": text}
+        response = RestApiTool.post(url, headers=headers, data=json.dumps(data))
+
+    def _respond_to_message(self, text: str) -> str:
+        operator = Operator(clients={'openai': OpenAIClient()})
+        response = operator.chat(text).text
+        return response
 
 
 class AOGitHubDaemon(Webhook):
@@ -209,6 +255,6 @@ class AOGitHubDaemon(Webhook):
             return self._token
 
 
-hooks = [gh_daemon := AOGitHubDaemon()]
+hooks = [AOGitHubDaemon(), SlackDaemon()]
 for hook in hooks:
     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
