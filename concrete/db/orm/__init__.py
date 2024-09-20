@@ -1,3 +1,3 @@
-from .setup import SessionLocal
+from .setup import Session, SessionLocal
 
-__all__ = ["SessionLocal"]
+__all__ = ["SessionLocal", "Session"]

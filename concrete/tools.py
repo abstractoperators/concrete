@@ -1,72 +1,27 @@
-"""
-Tools for integration with OpenAI's Structured Outputs (and any other LLM that supports structured output).
-
-Use: Tools are used to provide operators methods that can be used to complete a task. Tools are defined as classes with methods that can be called. Operators are expected to return a list of called tools with syntax [Tool1, Tool2, ...]
-A returned tool syntax is expected to be evaluated using eval(tool_name.tool_call(params))
-eg) [AwsTool.deploy_to_aws(example_directory_name)]
-
-1) String representation of the tool tells operator what tools are available
-    a) Currently implemented with a metaclass defining __str__ for a class (a metaclass instance). The benefit of this is that the class does not need to be instantiated to get its string representation. Similarly, with staticmethods, the class does not need to be instantiated to use its methods
-        - The benefit of keeping tools inside a toolclass is to provide the tool organized helper functions.
-    b) Possible alternatives involving removal of tool class. https://stackoverflow.com/questions/20093811/how-do-i-change-the-representation-of-a-python-function. This would remove the complicated metaclass entirely in favor of a decorated function.
-
-2) TODO: Update prompting to get good tool call behavior.
-
-Example:
-In this example, TestTool is an example Tool that can be provided to an operator qna.
-Tools should have syntax documented in their docstrings so the operator knows how to use them.
-
-class TestTool(metaclass=ToolClass):
-    @classmethod
-    def test(cls, idk: str, another: int = 5) -> str:
-        '''idk: (Description of idk goes here)
-        another: (Description of another goes here)
-        Returns a string
-        '''
-        return f"Tested {idk}!"
-
-    def another_method(self):
-        pass
-
-
-class testOperator(operators.Operator):
-    def __init__(
-        self,
-        clients={'openai': OpenAIClient()},
-        instructions=("You are a software developer. You will answer completely, concisely, and accurately."
-        "When provided tools, you will first answer, then use tools to complete the task."),
-    ):
-        super().__init__(clients, instructions)
-
-    @operators.Operator.qna
-    def use_tools(self, question, tools: List[MetaTool]):
-
-        query = ""
-        if tools:
-            query += '''Here are your available tools:\
-                Either call the tool with its specified syntax, or leave its field blank.\n'''
-            for tool in tools:
-                query += str(tool)
-
-        query += '''\n\n{question}'''.format(question=question)
-        return query
-"""  # noqa: E501
-
 import base64
+import fnmatch
 import inspect
 import os
 import socket
 import time
 from datetime import datetime, timezone
+from queue import Queue
 from textwrap import dedent
 from typing import Dict, Optional, Union
+from uuid import UUID
 
 import boto3
+import chardet
+import matplotlib.pyplot as plt
+import networkx as nx
 import requests
 from requests import Response
 
+from concrete.clients import OpenAIClient
+
 from .clients import CLIClient, HTTPClient
-from .db.orm.models import Node
+from .db import crud
+from .db.orm import Session, models
 from .models.base import ConcreteModel
 from .models.messages import ProjectDirectory
 
@@ -93,7 +48,11 @@ class MetaTool(type):
                 for param_name, param in signature.parameters.items():
                     param_str = param_name
                     if param.annotation != inspect.Parameter.empty:
-                        param_str += f": {param.annotation.__name__}"
+                        if hasattr(param.annotation, '__name__'):
+                            param_str += f": {param.annotation.__name__}"
+                        else:
+                            # Handle Union types
+                            param_str += f": {str(param.annotation)}"
                     if param.default != inspect.Parameter.empty:
                         param_str += f" = {param.default}"
                     params.append(param_str)
@@ -662,14 +621,328 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def repo_to_knowledge(cls, org: str, repo: str, access_token: str) -> Node:
+    def parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
         """
-        Converts a repository into a knowledge graph.
+        Converts a directory into an unpopulated knowledge graph.
+        Stored in reponode table. Recursive programming is pain -> use a queue.
 
         args
             org (str): Organization or account owning the repo
             repo (str): The name of the repository
         Returns
-            Node: The root node of the knowledge graph
+            UUID: The root node id of the knowledge graph.
         """
-        raise NotImplementedError("This tool is not yet implemented.")
+        to_chunk: Queue[UUID] = Queue()
+
+        root_node = models.RepoNodeCreate(
+            org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
+        )
+
+        with Session() as db:
+            root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
+            to_chunk.put(root_node_id)
+
+        ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
+        if rel_gitignore_path:
+            with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
+                gitignore = f.readlines()
+                gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
+                ignore_paths.extend(gitignore)
+
+        while len(to_chunk.queue) > 0:
+            children_ids = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
+            for child_id in children_ids:
+                to_chunk.put(child_id)
+            CLIClient.emit(f"Remaining: {to_chunk.qsize()}")
+
+        KnowledgeGraphTool._summarize_from_leaves(root_node_id)
+
+        return root_node_id
+
+    @classmethod
+    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
+        """
+        Chunks a node into smaller nodes.
+        Adds children nodes to database, and returns them for further chunking.
+        """
+        with Session() as db:
+            parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+            if parent is None:
+                return []
+
+        children: list[models.RepoNodeCreate] = []
+        if parent.partition_type == 'directory':
+            files_and_directories = os.listdir(parent.abs_path)
+            files_and_directories = [
+                f for f in files_and_directories if not KnowledgeGraphTool._should_ignore(f, ignore_paths)
+            ]
+            for file_or_dir in files_and_directories:
+                path = os.path.join(parent.abs_path, file_or_dir)
+
+                partition_type = 'directory' if os.path.isdir(path) else 'file'
+                CLIClient.emit(f'Creating {partition_type} {file_or_dir}')
+                child = models.RepoNodeCreate(
+                    org=parent.org,
+                    repo=parent.repo,
+                    partition_type=partition_type,
+                    name=file_or_dir,
+                    summary='',
+                    abs_path=path,
+                    parent_id=parent.id,
+                )
+                children.append(child)
+
+        elif parent.partition_type == 'file':
+            pass
+            # Can possibly create child nodes for functions/classes in the file
+
+        res = []
+        for child in children:
+            with Session() as db:
+                child_node = crud.create_repo_node(db=db, repo_node_create=child)
+            res.append(child_node.id)
+
+        return res
+
+    @classmethod
+    def _should_ignore(cls, name: str, ignore_patterns: str) -> bool:
+        """
+        Helper function for deciding whether a file/dir should be in the knowledge graph.
+        """
+        for pattern in ignore_patterns:
+            if pattern.endswith('/'):
+                # Directory pattern
+                if fnmatch.fnmatch(name + '/', pattern):
+                    CLIClient.emit(f'Ignoring directory {name} due to pattern {pattern}')
+                    return True
+            else:
+                # File pattern
+                if fnmatch.fnmatch(name, pattern):
+                    CLIClient.emit(f'Ignoring file {name} due to pattern {pattern}')
+                    return True
+
+        return False
+
+    @classmethod
+    def _plot(cls, root_node_id: UUID):
+        """
+        Plots a knowledge graph node into a graph using Graphviz's 'dot' layout.
+        Useful for debugging & testing.
+        """
+        G = nx.DiGraph()
+        nodes: Queue[UUID] = Queue()
+        nodes.put(root_node_id)
+
+        while not nodes.empty():
+            node_id = nodes.get()
+            with Session() as db:
+                node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                if node is None:
+                    continue
+                parent, children = node, node.children
+
+            for child in children:
+                G.add_node(child.abs_path)
+                G.add_edge(parent.abs_path, child.abs_path)
+                nodes.put(child.id)
+
+        def _hierarchy_pos(G, root, levels=None, width=1.0, height=1.0):
+            # https://stackoverflow.com/questions/29586520/can-one-get-hierarchical-graphs-from-networkx-with-python-3/29597209#29597209
+            '''If there is a cycle that is reachable from root, then this will see infinite recursion.
+            G: the graph
+            root: the root node
+            levels: a dictionary
+                    key: level number (starting from 0)
+                    value: number of nodes in this level
+            width: horizontal space allocated for drawing
+            height: vertical space allocated for drawing'''
+            TOTAL = "total"
+            CURRENT = "current"
+
+            def make_levels(levels, node=root, currentLevel=0, parent=None):
+                """Compute the number of nodes for each level"""
+                if currentLevel not in levels:
+                    levels[currentLevel] = {TOTAL: 0, CURRENT: 0}
+                levels[currentLevel][TOTAL] += 1
+                neighbors = G.neighbors(node)
+                for neighbor in neighbors:
+                    if not neighbor == parent:
+                        levels = make_levels(levels, neighbor, currentLevel + 1, node)
+                return levels
+
+            def make_pos(pos, node=root, currentLevel=0, parent=None, vert_loc=0):
+                dx = 1 / levels[currentLevel][TOTAL]
+                left = dx / 2
+                pos[node] = ((left + dx * levels[currentLevel][CURRENT]) * width, vert_loc)
+                levels[currentLevel][CURRENT] += 1
+                neighbors = G.neighbors(node)
+                for neighbor in neighbors:
+                    if not neighbor == parent:
+                        pos = make_pos(pos, neighbor, currentLevel + 1, node, vert_loc - vert_gap)
+                return pos
+
+            if levels is None:
+                levels = make_levels({})
+            else:
+                levels = {level: {TOTAL: levels[level], CURRENT: 0} for level in levels}
+            vert_gap = height / (max([level for level in levels]) + 1)
+            return make_pos({})
+
+        with Session() as db:
+            root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
+            if not root_node:
+                db.close()
+                return
+        graph_root_node = root_node.abs_path
+        pos = _hierarchy_pos(G, root=graph_root_node)
+
+        plt.figure(figsize=(50, 10))
+        nx.draw(
+            G,
+            pos,
+            with_labels=True,
+            node_color='lightblue',
+            node_size=5000,
+            arrows=True,
+            font_size=6,
+            edge_color='gray',
+        )
+
+        plt.axis('off')
+        plt.show()
+
+    @classmethod
+    def _summarize_from_leaves(cls, root_node_id: UUID):
+        """
+        Summarize all nodes in reverse order of depth. Prerequisite on the graph being built.
+        """
+        node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
+        with Session() as db:
+            while node_ids[-1] != []:
+                to_append = []
+                for node_id in node_ids[-1]:
+                    node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                    if node is not None:
+                        children = node.children
+                        children_ids = [child.id for child in children]
+                        to_append.extend(children_ids)
+                node_ids.append(to_append)
+
+            while node_ids:
+                for node_id in node_ids.pop():
+                    summary = KnowledgeGraphTool._summarize(node_id)
+                    node_update = models.RepoNodeUpdate(summary=summary)
+                    crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
+
+    @classmethod
+    def _propagate_summaries(cls, child_id: UUID) -> None:
+        """
+        Recursively updates parent summaries. Prerequisite on the graph being built.
+
+        Args:
+            child_id (UUID): The id of the child node whose summary should be propagated.
+        """
+        with Session() as db:
+            child = crud.get_repo_node(db=db, repo_node_id=child_id)
+            if child is not None:
+                parent_id = child.parent_id
+                if parent_id is not None:
+                    updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(child_node_id=child_id)
+                    parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
+                    crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
+                    KnowledgeGraphTool._propagate_summaries(parent_id)
+        # TODO: Close session before recursion
+
+    @classmethod
+    def _get_updated_parent_summary(cls, child_node_id: UUID) -> str:
+        """
+        Returns an updated parent summary based on the existing summaries of a parent and child node.
+        """
+        with Session() as db:
+            child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
+            if child is not None and (parent_id := child.parent_id) is not None:
+                parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+            if child is None or parent is None:
+                raise ValueError(f'_get_updated_parent_summary: child or parent not found for {child_node_id}')
+
+            parent_summary = parent.summary
+            child_summary = child.summary
+            child_abs_path = child.abs_path
+        from concrete.operators import Executive
+
+        exec = Executive(clients={'openai': OpenAIClient()})
+        return exec.update_parent_summary(
+            parent_summary=parent_summary, child_name=child_abs_path, child_summary=child_summary
+        ).text
+
+    @classmethod
+    def _summarize_leaf(cls, leaf_node_id: UUID) -> str:
+        """
+        Summarizes contents of a leaf node.
+        TODO: Current implementation assumes that the leaf is a file - so generated summary is based on file contents.
+        Eventually, this should be able to summarize functions/classes in a file.
+        """
+        with Session() as db:
+            leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
+            if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == 'file':
+                path = leaf_node.abs_path
+
+        with open(path, 'rb') as file:
+            raw_data = file.read()
+        result = chardet.detect(raw_data)
+        encoding = result['encoding']
+        try:
+            if encoding is None:
+                encoding = 'utf-8'
+            contents = raw_data.decode(encoding)
+        except UnicodeDecodeError:
+            contents = raw_data.decode('utf-8', errors='replace')
+
+        from concrete.operators import Executive
+
+        exec = Executive(clients={"openai": OpenAIClient()})
+        return exec.summarize_file(contents=contents, file_name=path).text
+
+    @classmethod
+    def _summarize_from_children(cls, repo_node_id: UUID) -> str:
+        """
+        Summarizes a nodes children. Prerequisite on child nodes being summarized already.
+        """
+        with Session() as db:
+            parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
+            if parent is None:
+                raise ValueError(f"Node {repo_node_id} not found.")
+
+            children = parent.children
+            children_ids = [child.id for child in children]
+            children_summaries: list[str] = []
+            for child_id in children_ids:
+                child = crud.get_repo_node(db=db, repo_node_id=child_id)
+                if child is not None:
+                    children_summaries.append(child.summary)
+
+        from concrete.operators import Executive
+
+        exec = Executive({"openai": OpenAIClient()})
+        return exec.summarize_from_children(children_summaries).text
+
+    @classmethod
+    def _summarize(clas, node_id: UUID) -> str:
+        """
+        Summarizes a node.
+        If the node is a directory, it summarizes its children.
+        If the node is a file, it summarizes its contents.
+        """
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                return ''
+            node_id = node.id
+
+        # TODO: File can potentially have children in the future. ATM, only directories have children
+        CLIClient.emit(f"Summarizing {node.abs_path}")
+        if node.partition_type == 'directory':
+            return KnowledgeGraphTool._summarize_from_children(node_id)
+        elif node.partition_type == 'file':
+            return KnowledgeGraphTool._summarize_leaf(node_id)
+        return ''

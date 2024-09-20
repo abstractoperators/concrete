@@ -12,12 +12,17 @@ from .orm.models import (
     Message,
     MessageCreate,
     MessageUpdate,
+    Node,
+    NodeCreate,
     Operator,
     OperatorCreate,
     OperatorUpdate,
     Orchestrator,
     OrchestratorCreate,
     OrchestratorUpdate,
+    RepoNode,
+    RepoNodeCreate,
+    RepoNodeUpdate,
     Tool,
     ToolCreate,
     ToolUpdate,
@@ -304,3 +309,20 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
         db,
         get_orchestrator(db, orchestrator_id),
     )
+
+
+def create_node(db: Session, node_create: NodeCreate) -> Node:
+    return create_generic(db, Node(**node_create.model_dump()))
+
+
+def create_repo_node(db: Session, repo_node_create: RepoNodeCreate) -> RepoNode:
+    return create_generic(db, RepoNode(**repo_node_create.model_dump()))
+
+
+def get_repo_node(db: Session, repo_node_id: UUID) -> RepoNode | None:
+    stmt = select(RepoNode).where(RepoNode.id == repo_node_id)
+    return db.scalars(stmt).first()
+
+
+def update_repo_node(db: Session, repo_node_id: UUID, repo_node_update: RepoNodeUpdate) -> RepoNode | None:
+    return update_generic(db, get_repo_node(db, repo_node_id), repo_node_update)
