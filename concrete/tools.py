@@ -641,7 +641,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
         )
 
-        db = cast(Session, SessionLocal())
+        db = SessionLocal()
         db
         root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
         to_chunk.put(root_node_id)
@@ -670,14 +670,15 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Summarizes all leaf nodes, and propagates them up the tree.
         """
         node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
-        db = cast(Session, SessionLocal())
+        db = SessionLocal()
         while node_ids[-1] != []:
             to_append = []
             for node_id in node_ids[-1]:
                 node = crud.get_repo_node(db=db, repo_node_id=node_id)
-                children = node.children
-                children_ids = [child.id for child in children]
-                to_append.extend(children_ids)
+                if node is not None:
+                    children = node.children
+                    children_ids = [child.id for child in children]
+                    to_append.extend(children_ids)
             node_ids.append(to_append)
         node_ids.pop()  # Remove the empty list at the end
 
@@ -702,7 +703,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         while not nodes.empty():
             node_id = nodes.get()
-            db = cast(Session, SessionLocal())
+            db = SessionLocal()
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
                 continue
@@ -771,15 +772,12 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Args:
             node_id (UUID): The ID of the node to update.
         """
-        db = cast(Session, SessionLocal())
+        db = Session, SessionLocal()
         child = crud.get_repo_node(db=db, repo_node_id=child_id)
         if child is not None:
             parent_id = child.parent_id
             if parent_id is not None:
-                parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-                updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(
-                    parent.summary, child.summary, child.name
-                )
+                updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(child_node_id=child_id)
                 parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
                 crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
                 KnowledgeGraphTool._propagate_summaries(parent_id)
@@ -886,7 +884,7 @@ Contents: {contents}"""
         """
         Summarizes a nodes children. Prerequisite on child nodes being summarized already.
         """
-        db = cast(Session, SessionLocal())
+        db = SessionLocal()
         parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
         children = parent.children
         children_ids = [child.id for child in children]
@@ -919,7 +917,7 @@ Here are the children summaries. Children can be either files or directories. Th
         If the node is a directory, it summarizes its children.
         If the node is a file, it summarizes its contents.
         """
-        db = cast(Session, SessionLocal())
+        db = SessionLocal()
         node = crud.get_repo_node(db=db, repo_node_id=node_id)
         if node is None:
             return ''
@@ -940,7 +938,7 @@ Here are the children summaries. Children can be either files or directories. Th
         Adds children nodes to database, and returns them for further chunking.
         michael: I hate recursive programming -> I'm going to do it with two functions.
         """
-        db = cast(Session, SessionLocal())
+        db = SessionLocal()
         parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
         if parent is None:
             return []
