@@ -3,7 +3,6 @@ import fnmatch
 import inspect
 import os
 import socket
-import textwrap
 import time
 from datetime import datetime, timezone
 from queue import Queue
@@ -16,7 +15,6 @@ import chardet
 import matplotlib.pyplot as plt
 import networkx as nx
 import requests
-from networkx.drawing.nx_agraph import graphviz_layout
 from requests import Response
 
 from concrete.clients import OpenAIClient
@@ -751,31 +749,71 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 G.add_edge(parent.abs_path, child.abs_path)
                 nodes.put(child.id)
 
-        plt.figure(figsize=(40, 15), dpi=300)
-        pos = graphviz_layout(G, prog='dot', args='-Granksep="1",-Gnodesep="3"')
+        def _hierarchy_pos(G, root, levels=None, width=1.0, height=1.0):
+            # https://stackoverflow.com/questions/29586520/can-one-get-hierarchical-graphs-from-networkx-with-python-3/29597209#29597209
+            '''If there is a cycle that is reachable from root, then this will see infinite recursion.
+            G: the graph
+            root: the root node
+            levels: a dictionary
+                    key: level number (starting from 0)
+                    value: number of nodes in this level
+            width: horizontal space allocated for drawing
+            height: vertical space allocated for drawing'''
+            TOTAL = "total"
+            CURRENT = "current"
 
-        wrapped_labels = {node: '\n'.join(textwrap.wrap(node, width=12)) for node in G.nodes()}
+            def make_levels(levels, node=root, currentLevel=0, parent=None):
+                """Compute the number of nodes for each level"""
+                if currentLevel not in levels:
+                    levels[currentLevel] = {TOTAL: 0, CURRENT: 0}
+                levels[currentLevel][TOTAL] += 1
+                neighbors = G.neighbors(node)
+                for neighbor in neighbors:
+                    if not neighbor == parent:
+                        levels = make_levels(levels, neighbor, currentLevel + 1, node)
+                return levels
 
+            def make_pos(pos, node=root, currentLevel=0, parent=None, vert_loc=0):
+                dx = 1 / levels[currentLevel][TOTAL]
+                left = dx / 2
+                pos[node] = ((left + dx * levels[currentLevel][CURRENT]) * width, vert_loc)
+                levels[currentLevel][CURRENT] += 1
+                neighbors = G.neighbors(node)
+                for neighbor in neighbors:
+                    if not neighbor == parent:
+                        pos = make_pos(pos, neighbor, currentLevel + 1, node, vert_loc - vert_gap)
+                return pos
+
+            if levels is None:
+                levels = make_levels({})
+            else:
+                levels = {level: {TOTAL: levels[level], CURRENT: 0} for level in levels}
+            vert_gap = height / (max([level for level in levels]) + 1)
+            return make_pos({})
+
+        db = SessionLocal()
+        root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
+        if not root_node:
+            db.close()
+            return
+        db.close()
+        graph_root_node = root_node.abs_path
+        pos = _hierarchy_pos(G, root=graph_root_node)
+
+        plt.figure(figsize=(50, 10))
         nx.draw(
             G,
             pos,
             with_labels=True,
-            labels=wrapped_labels,
             node_color='lightblue',
-            node_size=4000,
-            font_size=8,
-            width=1,
-            alpha=0.8,
+            node_size=5000,
             arrows=True,
-            arrowsize=20,
-            arrowstyle='->',
-            node_shape='s',
+            font_size=6,
+            edge_color='gray',
         )
 
         plt.axis('off')
-        plt.savefig('knowledge_graph.png', format='png', dpi=300)
         plt.show()
-        plt.close()
 
     @classmethod
     def _summarize_from_leaves(cls, root_node_id: UUID):
