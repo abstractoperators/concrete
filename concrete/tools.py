@@ -636,25 +636,33 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         to_chunk: Queue[UUID] = Queue()
 
         root_node = models.RepoNodeCreate(
-            org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
+            org=org,
+            repo=repo,
+            partition_type='directory',
+            name=f'org/{repo}',
+            summary='',
+            children_summaries='',
+            abs_path=dir_path,
         )
+        if (root_node_id := KnowledgeGraphTool.get_root_node(org, repo)) is not None:
+            pass
+        else:
+            with Session() as db:
+                root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
+                to_chunk.put(root_node_id)
 
-        with Session() as db:
-            root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
-            to_chunk.put(root_node_id)
+            ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
+            if rel_gitignore_path:
+                with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
+                    gitignore = f.readlines()
+                    gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
+                    ignore_paths.extend(gitignore)
 
-        ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
-        if rel_gitignore_path:
-            with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
-                gitignore = f.readlines()
-                gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
-                ignore_paths.extend(gitignore)
-
-        while len(to_chunk.queue) > 0:
-            children_ids = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
-            for child_id in children_ids:
-                to_chunk.put(child_id)
-            CLIClient.emit(f"Remaining: {to_chunk.qsize()}")
+            while len(to_chunk.queue) > 0:
+                children_ids = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
+                for child_id in children_ids:
+                    to_chunk.put(child_id)
+                CLIClient.emit(f"Remaining: {to_chunk.qsize()}")
 
         KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
 
@@ -688,6 +696,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     partition_type=partition_type,
                     name=file_or_dir,
                     summary='',
+                    children_summaries='',
                     abs_path=path,
                     parent_id=parent.id,
                 )
@@ -939,16 +948,17 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             for child_id in children_ids:
                 child = crud.get_repo_node(db=db, repo_node_id=child_id)
                 if child is not None:
-                    children_summaries.append(child.summary)
+                    children_summaries.append(f'{child.abs_path}: {child.summary}')
 
         from concrete.operators import Executive
 
         exec = Executive({"openai": OpenAIClient()})
         node_summary = exec.summarize_from_children(children_summaries, parent_name, message_format=NodeSummary)
-        parent_node_update = models.RepoNodeUpdate(
-            summary=node_summary.overall_summary,
-            children_summaries="\n".join(node_summary.children_summaries),
+        overall_summary = node_summary.overall_summary
+        children_summaries = '\n'.join(
+            [f'{child_summary.node_name}: {child_summary.summary}' for child_summary in node_summary.children_summaries]
         )
+        parent_node_update = models.RepoNodeUpdate(summary=overall_summary, children_summaries=children_summaries)
         with Session() as db:
             crud.update_repo_node(db=db, repo_node_id=repo_node_id, repo_node_update=parent_node_update)
 

@@ -249,14 +249,13 @@ Child Summaries:
    ...
 
 Guidelines:
-- Ensure the Overall Summary provides a concise overview of all children.
+- Ensure the Overall Summary provides a high-level  overview of all children while preserving important implementation details.
 - Each child summary should accurately represent its corresponding node.
-
-Your response should be the updated parent summary in the specified format."""
+"""  # noqa
 
     def summarize_file(self, contents: str, file_name: str, *args, **kwargs) -> str:
         return f"""Provide a concise summary of the following file, focusing on its purpose and the key functionalities of its contents. 
-The summary should give a high-level overview that explains what the file is for and its primary components or actions.
+The summary should give a high-level overview that explains what the file is for and its primary components or actions. Keep critical implementation details in mind.
 Return the summary in one paragraph.
 Below are the file's name and contents:
 Name: {file_name}
@@ -269,7 +268,7 @@ summary: <summary of file contents>
 
     def summarize_from_children(self, children_summaries: list[str], parent_name: str, *args, **kwargs) -> str:
         joined_summaries = "\n\n".join(children_summaries)
-        return f"""Summarize the following by aggregating the following children. Deliver a high-level overview. Ensure ALL children and their summaries are captured. Emphasize the summaries of children core to the application's functionality.
+        return f"""Summarize the following by aggregating the following children. Deliver a high-level overview. Ensure ALL children and their summaries are captured. Emphasize the summaries of children core to the application's functionality. Keep critical implementation details in children summaries in mind.
     
 Your returned summary should follow the format:
 Node Name: {parent_name}

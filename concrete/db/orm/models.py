@@ -249,7 +249,7 @@ class RepoNodeBase(Base):
     partition_type: str = Field(description="Type of the node. directory/file/chunk")
     name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")
     summary: str = Field(description="Summary of the node.")
-    children_summaries: list[str] = Field(description="Brief summary of each child node.")
+    children_summaries: str = Field(description="Brief summary of each child node.")
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
@@ -265,7 +265,7 @@ class RepoNodeUpdate(NodeUpdate):
     type: str | None = Field(description="Type of the node. directory/file/chunk", default=None)
     name: str | None = Field(description="Name of the chunk. eg README.md, module.py/func_foo", default=None)
     summary: str | None = Field(description="Summary of the node.", default=None)
-    children_summaries: list[str] | None = Field(description="Brief summary of each child node.", default=None)
+    children_summaries: str | None = Field(description="Brief summary of each child node.", default=None)
     abs_path: str | None = Field(description="", default=None)
 
 
