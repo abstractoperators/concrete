@@ -621,7 +621,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
+    def _parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
         """
         Converts a directory into an unpopulated knowledge graph.
         Stored in reponode table. Recursive programming is pain -> use a queue.
@@ -968,3 +968,25 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         elif node.partition_type == 'file':
             return KnowledgeGraphTool._summarize_leaf(node_id)
         return ''
+
+    @classmethod
+    def get_node_summary(cls, node_id: UUID) -> str:
+        """
+        Returns the summary of a node.
+        """
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                return ''
+            return node.summary
+
+    @classmethod
+    def get_node_parent(cls, node_id: UUID) -> UUID | None:
+        """
+        Returns the UUID of the parent of node (if it exists, else None).
+        """
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None or node.parent_id is None:
+                return None
+            return node.parent_id
