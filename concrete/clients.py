@@ -3,10 +3,16 @@ from typing import TypeVar
 
 import requests
 import requests.adapters
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel as PydanticModel
 from requests.adapters import HTTPAdapter, Retry
+from tenacity import (  # for exponential backoff
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 
 from .models.messages import Message, TextMessage
 
@@ -29,6 +35,12 @@ class OpenAIClient(Client):
         self.default_temperature = temperature or float(str(os.getenv("OPENAI_TEMPERATURE")))
         self.model = model or "gpt-4o-mini"
 
+    @retry(
+        wait=wait_random_exponential(min=1, max=60),
+        stop=stop_after_attempt(6),
+        retry=retry_if_exception_type(RateLimitError),
+        reraise=True,
+    )
     def complete(
         self,
         messages: list[dict[str, str]],
@@ -45,11 +57,15 @@ class OpenAIClient(Client):
             **kwargs,
         }
 
-        # Pydantic Model
-        if isinstance(message_format, type(Message)):
-            return self.client.beta.chat.completions.parse(**request_params)
-        # JSON Schema
-        return self.client.chat.completions.create(**request_params)
+        try:
+            # Pydantic Model
+            if isinstance(message_format, type(Message)):
+                return self.client.beta.chat.completions.parse(**request_params)
+            # JSON Schema
+            return self.client.chat.completions.create(**request_params)
+        except RateLimitError as e:
+            print(f"Rate limit error: {e}")
+            raise e  # retry decorator
 
     @staticmethod
     def model_to_schema(model: type[PydanticModel]) -> dict[str, str | dict]:

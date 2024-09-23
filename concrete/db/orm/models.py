@@ -199,12 +199,6 @@ class NodeBase(Base):
     Base model for a Node.
     """
 
-    summary: str = Field(description="Summary of the node.", max_length=50)
-    # TODO: Better solution for domain. ATM, it's going to look like repo/abop/concrete/[file_path]/[chunk].
-    # This solution is slow and not scalable.
-    domain: str = Field(
-        description="Association of the node.", max_length=50
-    )  # Refers to what the node is summarizing, like a file/dir/function
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
@@ -214,16 +208,6 @@ class NodeBase(Base):
 
 
 class NodeUpdate(Base):
-    summary: str | None = Field(
-        default=None,
-        description="Summary of the node.",
-        max_length=50,
-    )
-    domain: str | None = Field(
-        default=None,
-        description="Domain knowledge association of the node.",
-        max_length=50,
-    )
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
@@ -247,6 +231,54 @@ class Node(NodeBase, MetadataMixin, table=True):
     )
 
 
-# TODO create user model for owner
+# Figure out an elegant solution to inherit from Node
+# https://github.com/fastapi/sqlmodel/issues/488
+# https://docs.sqlalchemy.org/en/20/orm/inheritance.html
+# https://docs.sqlalchemy.org/en/20/orm/self_referential.html
+# https://docs.sqlalchemy.org/en/20/_modules/examples/adjacency_list/adjacency_list.html
+
+# Inheritance might be bad
+# https://sqlmodel.tiangolo.com/tutorial/fastapi/multiple-models/#docs-ui-with-hero-responses
+# https://sqlmodel.tiangolo.com/tutorial/fastapi/relationships/#models-with-relationships
+
+
+class RepoNodeBase(Base):
+    org: str = Field(description="Organization to which the repo belongs.", index=True)
+    repo: str = Field(description="Repository name.", index=True)
+    partition_type: str = Field(description="Type of the node. directory/file/chunk")
+    name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")
+    summary: str = Field(description="Summary of the node.")
+    parent_id: UUID | None = Field(
+        default=None,
+        description="ID of the parent node.",
+        foreign_key="reponode.id",
+        ondelete="CASCADE",
+    )
+    abs_path: str = Field(description="")
+
+
+class RepoNodeUpdate(NodeUpdate):
+    org: str | None = Field(description="Organization to which the repo belongs.", default=None)
+    repo: str | None = Field(description="Repository name.", default=None)
+    type: str | None = Field(description="Type of the node. directory/file/chunk", default=None)
+    name: str | None = Field(description="Name of the chunk. eg README.md, module.py/func_foo", default=None)
+    summary: str | None = Field(description="Summary of the node.", default=None)
+    abs_path: str | None = Field(description="", default=None)
+
+
+class RepoNodeCreate(RepoNodeBase):
+    pass
+
+
+class RepoNode(RepoNodeBase, MetadataMixin, table=True):
+    children: list["RepoNode"] = Relationship(
+        back_populates="parent",
+        cascade_delete=True,
+    )
+    parent: Optional["RepoNode"] = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs={"remote_side": "reponode.c.id"},
+    )
+
 
 SQLModel.metadata.create_all(bind=engine)
