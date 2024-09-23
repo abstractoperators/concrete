@@ -57,12 +57,13 @@ class MetaTool(type):
                         param_str += f" = {param.default}"
                     params.append(param_str)
 
-                return_str = (
-                    f" -> {signature.return_annotation.__name__}"
-                    if signature.return_annotation != inspect.Signature.empty
-                    and signature.return_annotation is not None
-                    else ""
-                )
+                return_str = ""
+                if signature.return_annotation != inspect.Signature.empty:
+                    if hasattr(signature.return_annotation, '__name__'):
+                        return_str = f" -> {signature.return_annotation.__name__}"
+                    else:
+                        # Handle Union types
+                        return_str = f" -> {str(signature.return_annotation)}"
 
                 method_signature = f"{attr}({', '.join(params)}){return_str}"
                 method_info.append(f"{method_signature}\n\t{docstring}")
