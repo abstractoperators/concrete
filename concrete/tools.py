@@ -1009,6 +1009,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             if node is None:
                 return ''
             return node.abs_path
+
     @classmethod
     def _get_node_by_path(cls, org: str, repo: str, path: str | None = None) -> UUID | None:
         """
@@ -1070,5 +1071,31 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo)
         node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path)
-        documentation_path = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
-        print(documentation_path)
+        found, documentation_path = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
+
+        if not found:
+            # Make a new file + node, then update summaries
+            documentation_path = f'{documentation_path}/{path}.md'
+            with open(documentation_path, 'w') as f:
+                f.write('')
+
+        with open(documentation_path, 'r') as f:
+            existing_documentation = f.read()
+        with open(path, 'r') as f:
+            module_contents = f.read()
+
+        # Zero-shot w/ existing documentation + path content
+        from concrete.operators import Executive
+
+        exec = Executive(clients={"openai": OpenAIClient()})
+        suggested_documentation = exec.chat(
+            f"""Your job is to document the following module. 
+    Existing Documentation: {existing_documentation}
+    Module Contents: {module_contents}
+
+    Respond with documentation for the module to be appended to the existing documentation.
+    Follow the style and structure of existing documentation.
+    Be comprehensive and clear in your documentation.
+    Do NOT repeat existing documentation; return only new documentation to be appended"""
+        ).text
+        print(suggested_documentation)
