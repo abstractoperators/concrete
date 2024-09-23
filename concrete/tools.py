@@ -991,3 +991,16 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             if node is None or node.parent_id is None:
                 return None
             return node.parent_id
+
+    @classmethod
+    def get_node_children(cls, node_id: UUID) -> dict[str, UUID]:
+        """
+        Returns the UUIDs of the children of a node.
+        {child_name: child_id}
+        """
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                return {}
+            children = node.children
+            return {child.name: child.id for child in children}
