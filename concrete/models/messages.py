@@ -19,6 +19,8 @@ String, Number, Boolean, Integer, Object, Array, Enum, anyOf
 Optional is not allowed with OpenAI Structured Outputs. All fields must be required.
 """
 
+from uuid import UUID
+
 from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
@@ -91,3 +93,7 @@ class NodeSummary(Message, KombuMixin):
     node_name: str = Field(description="Name of the node")
     overall_summary: str = Field(description="Summary of the node")
     children_summaries: list[ChildNodeSummary] = Field(description="Brief description of each child node")
+
+
+class NodeUUID(Message, KombuMixin):
+    node_uuid: str = Field(description="UUID of the node")

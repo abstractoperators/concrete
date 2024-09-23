@@ -333,7 +333,7 @@ def get_root_repo_node(db: Session, org: str, repo: str) -> RepoNode | None:
     # or https://stackoverflow.com/questions/5602918/select-null-values-in-sqlalchemy
     stmt = select(RepoNode).where(
         RepoNode.org == org, RepoNode.repo == repo, RepoNode.parent_id.is_(None)
-    )  # type: ignore # noqa
+    )  # type: ignore
     return db.scalars(stmt).first()
 
 

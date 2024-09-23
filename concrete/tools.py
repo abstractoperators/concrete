@@ -18,6 +18,7 @@ import requests
 from requests import Response
 
 from concrete.clients import OpenAIClient
+from concrete.models.messages import NodeUUID
 
 from .clients import CLIClient, HTTPClient
 from .db import crud
@@ -963,15 +964,16 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             crud.update_repo_node(db=db, repo_node_id=repo_node_id, repo_node_update=parent_node_update)
 
     @classmethod
-    def get_node_summary(cls, node_id: UUID) -> str:
+    def get_node_summary(cls, node_id: UUID) -> tuple[str, str]:
         """
         Returns the summary of a node.
+        (overall_summary, children_summaries)
         """
         with Session() as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
                 return ''
-            return node.summary
+            return (node.summary, node.children_summaries)
 
     @classmethod
     def get_node_parent(cls, node_id: UUID) -> UUID | None:
@@ -998,23 +1000,75 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             return {child.name: child.id for child in children}
 
     @classmethod
-    def get_root_node(cls, org: str, repo: str) -> UUID | None:
+    def get_node_path(cls, node_id: UUID) -> str:
         """
-        Returns the root node of a repository
+        Returns the abs_path attribute of a node.
         """
         with Session() as db:
-            root_node = crud.get_root_repo_node(db=db, org=org, repo=repo)
-            if root_node is None:
-                return None
-            return root_node.id
-
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                return ''
+            return node.abs_path
     @classmethod
-    def _get_node_by_path(cls, org: str, repo: str, path: str) -> UUID | None:
+    def _get_node_by_path(cls, org: str, repo: str, path: str | None = None) -> UUID | None:
         """
         Returns the UUID of a node by its path. Enables file pointer lookup.
+        If path is none, returns the root node
         """
         with Session() as db:
-            node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path)
+            if path is None:
+                node = crud.get_root_repo_node(db=db, org=org, repo=repo)
+            else:
+                node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path)
             if node is None:
                 return None
             return node.id
+
+    # ----------------- WIP --------------------
+    @classmethod
+    def navigate_to_documentation(node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
+        """
+        Recommends documentation location for a given path.
+        Path refers to a module to be documented (e.g. tools)
+        Returns a boolean to indicate whether an appropriate node exists.
+        Returns current's file path, which represents the documentation location if the boolean is True (e.g. docs/tools.md)
+        """
+        node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
+
+        cur_node_summary = KnowledgeGraphTool.get_node_summary(cur_id)
+        cur_children_nodes = KnowledgeGraphTool.get_node_children(cur_id)
+
+        if not cur_children_nodes:
+            print(cur_children_nodes)
+            return (True, KnowledgeGraphTool.get_node_path(cur_id))
+
+        from concrete.operators import Executive
+
+        exec = Executive(clients={"openai": OpenAIClient()})
+        next_node_id = exec.chat(
+            f"""You are responsible for navigating to the best node to document the following module. 
+        Module: {node_to_document_summary}
+        
+        The following is a summary of your current location and its children: {cur_node_summary}
+        
+        The following is a list of your current locations children: {cur_children_nodes}
+        Respond with the UUID of the child node you wish to navigate to. 
+        If you do not believe an appropriate node exists, respond with NA.""",
+            message_format=NodeUUID,
+        ).node_uuid
+
+        if next_node_id == 'NA':
+            return (False, KnowledgeGraphTool.get_node_path(cur_id))
+
+        return KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
+
+    @classmethod
+    def recommend_documentation(org: str, repo: str, path: str) -> tuple[str, str]:
+        """
+        Recommends documentation a given path.
+        Returns a tuple of the documentation path and the documentation content.
+        """
+        root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo)
+        node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path)
+        documentation_path = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
+        print(documentation_path)
