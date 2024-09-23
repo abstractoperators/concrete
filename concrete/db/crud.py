@@ -329,5 +329,7 @@ def update_repo_node(db: Session, repo_node_id: UUID, repo_node_update: RepoNode
 
 
 def get_root_repo_node(db: Session, org: str, repo: str) -> RepoNode | None:
-    stmt = select(RepoNode).where(RepoNode.org == org, RepoNode.repo == repo, RepoNode.parent_id is None)
+    # Can't do is None in sqlalchemy. Use Comparators == !=
+    # or https://stackoverflow.com/questions/5602918/select-null-values-in-sqlalchemy
+    stmt = select(RepoNode).where(RepoNode.org == org, RepoNode.repo == repo, RepoNode.parent_id.is_(None))  # type: ignore # noqa
     return db.scalars(stmt).first()
