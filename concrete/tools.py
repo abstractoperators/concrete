@@ -23,7 +23,7 @@ from .clients import CLIClient, HTTPClient
 from .db import crud
 from .db.orm import Session, models
 from .models.base import ConcreteModel
-from .models.messages import ProjectDirectory
+from .models.messages import ChildNodeSummary, NodeSummary, ProjectDirectory
 
 TOOLS_REGISTRY = {}
 
@@ -871,9 +871,20 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         from concrete.operators import Executive
 
         exec = Executive(clients={'openai': OpenAIClient()})
-        return exec.update_parent_summary(
-            parent_summary=parent_summary, child_name=child_abs_path, child_summary=child_summary
-        ).text
+        node_summary = exec.update_parent_summary(
+            parent_summary=parent_summary,
+            child_name=child_abs_path,
+            child_summary=child_summary,
+            message_format=NodeSummary,
+        )
+        node_name = node_summary.node_name
+        overall_summary = node_summary.overall_summary
+        children_summaries = [
+            f"{child_summary.node_name}: {child_summary.summary}" for child_summary in node_summary.children_summaries
+        ]
+        return f"Node Name: {node_name}\nSummary: {overall_summary}\nChildren Summaries:\n" + "\n".join(
+            children_summaries
+        )
 
     @classmethod
     def _summarize_leaf(cls, leaf_node_id: UUID) -> str:
@@ -901,7 +912,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         from concrete.operators import Executive
 
         exec = Executive(clients={"openai": OpenAIClient()})
-        return exec.summarize_file(contents=contents, file_name=path).text
+        child_node_summary = exec.summarize_file(contents=contents, file_name=path, message_format=ChildNodeSummary)
+        child_node_name = child_node_summary.node_name
+        child_summary = child_node_summary.summary
+        return f"Node Name: {child_node_name}\nSummary: {child_summary}"
 
     @classmethod
     def _summarize_from_children(cls, repo_node_id: UUID) -> str:
@@ -924,7 +938,15 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         from concrete.operators import Executive
 
         exec = Executive({"openai": OpenAIClient()})
-        return exec.summarize_from_children(children_summaries).text
+        node_summary = exec.summarize_from_children(children_summaries, message_format=NodeSummary)
+        node_name = node_summary.node_name
+        overall_summary = node_summary.overall_summary
+        children_summaries = [
+            f"{child_summary.node_name}: {child_summary.summary}" for child_summary in node_summary.children_summaries
+        ]
+        return f"Node Name: {node_name}\nSummary: {overall_summary}\nChildren Summaries:\n" + "\n".join(
+            children_summaries
+        )
 
     @classmethod
     def _summarize(clas, node_id: UUID) -> str:
