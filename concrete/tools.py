@@ -656,7 +656,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 to_chunk.put(child_id)
             CLIClient.emit(f"Remaining: {to_chunk.qsize()}")
 
-        KnowledgeGraphTool._summarize_from_leaves(root_node_id)
+        KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
 
         return root_node_id
 
@@ -813,9 +813,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         plt.show()
 
     @classmethod
-    def _summarize_from_leaves(cls, root_node_id: UUID):
+    def _upsert_all_summaries_from_leaves(cls, root_node_id: UUID):
         """
-        Summarize all nodes in reverse order of depth. Prerequisite on the graph being built.
+        Creates or overwrites all summaries in the knowledge graph.
+        Prerequisite on the graph being built.
         """
         node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
         with Session() as db:
@@ -831,44 +832,45 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
             while node_ids:
                 for node_id in node_ids.pop():
-                    summary = KnowledgeGraphTool._summarize(node_id)
-                    node_update = models.RepoNodeUpdate(summary=summary)
-                    crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
+                    node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                    if node is not None:
+                        if node.partition_type == 'directory':
+                            KnowledgeGraphTool._upsert_parent_summary_from_children(node_id)
+                        elif node.partition_type == 'file':
+                            KnowledgeGraphTool._upsert_leaf_summary(node_id)
 
     @classmethod
-    def _propagate_summaries(cls, child_id: UUID) -> None:
+    def _upsert_parent_summaries_to_root(cls, child_id: UUID) -> None:
         """
-        Recursively updates parent summaries. Prerequisite on the graph being built.
-
-        Args:
-            child_id (UUID): The id of the child node whose summary should be propagated.
+        Recursively updates all parent summaries up until the root. Prerequisite on the graph being built.
         """
         with Session() as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_id)
             if child is not None:
                 parent_id = child.parent_id
                 if parent_id is not None:
-                    updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(child_node_id=child_id)
-                    parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
-                    crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
-                    KnowledgeGraphTool._propagate_summaries(parent_id)
-        # TODO: Close session before recursion
+                    KnowledgeGraphTool._upsert_parent_summary_from_child(child_id)
+
+        if child is not None and child.parent_id is not None:
+            KnowledgeGraphTool._upsert_parent_summaries_to_root(child.parent_id)
 
     @classmethod
-    def _get_updated_parent_summary(cls, child_node_id: UUID) -> str:
+    def _upsert_parent_summary_from_child(cls, child_node_id: UUID):
         """
-        Returns an updated parent summary based on the existing summaries of a parent and child node.
+        Updates parent summary with child summary.
         """
         with Session() as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
             if child is not None and (parent_id := child.parent_id) is not None:
                 parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-            if child is None or parent is None:
-                raise ValueError(f'_get_updated_parent_summary: child or parent not found for {child_node_id}')
+            else:
+                raise ValueError(f'Child or parent not found for {child_node_id}')
 
             parent_summary = parent.summary
+            parent_children_summaries = parent.children_summaries
             child_summary = child.summary
             child_abs_path = child.abs_path
+
         from concrete.operators import Executive
 
         exec = Executive(clients={'openai': OpenAIClient()})
@@ -878,21 +880,22 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             child_summary=child_summary,
             message_format=NodeSummary,
         )
-        node_name = node_summary.node_name
-        overall_summary = node_summary.overall_summary
-        children_summaries = [
-            f"{child_summary.node_name}: {child_summary.summary}" for child_summary in node_summary.children_summaries
-        ]
-        return f"Node Name: {node_name}\nSummary: {overall_summary}\nChildren Summaries:\n" + "\n".join(
-            children_summaries
-        )
+        with Session() as db:
+            parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+            if parent is not None:
+                parent_overall_summary = node_summary.overall_summary
+                parent_children_summaries = "\n".join(node_summary.children_summaries)
+                parent_node_update = models.RepoNodeUpdate(
+                    summary=parent_overall_summary, children_summaries=parent_children_summaries
+                )
+                crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_node_update)
 
     @classmethod
-    def _summarize_leaf(cls, leaf_node_id: UUID) -> str:
+    def _upsert_leaf_summary(cls, leaf_node_id: UUID):
         """
-        Summarizes contents of a leaf node.
+        Creates or overwrites a leaf summary.
         TODO: Current implementation assumes that the leaf is a file - so generated summary is based on file contents.
-        Eventually, this should be able to summarize functions/classes in a file.
+        Eventually, this should be able to summ arize functions/classes in a file.
         """
         with Session() as db:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
@@ -903,6 +906,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             raw_data = file.read()
         result = chardet.detect(raw_data)
         encoding = result['encoding']
+
         try:
             if encoding is None:
                 encoding = 'utf-8'
@@ -914,14 +918,14 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         exec = Executive(clients={"openai": OpenAIClient()})
         child_node_summary = exec.summarize_file(contents=contents, file_name=path, message_format=ChildNodeSummary)
-        child_node_name = child_node_summary.node_name
-        child_summary = child_node_summary.summary
-        return f"Node Name: {child_node_name}\nSummary: {child_summary}"
+        repo_node_create = models.RepoNodeUpdate(summary=child_node_summary.summary)
+        with Session() as db:
+            crud.update_repo_node(db=db, repo_node_id=leaf_node_id, repo_node_update=repo_node_create)
 
     @classmethod
-    def _summarize_from_children(cls, repo_node_id: UUID) -> str:
+    def _upsert_parent_summary_from_children(cls, repo_node_id: UUID):
         """
-        Summarizes a nodes children. Prerequisite on child nodes being summarized already.
+        Creates or overwrites a nodes summary using all of its children.
         """
         with Session() as db:
             parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
@@ -931,6 +935,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             children = parent.children
             children_ids = [child.id for child in children]
             children_summaries: list[str] = []
+            parent_name = parent.abs_path
             for child_id in children_ids:
                 child = crud.get_repo_node(db=db, repo_node_id=child_id)
                 if child is not None:
@@ -939,38 +944,13 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         from concrete.operators import Executive
 
         exec = Executive({"openai": OpenAIClient()})
-        node_summary = exec.summarize_from_children(children_summaries, message_format=NodeSummary)
-        node_name = node_summary.node_name
-        overall_summary = node_summary.overall_summary
-        children_summaries = [
-            f"{child_summary.node_name}: {child_summary.summary}" for child_summary in node_summary.children_summaries
-        ]
-        # Remove children's children summaries.
-        children_summaries = [child_summary.split('Children Summaries:')[0] for child_summary in children_summaries]
-        return f"Node Name: {node_name}\nSummary: {overall_summary}\nChildren Summaries:\n" + "\n".join(
-            children_summaries
+        node_summary = exec.summarize_from_children(children_summaries, parent_name, message_format=NodeSummary)
+        parent_node_update = models.RepoNodeUpdate(
+            summary=node_summary.overall_summary,
+            children_summaries="\n".join(node_summary.children_summaries),
         )
-
-    @classmethod
-    def _summarize(clas, node_id: UUID) -> str:
-        """
-        Summarizes a node.
-        If the node is a directory, it summarizes its children.
-        If the node is a file, it summarizes its contents.
-        """
         with Session() as db:
-            node = crud.get_repo_node(db=db, repo_node_id=node_id)
-            if node is None:
-                return ''
-            node_id = node.id
-
-        # TODO: File can potentially have children in the future. ATM, only directories have children
-        CLIClient.emit(f"Summarizing {node.abs_path}")
-        if node.partition_type == 'directory':
-            return KnowledgeGraphTool._summarize_from_children(node_id)
-        elif node.partition_type == 'file':
-            return KnowledgeGraphTool._summarize_leaf(node_id)
-        return ''
+            crud.update_repo_node(db=db, repo_node_id=repo_node_id, repo_node_update=parent_node_update)
 
     @classmethod
     def get_node_summary(cls, node_id: UUID) -> str:
@@ -1017,3 +997,14 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             if root_node is None:
                 return None
             return root_node.id
+
+    @classmethod
+    def _get_node_by_path(cls, org: str, repo: str, path: str) -> UUID | None:
+        """
+        Returns the UUID of a node by its path. Enables file pointer lookup.
+        """
+        with Session() as db:
+            node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path)
+            if node is None:
+                return None
+            return node.id
