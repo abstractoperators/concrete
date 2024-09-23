@@ -251,19 +251,20 @@ Guidelines:
 Your response should be the updated parent summary in the specified format."""
 
     def summarize_file(self, contents: str, file_name: str, *args, **kwargs) -> str:
-        return f"""Summarize the following contents. Be concise, and capture all functionalities.
+        return f"""Provide a concise summary of the following file, focusing on its purpose and the key functionalities of its contents. 
+The summary should give a high-level overview that explains what the file is for and its primary components or actions.
 Return the summary in one paragraph.
-Following is the contents and its name
+Below are the file's name and contents:
 Name: {file_name}
 Contents: {contents}
 
-Your summary should follow the format:
+Format your response as:
 <Name> Summary: <summary of contents>
-"""
+"""  # noqa
 
     def summarize_from_children(self, children_summaries: list[str], *args, **kwargs) -> str:
         joined_summaries = "\n\n".join(children_summaries)
-        return f"""Summarize the following directory. Be concise, and capture the main functionalities of the directory.
+        return f"""Summarize the following by aggregating the following children. Deliver a high-level overview, ensuring that important children are emphasized. The summary should capture ALL children, and the main functionalities of the children as a whole.
 Your returned summary should follow the format:
 <directory name> Summary: <overall summary of the directory>
 Children Summaries:
@@ -272,8 +273,8 @@ Children Summaries:
     - Child Name: <child Name>
       Child Summary: <child summary>
 
-Here are the children summaries. Children can be either files or directories. They have a similar summary format.
-{joined_summaries}"""
+Here are the children summaries.
+{joined_summaries}"""  # noqa
 
 
 class PromptEngineer(Operator):

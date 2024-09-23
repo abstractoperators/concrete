@@ -945,6 +945,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         children_summaries = [
             f"{child_summary.node_name}: {child_summary.summary}" for child_summary in node_summary.children_summaries
         ]
+        # Remove children's children summaries.
+        children_summaries = [child_summary.split('Children Summaries:')[0] for child_summary in children_summaries]
         return f"Node Name: {node_name}\nSummary: {overall_summary}\nChildren Summaries:\n" + "\n".join(
             children_summaries
         )
