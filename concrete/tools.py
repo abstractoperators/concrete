@@ -1006,3 +1006,14 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 return {}
             children = node.children
             return {child.name: child.id for child in children}
+
+    @classmethod
+    def get_root_node(cls, org: str, repo: str) -> UUID | None:
+        """
+        Returns the root node of a repository
+        """
+        with Session() as db:
+            root_node = crud.get_root_repo_node(db=db, org=org, repo=repo)
+            if root_node is None:
+                return None
+            return root_node.id

@@ -1,6 +1,7 @@
 from typing import Optional
 from uuid import UUID, uuid4
 
+from sqlalchemy.schema import Index
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
@@ -270,6 +271,7 @@ class RepoNodeCreate(RepoNodeBase):
     pass
 
 
+# https://stackoverflow.com/questions/70958639/composite-indexes-sqlmodel
 class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     children: list["RepoNode"] = Relationship(
         back_populates="parent",
@@ -279,6 +281,8 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
         back_populates="children",
         sa_relationship_kwargs={"remote_side": "reponode.c.id"},
     )
+
+    __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
 
 
 SQLModel.metadata.create_all(bind=engine)

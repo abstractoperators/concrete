@@ -264,7 +264,7 @@ Format your response as:
 
     def summarize_from_children(self, children_summaries: list[str], *args, **kwargs) -> str:
         joined_summaries = "\n\n".join(children_summaries)
-        return f"""Summarize the following by aggregating the following children. Deliver a high-level overview, ensuring that important children are emphasized. The summary should capture ALL children, and the main functionalities of the children as a whole.
+        return f"""Summarize the following by aggregating the following children. Deliver a high-level overview. Ensure ALL children and their summaries are captured. Emphasize the summaries of children core to the application's functionality.
 Your returned summary should follow the format:
 <directory name> Summary: <overall summary of the directory>
 Children Summaries:
