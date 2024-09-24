@@ -332,8 +332,8 @@ def get_root_repo_node(db: Session, org: str, repo: str) -> RepoNode | None:
     # Can't do is None in sqlalchemy. Use Comparators == !=
     # or https://stackoverflow.com/questions/5602918/select-null-values-in-sqlalchemy
     stmt = select(RepoNode).where(
-        RepoNode.org == org, RepoNode.repo == repo, RepoNode.parent_id.is_(None)
-    )  # type: ignore
+        RepoNode.org == org, RepoNode.repo == repo, RepoNode.parent_id.is_(None)  # type: ignore
+    )
     return db.scalars(stmt).first()
 
 

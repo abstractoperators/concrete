@@ -879,11 +879,13 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         with Session() as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
-            if child is not None and (parent_id := child.parent_id) is not None:
-                parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-            else:
-                raise ValueError(f'Child or parent not found for {child_node_id}')
+            if child and child.parent_id:
+                parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
 
+            if not child or not parent:
+                return
+
+            parent_id = parent.id
             parent_summary = parent.summary
             parent_children_summaries = parent.children_summaries
             child_summary = child.summary
@@ -892,17 +894,24 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         from concrete.operators import Executive
 
         exec = Executive(clients={'openai': OpenAIClient()})
-        node_summary = exec.update_parent_summary(
+        node_summary: NodeSummary = exec.update_parent_summary(
             parent_summary=parent_summary,
-            child_name=child_abs_path,
             child_summary=child_summary,
+            parent_child_summaries=parent_children_summaries,
+            child_name=child_abs_path,
             message_format=NodeSummary,
-        )
+        )  # type: ignore
+
         with Session() as db:
             parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
             if parent is not None:
                 parent_overall_summary = node_summary.overall_summary
-                parent_children_summaries = "\n".join(node_summary.children_summaries)
+                parent_children_summaries = '\n'.join(
+                    [
+                        f'{child_summary.node_name}: {child_summary.summary}'
+                        for child_summary in node_summary.children_summaries
+                    ]
+                )
                 parent_node_update = models.RepoNodeUpdate(
                     summary=parent_overall_summary, children_summaries=parent_children_summaries
                 )
@@ -964,10 +973,12 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         exec = Executive({"openai": OpenAIClient()})
         node_summary = exec.summarize_from_children(children_summaries, parent_name, message_format=NodeSummary)
         overall_summary = node_summary.overall_summary
-        children_summaries = '\n'.join(
+        parent_children_summaries = '\n'.join(
             [f'{child_summary.node_name}: {child_summary.summary}' for child_summary in node_summary.children_summaries]
         )
-        parent_node_update = models.RepoNodeUpdate(summary=overall_summary, children_summaries=children_summaries)
+        parent_node_update = models.RepoNodeUpdate(
+            summary=overall_summary, children_summaries=parent_children_summaries
+        )
         with Session() as db:
             crud.update_repo_node(db=db, repo_node_id=repo_node_id, repo_node_update=parent_node_update)
 
@@ -980,7 +991,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         with Session() as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
-                return ''
+                return ('', '')
             return (node.summary, node.children_summaries)
 
     @classmethod
@@ -1035,13 +1046,13 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
     # ----------------- WIP --------------------
     @classmethod
-    def navigate_to_documentation(node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
+    def navigate_to_documentation(cls, node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
         """
         Recommends documentation location for a given path.
         Path refers to a module to be documented (e.g. tools)
         Returns a boolean to indicate whether an appropriate node exists.
         Returns current's file path, which represents the documentation location if the boolean is True (e.g. docs/tools.md)
-        """
+        """  # noqa: E501
         node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
 
         cur_node_summary = KnowledgeGraphTool.get_node_summary(cur_id)
@@ -1049,40 +1060,47 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         if not cur_children_nodes:
             print(cur_children_nodes)
-            return (True, KnowledgeGraphTool.get_node_path(cur_id))
+            return (True, cur_id)
 
         from concrete.operators import Executive
 
         exec = Executive(clients={"openai": OpenAIClient()})
         next_node_id = exec.chat(
-            f"""You are responsible for navigating to the best node to document the following module. 
+            f"""You are responsible for navigating to the best node to document the following module.
         Module: {node_to_document_summary}
-        
+
         The following is a summary of your current location and its children: {cur_node_summary}
-        
+
         The following is a list of your current locations children: {cur_children_nodes}
-        Respond with the UUID of the child node you wish to navigate to. 
+        Respond with the UUID of the child node you wish to navigate to.
         If you do not believe an appropriate node exists, respond with NA.""",
             message_format=NodeUUID,
         ).node_uuid
 
         if next_node_id == 'NA':
-            return (False, KnowledgeGraphTool.get_node_path(cur_id))
-
-        return KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
+            return (False, cur_id)
+        else:
+            return KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
 
     @classmethod
-    def recommend_documentation(org: str, repo: str, path: str) -> tuple[str, str]:
+    def recommend_documentation(cls, org: str, repo: str, path: str) -> tuple[str, str]:
         """
         Recommends documentation a given path.
-        Returns a tuple of the documentation path and the documentation content.
+        Returns a tuple of the (suggested_documentation, documentation_path)
         """
         root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo)
         node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path)
-        found, documentation_path = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
+        if not node_to_document_id or not root_node_id:
+            return ('', '')
+        found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
+
+        with Session() as db:
+            documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
+            if documentation_node is None:
+                return ('', '')
+            documentation_path = documentation_node.abs_path
 
         if not found:
-            # Make a new file + node, then update summaries
             documentation_path = f'{documentation_path}/{path}.md'
             with open(documentation_path, 'w') as f:
                 f.write('')
@@ -1097,7 +1115,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         exec = Executive(clients={"openai": OpenAIClient()})
         suggested_documentation = exec.chat(
-            f"""Your job is to document the following module. 
+            f"""Your job is to document the following module.
     Existing Documentation: {existing_documentation}
     Module Contents: {module_contents}
 
@@ -1106,4 +1124,5 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     Be comprehensive and clear in your documentation.
     Do NOT repeat existing documentation; return only new documentation to be appended"""
         ).text
-        print(suggested_documentation)
+
+        return suggested_documentation, documentation_path

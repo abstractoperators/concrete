@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from concrete.clients import CLIClient
 from concrete.tools import GithubTool, RestApiTool
 
 app = FastAPI()
@@ -112,8 +113,11 @@ class InstallationToken:
     @property
     def token(self) -> str:
         if not self._token or self._is_expired():
-            self._generate_installation_token(self.installation_id)
+            self._generate_installation_token()
         return self._token
+
+    def set_installation_id(self, installation_id: str):
+        self.installation_id = installation_id
 
 
 class AOGitHubDaemon(Webhook):
@@ -125,7 +129,7 @@ class AOGitHubDaemon(Webhook):
 
     def __init__(self):
         super().__init__("/github/webhook")
-        self.installation_token: InstallationToken | None = None
+        self.installation_token: InstallationToken = InstallationToken()
         self.open_revisions: dict[str, str] = {}  # {source branch: revision branch}
         self.org = 'abstractoperators'
         self.repo = 'concrete'
@@ -166,11 +170,11 @@ class AOGitHubDaemon(Webhook):
             return {"error": str(e.detail)}, e.status_code
 
         payload = json.loads(raw_payload)
-        if not self.installation_token:
-            self.installation_token = InstallationToken(JwtToken(), installation_id=payload['installation']['id'])
+        self.installation_token.set_installation_id(payload.get('installation', {}).get('id', ''))
 
         if payload.get('pull_request', None):
             action = payload.get('action', None)
+            CLIClient.emit(f"Received PR event: {action}")
             if action == 'opened' or action == 'reopened':
                 # Open and begin working on a revision branch
                 branch_name = payload['pull_request']['head']['ref']
@@ -185,6 +189,7 @@ class AOGitHubDaemon(Webhook):
         revision_branch = f'ghdaemon/revision/{source_branch}'
         self.open_revisions[source_branch] = revision_branch
 
+        CLIClient.emit(f"Creating revision branch: {revision_branch}")
         GithubTool.create_branch(
             org=self.org,
             repo=self.repo,
@@ -197,10 +202,19 @@ class AOGitHubDaemon(Webhook):
             org=self.org,
             repo=self.repo,
             title=f"Revision of {source_branch}",
-            body="This PR is a revision of the source branch.",
-            head=revision_branch,
+            branch=revision_branch,
             base=source_branch,
             access_token=self.installation_token.token,
+        )
+
+        GithubTool.put_file(
+            org=self.org,
+            repo=self.repo,
+            branch=revision_branch,
+            path='foobarbaz.md',
+            file_contents="This is a revision branch.",
+            access_token=self.installation_token.token,
+            commit_message="Add foobarbaz.md",
         )
 
     def _close_revision(self, source_branch: str):
@@ -211,7 +225,7 @@ class AOGitHubDaemon(Webhook):
             org=self.org,
             repo=self.repo,
             branch=revision_branch,
-            access_token=self.installation_token.get_token(),
+            access_token=self.installation_token.token,
         )
         self.open_revisions.pop(source_branch)
 
