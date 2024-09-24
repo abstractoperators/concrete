@@ -80,3 +80,18 @@ class Summary(Message, KombuMixin):
 
 class PlannedComponents(Message, KombuMixin):
     components: list[str] = Field(description="List of planned components")
+
+
+class ChildNodeSummary(Message, KombuMixin):
+    node_name: str = Field(description="Name of the node")
+    summary: str = Field(description="Summary of the node")
+
+
+class NodeSummary(Message, KombuMixin):
+    node_name: str = Field(description="Name of the node")
+    overall_summary: str = Field(description="Summary of the node")
+    children_summaries: list[ChildNodeSummary] = Field(description="Brief description of each child node")
+
+
+class NodeUUID(Message, KombuMixin):
+    node_uuid: str = Field(description="UUID of the node")

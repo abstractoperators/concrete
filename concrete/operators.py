@@ -215,15 +215,18 @@ Current Component Implementation: {implementation}
 Previous Components: {summary}"""  # noqa E501
         return prompt
 
-    def update_parent_summary(self, parent_summary: str, child_summary: str, child_name: str, *args, **kwargs) -> str:
+    def update_parent_summary(
+        self, parent_summary: str, child_summary: str, parent_child_summaries: str, child_name: str, *args, **kwargs
+    ) -> str:
         """
         Updates the parent summary with the child summary
         Returns the updated parent summary
         """
         return f"""Given the following parent summary structure:
-Parent Summary: <{parent_summary}>
+Existing Parent Overall Summary: <{parent_summary}>
+Existing Parent Child Summaries: <{parent_child_summaries}>
 
-Your task is to update this summary with the new child summary:
+Your task is to update the existing summary with this new child summary:
 Child Name: <{child_name}>
 Child Summary: <{child_summary}>
 
@@ -232,10 +235,11 @@ Follow these steps:
 2. If the parent summary exists:
    a. Add the new child summary if it's not already present.
    b. If a summary for this child already exists, replace it with the new one.
-   c. Update the Overall Summary to reflect all children.
-3. Maintain this structure for the parent summary:
+3. Update the Overall Summary to reflect all child summaries.
 
-Overall Summary: <summary of all children>
+Maintain this structure for the returned summary:
+Parent Name: <parent_name>
+Parent Overall Summary: <summary of all children>
 
 Child Summaries:
    - Child Name: <child_name>
@@ -245,35 +249,38 @@ Child Summaries:
    ...
 
 Guidelines:
-- Ensure the Overall Summary provides a concise overview of all children.
+- Ensure the Overall Summary provides a high-level  overview of all children while preserving important implementation details.
 - Each child summary should accurately represent its corresponding node.
-
-Your response should be the updated parent summary in the specified format."""
+"""  # noqa
 
     def summarize_file(self, contents: str, file_name: str, *args, **kwargs) -> str:
-        return f"""Summarize the following contents. Be concise, and capture all functionalities.
+        return f"""Provide a concise summary of the following file, focusing on its purpose and the key functionalities of its contents. 
+The summary should give a high-level overview that explains what the file is for and its primary components or actions. Keep critical implementation details in mind.
 Return the summary in one paragraph.
-Following is the contents and its name
+Below are the file's name and contents:
 Name: {file_name}
 Contents: {contents}
 
-Your summary should follow the format:
-<Name> Summary: <summary of contents>
-"""
+Format your response as:
+node_name: <Name>
+summary: <summary of file contents>
+"""  # noqa
 
-    def summarize_from_children(self, children_summaries: list[str], *args, **kwargs) -> str:
+    def summarize_from_children(self, children_summaries: list[str], parent_name: str, *args, **kwargs) -> str:
         joined_summaries = "\n\n".join(children_summaries)
-        return f"""Summarize the following directory. Be concise, and capture the main functionalities of the directory.
+        return f"""Summarize the following by aggregating the following children. Deliver a high-level overview. Ensure ALL children and their summaries are captured. Emphasize the summaries of children core to the application's functionality. Keep critical implementation details in children summaries in mind.
+    
 Your returned summary should follow the format:
-<directory name> Summary: <overall summary of the directory>
-Children Summaries:
-    - Child Name: <child Name>
+Node Name: {parent_name}
+Overall Summary: <High-level summary of the directory>
+Children Summaries: 
+    - Child Name: <child name>
       Child Summary: <child summary>
-    - Child Name: <child Name>
+    - Child Name: <child name>
       Child Summary: <child summary>
 
-Here are the children summaries. Children can be either files or directories. They have a similar summary format.
-{joined_summaries}"""
+Here are the children summaries.
+{joined_summaries}"""  # noqa
 
 
 class PromptEngineer(Operator):

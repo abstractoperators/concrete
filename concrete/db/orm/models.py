@@ -1,6 +1,7 @@
 from typing import Optional
 from uuid import UUID, uuid4
 
+from sqlalchemy.schema import Index
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
@@ -248,6 +249,7 @@ class RepoNodeBase(Base):
     partition_type: str = Field(description="Type of the node. directory/file/chunk")
     name: str = Field(description="Name of the chunk. eg README.md, module.py/func_foo")
     summary: str = Field(description="Summary of the node.")
+    children_summaries: str = Field(description="Brief summary of each child node.")
     parent_id: UUID | None = Field(
         default=None,
         description="ID of the parent node.",
@@ -263,6 +265,7 @@ class RepoNodeUpdate(NodeUpdate):
     type: str | None = Field(description="Type of the node. directory/file/chunk", default=None)
     name: str | None = Field(description="Name of the chunk. eg README.md, module.py/func_foo", default=None)
     summary: str | None = Field(description="Summary of the node.", default=None)
+    children_summaries: str | None = Field(description="Brief summary of each child node.", default=None)
     abs_path: str | None = Field(description="", default=None)
 
 
@@ -270,6 +273,10 @@ class RepoNodeCreate(RepoNodeBase):
     pass
 
 
+# Link on how to define composite indices in SQLModel.
+# SQLModel provides abstraction for single column indices, but it appears that the
+# correct way to do composite indices is to define them in db schema at the sqlalchemy level.
+# https://stackoverflow.com/questions/70958639/composite-indexes-sqlmodel
 class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     children: list["RepoNode"] = Relationship(
         back_populates="parent",
@@ -279,6 +286,8 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
         back_populates="children",
         sa_relationship_kwargs={"remote_side": "reponode.c.id"},
     )
+
+    __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
 
 
 SQLModel.metadata.create_all(bind=engine)

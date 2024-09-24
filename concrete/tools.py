@@ -14,12 +14,13 @@ import requests
 from requests import Response
 
 from concrete.clients import OpenAIClient
+from concrete.models.messages import NodeUUID
 
 from .clients import CLIClient, HTTPClient
 from .db import crud
 from .db.orm import Session, models
 from .models.base import ConcreteModel
-from .models.messages import ProjectDirectory
+from .models.messages import ChildNodeSummary, NodeSummary, ProjectDirectory
 
 TOOLS_REGISTRY = {}
 
@@ -53,12 +54,13 @@ class MetaTool(type):
                         param_str += f" = {param.default}"
                     params.append(param_str)
 
-                return_str = (
-                    f" -> {signature.return_annotation.__name__}"
-                    if signature.return_annotation != inspect.Signature.empty
-                    and signature.return_annotation is not None
-                    else ""
-                )
+                return_str = ""
+                if signature.return_annotation != inspect.Signature.empty:
+                    if hasattr(signature.return_annotation, '__name__'):
+                        return_str = f" -> {signature.return_annotation.__name__}"
+                    else:
+                        # Handle Union types
+                        return_str = f" -> {str(signature.return_annotation)}"
 
                 method_signature = f"{attr}({', '.join(params)}){return_str}"
                 method_info.append(f"{method_signature}\n\t{docstring}")
@@ -472,33 +474,40 @@ class GithubTool(metaclass=MetaTool):
     }
 
     @classmethod
-    def make_pr(cls, owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict:
+    def create_pr(
+        cls, org: str, repo: str, branch: str, access_token: str, title: str = "PR", base: str = "main"
+    ) -> dict:
         """
         Make a pull request on the target repo
 
         e.g. make_pr('abstractoperators', 'concrete', 'kent/http-tool')
 
         Args
-            owner (str): The organization or accounts that owns the repo.
+            org (str): The organization or accounts that owns the repo.
             repo (str): The name of the repository.
             branch (str): The head branch being merged into the base.
             title (str): The title of the PR being created.
             base (str): The title of the branch that changes are being merged into.
         """
-        url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
+        url = f"https://api.github.com/repos/{org}/{repo}/pulls"
         json = {"title": f"[ABOP] {title}", "head": branch, "base": base}
-        return RestApiTool.post(url, headers=cls.headers, json=json)
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+        return RestApiTool.post(url, headers=headers, json=json)
 
     @classmethod
-    def make_branch(cls, org: str, repo: str, base_branch: str, new_branch: str, access_token: str):
+    def create_branch(cls, org: str, repo: str, new_branch: str, access_token: str, base_branch: str = 'main'):
         """
-        Make a branch called target_name from the latest commit on base_name
+        Make a branch called new_branch from the latest commit on base_name
 
         Args
             org (str): Organization or account owning the repo
             repo (str): The name of the repository
             base_branch (str): The name of the branch to branch from.
-            new_branch (str): The name of the new branch
+            new_branch (str): The name of the new branch (e.g. 'michael/new-feature')
             access_token(str): Fine-grained token with at least 'Contents' repository write access.
                 https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#create-a-reference--fine-grained-access-tokens
         """
@@ -555,7 +564,8 @@ class GithubTool(metaclass=MetaTool):
             repo (str): The name of the repository
             branch (str): The branch that the commit is being made to.
             commit_message (str): The commit message.
-            access_token(str): Fine-grained token with at least TODO
+            path: (str): Path relative to root of repo
+            access_token(str): Fine-grained token with at least 'Contents' repository write access.
         """
         headers = {
             'Accept': 'application/vnd.github+json',
@@ -622,7 +632,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
+    def _parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
         """
         Converts a directory into an unpopulated knowledge graph.
         Stored in reponode table. Recursive programming is pain -> use a queue.
@@ -633,35 +643,43 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns
             UUID: The root node id of the knowledge graph.
         """
-        to_chunk: Queue[UUID] = Queue()
+        to_split: Queue[UUID] = Queue()
 
         root_node = models.RepoNodeCreate(
-            org=org, repo=repo, partition_type='directory', name=f'org/{repo}', summary='root', abs_path=dir_path
+            org=org,
+            repo=repo,
+            partition_type='directory',
+            name=f'org/{repo}',
+            summary='',
+            children_summaries='',
+            abs_path=dir_path,
         )
+        if (root_node_id := KnowledgeGraphTool._get_node_by_path(org, repo)) is not None:
+            pass
+        else:
+            with Session() as db:
+                root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
+                to_split.put(root_node_id)
 
-        with Session() as db:
-            root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
-            to_chunk.put(root_node_id)
+            ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
+            if rel_gitignore_path:
+                with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
+                    gitignore = f.readlines()
+                    gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
+                    ignore_paths.extend(gitignore)
 
-        ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
-        if rel_gitignore_path:
-            with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
-                gitignore = f.readlines()
-                gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
-                ignore_paths.extend(gitignore)
+            while len(to_split.queue) > 0:
+                children_ids = KnowledgeGraphTool._split_and_create_nodes(to_split.get(), ignore_paths)
+                for child_id in children_ids:
+                    to_split.put(child_id)
+                CLIClient.emit(f"Remaining: {to_split.qsize()}")
 
-        while len(to_chunk.queue) > 0:
-            children_ids = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
-            for child_id in children_ids:
-                to_chunk.put(child_id)
-            CLIClient.emit(f"Remaining: {to_chunk.qsize()}")
-
-        KnowledgeGraphTool._summarize_from_leaves(root_node_id)
+        KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
 
         return root_node_id
 
     @classmethod
-    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
+    def _split_and_create_nodes(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
         """
         Chunks a node into smaller nodes.
         Adds children nodes to database, and returns them for further chunking.
@@ -688,6 +706,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     partition_type=partition_type,
                     name=file_or_dir,
                     summary='',
+                    children_summaries='',
                     abs_path=path,
                     parent_id=parent.id,
                 )
@@ -816,9 +835,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         plt.show()
 
     @classmethod
-    def _summarize_from_leaves(cls, root_node_id: UUID):
+    def _upsert_all_summaries_from_leaves(cls, root_node_id: UUID):
         """
-        Summarize all nodes in reverse order of depth. Prerequisite on the graph being built.
+        Creates or overwrites all summaries in the knowledge graph.
+        Prerequisite on the graph being built.
         """
         node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
         with Session() as db:
@@ -834,59 +854,83 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
             while node_ids:
                 for node_id in node_ids.pop():
-                    summary = KnowledgeGraphTool._summarize(node_id)
-                    node_update = models.RepoNodeUpdate(summary=summary)
-                    crud.update_repo_node(db=db, repo_node_id=node_id, repo_node_update=node_update)
+                    node = crud.get_repo_node(db=db, repo_node_id=node_id)
+                    if node is not None:
+                        if node.partition_type == 'directory':
+                            KnowledgeGraphTool._upsert_parent_summary_from_children(node_id)
+                        elif node.partition_type == 'file':
+                            KnowledgeGraphTool._upsert_leaf_summary(node_id)
 
     @classmethod
-    def _propagate_summaries(cls, child_id: UUID) -> None:
+    def _upsert_parent_summaries_to_root(cls, child_id: UUID) -> None:
         """
-        Recursively updates parent summaries. Prerequisite on the graph being built.
-
-        Args:
-            child_id (UUID): The id of the child node whose summary should be propagated.
+        Recursively updates all parent summaries up until the root. Prerequisite on the graph being built.
         """
         with Session() as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_id)
             if child is not None:
                 parent_id = child.parent_id
                 if parent_id is not None:
-                    updated_parent_summary = KnowledgeGraphTool._get_updated_parent_summary(child_node_id=child_id)
-                    parent_update = models.RepoNodeUpdate(summary=updated_parent_summary)
-                    crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_update)
-                    KnowledgeGraphTool._propagate_summaries(parent_id)
-        # TODO: Close session before recursion
+                    KnowledgeGraphTool._upsert_parent_summary_from_child(child_id)
+
+        if child is not None and child.parent_id is not None:
+            KnowledgeGraphTool._upsert_parent_summaries_to_root(child.parent_id)
 
     @classmethod
-    def _get_updated_parent_summary(cls, child_node_id: UUID) -> str:
+    def _upsert_parent_summary_from_child(cls, child_node_id: UUID):
         """
-        Returns an updated parent summary based on the existing summaries of a parent and child node.
+        Updates parent summary with child summary.
         """
-        with Session() as db:
-            child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
-            if child is not None and (parent_id := child.parent_id) is not None:
-                parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
-            if child is None or parent is None:
-                raise ValueError(f'_get_updated_parent_summary: child or parent not found for {child_node_id}')
-
-            parent_summary = parent.summary
-            child_summary = child.summary
-            child_abs_path = child.abs_path
         from concrete.operators import Executive
 
+        with Session() as db:
+            child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
+            if child and child.parent_id:
+                parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
+
+            if not child or not parent:
+                return
+
+            parent_id = parent.id
+            parent_summary = parent.summary
+            parent_children_summaries = parent.children_summaries
+            child_summary = child.summary
+            child_abs_path = child.abs_path
+
         exec = Executive(clients={'openai': OpenAIClient()})
-        return exec.update_parent_summary(
-            parent_summary=parent_summary, child_name=child_abs_path, child_summary=child_summary
-        ).text
+        node_summary: NodeSummary = exec.update_parent_summary(
+            parent_summary=parent_summary,
+            child_summary=child_summary,
+            parent_child_summaries=parent_children_summaries,
+            child_name=child_abs_path,
+            message_format=NodeSummary,
+        )  # type: ignore
+
+        with Session() as db:
+            parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
+            if parent is not None:
+                parent_overall_summary = node_summary.overall_summary
+                parent_children_summaries = '\n'.join(
+                    [
+                        f'{child_summary.node_name}: {child_summary.summary}'
+                        for child_summary in node_summary.children_summaries
+                    ]
+                )
+                parent_node_update = models.RepoNodeUpdate(
+                    summary=parent_overall_summary, children_summaries=parent_children_summaries
+                )
+                crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_node_update)
 
     @classmethod
-    def _summarize_leaf(cls, leaf_node_id: UUID) -> str:
+    def _upsert_leaf_summary(cls, leaf_node_id: UUID):
         """
-        Summarizes contents of a leaf node.
+        Creates or overwrites a leaf summary.
         TODO: Current implementation assumes that the leaf is a file - so generated summary is based on file contents.
         Eventually, this should be able to summarize functions/classes in a file.
         """
         import chardet
+
+        from concrete.operators import Executive
 
         with Session() as db:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
@@ -897,6 +941,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             raw_data = file.read()
         result = chardet.detect(raw_data)
         encoding = result['encoding']
+
         try:
             if encoding is None:
                 encoding = 'utf-8'
@@ -904,16 +949,19 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         except UnicodeDecodeError:
             contents = raw_data.decode('utf-8', errors='replace')
 
-        from concrete.operators import Executive
-
         exec = Executive(clients={"openai": OpenAIClient()})
-        return exec.summarize_file(contents=contents, file_name=path).text
+        child_node_summary = exec.summarize_file(contents=contents, file_name=path, message_format=ChildNodeSummary)
+        repo_node_create = models.RepoNodeUpdate(summary=child_node_summary.summary)
+        with Session() as db:
+            crud.update_repo_node(db=db, repo_node_id=leaf_node_id, repo_node_update=repo_node_create)
 
     @classmethod
-    def _summarize_from_children(cls, repo_node_id: UUID) -> str:
+    def _upsert_parent_summary_from_children(cls, repo_node_id: UUID):
         """
-        Summarizes a nodes children. Prerequisite on child nodes being summarized already.
+        Creates or overwrites a nodes summary using all of its children.
         """
+        from concrete.operators import Executive
+
         with Session() as db:
             parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
             if parent is None:
@@ -922,33 +970,164 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             children = parent.children
             children_ids = [child.id for child in children]
             children_summaries: list[str] = []
+            parent_name = parent.abs_path
             for child_id in children_ids:
                 child = crud.get_repo_node(db=db, repo_node_id=child_id)
                 if child is not None:
-                    children_summaries.append(child.summary)
-
-        from concrete.operators import Executive
+                    children_summaries.append(f'{child.abs_path}: {child.summary}')
 
         exec = Executive({"openai": OpenAIClient()})
-        return exec.summarize_from_children(children_summaries).text
+        node_summary = exec.summarize_from_children(children_summaries, parent_name, message_format=NodeSummary)
+        overall_summary = node_summary.overall_summary
+        parent_children_summaries = '\n'.join(
+            [f'{child_summary.node_name}: {child_summary.summary}' for child_summary in node_summary.children_summaries]
+        )
+        parent_node_update = models.RepoNodeUpdate(
+            summary=overall_summary, children_summaries=parent_children_summaries
+        )
+        with Session() as db:
+            crud.update_repo_node(db=db, repo_node_id=repo_node_id, repo_node_update=parent_node_update)
 
     @classmethod
-    def _summarize(clas, node_id: UUID) -> str:
+    def get_node_summary(cls, node_id: UUID) -> tuple[str, str]:
         """
-        Summarizes a node.
-        If the node is a directory, it summarizes its children.
-        If the node is a file, it summarizes its contents.
+        Returns the summary of a node.
+        (overall_summary, children_summaries)
+        """
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                return ('', '')
+            return (node.summary, node.children_summaries)
+
+    @classmethod
+    def get_node_parent(cls, node_id: UUID) -> UUID | None:
+        """
+        Returns the UUID of the parent of node (if it exists, else None).
+        """
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None or node.parent_id is None:
+                return None
+            return node.parent_id
+
+    @classmethod
+    def get_node_children(cls, node_id: UUID) -> dict[str, UUID]:
+        """
+        Returns the UUIDs of the children of a node.
+        {child_name: child_id}
+        """
+        with Session() as db:
+            node = crud.get_repo_node(db=db, repo_node_id=node_id)
+            if node is None:
+                return {}
+            children = node.children
+            return {child.name: child.id for child in children}
+
+    @classmethod
+    def get_node_path(cls, node_id: UUID) -> str:
+        """
+        Returns the abs_path attribute of a node.
         """
         with Session() as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
                 return ''
-            node_id = node.id
+            return node.abs_path
 
-        # TODO: File can potentially have children in the future. ATM, only directories have children
-        CLIClient.emit(f"Summarizing {node.abs_path}")
-        if node.partition_type == 'directory':
-            return KnowledgeGraphTool._summarize_from_children(node_id)
-        elif node.partition_type == 'file':
-            return KnowledgeGraphTool._summarize_leaf(node_id)
-        return ''
+    @classmethod
+    def _get_node_by_path(cls, org: str, repo: str, path: str | None = None) -> UUID | None:
+        """
+        Returns the UUID of a node by its path. Enables file pointer lookup.
+        If path is none, returns the root node
+        """
+        with Session() as db:
+            if path is None:
+                node = crud.get_root_repo_node(db=db, org=org, repo=repo)
+            else:
+                node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path)
+            if node is None:
+                return None
+            return node.id
+
+    # TODO: Reconsider where navigate_to_documentation, and recommend_documentation should live.
+    # They are consumers of the knowledge graph, and not something that should be part of the graph itself.
+    @classmethod
+    def navigate_to_documentation(cls, node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
+        """
+        Recommends documentation location for a given path.
+        Path refers to a module to be documented (e.g. tools)
+        Returns a boolean to indicate whether an appropriate node exists.
+        Returns current's file path, which represents the documentation location if the boolean is True (e.g. docs/tools.md)
+        """  # noqa: E501
+        node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
+
+        cur_node_summary = KnowledgeGraphTool.get_node_summary(cur_id)
+        cur_children_nodes = KnowledgeGraphTool.get_node_children(cur_id)
+
+        if not cur_children_nodes:
+            return (True, cur_id)
+
+        from concrete.operators import Executive
+
+        exec = Executive(clients={"openai": OpenAIClient()})
+        next_node_id = exec.chat(
+            f"""You are responsible for navigating to the best node to document the following module.
+        Module: {node_to_document_summary}
+
+        The following is a summary of your current location and its children: {cur_node_summary}
+
+        The following is a list of your current locations children: {cur_children_nodes}
+        Respond with the UUID of the child node you wish to navigate to.
+        If you do not believe an appropriate node exists, respond with NA.""",
+            message_format=NodeUUID,
+        ).node_uuid
+
+        if next_node_id == 'NA':
+            return (False, cur_id)
+        else:
+            return KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
+
+    @classmethod
+    def recommend_documentation(cls, org: str, repo: str, path: str) -> tuple[str, str]:
+        """
+        Recommends documentation a given path.
+        Returns a tuple of the (suggested_documentation, documentation_path)
+        """
+        from concrete.operators import Executive
+
+        root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo)
+        node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path)
+        if not node_to_document_id or not root_node_id:
+            return ('', '')
+        found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
+
+        with Session() as db:
+            documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
+            if documentation_node is None:
+                return ('', '')
+            documentation_path = documentation_node.abs_path
+
+        if not found:
+            documentation_path = f'{documentation_path}/{path}.md'
+            with open(documentation_path, 'w') as f:
+                f.write('')
+
+        with open(documentation_path, 'r') as f:
+            existing_documentation = f.read()
+        with open(path, 'r') as f:
+            module_contents = f.read()
+
+        exec = Executive(clients={"openai": OpenAIClient()})
+        suggested_documentation = exec.chat(
+            f"""Your job is to document the following module.
+    Existing Documentation: {existing_documentation}
+    Module Contents: {module_contents}
+
+    Respond with documentation for the module to be appended to the existing documentation.
+    Follow the style and structure of existing documentation.
+    Be comprehensive and clear in your documentation.
+    Do NOT repeat existing documentation; return only new documentation to be appended"""
+        ).text
+
+        return suggested_documentation, documentation_path

@@ -326,3 +326,17 @@ def get_repo_node(db: Session, repo_node_id: UUID) -> RepoNode | None:
 
 def update_repo_node(db: Session, repo_node_id: UUID, repo_node_update: RepoNodeUpdate) -> RepoNode | None:
     return update_generic(db, get_repo_node(db, repo_node_id), repo_node_update)
+
+
+def get_root_repo_node(db: Session, org: str, repo: str) -> RepoNode | None:
+    # Can't do is None in sqlalchemy. Use Comparators == !=
+    # or https://stackoverflow.com/questions/5602918/select-null-values-in-sqlalchemy
+    stmt = select(RepoNode).where(
+        RepoNode.org == org, RepoNode.repo == repo, RepoNode.parent_id.is_(None)  # type: ignore
+    )
+    return db.scalars(stmt).first()
+
+
+def get_repo_node_by_path(db: Session, org: str, repo: str, abs_path: str) -> RepoNode | None:
+    stmt = select(RepoNode).where(RepoNode.org == org, RepoNode.repo == repo, RepoNode.abs_path == abs_path)
+    return db.scalars(stmt).first()
