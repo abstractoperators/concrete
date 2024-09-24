@@ -23,6 +23,7 @@ async def root(request: Request):
 
 @app.get("/chat", response_class=HTMLResponse)
 async def chat(request: Request):
+    # TODO: make dynamic, both in data and in template.
     messages = [
         {"Executive": "I am the executive!"},
         {"Operator 1": "I am operator 1!"},
