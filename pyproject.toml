@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "concrete-operators"
-version = "0.1.7"
+version = "0.1.11"
 description = "AI Agent Orchestration Platform"
 authors = ["Abstract Operators <hello@abstractoperators.ai>"]
 readme = "README.md"
@@ -8,7 +8,7 @@ packages = [{ include = "concrete" }]
 
 
 [tool.poetry.dependencies]
-python = "==3.11.9"
+python = "^3.11.9"
 python-dotenv = "==1.0.1"
 openai = "==1.40.5"
 astroid = "==3.2.3"
@@ -17,10 +17,11 @@ celery = "==5.4.0"
 sqlalchemy = "==2.0.34"
 sqlmodel = "==0.0.22"
 tenacity = "==9.0.0"
-boto3 = "==1.35.3"
+requests = "==2.32.3"
 
 
 [tool.poetry.group.tooluse.dependencies]
+boto3 = "==1.35.3"
 chardet = "==5.2.0"
 # Plotting knowledge graph
 matplotlib = "==3.9.2"

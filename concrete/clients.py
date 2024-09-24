@@ -29,10 +29,10 @@ class OpenAIClient(Client):
     Thin wrapper around open AI client
     """
 
-    def __init__(self, model: str | None = None, temperature: float | None = 0):
+    def __init__(self, model: str | None = None, temperature: float | None = None):
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
-        self.default_temperature = temperature or float(str(os.getenv("OPENAI_TEMPERATURE")))
+        self.default_temperature = temperature if temperature is not None else float(os.getenv("OPENAI_TEMPERATURE", 0))
         self.model = model or "gpt-4o-mini"
 
     @retry(
@@ -52,7 +52,7 @@ class OpenAIClient(Client):
         request_params = {
             "messages": messages,
             "model": self.model,
-            "temperature": temperature or self.default_temperature,
+            "temperature": temperature if temperature is not None else self.default_temperature,
             "response_format": message_format,
             **kwargs,
         }
