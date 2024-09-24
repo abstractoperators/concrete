@@ -1044,6 +1044,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 return None
             return node.id
 
+    # TODO: Reconsider where navigate_to_documentation, and recommend_documentation should live.
+    # They are consumers of the knowledge graph, and not something that should be part of the graph itself.
     @classmethod
     def navigate_to_documentation(cls, node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
         """

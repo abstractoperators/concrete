@@ -19,8 +19,6 @@ String, Number, Boolean, Integer, Object, Array, Enum, anyOf
 Optional is not allowed with OpenAI Structured Outputs. All fields must be required.
 """
 
-from uuid import UUID
-
 from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
