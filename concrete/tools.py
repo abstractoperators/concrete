@@ -877,6 +877,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Updates parent summary with child summary.
         """
+        from concrete.operators import Executive
+
         with Session() as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
             if child and child.parent_id:
@@ -890,8 +892,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             parent_children_summaries = parent.children_summaries
             child_summary = child.summary
             child_abs_path = child.abs_path
-
-        from concrete.operators import Executive
 
         exec = Executive(clients={'openai': OpenAIClient()})
         node_summary: NodeSummary = exec.update_parent_summary(
@@ -922,8 +922,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Creates or overwrites a leaf summary.
         TODO: Current implementation assumes that the leaf is a file - so generated summary is based on file contents.
-        Eventually, this should be able to summ arize functions/classes in a file.
+        Eventually, this should be able to summarize functions/classes in a file.
         """
+        from concrete.operators import Executive
+
         with Session() as db:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
             if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == 'file':
@@ -941,8 +943,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         except UnicodeDecodeError:
             contents = raw_data.decode('utf-8', errors='replace')
 
-        from concrete.operators import Executive
-
         exec = Executive(clients={"openai": OpenAIClient()})
         child_node_summary = exec.summarize_file(contents=contents, file_name=path, message_format=ChildNodeSummary)
         repo_node_create = models.RepoNodeUpdate(summary=child_node_summary.summary)
@@ -954,6 +954,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Creates or overwrites a nodes summary using all of its children.
         """
+        from concrete.operators import Executive
+
         with Session() as db:
             parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
             if parent is None:
@@ -967,8 +969,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 child = crud.get_repo_node(db=db, repo_node_id=child_id)
                 if child is not None:
                     children_summaries.append(f'{child.abs_path}: {child.summary}')
-
-        from concrete.operators import Executive
 
         exec = Executive({"openai": OpenAIClient()})
         node_summary = exec.summarize_from_children(children_summaries, parent_name, message_format=NodeSummary)
@@ -1088,6 +1088,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Recommends documentation a given path.
         Returns a tuple of the (suggested_documentation, documentation_path)
         """
+        from concrete.operators import Executive
+
         root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo)
         node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path)
         if not node_to_document_id or not root_node_id:
@@ -1109,9 +1111,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             existing_documentation = f.read()
         with open(path, 'r') as f:
             module_contents = f.read()
-
-        # Zero-shot w/ existing documentation + path content
-        from concrete.operators import Executive
 
         exec = Executive(clients={"openai": OpenAIClient()})
         suggested_documentation = exec.chat(

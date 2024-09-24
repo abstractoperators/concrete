@@ -273,6 +273,9 @@ class RepoNodeCreate(RepoNodeBase):
     pass
 
 
+# Link on how to define composite indices in SQLModel.
+# SQLModel provides abstraction for single column indices, but it appears that the
+# correct way to do composite indices is to define them in db schema at the sqlalchemy level.
 # https://stackoverflow.com/questions/70958639/composite-indexes-sqlmodel
 class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     children: list["RepoNode"] = Relationship(
