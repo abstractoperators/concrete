@@ -653,7 +653,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             children_summaries='',
             abs_path=dir_path,
         )
-        if (root_node_id := KnowledgeGraphTool.get_root_node(org, repo)) is not None:
+        if (root_node_id := KnowledgeGraphTool._get_node_by_path(org, repo)) is not None:
             pass
         else:
             with Session() as db:
@@ -1044,7 +1044,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 return None
             return node.id
 
-    # ----------------- WIP --------------------
     @classmethod
     def navigate_to_documentation(cls, node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
         """
@@ -1059,7 +1058,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         cur_children_nodes = KnowledgeGraphTool.get_node_children(cur_id)
 
         if not cur_children_nodes:
-            print(cur_children_nodes)
             return (True, cur_id)
 
         from concrete.operators import Executive
