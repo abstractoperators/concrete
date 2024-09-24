@@ -8,6 +8,9 @@
     <link href="/static/css/abop.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/static/abstractoperators_favicon.jpg">
 
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+
     <!-- Kantumruy Pro -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,56 +23,7 @@
 </head>
 
 <body>
-    <ul class="operator-card-list">
-        <li class="operator-card">
-            <a href="/chat">
-                <hgroup class="operator-avatar-and-header">
-                    <div class="operator-avatar-container">
-                        <div class="operator-avatar-mask">
-                            <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
-                            <h1 class="operator-avatar-text">O1</h1>
-                        </div>
-                    </div>
-
-                    <h1 class="header small left">Orchestrators 1</h1>
-                </hgroup>
-
-                <button>Read More</button>
-            </a>
-        </li>
-        <li class="operator-card">
-            <a href="/chat">
-                <hgroup class="operator-avatar-and-header">
-                    <div class="operator-avatar-container">
-                        <div class="operator-avatar-mask">
-                            <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
-                            <h1 class="operator-avatar-text">O1</h1>
-                        </div>
-                    </div>
-
-                    <h1 class="header small left">Orchestrators 1</h1>
-                </hgroup>
-
-                <button>Read More</button>
-            </a>
-        </li>
-        <li class="operator-card">
-            <a href="/chat">
-                <hgroup class="operator-avatar-and-header">
-                    <div class="operator-avatar-container">
-                        <div class="operator-avatar-mask">
-                            <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
-                            <h1 class="operator-avatar-text">O1</h1>
-                        </div>
-                    </div>
-
-                    <h1 class="header small left">Orchestrators 1</h1>
-                </hgroup>
-
-                <button>Read More</button>
-            </a>
-        </li>
-    </ul>
+    <ul hx-get="/orchestrators" hx-trigger="load" class="operator-card-list"></ul>
 </body>
 
 </html>

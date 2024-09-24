@@ -102,7 +102,7 @@ celery: rabbitmq
 
 # local swagger UI
 local-api:
-	$(POETRY) fastapi dev webapp/api/server.py
+	$(POETRY) fastapi dev webapp/api/server.py --port 8001
 
 # local webapp-main
 local-webapp-main:
