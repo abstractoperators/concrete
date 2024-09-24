@@ -108,7 +108,7 @@ class AOGitHubDaemon(Webhook):
             if payload['action'] == 'opened' or payload['action'] == 'reopened':
                 branch_name = payload['pull_request']['head']['ref']
                 revision_branch_name = f'ghdaemon/revision/{branch_name}'
-                GithubTool.make_branch(
+                GithubTool.create_branch(
                     org='abstractoperators',
                     repo='concrete',
                     base_branch=branch_name,

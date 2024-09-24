@@ -473,33 +473,40 @@ class GithubTool(metaclass=MetaTool):
     }
 
     @classmethod
-    def make_pr(cls, owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict:
+    def create_pr(
+        cls, org: str, repo: str, branch: str, access_token: str, title: str = "PR", base: str = "main"
+    ) -> dict:
         """
         Make a pull request on the target repo
 
         e.g. make_pr('abstractoperators', 'concrete', 'kent/http-tool')
 
         Args
-            owner (str): The organization or accounts that owns the repo.
+            org (str): The organization or accounts that owns the repo.
             repo (str): The name of the repository.
             branch (str): The head branch being merged into the base.
             title (str): The title of the PR being created.
             base (str): The title of the branch that changes are being merged into.
         """
-        url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
+        url = f"https://api.github.com/repos/{org}/{repo}/pulls"
         json = {"title": f"[ABOP] {title}", "head": branch, "base": base}
-        return RestApiTool.post(url, headers=cls.headers, json=json)
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+        return RestApiTool.post(url, headers=headers, json=json)
 
     @classmethod
-    def make_branch(cls, org: str, repo: str, base_branch: str, new_branch: str, access_token: str):
+    def create_branch(cls, org: str, repo: str, new_branch: str, access_token: str, base_branch: str = 'main'):
         """
-        Make a branch called target_name from the latest commit on base_name
+        Make a branch called new_branch from the latest commit on base_name
 
         Args
             org (str): Organization or account owning the repo
             repo (str): The name of the repository
             base_branch (str): The name of the branch to branch from.
-            new_branch (str): The name of the new branch
+            new_branch (str): The name of the new branch (e.g. 'michael/new-feature')
             access_token(str): Fine-grained token with at least 'Contents' repository write access.
                 https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#create-a-reference--fine-grained-access-tokens
         """
@@ -556,7 +563,8 @@ class GithubTool(metaclass=MetaTool):
             repo (str): The name of the repository
             branch (str): The branch that the commit is being made to.
             commit_message (str): The commit message.
-            access_token(str): Fine-grained token with at least TODO
+            path: (str): Path relative to root of repo
+            access_token(str): Fine-grained token with at least 'Contents' repository write access.
         """
         headers = {
             'Accept': 'application/vnd.github+json',
