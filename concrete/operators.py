@@ -249,7 +249,7 @@ Child Summaries:
    ...
 
 Guidelines:
-- Ensure the Overall Summary provides a high-level  overview of all children while preserving important implementation details.
+- Ensure the Overall Summary provides a high-level overview of all children while preserving important implementation details.
 - Each child summary should accurately represent its corresponding node.
 """  # noqa
 
