@@ -36,6 +36,86 @@ class Webhook(ABC):
         pass
 
 
+class JwtToken:
+    """
+    Represents a JWT token for GitHub App authentication.
+    Manages token expiry and generation.
+    """
+
+    def __init__(self):
+        self._token: str = ""  # nosec
+        self._expiry: float = 0
+        self.PRIVATE_KEY_PATH: str = os.environ.get("GH_PRIVATE_KEY_PATH")
+        try:
+            with open(self.PRIVATE_KEY_PATH, 'rb') as pem_file:
+                self.signing_key = pem_file.read()
+        except FileNotFoundError:
+            raise HTTPException(status_code=500, detail="Failed to read private key")
+
+        self.GH_APP_CLIENT_ID = os.environ.get("GH_CLIENT_ID")
+        if not self.GH_APP_CLIENT_ID:
+            raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
+
+    @property
+    def token(self):
+        if not self._token or self._is_expired():
+            self._generate_jwt()
+        return self._token
+
+    def _is_expired(self):
+        return not self._expiry or self._expiry < time.time()
+
+    def _generate_jwt(self):
+        iat = int(time.time())
+        exp = iat + 600
+        payload = {
+            'iat': iat,
+            'exp': exp,
+            'iss': self.GH_APP_CLIENT_ID,
+        }
+        self._token = jwt.encode(payload, self.signing_key, algorithm='RS256')
+        self._expiry = exp
+
+    def get_jwt(self) -> tuple[str, int]:
+        return self.token
+
+
+class InstallationToken:
+    """
+    Represents an Installation Access Token for GitHub App authentication.
+    """
+
+    def __init__(self, jwt_token: JwtToken, installation_id: str = ""):
+        self._token: str = ""  # nosec
+        self._expiry: float = 0
+        self.jwt_token = jwt_token
+        self.installation_id: str = ""
+
+    def _is_expired(self):
+        return not self._expiry or self._expiry < time.time()
+
+    def _generate_installation_token(self):
+        """
+        installation_id (str): GitHub App installation ID. Can be found in webhook payload, or from GitHub API.
+        """
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {self.jwt_token.token}",
+            "X-GitHub-Version": "2022-11-28",
+        }
+        url = f'https://api.github.com/app/installations/{self.installation_id}/access_tokens'
+
+        self._expiry = int(time.time() + 3600)
+        token = RestApiTool.post(url=url, headers=headers).get('token', '')
+        self._token = token
+
+    @property
+    def token(self) -> str:
+        if not self._token or self._is_expired():
+            self._generate_installation_token(self.installation_id)
+        return self._token
+
+
 class AOGitHubDaemon(Webhook):
     """
     Represents a GitHub PR Daemon.
@@ -45,25 +125,10 @@ class AOGitHubDaemon(Webhook):
 
     def __init__(self):
         super().__init__("/github/webhook")
-        self.jwt_token = self.JwtToken()
-        self.installation_token = self.InstallationToken(self.jwt_token)
-        self.open_revisions: dict[str, "AOGitHubDaemon.Revision"] = {}  # org/repo/branch: OpenRevisions
-
-    # To be replaced by DB probably
-    class Revision:
-        """
-        Manages User Open PRs + Daemon Revision branch.
-        Represents an Actor, which is messaged by the Daemon Actor.
-        """
-
-        org: str
-        repo: str
-        target: str
-
-        def __init__(self, org: str, repo: str, target: str):
-            self.org = org
-            self.repo = repo
-            self.target = target
+        self.installation_token: InstallationToken | None = None
+        self.open_revisions: dict[str, str] = {}  # {source branch: revision branch}
+        self.org = 'abstractoperators'
+        self.repo = 'concrete'
 
     @staticmethod
     def _verify_signature(payload_body, signature_header):
@@ -101,112 +166,54 @@ class AOGitHubDaemon(Webhook):
             return {"error": str(e.detail)}, e.status_code
 
         payload = json.loads(raw_payload)
-        installation_id = payload['installation']['id']
-        token = self.installation_token.get_token(installation_id)
-        print(payload, token)
+        if not self.installation_token:
+            self.installation_token = InstallationToken(JwtToken(), installation_id=payload['installation']['id'])
+
         if payload.get('pull_request', None):
-            if payload['action'] == 'opened' or payload['action'] == 'reopened':
+            action = payload.get('action', None)
+            if action == 'opened' or action == 'reopened':
+                # Open and begin working on a revision branch
                 branch_name = payload['pull_request']['head']['ref']
-                revision_branch_name = f'ghdaemon/revision/{branch_name}'
-                GithubTool.create_branch(
-                    org='abstractoperators',
-                    repo='concrete',
-                    base_branch=branch_name,
-                    new_branch=revision_branch_name,
-                    access_token=token,
-                )
-                self.open_revisions['abstractoperators/concrete/' + revision_branch_name] = self.Revision(
-                    org='abstractoperators',
-                    repo='concrete',
-                    target=branch_name,
-                )
+                self._start_revision(branch_name)
 
-            elif payload['action'] == 'closed':
+            elif action == 'closed':
+                # Close and delete the revision branch
                 branch_name = payload['pull_request']['head']['ref']
-                revision_branch_name = f'ghdaemon/revision/{branch_name}'
-                GithubTool.delete_branch(
-                    org='abstractoperators',
-                    repo='concrete',
-                    branch=revision_branch_name,
-                    access_token=token,
-                )
-                self.open_revisions.pop('abstractoperators/concrete/' + revision_branch_name, None)
+                self._close_revision(branch_name)
 
-    class JwtToken:
-        """
-        Represents a JWT token for GitHub App authentication.
-        Manages token expiry and generation.
-        """
+    def _start_revision(self, source_branch: str):
+        revision_branch = f'ghdaemon/revision/{source_branch}'
+        self.open_revisions[source_branch] = revision_branch
 
-        def __init__(self):
-            self._token: str = ""  # nosec
-            self._expiry: float = 0
-            self.PRIVATE_KEY_PATH: str = os.environ.get("GH_PRIVATE_KEY_PATH")
-            try:
-                with open(self.PRIVATE_KEY_PATH, 'rb') as pem_file:
-                    self.signing_key = pem_file.read()
-            except FileNotFoundError:
-                raise HTTPException(status_code=500, detail="Failed to read private key")
+        GithubTool.create_branch(
+            org=self.org,
+            repo=self.repo,
+            new_branch=revision_branch,
+            base_branch=source_branch,
+            access_token=self.installation_token.token,
+        )
 
-            self.GH_APP_CLIENT_ID = os.environ.get("GH_CLIENT_ID")
-            if not self.GH_APP_CLIENT_ID:
-                raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
+        GithubTool.create_pr(
+            org=self.org,
+            repo=self.repo,
+            title=f"Revision of {source_branch}",
+            body="This PR is a revision of the source branch.",
+            head=revision_branch,
+            base=source_branch,
+            access_token=self.installation_token.token,
+        )
 
-        @property
-        def token(self):
-            if not self._token or self._is_expired():
-                self._generate_jwt()
-            return self._token
-
-        def _is_expired(self):
-            return not self._expiry or self._expiry < time.time()
-
-        def _generate_jwt(self):
-            iat = int(time.time())
-            exp = iat + 600
-            payload = {
-                'iat': iat,
-                'exp': exp,
-                'iss': self.GH_APP_CLIENT_ID,
-            }
-            self._token = jwt.encode(payload, self.signing_key, algorithm='RS256')
-            self._expiry = exp
-
-        def get_jwt(self) -> tuple[str, int]:
-            return self.token
-
-    class InstallationToken:
-        """
-        Represents an Installation Access Token for GitHub App authentication.
-        """
-
-        def __init__(self, jwt_token: "AOGitHubDaemon.JwtToken"):
-            self._token: str = ""  # nosec
-            self._expiry: float = 0
-            self.jwt_token = jwt_token
-
-        def _is_expired(self):
-            return not self._expiry or self._expiry < time.time()
-
-        def _generate_installation_token(self, installation_id: str):
-            """
-            installation_id (str): GitHub App installation ID. Can be found in webhook payload, or from GitHub API.
-            """
-            headers = {
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {self.jwt_token.token}",
-                "X-GitHub-Version": "2022-11-28",
-            }
-            url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
-
-            self._expiry = int(time.time() + 3600)
-            token = RestApiTool.post(url=url, headers=headers).get('token', '')
-            self._token = token
-
-        def get_token(self, installation_id: str) -> str:
-            if not self._token or self._is_expired():
-                self._generate_installation_token(installation_id)
-            return self._token
+    def _close_revision(self, source_branch: str):
+        revision_branch = self.open_revisions.get(source_branch, None)
+        if not revision_branch:
+            return
+        GithubTool.delete_branch(
+            org=self.org,
+            repo=self.repo,
+            branch=revision_branch,
+            access_token=self.installation_token.get_token(),
+        )
+        self.open_revisions.pop(source_branch)
 
 
 hooks = [gh_daemon := AOGitHubDaemon()]
