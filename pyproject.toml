@@ -8,7 +8,7 @@ packages = [{ include = "concrete" }]
 
 
 [tool.poetry.dependencies]
-python = "==3.11.9"
+python = "^3.11.9"
 python-dotenv = "==1.0.1"
 openai = "==1.40.5"
 astroid = "==3.2.3"
