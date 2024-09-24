@@ -10,10 +10,6 @@ from textwrap import dedent
 from typing import Dict, Optional, Union
 from uuid import UUID
 
-import boto3
-import chardet
-import matplotlib.pyplot as plt
-import networkx as nx
 import requests
 from requests import Response
 
@@ -259,6 +255,7 @@ class AwsTool(metaclass=MetaTool):
         Returns False after ~5 minutes of polling.
         """
         # TODO smarter way of detecting a 'new' image besides comparing push date.
+        import boto3
 
         ecr_client = boto3.client("ecr")
         cur_time = datetime.now().replace(tzinfo=timezone.utc)
@@ -294,6 +291,8 @@ class AwsTool(metaclass=MetaTool):
         listener_rule: Dictionary of {field: str, value: str} for the listener rule. Defaults to {'field': 'host-header', 'value': f"{service_name}.abop.ai"}}
         """  # noqa: E501
         # TODO: separate out clients and have a better interaction for attaching vars
+        import boto3
+
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
 
@@ -447,6 +446,8 @@ class AwsTool(metaclass=MetaTool):
         Polls ecs.describe_service until the service is running.
         Returns False after ~5 minutes of polling.
         """
+        import boto3
+
         client = boto3.client("ecs")
         for _ in range(30):
             res = client.describe_services(cluster="DemoCluster", services=[service_name])
@@ -748,6 +749,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Plots a knowledge graph node into a graph using Graphviz's 'dot' layout.
         Useful for debugging & testing.
         """
+        import matplotlib.pyplot as plt
+        import networkx as nx
+
         G = nx.DiGraph()
         nodes: Queue[UUID] = Queue()
         nodes.put(root_node_id)
@@ -924,6 +928,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         TODO: Current implementation assumes that the leaf is a file - so generated summary is based on file contents.
         Eventually, this should be able to summarize functions/classes in a file.
         """
+        import chardet
+
         from concrete.operators import Executive
 
         with Session() as db:
