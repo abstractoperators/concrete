@@ -634,7 +634,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns
             UUID: The root node id of the knowledge graph.
         """
-        to_chunk: Queue[UUID] = Queue()
+        to_split: Queue[UUID] = Queue()
 
         root_node = models.RepoNodeCreate(
             org=org,
@@ -650,7 +650,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         else:
             with Session() as db:
                 root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
-                to_chunk.put(root_node_id)
+                to_split.put(root_node_id)
 
             ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
             if rel_gitignore_path:
@@ -659,18 +659,18 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
                     ignore_paths.extend(gitignore)
 
-            while len(to_chunk.queue) > 0:
-                children_ids = KnowledgeGraphTool._chunk(to_chunk.get(), ignore_paths)
+            while len(to_split.queue) > 0:
+                children_ids = KnowledgeGraphTool._split_and_create_nodes(to_split.get(), ignore_paths)
                 for child_id in children_ids:
-                    to_chunk.put(child_id)
-                CLIClient.emit(f"Remaining: {to_chunk.qsize()}")
+                    to_split.put(child_id)
+                CLIClient.emit(f"Remaining: {to_split.qsize()}")
 
         KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
 
         return root_node_id
 
     @classmethod
-    def _chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
+    def _split_and_create_nodes(cls, parent_id: UUID, ignore_paths) -> list[UUID]:
         """
         Chunks a node into smaller nodes.
         Adds children nodes to database, and returns them for further chunking.
