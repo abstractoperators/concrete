@@ -102,7 +102,7 @@ class HTTPTool(metaclass=MetaTool):
     @classmethod
     def request(cls, method: str, url: str, **kwargs) -> Union[dict, str, bytes]:
         """
-        Make an HTTP request to the specified url
+        Make an HTTP request to the specified url.
         Throws an error if the request was unsuccessful
         """
         resp = HTTPClient().request(method, url, **kwargs)
