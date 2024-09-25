@@ -36,7 +36,6 @@ isort = "==5.13.2"
 bandit = "==1.7.9"
 pre-commit = "==3.7.1"
 mypy = "==1.11.2"
-starlette = "==0.37.2"  # for fasthtml
 alembic = "==1.13.2"
 
 
@@ -46,15 +45,13 @@ uvicorn = "==0.30.4"
 fastapi = "==0.111.1"
 
 
-[tool.poetry.group.webapp-new.dependencies]
-python-fasthtml = "==0.4.4"
-
-
 [tool.poetry.group.webapp-demo.dependencies]
 flask = "==3.0.3"
 
+
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "==9.5.34"
+
 
 [tool.poetry.group.daemons.dependencies]
 pyjwt = "2.9.0"
@@ -67,6 +64,7 @@ pytest = "^8.3.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
 
 [tool.bandit]
 exclude_dirs = ["tests", "path/to/file"]
