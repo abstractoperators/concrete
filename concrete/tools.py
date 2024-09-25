@@ -477,9 +477,7 @@ class GithubTool(metaclass=MetaTool):
     }
 
     @classmethod
-    def create_pr(
-        cls, org: str, repo: str, branch: str, access_token: str, title: str = "PR", base: str = "main"
-    ) -> dict:
+    def create_pr(cls, org: str, repo: str, branch: str, access_token: str, title: str, base: str = "main") -> dict:
         """
         Make a pull request on the target repo
 
@@ -527,7 +525,6 @@ class GithubTool(metaclass=MetaTool):
         # Create new branch from base branch
         url = f"https://api.github.com/repos/{org}/{repo}/git/refs"
         json = {"ref": "refs/heads/" + new_branch, "sha": base_sha}
-        CLIClient.emit(f"Creating branch {new_branch} from {base_branch}")
         RestApiTool.post(url=url, headers=headers, json=json)
 
     @classmethod

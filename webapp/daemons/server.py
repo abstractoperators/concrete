@@ -174,17 +174,19 @@ class AOGitHubDaemon(Webhook):
 
         if payload.get('pull_request', None):
             action = payload.get('action', None)
-            sender = payload.get('sender', 
-            CLIClient.emit(f"Received PR event: {action}")
-            if action == 'opened' or action == 'reopened':
-                # Open and begin working on a revision branch
-                branch_name = payload['pull_request']['head']['ref']
-                self._start_revision(branch_name)
+            sender = payload.get('sender', {}).get('login', '')
+            CLIClient.emit(f'Action: {action}, Sender: {sender}')
+            if sender != 'concreteoperator[bot]':
+                CLIClient.emit(f"Received PR event: {action}")
+                if action == 'opened' or action == 'reopened':
+                    # Open and begin working on a revision branch
+                    branch_name = payload['pull_request']['head']['ref']
+                    self._start_revision(branch_name)
 
-            elif action == 'closed':
-                # Close and delete the revision branch
-                branch_name = payload['pull_request']['head']['ref']
-                self._close_revision(branch_name)
+                elif action == 'closed':
+                    # Close and delete the revision branch
+                    branch_name = payload['pull_request']['head']['ref']
+                    self._close_revision(branch_name)
 
     def _start_revision(self, source_branch: str):
         """
@@ -202,6 +204,17 @@ class AOGitHubDaemon(Webhook):
             access_token=self.installation_token.token,
         )
 
+        GithubTool.put_file(
+            org=self.org,
+            repo=self.repo,
+            branch=revision_branch,
+            path='foobarbaz.md',
+            file_contents="This is a revision branch.",
+            access_token=self.installation_token.token,
+            commit_message="Add foobarbaz.md",
+        )
+
+        # NOTE: Can't create a PR from same ref to same ref, so you must make a commit first.
         CLIClient.emit(f"Creating PR for revision branch: {revision_branch}")
         GithubTool.create_pr(
             org=self.org,
@@ -226,18 +239,10 @@ class AOGitHubDaemon(Webhook):
         )
 
         CLIClient.emit(str(root_node_id))
-        # GithubTool.put_file(
-        #     org=self.org,
-        #     repo=self.repo,
-        #     branch=revision_branch,
-        #     path='foobarbaz.md',
-        #     file_contents="This is a revision branch.",
-        #     access_token=self.installation_token.token,
-        #     commit_message="Add foobarbaz.md",
-        # )
 
     def _close_revision(self, source_branch: str):
         revision_branch = self.open_revisions.get(source_branch, None)
+        CLIClient.emit(f"Closing revision branch: {revision_branch}")
         if not revision_branch:
             return
         GithubTool.delete_branch(
