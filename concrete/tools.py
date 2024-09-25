@@ -629,7 +629,7 @@ class GithubTool(metaclass=MetaTool):
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
 
     @classmethod
-    def fetch_branch(cls, org: str, repo: str, branch: str, access_token: str):
+    def fetch_branch(cls, org: str, repo: str, branch: str, access_token: str) -> str:
         """
         Downloads contents of branches latest commit to dest_path.
         """
@@ -665,8 +665,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Stored in reponode table. Recursive programming is pain -> use a queue.
 
         args
-            org (str): Organization or account owning the repo
-            repo (str): The name of the repository
+            dir_path: The path to the directory to convert.
+            rel_gitignore_path: Path to .gitignore file relative to root directory.
         Returns
             UUID: The root node id of the knowledge graph.
         """

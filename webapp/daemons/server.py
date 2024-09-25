@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from concrete.clients import CLIClient
-from concrete.tools import GithubTool, RestApiTool
+from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -210,15 +210,29 @@ class AOGitHubDaemon(Webhook):
             access_token=self.installation_token.token,
         )
 
-        GithubTool.put_file(
+        CLIClient.emit(f"Fetching revision branch contents: {revision_branch}")
+        branch_contents_path = GithubTool.fetch_branch(
             org=self.org,
             repo=self.repo,
             branch=revision_branch,
-            path='foobarbaz.md',
-            file_contents="This is a revision branch.",
             access_token=self.installation_token.token,
-            commit_message="Add foobarbaz.md",
         )
+
+        CLIClient.emit(f"Creating knowledge graph from revision branch: {revision_branch}")
+        root_node_id = KnowledgeGraphTool._parse_to_tree(
+            org=self.org, repo=self.repo, dir_path=branch_contents_path, rel_gitignore_path='.gitignore'
+        )
+
+        CLIClient.emit(str(root_node_id))
+        # GithubTool.put_file(
+        #     org=self.org,
+        #     repo=self.repo,
+        #     branch=revision_branch,
+        #     path='foobarbaz.md',
+        #     file_contents="This is a revision branch.",
+        #     access_token=self.installation_token.token,
+        #     commit_message="Add foobarbaz.md",
+        # )
 
     def _close_revision(self, source_branch: str):
         revision_branch = self.open_revisions.get(source_branch, None)
