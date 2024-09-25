@@ -235,7 +235,11 @@ class AOGitHubDaemon(Webhook):
 
         CLIClient.emit(f"Creating knowledge graph from revision branch: {revision_branch}")
         root_node_id = KnowledgeGraphTool._parse_to_tree(
-            org=self.org, repo=self.repo, dir_path=branch_contents_path, rel_gitignore_path='.gitignore'
+            org=self.org,
+            repo=self.repo,
+            dir_path=branch_contents_path,
+            rel_gitignore_path='.gitignore',
+            branch=revision_branch,
         )
 
         CLIClient.emit(f"Finding changed files in source branch")
@@ -247,7 +251,43 @@ class AOGitHubDaemon(Webhook):
             access_token=self.installation_token.token,
         )
         changed_files = [file[2:] for (_, file), _ in changed_files]
-        print(changed_files)
+
+        for changed_file in changed_files:
+            CLIClient.emit(f'Creating append-only documentation for {changed_file}')
+            file_to_document = os.path.join(branch_contents_path, changed_file)
+            node_to_document_id = KnowledgeGraphTool._get_node_by_path(
+                org=self.org,
+                repo=self.repo,
+                path=file_to_document,
+                branch=revision_branch,
+            )
+
+            good_path, documentation_dest_path_id = KnowledgeGraphTool.navigate_to_documentation(
+                node_to_document_id, root_node_id
+            )
+
+            if good_path:
+                documentation_to_append = KnowledgeGraphTool.recommend_documentation(
+                    org=self.org,
+                    repo=self.repo,
+                    branch=revision_branch,
+                    path=file_to_document,
+                )
+
+                documentation_dest_path = KnowledgeGraphTool.get_node_path(documentation_dest_path_id)
+
+                with open(documentation_dest_path, 'a') as f:
+                    f.write(documentation_to_append)
+
+                GithubTool.put_file(
+                    org=self.org,
+                    repo=self.repo,
+                    branch=revision_branch,
+                    path=documentation_dest_path,
+                    file_contents=documentation_to_append,
+                    access_token=self.installation_token.token,
+                    commit_message=f"Append documentation for {changed_file}",
+                )
 
         CLIClient.emit(str(root_node_id))
 

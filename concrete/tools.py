@@ -670,7 +670,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
     @classmethod
     def _parse_to_tree(
-        cls, org: str, repo: str, branch: str, sha: str, dir_path: str, rel_gitignore_path: str | None = None
+        cls, org: str, repo: str, branch: str, dir_path: str, rel_gitignore_path: str | None = None
     ) -> UUID:
         """
         Converts a directory into an unpopulated knowledge graph.
@@ -686,18 +686,19 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         to_split: Queue[UUID] = Queue()
 
-        root_node = models.RepoNodeCreate(
-            org=org,
-            repo=repo,
-            partition_type='directory',
-            name=f'org/{repo}',
-            summary='',
-            children_summaries='',
-            abs_path=dir_path,
-        )
-        if (root_node_id := KnowledgeGraphTool._get_node_by_path(org, repo)) is not None:
-            pass
-        else:
+        if (root_node_id := KnowledgeGraphTool._get_node_by_path(org, repo, branch)) is None:
+            CLIClient.emit(root_node_id)
+            root_node = models.RepoNodeCreate(
+                org=org,
+                repo=repo,
+                partition_type='directory',
+                name=f'org/{repo}',
+                summary='',
+                children_summaries='',
+                abs_path=dir_path,
+                branch=branch,
+            )
+
             with Session() as db:
                 root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
                 to_split.put(root_node_id)
@@ -750,6 +751,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     children_summaries='',
                     abs_path=path,
                     parent_id=parent.id,
+                    branch=parent.branch,
                 )
                 children.append(child)
 
@@ -1077,16 +1079,16 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             return node.abs_path
 
     @classmethod
-    def _get_node_by_path(cls, org: str, repo: str, path: str | None = None) -> UUID | None:
+    def _get_node_by_path(cls, org: str, repo: str, branch: str, path: str | None = None) -> UUID | None:
         """
         Returns the UUID of a node by its path. Enables file pointer lookup.
         If path is none, returns the root node
         """
         with Session() as db:
             if path is None:
-                node = crud.get_root_repo_node(db=db, org=org, repo=repo)
+                node = crud.get_root_repo_node(db=db, org=org, repo=repo, branch=branch)
             else:
-                node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path)
+                node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path, branch=branch)
             if node is None:
                 return None
             return node.id
@@ -1130,18 +1132,20 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             return KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
 
     @classmethod
-    def recommend_documentation(cls, org: str, repo: str, path: str) -> tuple[str, str]:
+    def recommend_documentation(cls, org: str, repo: str, branch: str, path: str) -> tuple[str, str]:
         """
         Recommends documentation a given path.
         Returns a tuple of the (suggested_documentation, documentation_path)
         """
         from concrete.operators import Executive
 
-        root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo)
-        node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path)
+        root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, branch=branch)
+        node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path, branch=branch)
         if not node_to_document_id or not root_node_id:
             return ('', '')
-        found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
+        found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(
+            node_to_document_id, root_node_id, branch=branch
+        )
 
         with Session() as db:
             documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
