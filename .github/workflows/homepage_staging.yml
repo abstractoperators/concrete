@@ -67,7 +67,7 @@ jobs:
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  poetry run python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container-name webapp-homepage --container-port 80 --service-name=webapp-homepage-staging
+                  poetry run python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container-name webapp-homepage-staging --container-port 80 --service-name=webapp-homepage-staging
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
