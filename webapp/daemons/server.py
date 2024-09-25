@@ -242,7 +242,7 @@ class AOGitHubDaemon(Webhook):
             branch=revision_branch,
         )
 
-        CLIClient.emit(f"Finding changed files in source branch")
+        CLIClient.emit("Finding changed files in source branch")
         changed_files = GithubTool.get_changed_files(
             org=self.org,
             repo=self.repo,
@@ -253,8 +253,8 @@ class AOGitHubDaemon(Webhook):
         changed_files = [file[2:] for (_, file), _ in changed_files]
 
         for changed_file in changed_files:
-            CLIClient.emit(f'Creating append-only documentation for {changed_file}')
             file_to_document = os.path.join(branch_contents_path, changed_file)
+            CLIClient.emit(f'Creating append-only documentation for {file_to_document}')
             node_to_document_id = KnowledgeGraphTool._get_node_by_path(
                 org=self.org,
                 repo=self.repo,
@@ -262,20 +262,23 @@ class AOGitHubDaemon(Webhook):
                 branch=revision_branch,
             )
 
+            CLIClient.emit(f"Node to document: {node_to_document_id}. Finding appropriate file to document this node.")
             good_path, documentation_dest_path_id = KnowledgeGraphTool.navigate_to_documentation(
                 node_to_document_id, root_node_id
             )
 
             if good_path:
-                documentation_to_append = KnowledgeGraphTool.recommend_documentation(
+                CLIClient.emit(
+                    f"Found appropriate node to document node at. Documentation destination: {documentation_dest_path_id}"  # noqa
+                )
+                documentation_to_append, documentation_dest_path = KnowledgeGraphTool.recommend_documentation(
                     org=self.org,
                     repo=self.repo,
                     branch=revision_branch,
                     path=file_to_document,
                 )
 
-                documentation_dest_path = KnowledgeGraphTool.get_node_path(documentation_dest_path_id)
-
+                CLIClient.emit(f"Appending documentation to {documentation_dest_path}. Committing to github.")
                 with open(documentation_dest_path, 'a') as f:
                     f.write(documentation_to_append)
 

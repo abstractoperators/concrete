@@ -687,7 +687,6 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         to_split: Queue[UUID] = Queue()
 
         if (root_node_id := KnowledgeGraphTool._get_node_by_path(org, repo, branch)) is None:
-            CLIClient.emit(root_node_id)
             root_node = models.RepoNodeCreate(
                 org=org,
                 repo=repo,
@@ -716,7 +715,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     to_split.put(child_id)
                 CLIClient.emit(f"Remaining: {to_split.qsize()}")
 
-        KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
+            KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
 
         return root_node_id
 
@@ -1142,6 +1141,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, branch=branch)
         node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path, branch=branch)
         if not node_to_document_id or not root_node_id:
+            CLIClient.emit(f'Node not found for {path}')
             return ('', '')
         found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(
             node_to_document_id, root_node_id, branch=branch
@@ -1150,6 +1150,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         with Session() as db:
             documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
             if documentation_node is None:
+                CLIClient.emit(f'Documentation node not found for {path}')
                 return ('', '')
             documentation_path = documentation_node.abs_path
 
