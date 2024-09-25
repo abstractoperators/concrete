@@ -186,6 +186,9 @@ class AOGitHubDaemon(Webhook):
                 self._close_revision(branch_name)
 
     def _start_revision(self, source_branch: str):
+        """
+        Serial execution of creating a revision branch + commits + PR.
+        """
         revision_branch = f'ghdaemon/revision/{source_branch}'
         self.open_revisions[source_branch] = revision_branch
 

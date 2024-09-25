@@ -1,9 +1,12 @@
 import base64
 import fnmatch
 import inspect
+import io
 import os
 import socket
+import tempfile
 import time
+import zipfile
 from datetime import datetime, timezone
 from queue import Queue
 from textwrap import dedent
@@ -624,6 +627,30 @@ class GithubTool(metaclass=MetaTool):
         diff = GithubTool.get_diff(org, repo, base, compare, access_token)
         files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
+
+    @classmethod
+    def fetch_branch(cls, org: str, repo: str, branch: str, access_token: str):
+        """
+        Downloads contents of branches latest commit to dest_path.
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        url = f'https://api.github.com/repos/{org}/{repo}/zipball/refs/heads/{branch}'
+
+        dest_path = tempfile.mkdtemp(prefix="GithubTool-")
+
+        content = HTTPTool.get(url, headers=headers)
+
+        with zipfile.ZipFile(io.BytesIO(content)) as zip_ref:
+            zip_ref.extractall(dest_path)
+
+        CLIClient.emit(f"{org}/{repo}/{branch} has been downloaded to '{dest_path}'.")
+
+        return dest_path
 
 
 class KnowledgeGraphTool(metaclass=MetaTool):
