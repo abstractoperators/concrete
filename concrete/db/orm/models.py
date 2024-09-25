@@ -257,6 +257,8 @@ class RepoNodeBase(Base):
         ondelete="CASCADE",
     )
     abs_path: str = Field(description="")
+    branch: str = Field(description="Branch of the repo.", index=True)
+    sha: str = Field(description="SHA of commit.", index=True)
 
 
 class RepoNodeUpdate(NodeUpdate):

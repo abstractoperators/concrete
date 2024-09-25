@@ -175,20 +175,20 @@ class AOGitHubDaemon(Webhook):
         if payload.get('pull_request', None):
             action = payload.get('action', None)
             sender = payload.get('sender', {}).get('login', '')
-            CLIClient.emit(f'Action: {action}, Sender: {sender}')
+            base = payload.get('pull_request', {}).get('base', {}).get('ref', '')
             if sender != 'concreteoperator[bot]':
                 CLIClient.emit(f"Received PR event: {action}")
                 if action == 'opened' or action == 'reopened':
                     # Open and begin working on a revision branch
                     branch_name = payload['pull_request']['head']['ref']
-                    self._start_revision(branch_name)
+                    self._start_revision(branch_name, base)
 
                 elif action == 'closed':
                     # Close and delete the revision branch
                     branch_name = payload['pull_request']['head']['ref']
                     self._close_revision(branch_name)
 
-    def _start_revision(self, source_branch: str):
+    def _start_revision(self, source_branch: str, source_target: str = 'main'):
         """
         Serial execution of creating a revision branch + commits + PR.
         """
@@ -220,7 +220,7 @@ class AOGitHubDaemon(Webhook):
             org=self.org,
             repo=self.repo,
             title=f"Revision of {source_branch}",
-            branch=revision_branch,
+            head=revision_branch,
             base=source_branch,
             access_token=self.installation_token.token,
         )
@@ -237,6 +237,17 @@ class AOGitHubDaemon(Webhook):
         root_node_id = KnowledgeGraphTool._parse_to_tree(
             org=self.org, repo=self.repo, dir_path=branch_contents_path, rel_gitignore_path='.gitignore'
         )
+
+        CLIClient.emit(f"Finding changed files in source branch")
+        changed_files = GithubTool.get_changed_files(
+            org=self.org,
+            repo=self.repo,
+            base=source_target,
+            head=source_branch,
+            access_token=self.installation_token.token,
+        )
+        changed_files = [file[2:] for (_, file), _ in changed_files]
+        print(changed_files)
 
         CLIClient.emit(str(root_node_id))
 

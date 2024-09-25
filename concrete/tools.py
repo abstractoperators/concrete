@@ -477,7 +477,7 @@ class GithubTool(metaclass=MetaTool):
     }
 
     @classmethod
-    def create_pr(cls, org: str, repo: str, branch: str, access_token: str, title: str, base: str = "main") -> dict:
+    def create_pr(cls, org: str, repo: str, head: str, access_token: str, title: str, base: str = "main"):
         """
         Make a pull request on the target repo
 
@@ -486,18 +486,22 @@ class GithubTool(metaclass=MetaTool):
         Args
             org (str): The organization or accounts that owns the repo.
             repo (str): The name of the repository.
-            branch (str): The head branch being merged into the base.
+            head (str): The head branch being merged into the base.
             title (str): The title of the PR being created.
             base (str): The title of the branch that changes are being merged into.
         """
         url = f"https://api.github.com/repos/{org}/{repo}/pulls"
-        json = {"title": f"[ABOP] {title}", "head": branch, "base": base}
+        json = {"title": f"[ABOP] {title}", "head": head, "base": base}
         headers = {
             'Accept': 'application/vnd.github+json',
             'Authorization': f'Bearer {access_token}',
             'X-GitHub-Api-Version': '2022-11-28',
         }
-        return RestApiTool.post(url, headers=headers, json=json)
+
+        try:
+            RestApiTool.post(url, headers=headers, json=json)
+        except requests.exceptions.HTTPError as e:
+            CLIClient.emit("Failed to create PR: " + str(e))
 
     @classmethod
     def create_branch(cls, org: str, repo: str, new_branch: str, access_token: str, base_branch: str = 'main'):
@@ -525,7 +529,10 @@ class GithubTool(metaclass=MetaTool):
         # Create new branch from base branch
         url = f"https://api.github.com/repos/{org}/{repo}/git/refs"
         json = {"ref": "refs/heads/" + new_branch, "sha": base_sha}
-        RestApiTool.post(url=url, headers=headers, json=json)
+        try:
+            RestApiTool.post(url=url, headers=headers, json=json)
+        except requests.exceptions.HTTPError as e:
+            CLIClient.emit("Failed to create branch: " + str(e))
 
     @classmethod
     def delete_branch(cls, org: str, repo: str, branch: str, access_token: str):
@@ -594,7 +601,7 @@ class GithubTool(metaclass=MetaTool):
         RestApiTool.put(url, headers=headers, json=json)
 
     @classmethod
-    def get_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+    def get_diff(cls, org: str, repo: str, base: str, head: str, access_token: str):
         """
         Retrieves diff of base compared to compare.
 
@@ -602,7 +609,7 @@ class GithubTool(metaclass=MetaTool):
             org (str): Organization or account owning the repo
             repo (str): The name of the repository
             base (str): The name of the branch to compare against.
-            compare (str): The name of the branch to compare.
+            head (str): The name of the branch to compare
             access_token(str): Fine-grained token with at least 'Contents' repository read access.
         """
         headers = {
@@ -611,17 +618,20 @@ class GithubTool(metaclass=MetaTool):
             'X-GitHub-Api-Version': '2022-11-28',
         }
 
-        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{compare}'
+        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{head}'
         diff_url = RestApiTool.get(url, headers=headers)['diff_url']
         diff = RestApiTool.get(diff_url)
         return diff
 
     @classmethod
-    def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+    def get_changed_files(
+        cls, org: str, repo: str, base: str, head: str, access_token: str
+    ) -> list[tuple[list[str, str], str, str]]:
         """
         Returns a list of changed files between two commits
+        [([a/file_path, b/file_path], uncleaned_diff)]
         """
-        diff = GithubTool.get_diff(org, repo, base, compare, access_token)
+        diff = GithubTool.get_diff(org, repo, base, head, access_token)
         files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
 
@@ -644,10 +654,13 @@ class GithubTool(metaclass=MetaTool):
 
         with zipfile.ZipFile(io.BytesIO(content)) as zip_ref:
             zip_ref.extractall(dest_path)
+            top_level_dir = zip_ref.namelist()[0].split('/')[0]
 
-        CLIClient.emit(f"{org}/{repo}/{branch} has been downloaded to '{dest_path}'.")
+        # Construct the full path to the extracted contents
+        full_path = os.path.join(dest_path, top_level_dir)
 
-        return dest_path
+        CLIClient.emit(f"{org}/{repo}/{branch} has been downloaded to '{full_path}'.")
+        return full_path
 
 
 class KnowledgeGraphTool(metaclass=MetaTool):
@@ -656,7 +669,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def _parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
+    def _parse_to_tree(
+        cls, org: str, repo: str, branch: str, sha: str, dir_path: str, rel_gitignore_path: str | None = None
+    ) -> UUID:
         """
         Converts a directory into an unpopulated knowledge graph.
         Stored in reponode table. Recursive programming is pain -> use a queue.
@@ -664,6 +679,8 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         args
             dir_path: The path to the directory to convert.
             rel_gitignore_path: Path to .gitignore file relative to root directory.
+            branch: git branch of the directory state
+            sha: sha of the directory state
         Returns
             UUID: The root node id of the knowledge graph.
         """
