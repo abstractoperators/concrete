@@ -129,7 +129,7 @@ class AOGitHubDaemon(Webhook):
 
     def __init__(self):
         super().__init__("/github/webhook")
-        self.installation_token: InstallationToken = InstallationToken()
+        self.installation_token: InstallationToken = InstallationToken(JwtToken())
         self.open_revisions: dict[str, str] = {}  # {source branch: revision branch}
         self.org = 'abstractoperators'
         self.repo = 'concrete'
@@ -169,11 +169,12 @@ class AOGitHubDaemon(Webhook):
         except HTTPException as e:
             return {"error": str(e.detail)}, e.status_code
 
-        payload = json.loads(raw_payload)
+        payload: dict = json.loads(raw_payload)
         self.installation_token.set_installation_id(payload.get('installation', {}).get('id', ''))
 
         if payload.get('pull_request', None):
             action = payload.get('action', None)
+            sender = payload.get('sender', 
             CLIClient.emit(f"Received PR event: {action}")
             if action == 'opened' or action == 'reopened':
                 # Open and begin working on a revision branch
@@ -201,6 +202,7 @@ class AOGitHubDaemon(Webhook):
             access_token=self.installation_token.token,
         )
 
+        CLIClient.emit(f"Creating PR for revision branch: {revision_branch}")
         GithubTool.create_pr(
             org=self.org,
             repo=self.repo,
