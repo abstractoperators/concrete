@@ -75,6 +75,7 @@ services:
     image: daemons:latest
     ports:
       - "8000:80"
+    platform: linux/arm64
   
   ts-oauth-docs:
       image: tailscale/tailscale:latest

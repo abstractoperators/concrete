@@ -17,7 +17,6 @@ import requests
 from requests import Response
 
 from concrete.clients import OpenAIClient
-from concrete.models.messages import NodeUUID
 
 from .clients import CLIClient, HTTPClient
 from .db import crud
@@ -607,7 +606,7 @@ class GithubTool(metaclass=MetaTool):
         RestApiTool.put(url, headers=headers, json=json)
 
     @classmethod
-    def get_diff(cls, org: str, repo: str, base: str, head: str, access_token: str):
+    def get_diff(cls, org: str, repo: str, base: str, head: str, access_token: str) -> str:
         """
         Retrieves diff of base compared to compare.
 
@@ -632,7 +631,7 @@ class GithubTool(metaclass=MetaTool):
     @classmethod
     def get_changed_files(
         cls, org: str, repo: str, base: str, head: str, access_token: str
-    ) -> list[tuple[list[str, str], str, str]]:
+    ) -> list[tuple[list[str], str]]:
         """
         Returns a list of changed files between two commits
         [([a/file_path, b/file_path], uncleaned_diff)]
