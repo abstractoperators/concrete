@@ -26,6 +26,9 @@ RUN pip install "poetry==$POETRY_VERSION"
 
 COPY pyproject.toml poetry.lock README.md ./ 
 COPY concrete ./concrete
+
+# Note, don't need to copy .env.daemons because those are loaded at build time.
+COPY .env ./
 COPY webapp/daemons ./webapp/daemons
 
 RUN poetry config virtualenvs.create false && \

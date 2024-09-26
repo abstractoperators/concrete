@@ -18,7 +18,7 @@ COPY . .
 
 RUN touch README.md
 RUN poetry config virtualenvs.create false
-RUN poetry install --only webapp-demo,main,tooluse --no-cache --no-ansi
+RUN poetry install --only webapp,main,tooluse --no-cache --no-ansi
 
 RUN chmod +x ./webapp/demo/scripts/start.sh
 EXPOSE 80
