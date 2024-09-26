@@ -116,6 +116,7 @@ local-api:
 local-webapp-main:
 	$(POETRY) fastapi dev webapp/main/server.py
 
-# Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. I run `ngrok http 8000`, and then use the generated URL as the webhook URL.
+# Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
+# I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
 local-daemons:
-	$(POETRY) fastapi dev webapp/daemons/server.py
+	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"

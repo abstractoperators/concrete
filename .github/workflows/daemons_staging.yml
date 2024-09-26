@@ -3,7 +3,6 @@ on:
     push:
         branches:
             - main
-            - michael/gh_daemon_with_knowledge_graph
 jobs:
     build:
         runs-on: ubuntu-latest
