@@ -1217,4 +1217,78 @@ This line would call the `build_and_deploy_to_aws` method of the `AwsTool` class
 - **Testing**: Develop a comprehensive suite of unit tests to ensure the reliability of each tool and its methods.
 
 ### Conclusion
-This module serves as a powerful toolkit for developers looking to integrate various services and functionalities into their applications. By following the established patterns and structures, developers can easily extend the module with new tools and capabilities.
+This module serves as a powerful toolkit for developers looking to integrate various services and functionalities into their applications. By following the established patterns and structures, developers can easily extend the module with new tools and capabilities.## Additional Classes and Functions Documentation
+
+### MetaTool
+- **Description**: A metaclass that enables dynamic string representation of class objects without needing to instantiate them.
+- **Methods**:
+  - `__new__(cls, name, bases, attrs)`: Constructs a new class, collecting method signatures and docstrings for representation.
+  - `__str__(cls)`: Returns a string representation of the class.
+  - `__repr__(cls)`: Returns a formal string representation of the class.
+
+### HTTPTool (inherits from MetaTool)
+- **Description**: A base class for making HTTP requests.
+- **Methods**:
+  - `request(cls, method: str, url: str, **kwargs) -> Union[dict, str, bytes]`: Makes an HTTP request to the specified URL and processes the response.
+  - `get(cls, url: str, **kwargs) -> Response`: Makes a GET request.
+  - `post(cls, url: str, **kwargs) -> Response`: Makes a POST request.
+  - `put(cls, url: str, **kwargs) -> Response`: Makes a PUT request.
+  - `delete(cls, url: str, **kwargs) -> Response`: Makes a DELETE request.
+
+### RestApiTool (inherits from HTTPTool)
+- **Description**: Extends `HTTPTool` to handle RESTful API interactions, specifically for JSON responses.
+- **Methods**:
+  - `_process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]`: Processes the HTTP response, returning JSON if applicable.
+
+### Container
+- **Description**: Represents a container object with type hinting.
+- **Attributes**:
+  - `image_uri: str`: The URI of the container image.
+  - `container_name: str`: The name of the container.
+  - `container_port: int`: The port on which the container listens.
+
+### AwsTool (inherits from MetaTool)
+- **Description**: Provides methods for building and deploying applications to AWS.
+- **Methods**:
+  - `build_and_deploy_to_aws(cls, project_directory_name: str) -> None`: Builds and deploys a project directory to AWS.
+  - `_build_and_push_image(cls, project_directory_name: str) -> tuple[bool, str]`: Builds and pushes a Docker image to ECR.
+  - `_poll_image_status(cls, repo_name: str) -> bool`: Polls ECR to check if an image has been pushed.
+  - `_deploy_service(cls, containers: list[Container], service_name: Optional[str] = None, cpu: int = 256, memory: int = 512, listener_rule: Optional[dict] = None) -> bool`: Deploys a service to AWS ECS.
+  - `_poll_service_status(cls, service_name: str) -> bool`: Polls the ECS service until it is running.
+
+### GithubTool (inherits from MetaTool)
+- **Description**: Facilitates interactions with GitHub through its RESTful API.
+- **Methods**:
+  - `make_pr(cls, owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict`: Creates a pull request on the specified repository.
+  - `make_branch(cls, org: str, repo: str, base_branch: str, new_branch: str, access_token: str)`: Creates a new branch from a specified base branch.
+  - `delete_branch(cls, org: str, repo: str, branch: str, access_token: str)`: Deletes a specified branch from the repository.
+  - `put_file(cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str)`: Updates or creates a file in the repository.
+  - `get_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str)`: Retrieves the diff between two branches.
+  - `get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str)`: Returns a list of changed files between two commits.
+
+### KnowledgeGraphTool (inherits from MetaTool)
+- **Description**: Converts a repository into a knowledge graph.
+- **Methods**:
+  - `parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID`: Converts a directory into an unpopulated knowledge graph.
+  - `_chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]`: Chunks a node into smaller nodes and adds them to the database.
+  - `_should_ignore(cls, name: str, ignore_patterns: str) -> bool`: Determines if a file or directory should be ignored based on patterns.
+  - `_plot(cls, root_node_id: UUID)`: Plots a knowledge graph node into a graph for debugging.
+  - `_summarize_from_leaves(cls, root_node_id: UUID)`: Summarizes all nodes in reverse order of depth.
+  - `_propagate_summaries(cls, child_id: UUID) -> None`: Updates parent summaries recursively.
+  - `_get_updated_parent_summary(cls, child_node_id: UUID) -> str`: Returns an updated parent summary based on existing summaries.
+  - `_summarize_leaf(cls, leaf_node_id: UUID) -> str`: Summarizes the contents of a leaf node.
+  - `_summarize_from_children(cls, repo_node_id: UUID) -> str`: Summarizes a node's children.
+  - `_summarize(cls, node_id: UUID) -> str`: Summarizes a node based on its type (directory or file).
+
+## Functions
+
+### invoke_tool
+- **Description**: Invokes a method on a specified tool class.
+- **Parameters**:
+  - `tool_name (str)`: The name of the tool class to invoke.
+  - `tool_function (str)`: The name of the function to call on the tool class.
+  - `tool_parameters (str)`: The parameters to pass to the function.
+- **Exceptions**:
+  - Raises `KeyError` if the tool does not exist.
+  - Raises `AttributeError` if the function does not exist on the tool.
+  - Raises `TypeError` if the parameters are incorrect.
