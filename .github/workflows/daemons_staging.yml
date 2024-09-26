@@ -40,7 +40,7 @@ jobs:
                   echo GH_PRIVATE_KEY_PATH=$GH_PRIVATE_KEY_PATH >> .env.daemons
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env.daemons
                   echo OPENAI_TEMPERATURE=0 > .env.daemons
-                  make build-webapp-homepage
+                  make build-daemons
 
             - name: Push to ECR
               run: |
