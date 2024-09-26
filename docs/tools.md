@@ -151,4 +151,46 @@ class Arithmetic(metaclass=MetaTool):
 
 # Example usage of tools
 
-```
+```## Tools Module Documentation (Appendix)
+
+### New Tool Classes
+
+#### HTTPTool
+- **Purpose**: Facilitates making HTTP requests to specified URLs.
+- **Methods**:
+  - `request(method: str, url: str, **kwargs) -> Union[dict, str, bytes]`: Makes an HTTP request and processes the response.
+  - `get(url: str, **kwargs) -> Response`: Sends a GET request.
+  - `post(url: str, **kwargs) -> Response`: Sends a POST request.
+  - `put(url: str, **kwargs) -> Response`: Sends a PUT request.
+  - `delete(url: str, **kwargs) -> Response`: Sends a DELETE request.
+
+#### RestApiTool
+- **Purpose**: Extends `HTTPTool` to specifically handle RESTful API interactions, particularly with JSON responses.
+- **Methods**:
+  - Inherits all methods from `HTTPTool` and overrides `_process_response` to handle JSON content.
+
+#### AwsTool
+- **Purpose**: Provides functionalities to build and deploy applications to AWS.
+- **Methods**:
+  - `build_and_deploy_to_aws(project_directory_name: str) -> None`: Builds a Docker image and deploys it to AWS.
+  - `_build_and_push_image(project_directory_name: str) -> tuple[bool, str]`: Builds and pushes the Docker image to ECR.
+  - `_deploy_service(containers: list[Container], ...)`: Deploys a service to AWS ECS.
+
+#### GithubTool
+- **Purpose**: Facilitates interactions with GitHub repositories through its RESTful API.
+- **Methods**:
+  - `make_pr(owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict`: Creates a pull request.
+  - `make_branch(org: str, repo: str, base_branch: str, new_branch: str, access_token: str)`: Creates a new branch from a specified base branch.
+  - `delete_branch(org: str, repo: str, branch: str, access_token: str)`: Deletes a specified branch.
+  - `put_file(org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str)`: Updates or creates a file in the repository.
+  - `get_diff(org: str, repo: str, base: str, compare: str, access_token: str)`: Retrieves the diff between two branches.
+
+#### KnowledgeGraphTool
+- **Purpose**: Converts a directory structure into a knowledge graph representation.
+- **Methods**:
+  - `parse_to_tree(org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID`: Parses a directory into a knowledge graph.
+  - `_chunk(parent_id: UUID, ignore_paths) -> list[UUID]`: Chunks a node into smaller nodes for processing.
+  - `_summarize(node_id: UUID) -> str`: Summarizes a node based on its type (file or directory).
+
+### Usage
+Operators can utilize these tools by invoking their methods as needed. Each tool class provides a clear interface for performing specific tasks, and operators are expected to return a list of called tools using the syntax `[Tool1, Tool2, ...]`. The returned tool syntax should be evaluated using `tools.invoke_tool`.
