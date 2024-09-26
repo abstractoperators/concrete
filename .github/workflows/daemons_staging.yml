@@ -31,16 +31,17 @@ jobs:
                 GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
                 GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
                 GH_PRIVATE_KEY_PATH: ${{ secrets.GH_PRIVATE_KEY_PATH }}
+                GH_PRIVATE_KEY: ${{ secrets.GH_PRIVATE_KEY }}
                 OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
                 SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-                
               run: |
                   echo GH_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET > .env.daemons
                   echo GH_CLIENT_ID=$GH_CLIENT_ID >> .env.daemons
                   echo GH_PRIVATE_KEY_PATH=$GH_PRIVATE_KEY_PATH >> .env.daemons
-                  
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env
                   echo OPENAI_TEMPERATURE=0 > .env
+                  
+                  echo GH_PRIVATE_KEY >> GH_PRIVATE_KEY_PATH
                   make build-daemons
 
             - name: Push to ECR
