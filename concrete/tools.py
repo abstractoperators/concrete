@@ -1175,4 +1175,25 @@ This line would call the `build_and_deploy_to_aws` method of the `AwsTool` class
 - **Testing**: Develop a comprehensive suite of unit tests to ensure the reliability of each tool and its methods.
 
 ### Conclusion
+This module serves as a powerful toolkit for developers looking to integrate various services and functionalities into their applications. By following the established patterns and structures, developers can easily extend the module with new tools and capabilities.## Additional Classes and Functions Documentation
+
+### Tools Registry
+- **`TOOLS_REGISTRY`**: A global dictionary that holds references to all tool classes defined in this module. This allows for dynamic invocation of tool methods via the `invoke_tool` function.
+
+### Error Handling
+The module includes robust error handling in the `invoke_tool` function, ensuring that appropriate exceptions are raised when tools or methods are not found, or when parameters are incorrect. This design promotes reliability and ease of debugging.
+
+### Usage Example
+To utilize the tools provided in this module, one can invoke methods dynamically using the `invoke_tool` function. For example:
+```python
+result = invoke_tool('AwsTool', 'build_and_deploy_to_aws', ['my_project_directory'])
+```
+This line would call the `build_and_deploy_to_aws` method of the `AwsTool` class, passing in the specified project directory name as an argument.
+
+### Future Enhancements
+- **Improved Error Handling**: Consider implementing more granular error handling to provide clearer feedback on specific failures.
+- **Logging**: Integrate a logging framework to capture detailed logs of operations, which can aid in troubleshooting and monitoring.
+- **Testing**: Develop a comprehensive suite of unit tests to ensure the reliability of each tool and its methods.
+
+### Conclusion
 This module serves as a powerful toolkit for developers looking to integrate various services and functionalities into their applications. By following the established patterns and structures, developers can easily extend the module with new tools and capabilities.
