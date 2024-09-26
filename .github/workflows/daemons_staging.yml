@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/gh_daemon_with_knowledge_graph
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -43,7 +44,7 @@ jobs:
 
             - name: Push to ECR
               run: |
-                  make aws_
+                  make aws_ecr_push_daemons
     deploy:
         needs: build
         runs-on: ubuntu-latest
