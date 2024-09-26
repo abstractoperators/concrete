@@ -656,7 +656,7 @@ class GithubTool(metaclass=MetaTool):
             zip_ref.extractall(dest_path)
             top_level_dir = zip_ref.namelist()[0].split('/')[0]
 
-        # Construct the full path to the extracted contents
+        # Full path to the extracted directory.
         full_path = os.path.join(dest_path, top_level_dir)
 
         CLIClient.emit(f"{org}/{repo}/{branch} has been downloaded to '{full_path}'.")
@@ -1100,11 +1100,12 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Recommends documentation location for a given path.
         Path refers to a module to be documented (e.g. tools)
         Returns a boolean to indicate whether an appropriate node exists.
-        Returns current's file path, which represents the documentation location if the boolean is True (e.g. docs/tools.md)
+        Returns current's UUID, which represents the documentation destination node if the boolean is True (e.g. UUID for docs/tools.md)
         """  # noqa: E501
         node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
 
         cur_node_summary = KnowledgeGraphTool.get_node_summary(cur_id)
+        CLIClient.emit(f'Currently @ {cur_node_summary}')
         cur_children_nodes = KnowledgeGraphTool.get_node_children(cur_id)
 
         if not cur_children_nodes:
@@ -1114,14 +1115,16 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         exec = Executive(clients={"openai": OpenAIClient()})
         next_node_id = exec.chat(
-            f"""You are responsible for navigating to the best node to document the following module.
+            f"""You will navigate to the best child to document the following module.
         Module: {node_to_document_summary}
 
-        The following is a summary of your current location and its children: {cur_node_summary}
+        The following is a summary of children you may navigate to: {cur_node_summary}
 
-        The following is a list of your current locations children: {cur_children_nodes}
-        Respond with the UUID of the child node you wish to navigate to.
-        If you do not believe an appropriate node exists, respond with NA.""",
+        The following is a list of the children's UUIDs.
+        {cur_children_nodes}
+        
+        Think about what child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to.
+        If you do not believe any children are appropriate, respond with NA.""",  # noqa
             message_format=NodeUUID,
         ).node_uuid
 
@@ -1133,7 +1136,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     @classmethod
     def recommend_documentation(cls, org: str, repo: str, branch: str, path: str) -> tuple[str, str]:
         """
-        Recommends documentation a given path.
+        Recommends documentation for the file at a given path.
         Returns a tuple of the (suggested_documentation, documentation_path)
         """
         from concrete.operators import Executive
@@ -1143,9 +1146,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         if not node_to_document_id or not root_node_id:
             CLIClient.emit(f'Node not found for {path}')
             return ('', '')
-        found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(
-            node_to_document_id, root_node_id, branch=branch
-        )
+        found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
 
         with Session() as db:
             documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
@@ -1170,10 +1171,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     Existing Documentation: {existing_documentation}
     Module Contents: {module_contents}
 
-    Respond with documentation for the module to be appended to the existing documentation.
-    Follow the style and structure of existing documentation.
-    Be comprehensive and clear in your documentation.
-    Do NOT repeat existing documentation; return only new documentation to be appended"""
+    Respond with documentation for the module to be APPENDED to the existing documentation. Meaning, you must follow the style and structure of the existing documentation. Do NOT repeat existing information, return new documentation that is structurally consistent with the existing documentation.""",  # noqa
         ).text
 
         return suggested_documentation, documentation_path

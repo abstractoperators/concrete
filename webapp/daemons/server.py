@@ -204,33 +204,10 @@ class AOGitHubDaemon(Webhook):
             access_token=self.installation_token.token,
         )
 
-        GithubTool.put_file(
-            org=self.org,
-            repo=self.repo,
-            branch=revision_branch,
-            path='foobarbaz.md',
-            file_contents="This is a revision branch.",
-            access_token=self.installation_token.token,
-            commit_message="Add foobarbaz.md",
-        )
-
-        # NOTE: Can't create a PR from same ref to same ref, so you must make a commit first.
-        CLIClient.emit(f"Creating PR for revision branch: {revision_branch}")
-        GithubTool.create_pr(
-            org=self.org,
-            repo=self.repo,
-            title=f"Revision of {source_branch}",
-            head=revision_branch,
-            base=source_branch,
-            access_token=self.installation_token.token,
-        )
-
-        if (
-            root_node_id := KnowledgeGraphTool._get_node_by_path(org=self.org, repo=self.repo, branch=revision_branch)
-            is None
-        ):
+        root_node_id = KnowledgeGraphTool._get_node_by_path(org=self.org, repo=self.repo, branch=revision_branch)
+        if root_node_id is None:
             CLIClient.emit(f"Fetching revision branch contents: {revision_branch}")
-            branch_contents_path = GithubTool.fetch_branch(
+            root_path = GithubTool.fetch_branch(
                 org=self.org,
                 repo=self.repo,
                 branch=revision_branch,
@@ -241,12 +218,14 @@ class AOGitHubDaemon(Webhook):
             root_node_id = KnowledgeGraphTool._parse_to_tree(
                 org=self.org,
                 repo=self.repo,
-                dir_path=branch_contents_path,
+                dir_path=root_path,
                 rel_gitignore_path='.gitignore',
                 branch=revision_branch,
             )
         else:
-            branch_contents_path = KnowledgeGraphTool.get_node_path(root_node_id)
+            CLIClient.emit(f"Getting root node {root_node_id} file path")
+            root_path = KnowledgeGraphTool.get_node_path(root_node_id)
+            CLIClient.emit("Root node file path: " + root_path)
 
         CLIClient.emit("Finding changed files in source branch/PR")
         changed_files = GithubTool.get_changed_files(
@@ -259,46 +238,43 @@ class AOGitHubDaemon(Webhook):
         changed_files = [file[2:] for (_, file), _ in changed_files]
 
         for changed_file in changed_files:
-            file_to_document = os.path.join(branch_contents_path, changed_file)
-            CLIClient.emit(f'Creating append-only documentation for {file_to_document}')
-            node_to_document_id = KnowledgeGraphTool._get_node_by_path(
+            full_path_to_file_to_document = os.path.join(root_path, changed_file)
+            CLIClient.emit(f'Creating append-only documentation for {full_path_to_file_to_document}')
+            suggested_documentation_to_append, documentation_dest_path = KnowledgeGraphTool.recommend_documentation(
                 org=self.org,
                 repo=self.repo,
-                path=file_to_document,
                 branch=revision_branch,
+                path=full_path_to_file_to_document,
+            )
+            CLIClient.emit(f"Appending documentation to {documentation_dest_path}. Committing to github.")
+            with open(documentation_dest_path, 'a+') as f:
+                f.write(suggested_documentation_to_append)
+                f.seek(0)
+                full_documentation = f.read()
+
+            # Need to use relpath to get path relative to local root.
+            changed_file = os.path.relpath(documentation_dest_path, root_path)
+            CLIClient.emit(f"Putting changed file {changed_file} to github.")
+            GithubTool.put_file(
+                org=self.org,
+                repo=self.repo,
+                branch=revision_branch,
+                path=changed_file,
+                file_contents=full_documentation,
+                access_token=self.installation_token.token,
+                commit_message=f"Append documentation for {changed_file}",
             )
 
-            CLIClient.emit(f"Node to document: {node_to_document_id}. Finding appropriate file to document this node.")
-            good_path, documentation_dest_path_id = KnowledgeGraphTool.navigate_to_documentation(
-                node_to_document_id, root_node_id
-            )
-
-            if good_path:
-                CLIClient.emit(
-                    f"Found appropriate node to document node at. Documentation destination: {documentation_dest_path_id}"  # noqa
-                )
-                documentation_to_append, documentation_dest_path = KnowledgeGraphTool.recommend_documentation(
-                    org=self.org,
-                    repo=self.repo,
-                    branch=revision_branch,
-                    path=file_to_document,
-                )
-
-                CLIClient.emit(f"Appending documentation to {documentation_dest_path}. Committing to github.")
-                with open(documentation_dest_path, 'a') as f:
-                    f.write(documentation_to_append)
-
-                GithubTool.put_file(
-                    org=self.org,
-                    repo=self.repo,
-                    branch=revision_branch,
-                    path=documentation_dest_path,
-                    file_contents=documentation_to_append,
-                    access_token=self.installation_token.token,
-                    commit_message=f"Append documentation for {changed_file}",
-                )
-
-        CLIClient.emit(str(root_node_id))
+        # NOTE: Can't create a PR from same ref to same ref, so you must make a commit first.
+        CLIClient.emit(f"Creating PR for revision branch: {revision_branch}")
+        GithubTool.create_pr(
+            org=self.org,
+            repo=self.repo,
+            title=f"Revision of {source_branch}",
+            head=revision_branch,
+            base=source_branch,
+            access_token=self.installation_token.token,
+        )
 
     def _close_revision(self, source_branch: str):
         revision_branch = self.open_revisions.get(source_branch, None)
