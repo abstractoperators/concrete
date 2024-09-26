@@ -75,6 +75,8 @@ local-docs:
 	poetry run mkdocs build --config-file config/mkdocs.yml
 	mkdocs serve --config-file config/mkdocs.yml
 
+# TODO: Use hyphens instead of underscores
+# https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
 # Need to set your aws config for default profile + credentials
 aws_ecr_login:
@@ -90,6 +92,12 @@ aws_ecr_push_demo: aws_ecr_login
 aws_ecr_push_docs: aws_ecr_login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
+aws_ecr_push_daemons: aws_ecr_login
+	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+
+deploy-daemon-to-aws-staging:
+	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
 
 rabbitmq:
 	docker rm -f rabbitmq || true
@@ -107,3 +115,8 @@ local-api:
 # local webapp-main
 local-webapp-main:
 	$(POETRY) fastapi dev webapp/main/server.py
+
+# Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
+# I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
+local-daemons:
+	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"

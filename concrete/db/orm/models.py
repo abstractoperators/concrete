@@ -257,6 +257,7 @@ class RepoNodeBase(Base):
         ondelete="CASCADE",
     )
     abs_path: str = Field(description="")
+    branch: str = Field(description="Branch of the repo.", index=True)
 
 
 class RepoNodeUpdate(NodeUpdate):
@@ -267,6 +268,7 @@ class RepoNodeUpdate(NodeUpdate):
     summary: str | None = Field(description="Summary of the node.", default=None)
     children_summaries: str | None = Field(description="Brief summary of each child node.", default=None)
     abs_path: str | None = Field(description="", default=None)
+    branch: str | None = Field(description="Branch of the repo.", default=None)
 
 
 class RepoNodeCreate(RepoNodeBase):

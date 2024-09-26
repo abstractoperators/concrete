@@ -68,10 +68,14 @@ services:
       args:
         GH_WEBHOOK_SECRET: ${GH_WEBHOOK_SECRET}
         GH_CLIENT_ID: ${GH_CLIENT_ID}
+        GH_PRIVATE_KEY_PATH: ${GH_PRIVATE_KEY_PATH}
+        OPENAI_API_KEY: ${OPENAI_API_KEY}
+        OPENAI_TEMPERATURE: ${OPENAI_TEMPERATURE}
     container_name: daemons
     image: daemons:latest
     ports:
       - "8000:80"
+    platform: linux/arm64
   
   ts-oauth-docs:
       image: tailscale/tailscale:latest

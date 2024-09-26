@@ -1,9 +1,12 @@
 import base64
 import fnmatch
 import inspect
+import io
 import os
 import socket
+import tempfile
 import time
+import zipfile
 from datetime import datetime, timezone
 from queue import Queue
 from textwrap import dedent
@@ -14,7 +17,6 @@ import requests
 from requests import Response
 
 from concrete.clients import OpenAIClient
-from concrete.models.messages import NodeUUID
 
 from .clients import CLIClient, HTTPClient
 from .db import crud
@@ -474,9 +476,7 @@ class GithubTool(metaclass=MetaTool):
     }
 
     @classmethod
-    def create_pr(
-        cls, org: str, repo: str, branch: str, access_token: str, title: str = "PR", base: str = "main"
-    ) -> dict:
+    def create_pr(cls, org: str, repo: str, head: str, access_token: str, title: str, base: str = "main"):
         """
         Make a pull request on the target repo
 
@@ -485,18 +485,25 @@ class GithubTool(metaclass=MetaTool):
         Args
             org (str): The organization or accounts that owns the repo.
             repo (str): The name of the repository.
-            branch (str): The head branch being merged into the base.
+            head (str): The head branch being merged into the base.
             title (str): The title of the PR being created.
             base (str): The title of the branch that changes are being merged into.
         """
         url = f"https://api.github.com/repos/{org}/{repo}/pulls"
-        json = {"title": f"[ABOP] {title}", "head": branch, "base": base}
+        json = {"title": f"[ABOP] {title}", "head": head, "base": base}
         headers = {
             'Accept': 'application/vnd.github+json',
             'Authorization': f'Bearer {access_token}',
             'X-GitHub-Api-Version': '2022-11-28',
         }
-        return RestApiTool.post(url, headers=headers, json=json)
+
+        try:
+            RestApiTool.post(url, headers=headers, json=json)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 422:
+                CLIClient.emit("PR already exists.")
+            else:
+                CLIClient.emit("Failed to create PR: " + str(e))
 
     @classmethod
     def create_branch(cls, org: str, repo: str, new_branch: str, access_token: str, base_branch: str = 'main'):
@@ -524,8 +531,13 @@ class GithubTool(metaclass=MetaTool):
         # Create new branch from base branch
         url = f"https://api.github.com/repos/{org}/{repo}/git/refs"
         json = {"ref": "refs/heads/" + new_branch, "sha": base_sha}
-        CLIClient.emit(f"Creating branch {new_branch} from {base_branch}")
-        RestApiTool.post(url=url, headers=headers, json=json)
+        try:
+            RestApiTool.post(url=url, headers=headers, json=json)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 422:
+                CLIClient.emit("Branch already exists.")
+            else:
+                CLIClient.emit("Failed to create branch: " + str(e))
 
     @classmethod
     def delete_branch(cls, org: str, repo: str, branch: str, access_token: str):
@@ -594,7 +606,7 @@ class GithubTool(metaclass=MetaTool):
         RestApiTool.put(url, headers=headers, json=json)
 
     @classmethod
-    def get_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+    def get_diff(cls, org: str, repo: str, base: str, head: str, access_token: str) -> str:
         """
         Retrieves diff of base compared to compare.
 
@@ -602,7 +614,7 @@ class GithubTool(metaclass=MetaTool):
             org (str): Organization or account owning the repo
             repo (str): The name of the repository
             base (str): The name of the branch to compare against.
-            compare (str): The name of the branch to compare.
+            head (str): The name of the branch to compare
             access_token(str): Fine-grained token with at least 'Contents' repository read access.
         """
         headers = {
@@ -611,19 +623,49 @@ class GithubTool(metaclass=MetaTool):
             'X-GitHub-Api-Version': '2022-11-28',
         }
 
-        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{compare}'
+        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{head}'
         diff_url = RestApiTool.get(url, headers=headers)['diff_url']
         diff = RestApiTool.get(diff_url)
         return diff
 
     @classmethod
-    def get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str):
+    def get_changed_files(
+        cls, org: str, repo: str, base: str, head: str, access_token: str
+    ) -> list[tuple[list[str], str]]:
         """
         Returns a list of changed files between two commits
+        [([a/file_path, b/file_path], uncleaned_diff)]
         """
-        diff = GithubTool.get_diff(org, repo, base, compare, access_token)
+        diff = GithubTool.get_diff(org, repo, base, head, access_token)
         files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
         return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
+
+    @classmethod
+    def fetch_branch(cls, org: str, repo: str, branch: str, access_token: str) -> str:
+        """
+        Downloads contents of branches latest commit to dest_path.
+        """
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {access_token}',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }
+
+        url = f'https://api.github.com/repos/{org}/{repo}/zipball/refs/heads/{branch}'
+
+        dest_path = tempfile.mkdtemp(prefix="GithubTool-")
+
+        content = HTTPTool.get(url, headers=headers)
+
+        with zipfile.ZipFile(io.BytesIO(content)) as zip_ref:
+            zip_ref.extractall(dest_path)
+            top_level_dir = zip_ref.namelist()[0].split('/')[0]
+
+        # Full path to the extracted directory.
+        full_path = os.path.join(dest_path, top_level_dir)
+
+        CLIClient.emit(f"{org}/{repo}/{branch} has been downloaded to '{full_path}'.")
+        return full_path
 
 
 class KnowledgeGraphTool(metaclass=MetaTool):
@@ -632,31 +674,35 @@ class KnowledgeGraphTool(metaclass=MetaTool):
     """
 
     @classmethod
-    def _parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID:
+    def _parse_to_tree(
+        cls, org: str, repo: str, branch: str, dir_path: str, rel_gitignore_path: str | None = None
+    ) -> UUID:
         """
         Converts a directory into an unpopulated knowledge graph.
         Stored in reponode table. Recursive programming is pain -> use a queue.
 
         args
-            org (str): Organization or account owning the repo
-            repo (str): The name of the repository
+            dir_path: The path to the directory to convert.
+            rel_gitignore_path: Path to .gitignore file relative to root directory.
+            branch: git branch of the directory state
+            sha: sha of the directory state
         Returns
             UUID: The root node id of the knowledge graph.
         """
         to_split: Queue[UUID] = Queue()
 
-        root_node = models.RepoNodeCreate(
-            org=org,
-            repo=repo,
-            partition_type='directory',
-            name=f'org/{repo}',
-            summary='',
-            children_summaries='',
-            abs_path=dir_path,
-        )
-        if (root_node_id := KnowledgeGraphTool._get_node_by_path(org, repo)) is not None:
-            pass
-        else:
+        if (root_node_id := KnowledgeGraphTool._get_node_by_path(org, repo, branch)) is None:
+            root_node = models.RepoNodeCreate(
+                org=org,
+                repo=repo,
+                partition_type='directory',
+                name=f'org/{repo}',
+                summary='',
+                children_summaries='',
+                abs_path=dir_path,
+                branch=branch,
+            )
+
             with Session() as db:
                 root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
                 to_split.put(root_node_id)
@@ -674,7 +720,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     to_split.put(child_id)
                 CLIClient.emit(f"Remaining: {to_split.qsize()}")
 
-        KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
+            KnowledgeGraphTool._upsert_all_summaries_from_leaves(root_node_id)
 
         return root_node_id
 
@@ -709,6 +755,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     children_summaries='',
                     abs_path=path,
                     parent_id=parent.id,
+                    branch=parent.branch,
                 )
                 children.append(child)
 
@@ -1036,98 +1083,16 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             return node.abs_path
 
     @classmethod
-    def _get_node_by_path(cls, org: str, repo: str, path: str | None = None) -> UUID | None:
+    def _get_node_by_path(cls, org: str, repo: str, branch: str, path: str | None = None) -> UUID | None:
         """
         Returns the UUID of a node by its path. Enables file pointer lookup.
         If path is none, returns the root node
         """
         with Session() as db:
             if path is None:
-                node = crud.get_root_repo_node(db=db, org=org, repo=repo)
+                node = crud.get_root_repo_node(db=db, org=org, repo=repo, branch=branch)
             else:
-                node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path)
+                node = crud.get_repo_node_by_path(db=db, org=org, repo=repo, abs_path=path, branch=branch)
             if node is None:
                 return None
             return node.id
-
-    # TODO: Reconsider where navigate_to_documentation, and recommend_documentation should live.
-    # They are consumers of the knowledge graph, and not something that should be part of the graph itself.
-    @classmethod
-    def navigate_to_documentation(cls, node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
-        """
-        Recommends documentation location for a given path.
-        Path refers to a module to be documented (e.g. tools)
-        Returns a boolean to indicate whether an appropriate node exists.
-        Returns current's file path, which represents the documentation location if the boolean is True (e.g. docs/tools.md)
-        """  # noqa: E501
-        node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
-
-        cur_node_summary = KnowledgeGraphTool.get_node_summary(cur_id)
-        cur_children_nodes = KnowledgeGraphTool.get_node_children(cur_id)
-
-        if not cur_children_nodes:
-            return (True, cur_id)
-
-        from concrete.operators import Executive
-
-        exec = Executive(clients={"openai": OpenAIClient()})
-        next_node_id = exec.chat(
-            f"""You are responsible for navigating to the best node to document the following module.
-        Module: {node_to_document_summary}
-
-        The following is a summary of your current location and its children: {cur_node_summary}
-
-        The following is a list of your current locations children: {cur_children_nodes}
-        Respond with the UUID of the child node you wish to navigate to.
-        If you do not believe an appropriate node exists, respond with NA.""",
-            message_format=NodeUUID,
-        ).node_uuid
-
-        if next_node_id == 'NA':
-            return (False, cur_id)
-        else:
-            return KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
-
-    @classmethod
-    def recommend_documentation(cls, org: str, repo: str, path: str) -> tuple[str, str]:
-        """
-        Recommends documentation a given path.
-        Returns a tuple of the (suggested_documentation, documentation_path)
-        """
-        from concrete.operators import Executive
-
-        root_node_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo)
-        node_to_document_id = KnowledgeGraphTool._get_node_by_path(org=org, repo=repo, path=path)
-        if not node_to_document_id or not root_node_id:
-            return ('', '')
-        found, documentation_node_id = KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, root_node_id)
-
-        with Session() as db:
-            documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
-            if documentation_node is None:
-                return ('', '')
-            documentation_path = documentation_node.abs_path
-
-        if not found:
-            documentation_path = f'{documentation_path}/{path}.md'
-            with open(documentation_path, 'w') as f:
-                f.write('')
-
-        with open(documentation_path, 'r') as f:
-            existing_documentation = f.read()
-        with open(path, 'r') as f:
-            module_contents = f.read()
-
-        exec = Executive(clients={"openai": OpenAIClient()})
-        suggested_documentation = exec.chat(
-            f"""Your job is to document the following module.
-    Existing Documentation: {existing_documentation}
-    Module Contents: {module_contents}
-
-    Respond with documentation for the module to be appended to the existing documentation.
-    Follow the style and structure of existing documentation.
-    Be comprehensive and clear in your documentation.
-    Do NOT repeat existing documentation; return only new documentation to be appended"""
-        ).text
-
-        return suggested_documentation, documentation_path

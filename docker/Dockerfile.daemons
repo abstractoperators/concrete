@@ -1,16 +1,19 @@
 FROM python:3.11.9-slim-bookworm
 
+# TODO: Reconsider the use of build-time arg injection (vs. runtime)
 ARG GH_WEBHOOK_SECRET
 ARG GH_CLIENT_ID
+ARG GH_PRIVATE_KEY_PATH
 
 ENV GH_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET
 ENV GH_CLIENT_ID=$GH_CLIENT_ID
+ENV GH_PRIVATE_KEY_PATH=$GH_PRIVATE_KEY_PATH
+
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV POETRY_VERSION=1.8  
 ENV POETRY_HOME=/opt/poetry
 ENV PATH=$POETRY_HOME/bin:$PATH
-ENV OPENAI_TEMPERATURE=0
 
 WORKDIR /app
 
@@ -19,10 +22,13 @@ RUN pip install "poetry==$POETRY_VERSION"
 
 COPY pyproject.toml poetry.lock README.md ./ 
 COPY concrete ./concrete
+
+# Note, don't need to copy .env.daemons because those are loaded at build time.
+COPY .env ./
 COPY webapp/daemons ./webapp/daemons
 
 RUN poetry config virtualenvs.create false && \
-    poetry install --only daemons,main,tooluse
+    poetry install --only daemons,main,tooluse,webapp
 
 RUN chmod +x ./webapp/daemons/scripts/start.sh
 

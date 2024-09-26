@@ -1,5 +1,5 @@
 import os
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import requests
 import requests.adapters
@@ -83,9 +83,9 @@ class OpenAIClient(Client):
 
 class CLIClient(Client):
     @classmethod
-    def emit(cls, content: str):
+    def emit(cls, content: Any):
         if os.environ.get("ENV") != "PROD":
-            print(content)
+            print(str(content))
 
 
 class HTTPClient(Client, requests.Session):
