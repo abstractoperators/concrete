@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 import jwt
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -163,7 +163,7 @@ class AOGitHubDaemon(Webhook):
         if not hmac.compare_digest(expected_signature, signature_header):
             raise HTTPException(status_code=403, detail="Request signatures didn't match")
 
-    async def webhook_handler(self, request: Request):
+    async def webhook_handler(self, request: Request, background_tasks: BackgroundTasks):
         """
         Receive and respond to GH webhook events.
         """
@@ -186,12 +186,12 @@ class AOGitHubDaemon(Webhook):
                 if action == 'opened' or action == 'reopened':
                     # Open and begin working on a revision branch
                     branch_name = payload['pull_request']['head']['ref']
-                    self._start_revision(branch_name, base)
+                    background_tasks.add_task(self._start_revision, branch_name, base)
 
                 elif action == 'closed':
                     # Close and delete the revision branch
                     branch_name = payload['pull_request']['head']['ref']
-                    self._close_revision(branch_name)
+                    background_tasks.add_task(self._close_revision, branch_name)
 
     def _start_revision(self, source_branch: str, source_target: str = 'main'):
         """
