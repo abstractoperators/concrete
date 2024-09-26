@@ -946,3 +946,80 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         elif node.partition_type == 'file':
             return KnowledgeGraphTool._summarize_leaf(node_id)
         return ''
+# Module Documentation
+
+## Overview
+This module provides a set of tools for interacting with various services, including HTTP requests, AWS deployment, GitHub operations, and knowledge graph generation. The tools are organized into classes that utilize a metaclass for dynamic method representation and registration.
+
+## Classes
+
+### MetaTool
+- **Purpose**: A metaclass that enables dynamic string representation of class objects without needing to instantiate them.
+- **Methods**:
+  - `__new__(cls, name, bases, attrs)`: Constructs a new class, collecting method signatures and docstrings for representation.
+  - `__str__(cls)`: Returns a string representation of the class.
+  - `__repr__(cls)`: Returns a formal string representation of the class.
+
+### HTTPTool (inherits from MetaTool)
+- **Purpose**: Provides methods for making HTTP requests.
+- **Methods**:
+  - `request(cls, method: str, url: str, **kwargs) -> Union[dict, str, bytes]`: Makes an HTTP request to the specified URL and processes the response.
+  - `get(cls, url: str, **kwargs) -> Response`: Makes a GET request.
+  - `post(cls, url: str, **kwargs) -> Response`: Makes a POST request.
+  - `put(cls, url: str, **kwargs) -> Response`: Makes a PUT request.
+  - `delete(cls, url: str, **kwargs) -> Response`: Makes a DELETE request.
+
+### RestApiTool (inherits from HTTPTool)
+- **Purpose**: Extends HTTPTool to handle RESTful API interactions, specifically for JSON responses.
+- **Methods**:
+  - `_process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]`: Processes the HTTP response, returning JSON if applicable.
+
+### Container
+- **Purpose**: Represents a container object with type hinting.
+- **Attributes**:
+  - `image_uri: str`: The URI of the container image.
+  - `container_name: str`: The name of the container.
+  - `container_port: int`: The port on which the container listens.
+
+### AwsTool (inherits from MetaTool)
+- **Purpose**: Facilitates building and deploying applications to AWS.
+- **Methods**:
+  - `build_and_deploy_to_aws(cls, project_directory_name: str) -> None`: Builds and deploys a project directory to AWS.
+  - `_build_and_push_image(cls, project_directory_name: str) -> tuple[bool, str]`: Builds and pushes a Docker image to ECR.
+  - `_poll_image_status(cls, repo_name: str) -> bool`: Polls ECR for the status of an image.
+  - `_deploy_service(cls, containers: list[Container], service_name: Optional[str] = None, cpu: int = 256, memory: int = 512, listener_rule: Optional[dict] = None) -> bool`: Deploys a service to ECS.
+  - `_poll_service_status(cls, service_name: str) -> bool`: Polls the ECS service until it is running.
+
+### GithubTool (inherits from MetaTool)
+- **Purpose**: Facilitates interactions with GitHub through its RESTful API.
+- **Methods**:
+  - `make_pr(cls, owner: str, repo: str, branch: str, title: str = "PR", base: str = "main") -> dict`: Creates a pull request on the specified repository.
+  - `make_branch(cls, org: str, repo: str, base_branch: str, new_branch: str, access_token: str)`: Creates a new branch from a specified base branch.
+  - `delete_branch(cls, org: str, repo: str, branch: str, access_token: str)`: Deletes a specified branch from the repository.
+  - `put_file(cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str)`: Updates or creates a file in the repository.
+  - `get_diff(cls, org: str, repo: str, base: str, compare: str, access_token: str)`: Retrieves the diff between two branches.
+  - `get_changed_files(cls, org: str, repo: str, base: str, compare: str, access_token: str)`: Returns a list of changed files between two commits.
+
+### KnowledgeGraphTool (inherits from MetaTool)
+- **Purpose**: Converts a repository into a knowledge graph.
+- **Methods**:
+  - `parse_to_tree(cls, org: str, repo: str, dir_path: str, rel_gitignore_path: str | None = None) -> UUID`: Converts a directory into an unpopulated knowledge graph.
+  - `_chunk(cls, parent_id: UUID, ignore_paths) -> list[UUID]`: Chunks a node into smaller nodes and adds them to the database.
+  - `_should_ignore(cls, name: str, ignore_patterns: str) -> bool`: Determines if a file or directory should be ignored based on patterns.
+  - `_plot(cls, root_node_id: UUID)`: Plots a knowledge graph node into a graph for debugging.
+  - `_summarize_from_leaves(cls, root_node_id: UUID)`: Summarizes all nodes in reverse order of depth.
+  - `_propagate_summaries(cls, child_id: UUID) -> None`: Recursively updates parent summaries based on child nodes.
+  - `_get_updated_parent_summary(cls, child_node_id: UUID) -> str`: Returns an updated parent summary based on existing summaries.
+  - `_summarize_leaf(cls, leaf_node_id: UUID) -> str`: Summarizes the contents of a leaf node.
+  - `_summarize_from_children(cls, repo_node_id: UUID) -> str`: Summarizes a node's children.
+  - `_summarize(cls, node_id: UUID) -> str`: Summarizes a node based on its type (directory or file).
+
+## Functions
+
+### invoke_tool(tool_name: str, tool_function: str, tool_parameters: str)
+- **Purpose**: Invokes a specified function on a tool by name, handling errors for non-existent tools or functions.
+- **Parameters**:
+  - `tool_name (str)`: The name of the tool to invoke.
+  - `tool_function (str)`: The function to call on the tool.
+  - `tool_parameters (str)`: The parameters to pass to the function.
+- **Returns**: The result of the invoked function.
