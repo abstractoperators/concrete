@@ -38,8 +38,9 @@ jobs:
                   echo GH_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET > .env.daemons
                   echo GH_CLIENT_ID=$GH_CLIENT_ID >> .env.daemons
                   echo GH_PRIVATE_KEY_PATH=$GH_PRIVATE_KEY_PATH >> .env.daemons
-                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env.daemons
-                  echo OPENAI_TEMPERATURE=0 > .env.daemons
+                  
+                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env
+                  echo OPENAI_TEMPERATURE=0 > .env
                   make build-daemons
 
             - name: Push to ECR
