@@ -115,3 +115,7 @@ local-api:
 # local webapp-main
 local-webapp-main:
 	$(POETRY) fastapi dev webapp/main/server.py
+
+# Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. I run `ngrok http 8000`, and then use the generated URL as the webhook URL.
+local-daemons:
+	$(POETRY) fastapi dev webapp/daemons/server.py
