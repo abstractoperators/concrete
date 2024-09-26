@@ -225,24 +225,30 @@ class AOGitHubDaemon(Webhook):
             access_token=self.installation_token.token,
         )
 
-        CLIClient.emit(f"Fetching revision branch contents: {revision_branch}")
-        branch_contents_path = GithubTool.fetch_branch(
-            org=self.org,
-            repo=self.repo,
-            branch=revision_branch,
-            access_token=self.installation_token.token,
-        )
+        if (
+            root_node_id := KnowledgeGraphTool._get_node_by_path(org=self.org, repo=self.repo, branch=revision_branch)
+            is None
+        ):
+            CLIClient.emit(f"Fetching revision branch contents: {revision_branch}")
+            branch_contents_path = GithubTool.fetch_branch(
+                org=self.org,
+                repo=self.repo,
+                branch=revision_branch,
+                access_token=self.installation_token.token,
+            )
 
-        CLIClient.emit(f"Creating knowledge graph from revision branch: {revision_branch}")
-        root_node_id = KnowledgeGraphTool._parse_to_tree(
-            org=self.org,
-            repo=self.repo,
-            dir_path=branch_contents_path,
-            rel_gitignore_path='.gitignore',
-            branch=revision_branch,
-        )
+            CLIClient.emit(f"Creating knowledge graph from revision branch: {revision_branch}")
+            root_node_id = KnowledgeGraphTool._parse_to_tree(
+                org=self.org,
+                repo=self.repo,
+                dir_path=branch_contents_path,
+                rel_gitignore_path='.gitignore',
+                branch=revision_branch,
+            )
+        else:
+            branch_contents_path = KnowledgeGraphTool.get_node_path(root_node_id)
 
-        CLIClient.emit("Finding changed files in source branch")
+        CLIClient.emit("Finding changed files in source branch/PR")
         changed_files = GithubTool.get_changed_files(
             org=self.org,
             repo=self.repo,
