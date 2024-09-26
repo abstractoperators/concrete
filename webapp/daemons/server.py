@@ -150,7 +150,7 @@ class AOGitHubDaemon(Webhook):
             secret_token: GitHub app webhook token (WEBHOOK_SECRET)
             signature_header: header received from GitHub (x-hub-signature-256)
         """
-        GH_WEBHOOK_SECRET = os.getenv("GH_WEBHOOK_SECRET")
+        GH_WEBHOOK_SECRET = os.environ.get("GH_WEBHOOK_SECRET")
         if not GH_WEBHOOK_SECRET:
             raise HTTPException(status_code=500, detail="GH_WEBHOOK_SECRET is not set")
 
@@ -314,15 +314,15 @@ class AOGitHubDaemon(Webhook):
 
         exec = Executive(clients={"openai": OpenAIClient()})
         next_node_id = exec.chat(
-            f"""You will navigate to the best child to document the following module.
+            f"""You will navigate to the best child to document the following module. Ideally, a the module will be documented in a central location.
         Module: {node_to_document_summary}
 
-        The following is a summary of children you may navigate to: {cur_node_summary}
+        The following are summaries of children you may navigate to: {cur_node_summary}
 
         The following is a list of the children's UUIDs.
         {cur_children_nodes}
         
-        Think about what child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to.
+        Think about which child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to.
         If you do not believe any children are appropriate, respond with NA.""",  # noqa
             message_format=NodeUUID,
         ).node_uuid
@@ -330,7 +330,7 @@ class AOGitHubDaemon(Webhook):
         if next_node_id == 'NA':
             return (False, cur_id)
         else:
-            return KnowledgeGraphTool.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
+            return self.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
 
     def recommend_documentation(self, branch: str, path: str) -> tuple[str, str]:
         """
