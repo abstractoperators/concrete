@@ -21,17 +21,19 @@
 
 <body>
     <ol class="operator-card-list">
+        {% for message in messages %}
         <li class="left">
             <div class="operator-avatar-container">
                 <div class="operator-avatar-mask">
                     <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
-                    <h1 class="operator-avatar-text">E</h1>
+                    <h1 class="operator-avatar-text">{{ message.avatar }}</h1>
                 </div>
             </div>
             <p class="message">
-                I am the executive.
+                {{ message.content }}
             </p>
         </li>
+        {% endfor %}
     </ol>
 </body>
 

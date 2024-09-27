@@ -25,10 +25,9 @@ async def root(request: Request):
 async def chat(request: Request):
     # TODO: make dynamic, both in data and in template.
     messages = [
-        {"Executive": "I am the executive!"},
-        {"Operator 1": "I am operator 1!"},
-        {"Operator 2": "I am operator 2!"},
-        {"Operator 3": "I am operator 3!"},
+        {"Role": "Executive", "content": "I am the executive", "avatar": "E1"},
+        {"Role": "Operator 1", "content": "I am operator 1", "avatar": "O1"},
+        {"Role": "Operator 2", "content": "I am operator 2", "avatar": "O2"},
     ]
     return templates.TemplateResponse("group_chat.html", {"request": request, "messages": messages})
 
