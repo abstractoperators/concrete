@@ -7,7 +7,7 @@ from openai import OpenAI, RateLimitError
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel as PydanticModel
 from requests.adapters import HTTPAdapter, Retry
-from tenacity import (  # for exponential backoff
+from tenacity import (
     retry,
     retry_if_exception_type,
     stop_after_attempt,
