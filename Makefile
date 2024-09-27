@@ -47,14 +47,11 @@ build-docs:
 	$(POETRY) mkdocs build --config-file config/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
-# Build before if needed 
-# Using docker compose to store some arguments
-# TODO: Parameterize based on app name
 run-webapp-demo:
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
-run-webapp-homepage:
+run-webapp-homepage: build-webapp-homepage
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
