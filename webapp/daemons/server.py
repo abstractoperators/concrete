@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 import jwt
+from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +28,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+load_dotenv('.env.daemons')
+print(os.environ.get('GH_PRIVATE_KEY_PATH'))
+print(os.environ.get('GH_CLIENT_ID'))
+print(os.environ.get('GH_WEBHOOK_SECRET'))
 
 
 class Webhook(ABC):

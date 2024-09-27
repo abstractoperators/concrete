@@ -59,18 +59,10 @@ services:
     network_mode: service:ts-oauth-demo
     platform: linux/arm64
 
-  # TODO: Figure out why I get warning messages about args not being set, even though in the container
-  # I can see the environment variables are set correctly
   daemons:
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.daemons
-      args:
-        GH_WEBHOOK_SECRET: ${GH_WEBHOOK_SECRET}
-        GH_CLIENT_ID: ${GH_CLIENT_ID}
-        GH_PRIVATE_KEY_PATH: ${GH_PRIVATE_KEY_PATH}
-        OPENAI_API_KEY: ${OPENAI_API_KEY}
-        OPENAI_TEMPERATURE: ${OPENAI_TEMPERATURE}
     container_name: daemons
     image: daemons:latest
     ports:

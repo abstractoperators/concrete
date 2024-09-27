@@ -23,7 +23,6 @@ requests = "==2.32.3"
 [tool.poetry.group.tooluse.dependencies]
 boto3 = "==1.35.3"
 chardet = "==5.2.0"
-# Plotting knowledge graph
 matplotlib = "==3.9.2"
 networkx = "==3.3"
 
@@ -45,17 +44,12 @@ uvicorn = "==0.30.4"
 fastapi = "==0.111.1"
 
 
-[tool.poetry.group.webapp-demo.dependencies]
-flask = "==3.0.3"
-
-
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "==9.5.34"
 
 
 [tool.poetry.group.daemons.dependencies]
 pyjwt = "2.9.0"
-
 
 [tool.poetry.group.test.dependencies]
 pytest = "==8.3.2"

@@ -42,7 +42,7 @@ build-dind-builder:
 
 # TODO Get rid build-time secret injection in favor of runtime. 
 build-daemons:
-	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
+	docker compose -f docker/docker-compose.yml build daemons
 
 build-docs:
 	$(POETRY) mkdocs build --config-file config/mkdocs.yml
@@ -70,6 +70,7 @@ run-docs:
 	docker compose -f docker/docker-compose.yml up -d docs
 
 
+# ----------------------- AWS Commands -----------------------
 # TODO: Use hyphens instead of underscores
 # https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
