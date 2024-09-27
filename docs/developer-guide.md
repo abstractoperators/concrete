@@ -159,4 +159,82 @@ docker build -t my_app_image .
 docker run -p 80:80 my_app_image
 ```
 
+Replace `my_app_image` with your desired image name. The application will be accessible on port 80 of your localhost.## Docker Setup
+
+This module utilizes Docker to create a consistent environment for building and running the application. Below are the steps and explanations for the Docker setup used in this project.
+
+### Dockerfile Overview
+
+The Dockerfile is divided into two main stages: the builder stage and the runtime stage. This multi-stage build helps to keep the final image lightweight by separating the build dependencies from the runtime environment.
+
+#### Builder Stage
+
+```dockerfile
+FROM python:3.11.10-bookworm AS builder
+
+RUN pip install poetry==1.8
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock ./
+RUN touch README.md
+
+RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --only main,webapp --no-root
+```
+
+- **Base Image**: The builder stage starts from the `python:3.11.10-bookworm` image, which includes Python 3.11.10.
+- **Poetry Installation**: It installs Poetry version 1.8 for dependency management.
+- **Environment Variables**: Several environment variables are set to configure Poetry's behavior, including disabling interaction and enabling virtual environments within the project directory.
+- **Working Directory**: The working directory is set to `/app`.
+- **Dependency Installation**: The `pyproject.toml` and `poetry.lock` files are copied, and dependencies are installed using Poetry, with caching enabled for efficiency.
+
+#### Runtime Stage
+
+```dockerfile
+FROM python:3.11.10-slim-bullseye AS runtime
+
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH" \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 
+
+WORKDIR /app
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+
+COPY concrete ./concrete
+COPY webapp ./webapp
+
+RUN chmod +x ./webapp/homepage/scripts/start.sh
+
+EXPOSE 80
+CMD ["./webapp/homepage/scripts/start.sh"]
+```
+
+- **Base Image**: The runtime stage uses the `python:3.11.10-slim-bullseye` image, which is a smaller version of the Python image.
+- **Environment Variables**: Similar environment variables are set to ensure the virtual environment is used correctly.
+- **Working Directory**: The working directory is again set to `/app`.
+- **Copying Artifacts**: The virtual environment created in the builder stage is copied over to the runtime stage, along with the application code and configuration files.
+- **Script Permissions**: The startup script is made executable.
+- **Port Exposure**: Port 80 is exposed for web traffic.
+- **Startup Command**: The container is configured to run the startup script when it is launched.
+
+### Building and Running the Docker Container
+
+To build and run the Docker container, use the following commands:
+
+```shell
+# Build the Docker image
+docker build -t my_app_image .
+
+# Run the Docker container
+docker run -p 80:80 my_app_image
+```
+
 Replace `my_app_image` with your desired image name. The application will be accessible on port 80 of your localhost.
