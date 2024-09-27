@@ -22,13 +22,13 @@ helloworld_celery: celery
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."
 
-
 # Requires dind-builder to be running
 # Need to manually delete created resources in AWS.
 # Created resources will be in ECR, ECS (tasks definitions and services), LB listener rules.
 deploysimpleflask:
 	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
+# ----------------------- Build commands -----------------------
 # Note that webapp-demo will require dind-builder to deploy a service to aws. 
 # No actual dependency is defined for flexibility.
 build-webapp-demo:
@@ -40,6 +40,7 @@ build-webapp-homepage:
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
+# TODO Get rid build-time secret injection in favor of runtime. 
 build-daemons:
 	docker compose --env-file .env.daemons -f docker/docker-compose.yml build daemons
 
@@ -47,7 +48,8 @@ build-docs:
 	$(POETRY) mkdocs build --config-file config/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
-run-webapp-demo:
+# ----------------------- Run commands -----------------------
+run-webapp-demo: build-webapp-demo
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
@@ -67,35 +69,32 @@ run-docs:
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
 
-# Run locally
-local-docs:
-	poetry run mkdocs build --config-file config/mkdocs.yml
-	mkdocs serve --config-file config/mkdocs.yml
 
 # TODO: Use hyphens instead of underscores
 # https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
 # Need to set your aws config for default profile + credentials
-aws_ecr_login:
+aws-ecr-login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
 
 # Build before pushing to registry
-aws_ecr_push_homepage: aws_ecr_login
+aws-ecr-push-homepage: aws-ecr-login
 	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
-aws_ecr_push_demo: aws_ecr_login
+aws-ecr-push-demo: aws-ecr-login
 	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
-aws_ecr_push_docs: aws_ecr_login
+aws-ecr-push-docs: aws-ecr-login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
-aws_ecr_push_daemons: aws_ecr_login
+aws-ecr-push-daemons: aws-ecr-login
 	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 
 deploy-daemon-to-aws-staging:
 	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
 
+# ------------------------ Local Development without Docker ------------------------
 rabbitmq:
 	docker rm -f rabbitmq || true
 	docker run -d -p 5672:5672 --name rabbitmq rabbitmq &
@@ -104,6 +103,12 @@ rabbitmq:
 celery: rabbitmq
 	rm logs/celery.log || true
 	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
+
+
+# Run locally
+local-docs:
+	poetry run mkdocs build --config-file config/mkdocs.yml
+	mkdocs serve --config-file config/mkdocs.yml
 
 # local swagger UI
 local-api:

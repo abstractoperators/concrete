@@ -42,7 +42,7 @@ jobs:
 
             - name: Push to ECR
               run: |
-                  make aws_ecr_push_demo
+                  make aws-ecr-push-demo
     deploy:
         needs: build
         runs-on: ubuntu-latest

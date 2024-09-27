@@ -26,7 +26,7 @@ Client_con = TypeVar("Client_con", bound=Client, contravariant=True)
 
 class OpenAIClient(Client):
     """
-    Thin wrapper around open AI client
+    Thin wrapper around open AI client.
     """
 
     def __init__(self, model: str | None = None, temperature: float | None = None):

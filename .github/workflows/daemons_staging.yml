@@ -45,7 +45,7 @@ jobs:
 
             - name: Push to ECR
               run: |
-                  make aws_ecr_push_daemons
+                  make aws-ecr-push-daemons
     deploy:
         needs: build
         runs-on: ubuntu-latest
