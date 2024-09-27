@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
-    <title>Operator - List View</title>
+    <title>Orchestrators - List View</title>
     <link href="/static/css/abop.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/static/abstractoperators_favicon.jpg">
 
@@ -30,7 +30,9 @@
         <button type="submit">Create Orchestrator</button>
     </form>
 
-    <ul hx-get="/orchestrators" hx-trigger="load" class="operator-card-list"></ul>
+    <div id="orchestrator-list" hx-get="/orchestrators" hx-trigger="load"></div>
+    </div>
+    
     <script src="/static/js/create_orchestrator.js"></script>
     
 </body>

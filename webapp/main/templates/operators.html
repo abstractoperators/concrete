@@ -22,35 +22,21 @@
 </head>
 
 <body>
+    <h1>Operators for {{ orchestrator_id }}</h1>
 
-    <body>
-        <h1>Operators for Orchestrator {{ orchestrator_id }}</h1>
-        <ul class="operator-list">
-            {% for operator in operators %}
-            <li class="operator-card">
-                <a href="/chat/{{ orchestrator_id }}/{{ operator.id }}">
-                    <hgroup class="operator-avatar-and-header">
-                        <div class="operator-avatar-container">
-                            <div class="operator-avatar-mask">
-                                <img src="/static/operator_circle.svg" alt="Operator Avatar"
-                                    class="operator-avatar-mask">
-                                <h1 class="operator-avatar-text">
-                                    {{ operator.avatar }}
-                                </h1>
-                            </div>
-                        </div>
-                        <div class="operator-info">
-                            <h2 class="header small left">{{ operator.name }}</h2>
-                            <p class="operator-details">
-                                Type: {{ operator.type }}
-                            </p>
-                        </div>
-                    </hgroup>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </body>
+    <form id="create-operator-form" hx-post="/operators" hx-target="#operator-list" hx-swap="afterbegin" hx-trigger="submit">
+        <input type="hidden" name="orchestrator_id" value="{{ orchestrator_id }}">
+        <input type="text" id="instructions" name="instructions" placeholder="Instructions" required>
+        <input type="text" id="title" name="title" placeholder="Title" required>
+        <button type="submit">Create Operator</button>
+    </form>
+
+    <ul id="operator-list" class="operator-list">
+        {% for operator in operators %}
+            {% include "operator.html" %}
+        {% endfor %}
+    </ul>
+
 </body>
 
 </html>

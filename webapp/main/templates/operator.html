@@ -1,0 +1,20 @@
+<li class="operator-card">
+    <a href="/chat/{{ orchestrator_id }}/{{ operator.id }}">
+        <hgroup class="operator-avatar-and-header">
+            <div class="operator-avatar-container">
+                <div class="operator-avatar-mask">
+                    <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
+                    <h1 class="operator-avatar-text">
+                        {{ operator.avatar }}
+                    </h1>
+                </div>
+            </div>
+            <div class="operator-info">
+                <h2 class="header small left">{{ operator.name }}</h2>
+                <p class="operator-details">
+                    Type: {{ operator.type }}
+                </p>
+            </div>
+        </hgroup>
+    </a>
+</li>

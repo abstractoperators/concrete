@@ -38,7 +38,7 @@ async def chat(request: Request):
 @app.get("/orchestrators", response_class=HTMLResponse)
 async def get_orchestrators(request: Request):
     """
-    Returns a list of all orchestrations
+    Returns a list of all orchestrators for htmx rendering
     """
     with Session() as session:
         orchestrators = crud.get_orchestrators(session)
@@ -52,7 +52,9 @@ async def get_operators(request: Request, orchestrator_id: UUID):
     """
     with Session() as session:
         operators = crud.get_operators(session, orchestrator_id)
-    return templates.TemplateResponse("operators.html", {"request": request, "operators": operators})
+    return templates.TemplateResponse(
+        "operators.html", {"request": request, "operators": operators, "orchestrator_id": orchestrator_id}
+    )
 
 
 @app.post("/orchestrators", response_class=HTMLResponse)
@@ -60,9 +62,24 @@ async def create_orchestrator(request: Request):
     """
     Create a new orchestrator
     """
-    # await json data
     orchestrator = await request.json()
     orchestrator_create = models.OrchestratorCreate(**orchestrator)
 
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
+
+
+@app.post("/operators", response_class=HTMLResponse)
+async def create_operator(request: Request):
+    """
+    Create a new operator under an orchestrator
+    """
+    operator = await request.json()
+    operator_create = models.OperatorCreate(**operator)
+    print(operator_create)
+    with Session() as session:
+        operator = crud.create_operator(session, operator_create, orchestrator_id)
+
+    return templates.TemplateResponse(
+        "operator.html", {"request": request, "operator": operator, "orchestrator_id": orchestrator_id}
+    )
