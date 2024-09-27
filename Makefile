@@ -40,7 +40,6 @@ build-webapp-homepage:
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
-# TODO Get rid build-time secret injection in favor of runtime. 
 build-daemons:
 	docker compose -f docker/docker-compose.yml build daemons
 
@@ -104,7 +103,6 @@ rabbitmq:
 celery: rabbitmq
 	rm logs/celery.log || true
 	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
-
 
 # Run locally
 local-docs:

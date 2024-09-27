@@ -21,9 +21,6 @@ services:
       context: ../
       dockerfile: ./docker/Dockerfile.homepage
     container_name: webapp-homepage
-    env_file:
-      - path: "../.env"
-        required: false
     network_mode: service:ts-oauth-homepage
     platform: linux/arm64
 
@@ -53,9 +50,6 @@ services:
       - shared-volume:/shared
     environment:
       - SHARED_VOLUME=/shared
-    env_file: 
-      - path: "../.env.demo"
-        required: false
     network_mode: service:ts-oauth-demo
     platform: linux/arm64
 
@@ -89,8 +83,6 @@ services:
       context: ../
       dockerfile: ./docker/Dockerfile.docs
     container_name: docs
-    env_file:
-      - path: "../.env"
     image: docs
     network_mode: service:ts-oauth-docs
     depends_on: 
@@ -108,9 +100,6 @@ services:
       - /shared:/shared
     environment:
       - SHARED_VOLUME=/shared
-    env_file:
-      - path: "../.env.dind-builder"
-        required: false
     platform: linux/arm64
 
 
