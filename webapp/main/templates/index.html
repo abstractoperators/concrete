@@ -23,7 +23,16 @@
 </head>
 
 <body>
+    <form id="create-orchestrator-form">
+        <input type="text" id="title" name="title" placeholder="Orchestrator Title" required>
+        <input type="text" id="owner" name="owner" placeholder="Owner" required>
+        <input type="text" id="type_name" name="type_name" placeholder="Type Name" required>
+        <button type="submit">Create Orchestrator</button>
+    </form>
+
     <ul hx-get="/orchestrators" hx-trigger="load" class="operator-card-list"></ul>
+    <script src="/static/js/create_orchestrator.js"></script>
+    
 </body>
 
 </html>
