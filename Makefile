@@ -116,4 +116,65 @@ local-webapp-main:
 # Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
 # I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
 local-daemons:
+	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"# Additional Commands Documentation
+
+# Local Development Commands
+
+## Local Development for Documentation
+local-docs:
+	poetry run mkdocs build --config-file config/mkdocs.yml
+	mkdocs serve --config-file config/mkdocs.yml
+
+# AWS ECR Commands
+
+## AWS ECR Login
+aws_ecr_login:
+	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
+
+## Push Docker Images to AWS ECR
+aws_ecr_push_homepage: aws_ecr_login
+	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
+
+aws_ecr_push_demo: aws_ecr_login
+	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
+
+aws_ecr_push_docs: aws_ecr_login
+	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
+
+aws_ecr_push_daemons: aws_ecr_login
+	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+
+# Deployment Commands
+
+deply-daemon-to-aws-staging:
+	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
+
+# RabbitMQ and Celery Commands
+
+## Start RabbitMQ
+rabbitmq:
+	docker rm -f rabbitmq || true
+	docker run -d -p 5672:5672 --name rabbitmq rabbitmq &
+
+## Start Celery Worker
+celery: rabbitmq
+	rm logs/celery.log || true
+	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
+
+# Local API and Web Application Commands
+
+## Local API Server
+local-api:
+	$(POETRY) fastapi dev webapp/api/server.py --port 8001
+
+## Local Web Application Main Server
+local-webapp-main:
+	$(POETRY) fastapi dev webapp/main/server.py
+
+## Local Daemons
+local-daemons:
 	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"
