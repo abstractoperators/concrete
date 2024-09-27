@@ -31,9 +31,6 @@ async def root(request: Request):
 
 
 load_dotenv('.env.daemons')
-print(os.environ.get('GH_PRIVATE_KEY_PATH'))
-print(os.environ.get('GH_CLIENT_ID'))
-print(os.environ.get('GH_WEBHOOK_SECRET'))
 
 
 class Webhook(ABC):
