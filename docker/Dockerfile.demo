@@ -1,26 +1,39 @@
-FROM python:3.11.9-slim-bookworm
+FROM python:3.11.10-bookworm AS builder
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV POETRY_VERSION=1.8
-ENV POETRY_HOME=/opt/poetry
-ENV PATH=$POETRY_HOME/bin:$PATH
-ENV OPENAI_TEMPERATURE=0
-ENV POETRY_NO_INTERACTION=1 
+RUN pip install poetry==1.8
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
-RUN apt-get update
-
-RUN pip install "poetry==$POETRY_VERSION"
-
-COPY . .
-
+COPY pyproject.toml poetry.lock ./
 RUN touch README.md
-RUN poetry config virtualenvs.create false
-RUN poetry install --only webapp,main,tooluse --no-cache --no-ansi
+
+RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --only main,webapp --no-root
+
+FROM python:3.11.10-slim-bullseye AS runtime
+
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH" \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 
+
+WORKDIR /app
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+
+COPY concrete ./concrete
+COPY webapp ./webapp
+COPY pyproject.toml poetry.lock ./
+RUN touch README.md
+
+RUN pip install --no-deps .
 
 RUN chmod +x ./webapp/demo/scripts/start.sh
 EXPOSE 80
-
 CMD ["./webapp/demo/scripts/start.sh"]
+
