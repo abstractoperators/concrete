@@ -105,3 +105,49 @@ class HTTPClient(Client, requests.Session):
         )
         self.mount("http://", HTTPAdapter(max_retries=jitter_retry))
         self.mount("https://", HTTPAdapter(max_retries=jitter_retry))
+
+
+# Module Documentation
+
+## Classes
+
+### Client
+- **Description**: Base class for all client implementations.
+
+### OpenAIClient(Client)
+- **Description**: A thin wrapper around the OpenAI client, providing methods to interact with OpenAI's API.
+- **Constructor**:  
+  - `__init__(model: str | None = None, temperature: float | None = None)`: Initializes the OpenAI client with the specified model and temperature. Retrieves the API key from environment variables.
+
+- **Methods**:  
+  - `complete(messages: list[dict[str, str]], message_format: type[Message] | dict = TextMessage, temperature: float | None = None, **kwargs) -> ChatCompletion`:  
+    - **Description**: Sends a completion request to the OpenAI API with the provided messages and parameters. Retries on RateLimitError.
+    - **Parameters**:  
+      - `messages`: A list of message dictionaries to send to the API.
+      - `message_format`: The format of the response, either a Pydantic model or a dictionary.
+      - `temperature`: The sampling temperature to use for the response.
+      - `**kwargs`: Additional parameters to pass to the API.
+    - **Returns**: A ChatCompletion object containing the response from the OpenAI API.
+
+  - `model_to_schema(model: type[PydanticModel]) -> dict[str, str | dict]`:  
+    - **Description**: Converts a Pydantic model into a JSON schema format for OpenAI.
+    - **Parameters**:  
+      - `model`: The Pydantic model to convert.
+    - **Returns**: A dictionary representing the JSON schema of the model.
+
+### CLIClient(Client)
+- **Description**: A client for command-line interface operations.
+- **Methods**:  
+  - `emit(content: Any)`:  
+    - **Description**: Prints the content to the console if the environment is not production.
+    - **Parameters**:  
+      - `content`: The content to print.
+
+### HTTPClient(Client, requests.Session)
+- **Description**: A client for making HTTP requests with retry logic.
+- **Constructor**:  
+  - `__init__()`: Initializes the HTTP client and sets up retry logic for HTTP requests.
+
+- **Details**:  
+  - Uses `requests.Session` to manage connections and sessions.
+  - Implements a jitter retry strategy for handling transient HTTP errors, retrying on specific status codes.
