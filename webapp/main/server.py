@@ -1,4 +1,5 @@
 import os
+from uuid import UUID
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -23,7 +24,7 @@ async def root(request: Request):
 
 @app.get("/chat", response_class=HTMLResponse)
 async def chat(request: Request):
-    # TODO: make dynamic, both in data and in template.
+    # TODO: make dynamic in data
     messages = [
         {"Role": "Executive", "content": "I am the executive", "avatar": "E1"},
         {"Role": "Operator 1", "content": "I am operator 1", "avatar": "O1"},
@@ -33,32 +34,14 @@ async def chat(request: Request):
 
 
 @app.get("/orchestrators", response_class=HTMLResponse)
-async def get_orchestrators():
+async def get_orchestrators(request: Request):
     with Session() as session:
         orchestrators = crud.get_orchestrators(session)
-        for orchestrator in orchestrators:
-            print(orchestrator)
-        content = "".join(
-            [
-                f"""
-        <li class="operator-card">
-            <a href="/chat">
-                <hgroup class="operator-avatar-and-header">
-                    <div class="operator-avatar-container">
-                        <div class="operator-avatar-mask">
-                            <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
-                            <h1 class="operator-avatar-text">
-                                {orchestrator.title[0] if len(orchestrator.title) < 2 else orchestrator.title[:2]}
-                            </h1>
-                        </div>
-                    </div>
+    return templates.TemplateResponse("orchestrators.html", {"request": request, "orchestrators": orchestrators})
 
-                    <h1 class="header small left">{orchestrator.title}</h1>
-                </hgroup>
-            </a>
-        </li>
-        """
-                for orchestrator in orchestrators
-            ]
-        )
-    return HTMLResponse(content=content, status_code=200)
+
+@app.get("/operators/{orchestrator_id}", response_class=HTMLResponse)
+async def get_operators(request: Request, orchestrator_id: UUID):
+    with Session() as session:
+        operators = crud.get_operators(session, orchestrator_id)
+    return templates.TemplateResponse("operators.html", {"request": request, "operators": operators})
