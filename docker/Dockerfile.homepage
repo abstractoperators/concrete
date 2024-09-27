@@ -16,7 +16,7 @@ RUN touch README.md
 
 RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --only main,webapp --no-root
 
-FROM python:3.11.10-slim-bullseye AS runtime
+FROM python:3.11.10-slim-bookworm AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
