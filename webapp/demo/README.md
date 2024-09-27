@@ -57,3 +57,31 @@ Event Subscriptions: Slack sends out a post request to `request_url` whenever a 
 Server side, we respond to these requests in `webapp-demo`. The `slack/events` endpoint listens for these requests, and publishes a button to #github-logs under the condition that the message is in #github-logs, and is a merge message from the (official) Github bot. 
 
 Interactivity (e.g. Buttons): When a user interacts with any interactive modality, Slack sends a post request to `request_url`. In this case, it sends it to `webapp-demo-staging.abop.ai/slack/`. This endpoint deploys the latest commit on `main` to prod. More specifically, it deploys the latest containers in ECR (008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-<demo|homepage>:latest).
+# Module Overview
+
+The `webapp-demo` module is responsible for serving the web application using the Gunicorn server. It is designed to handle incoming requests and manage the application lifecycle effectively.
+
+## Startup Script
+The module is initiated through a shell script that sets up the environment and starts the Gunicorn server. The script performs the following actions:
+
+```sh
+#!/bin/sh
+cd webapp/demo
+echo "Starting gunicorn server"
+gunicorn server:app --bind 0.0.0.0:80 --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 1 --timeout=2000
+```
+
+### Breakdown of the Startup Script:
+- `#!/bin/sh`: This line indicates that the script should be run in a shell environment.
+- `cd webapp/demo`: Changes the current directory to `webapp/demo`, where the application code resides.
+- `echo "Starting gunicorn server"`: Outputs a message to the console indicating that the Gunicorn server is starting.
+- `gunicorn server:app --bind 0.0.0.0:80 --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 1 --timeout=2000`: This command starts the Gunicorn server with the following parameters:
+  - `server:app`: Specifies the application to run, where `server` is the module and `app` is the application instance.
+  - `--bind 0.0.0.0:80`: Binds the server to all available IP addresses on port 80.
+  - `--workers 1`: Sets the number of worker processes to handle requests. In this case, it is set to 1.
+  - `--worker-class uvicorn.workers.UvicornWorker`: Uses Uvicorn as the worker class for handling asynchronous requests.
+  - `--threads 1`: Specifies the number of threads per worker.
+  - `--timeout=2000`: Sets the timeout for requests to 2000 seconds, allowing long-running requests to complete.
+
+## Deployment Considerations
+Ensure that the environment is properly configured with the required environment variables before starting the Gunicorn server. The server should be monitored for performance and errors to ensure optimal operation.
