@@ -2,4 +2,137 @@
   --md-primary-fg-color:        #0091EC;
   --md-primary-fg-color--light: #7AB6FF;
   --md-primary-fg-color--dark:  #006CB2;
+}:root {
+  --sans-serif-family: "Kantumruy Pro", sans-serif;  /* Primary sans-serif font family */
+  --serif-family: "Judson", serif;  /* Primary serif font family */
+  --rounding-rectangle: 16px;  /* Border radius for rounded corners */
+  --primary-100: #C6DBFF;  /* Light primary color */
+  --secondary-100: #FFEBFE;  /* Light secondary color */
+  --space-200: 8px;  /* Spacing unit */
+  --schemes-on-primary: #FFF;  /* Color for elements on primary background */
+
+  --icon-large-container: 56px;  /* Size for large icon containers */
+
+  --icon-small-size: 24px;  /* Font size for small icons */
+  --icon-small-height: 28px;  /* Line height for small icons */
+  --icon-small-letter-spacing: 0px;  /* Letter spacing for small icons */
+
+  --circle-large: 40px;  /* Diameter for large circular elements */
+
+  --header-small-size: 24px;  /* Font size for small headers */
+  --header-small-height: 28px;  /* Line height for small headers */
+  --header-small-letter-spacing: 0px;  /* Letter spacing for small headers */
+}
+
+.icon {
+    font-family: var(--sans-serif-family);  /* Applies sans-serif font to icons */
+    font-style: normal;  /* Normal font style for icons */
+}
+
+.header {
+    font-family: var(--sans-serif-family);  /* Applies sans-serif font to headers */
+    font-style: normal;  /* Normal font style for headers */
+    font-weight: 700;  /* Bold font weight for headers */
+}
+
+.header.small {
+    font-size: var(--header-small-size);  /* Font size for small headers */
+    line-height: var(--header-small-height);  /* Line height for small headers */
+    letter-spacing: var(--header-small-letter-spacing);  /* Letter spacing for small headers */
+}
+
+.header.small.left {
+    text-align: left;  /* Aligns small headers to the left */
+}
+
+.operator-card-list {
+    display: flex;  /* Flexbox layout for operator card list */
+    width: 500px;  /* Fixed width for operator card list */
+    padding: var(--space-200);  /* Padding around the card list */
+    flex-direction: column;  /* Stacks cards vertically */
+    align-items: center;  /* Centers cards horizontally */
+    gap: var(--space-200);  /* Space between cards */
+
+    background: var(--schemes-on-primary);  /* Background color for card list */
+}
+
+.operator-avatar-container {
+    width: var(--icon-large-container, 56px);  /* Width for avatar container */
+    height: var(--icon-large-container, 56px);  /* Height for avatar container */
+    display: flex;  /* Flexbox layout for avatar container */
+    justify-content: center;  /* Centers content horizontally */
+    align-items: center;  /* Centers content vertically */
+}
+
+.operator-avatar-mask {
+    width: var(--circle-large);  /* Width for avatar mask */
+    height: var(--circle-large);  /* Height for avatar mask */
+    border-radius: 50%;  /* Circular mask */
+    overflow: hidden;  /* Hides overflow content */
+    display: flex;  /* Flexbox layout for avatar mask */
+    justify-content: center;  /* Centers content horizontally */
+    align-items: center;  /* Centers content vertically */
+}
+
+.operator-avatar-mask img {
+    width: 100%;  /* Full width for avatar image */
+    height: 100%;  /* Full height for avatar image */
+    object-fit: cover;  /* Covers the mask area */
+}
+
+li.operator-card {
+    display: flex;  /* Flexbox layout for operator card */
+    width: 30em;  /* Fixed width for operator card */
+    justify-content: space-between;  /* Space between card elements */
+    align-items: center;  /* Centers items vertically */
+    border-radius: var(--rounding-rectangle);  /* Rounded corners for card */
+    background: var(--secondary-100);  /* Background color for operator card */
+    box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.25);  /* Shadow effect for card */
+    margin: 16px;  /* Margin around card */
+}
+
+li.left {
+    width: 30em;  /* Fixed width for left-aligned items */
+    display: flex;  /* Flexbox layout for left-aligned items */
+    flex-direction: row;  /* Horizontal layout for left-aligned items */
+    justify-content: flex-start;  /* Aligns items to the start */
+    align-items: flex-start;  /* Aligns items to the start vertically */
+}
+
+hgroup.operator-avatar-and-header {
+    display: flex;  /* Flexbox layout for avatar and header group */
+    flex-direction: row;  /* Horizontal layout for avatar and header */
+    justify-content: space-evenly;  /* Even spacing between items */
+    align-items: center;  /* Centers items vertically */
+    margin: 8px;  /* Margin around the group */
+}
+
+h1.operator-avatar-text {
+    position: absolute;  /* Absolute positioning for avatar text */
+    width: 100%;  /* Full width for avatar text */
+    height: 100%;  /* Full height for avatar text */
+    display: flex;  /* Flexbox layout for avatar text */
+    flex-direction: column;  /* Vertical layout for avatar text */
+    justify-content: center;  /* Centers text vertically */
+    flex-shrink: 0;  /* Prevents shrinking */
+
+    color: #000;  /* Text color for avatar text */
+    text-align: center;  /* Centers text horizontally */
+    font-family: var(--sans-serif-family);  /* Applies sans-serif font to avatar text */
+    font-size: var(--icon-small-size);  /* Font size for avatar text */
+    font-style: normal;  /* Normal font style for avatar text */
+    font-weight: 500;  /* Medium font weight for avatar text */
+    line-height: var(--icon-small-height);  /* Line height for avatar text */
+    letter-spacing: var(--icon-small-letter-spacing);  /* Letter spacing for avatar text */
+}
+
+p.message {
+    font-family: var(--sans-serif-family);  /* Applies sans-serif font to messages */
+    font-style: normal;  /* Normal font style for messages */
+
+    border-radius: var(--rounding-rectangle);  /* Rounded corners for messages */
+    background: var(--primary-100);  /* Background color for messages */
+    box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.25);  /* Shadow effect for messages */
+    padding: .5em;  /* Padding inside messages */
+    margin: 8px;  /* Margin around messages */
 }
