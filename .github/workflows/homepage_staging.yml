@@ -26,23 +26,12 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
-              env:
-                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
-                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-              # TODO: Use an actual secret manager
               run: |
-                  echo OPENAI_TEMPERATURE=0 > .env
-                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
-                  echo AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID >> .env
-                  echo AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY >> .env
-                  echo AWS_DEFAULT_REGION=us-east-1 >> .env
                   make build-webapp-homepage
 
             - name: Push to ECR
               run: |
-                  make aws_ecr_push_homepage
+                  make aws-ecr-push-homepage
     deploy:
         needs: build
         runs-on: ubuntu-latest

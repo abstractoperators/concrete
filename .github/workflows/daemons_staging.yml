@@ -34,9 +34,9 @@ jobs:
                 OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
                 SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
               run: |
-                  echo GH_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET > .env.daemons
-                  echo GH_CLIENT_ID=$GH_CLIENT_ID >> .env.daemons
-                  echo GH_PRIVATE_KEY_PATH=$GH_PRIVATE_KEY_PATH >> .env.daemons
+                  echo GH_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET >> ./webapp/daemons/.env.daemons
+                  echo GH_CLIENT_ID=$GH_CLIENT_ID >> ./webapp/daemons/.env.daemons
+                  echo GH_PRIVATE_KEY_PATH=$GH_PRIVATE_KEY_PATH >> ./webapp/daemons/.env.daemons
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env
                   echo OPENAI_TEMPERATURE=0 >> .env
                   echo "$GH_PRIVATE_KEY" >> "./webapp/daemons/$GH_PRIVATE_KEY_PATH"
@@ -45,7 +45,7 @@ jobs:
 
             - name: Push to ECR
               run: |
-                  make aws_ecr_push_daemons
+                  make aws-ecr-push-daemons
     deploy:
         needs: build
         runs-on: ubuntu-latest
