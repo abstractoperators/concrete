@@ -59,4 +59,43 @@
 
 <a class="links" href="https://github.com/abstractoperators/concrete" target="_blank">github</a>
 <a class="links" href="https://demo.abop.ai" target="_blank">demo</a>
+<a class="links" href="/pitch-deck" target="_blank">pitch deck</a><h1>Operator - List View Module</h1>
+
+<p>This module is designed to dynamically fetch and display a list of operators using HTMX, enhancing the user experience by loading content asynchronously.</p>
+
+<h2>Dynamic Content Loading</h2>
+
+<p>The operator list is populated using HTMX, which allows for seamless content updates without requiring a full page reload. The list is fetched from the endpoint <code>/orchestrators</code> when the page loads.</p>
+
+<h2>HTMX Integration</h2>
+
+<ul>
+    <li><strong>HTMX Library:</strong> The module includes the HTMX library for handling AJAX requests and updating the DOM. It is loaded from a CDN:</li>
+    <code>&lt;script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"&gt;&lt;/script&gt;</code>
+</ul>
+
+<h2>HTML Structure</h2>
+
+<p>The main structure of the module consists of an unordered list that serves as a container for the operator cards:</p>
+<ul>
+    <li><strong>Operator Card List:</strong> The <code>&lt;ul&gt;</code> element with the class <code>operator-card-list</code> is where the operator cards will be rendered.</li>
+    <li><strong>HTMX Attributes:</strong> The <code>hx-get</code> attribute specifies the URL to fetch the operator data, and <code>hx-trigger="load"</code> ensures that the data is loaded when the page is accessed.</li>
+</ul>
+
+<h2>Styling and Fonts</h2>
+
+<p>The module continues to utilize the same custom fonts for consistency:</p>
+<ul>
+    <li><strong>Kantumruy Pro</strong> - Used for general text styling.</li>
+    <li><strong>Judson</strong> - Used for headings and emphasis.</li>
+</ul>
+
+<h2>Usage</h2>
+
+<p>This module is intended for applications that require a dynamic display of operators, allowing for real-time updates and improved performance through asynchronous loading.</p>
+
+<h2>Links</h2>
+
+<a class="links" href="https://github.com/abstractoperators/concrete" target="_blank">github</a>
+<a class="links" href="https://demo.abop.ai" target="_blank">demo</a>
 <a class="links" href="/pitch-deck" target="_blank">pitch deck</a>
