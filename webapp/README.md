@@ -46,6 +46,7 @@ Besides networking differences, deploying a webapp to staging is identical to de
    3. security group: Must allow inbound traffic from the load balancer
    4. listener: http/https listener arn for the load balancer
       1. load balancer: An internal load balancer with security group only allowing inbound traffic from the subnet router.
+   5. (Note that you don't need to create more of them, just specify the existing resources). Reference homepage_staging.yml for an example.
 3. Add a route 53 A record pointing to the internal load balancer
    1. Subdomain is the service name.
    2. Necessary because there is a default *.abop.ai record pointing to prod load balancer (which points to prod homepage).
