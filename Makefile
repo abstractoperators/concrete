@@ -121,3 +121,12 @@ local-webapp-main:
 # I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
 local-daemons:
 	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"
+
+
+# ------------------------ Tailscale -----------------------
+build-tailscale:
+	docker compose -f docker/docker-compose.yml build tailscale
+
+run-tailscale:
+	docker compose -f docker/docker-compose.yml down tailscale 
+	docker compose -f docker/docker-compose.yml up -d tailscale

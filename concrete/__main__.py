@@ -40,6 +40,17 @@ deploy_parser.add_argument(
     help="The ports for the containers",
 )
 deploy_parser.add_argument("--service-name", type=str, required=False, help="The service name to deploy to AWS")
+deploy_parser.add_argument(
+    "--subnets", type=str, nargs="+", required=False, help="Subnets to be considered for service task placement"
+)
+deploy_parser.add_argument("--vpc", type=str, required=False, help="VPC to be considered for service task placement")
+deploy_parser.add_argument(
+    "--security-groups", type=str, nargs="+", required=False, help="Security groups for the service"
+)
+deploy_parser.add_argument(
+    "--listener-arn", type=str, required=False, help="Listener ARN of Load Balancer for the service"
+)
+
 args = parser.parse_args()
 
 
@@ -63,7 +74,16 @@ async def main():
                 args.image_uri, args.container_name, args.container_port
             )
         ]
-        AwsTool._deploy_service(container_info, args.service_name if args.service_name else None)
+        args_dict = {
+            'service_name': args.service_name,
+            'subnets': args.subnets,
+            'vpc': args.vpc,
+            'security_groups': args.security_groups,
+            'listener_arn': args.listener_arn,
+        }
+        args_dict = {key: value for key, value in args_dict.items() if value is not None}
+
+        AwsTool._deploy_service(containers=container_info, **args_dict)
         CLIClient.emit("Deployment completed.")
 
 
