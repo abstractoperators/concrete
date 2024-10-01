@@ -11,6 +11,9 @@
     <!-- htmx -->
     <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
 
+    <!-- hyperscript -->
+    <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+
     <!-- Kantumruy Pro -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +26,8 @@
 </head>
 
 <body>
-    <ul hx-get="/orchestrators" hx-trigger="load" class="operator-card-list"></ul>
+    <ul hx-get="/orchestrators" hx-trigger="load, newOrchestrator from:body" class="operator-card-list"></ul>
+    <button hx-get="/orchestrators/sidebar/create" hx-target="body" hx-swap="beforeend">Create Orchestrator Button. Replace with Icon w/description</button>
 </body>
 
 </html>
