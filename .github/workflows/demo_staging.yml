@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/aws_tailscale
 jobs:
     build:
         runs-on: ubuntu-latest
