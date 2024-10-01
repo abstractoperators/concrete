@@ -318,14 +318,7 @@ class AwsTool(metaclass=MetaTool):
         service_name = service_name or containers[0].container_name
         task_name = service_name
         target_group_name = service_name
-        # vpc = "vpc-022b256b8d0487543"
-        # subnets = ["subnet-0ba67bfb6421d660d"]  # subnets considered for placement
-        # security_group = "sg-0463bb6000a464f50"  # allows traffic from ALB
         execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
-        # listener_arn = (
-        #     "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
-        #     "/f7cec30e1ac2e4a4/451389d914171f05"
-        # )
 
         # TODO: Load balancer should be able to point to multiple containers on a single service.
         # e.g.) service_name.container1; atm, consider only the first container to route traffic to.
