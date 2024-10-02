@@ -27,15 +27,15 @@
 
 <body>
     <ul
-        hx-get="/orchestrators"
-        hx-trigger="load, getOrchestrators from:body"
+        hx-get="{{ url_for('get_operators', orchestrator_id=orchestrator_id) }}"
+        hx-trigger="load, getOperators from:body"
         class="operator-card-list"
     ></ul>
     <button
-        hx-get="/orchestrators/sidebar/create"
+        hx-get="{{ url_for('operators_sidebar_create', orchestrator_id=orchestrator_id) }}"
         hx-target="body"
         hx-swap="beforeend"
-    >Create Orchestrator Button. Replace with Icon w/description</button>
+    >Create Operator Button. Replace with Icon w/description</button>
 </body>
 
 </html>
