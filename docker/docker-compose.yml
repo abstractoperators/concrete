@@ -101,7 +101,7 @@ services:
     environment:
       - SHARED_VOLUME=/shared
     platform: linux/arm64
-
+  
 
 volumes:
   shared-volume:

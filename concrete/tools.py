@@ -281,43 +281,50 @@ class AwsTool(metaclass=MetaTool):
         cpu: int = 256,
         memory: int = 512,
         listener_rule: Optional[dict] = None,
+        subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
+        vpc: str = "vpc-022b256b8d0487543",
+        security_groups: list[str] = ["sg-0463bb6000a464f50"],
+        listener_arn: (
+            str | None
+        ) = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
+        "/f7cec30e1ac2e4a4/451389d914171f05",
     ) -> bool:
         """
         containers: [{"image_uri": str, "container_name": str, "container_port": int}]
 
-        service_name (str): Custom service name, defaults to the first container name.
+        service_name (str): Custom service name, defaults to the first container name as host header.
 
         cpu (int): The amount of CPU to allocate to the service. Defaults to 256.
 
         memory (int): The amount of memory to allocate to the service. Defaults to 512
 
         listener_rule: Dictionary of {field: str, value: str} for the listener rule. Defaults to {'field': 'host-header', 'value': f"{service_name}.abop.ai"}}
+
+        subnets (list(str)): List of subnets to consider for placement. Defaults to AZ-a, us-east-1, public
+
+        vpc (str): The VPC to deploy the service in. Defaults to us-east-1
+
+        security_groups (list(str)): List of security groups to attach to the service. Defaults to allow traffic from concrete ALB.
+
+        listener_arn: Arn of the listener to attach to the target group. Defaults to https listener on ConcreteLoadBalancer.
         """  # noqa: E501
-        # TODO: separate out clients and have a better interaction for attaching vars
         import boto3
 
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
 
+        # Arns are not considered secrets
         # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
-        # May eventually move these out to env, but not first priority.
         cluster = "DemoCluster"
         service_name = service_name or containers[0].container_name
         task_name = service_name
         target_group_name = service_name
-        vpc = "vpc-022b256b8d0487543"
-        subnets = ["subnet-0ba67bfb6421d660d"]  # subnets considered for placement
-        security_group = "sg-0463bb6000a464f50"  # allows traffic from ALB
         execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
-        listener_arn = (
-            "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
-            "/f7cec30e1ac2e4a4/451389d914171f05"
-        )
 
         # TODO: Load balancer should be able to point to multiple containers on a single service.
         # e.g.) service_name.container1; atm, consider only the first container to route traffic to.
         target_group_arn = None
-        if not listener_rule:
+        if listener_rule is None:
             rule_field = "host-header"
             rule_value = f"{service_name}.abop.ai"
         else:
@@ -332,6 +339,7 @@ class AwsTool(metaclass=MetaTool):
                 and rule["Conditions"][0]["Values"][0] == rule_value
             ):
                 target_group_arn = rule["Actions"][0]["TargetGroupArn"]
+                break
 
         if not target_group_arn:
             # Calculate minimum unused rule priority
@@ -419,7 +427,7 @@ class AwsTool(metaclass=MetaTool):
                 networkConfiguration={
                     "awsvpcConfiguration": {
                         "subnets": subnets,
-                        "securityGroups": [security_group],
+                        "securityGroups": security_groups,
                         "assignPublicIp": "ENABLED",
                     }
                 },

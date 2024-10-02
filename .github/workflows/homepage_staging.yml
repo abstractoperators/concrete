@@ -56,8 +56,14 @@ jobs:
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  poetry run python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest --container-name webapp-homepage-staging --container-port 80 --service-name=webapp-homepage-staging
-
+                  poetry run python -m concrete deploy \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest \
+                    --container-name homepage-staging \
+                    --container-port 80 \
+                    --service-name homepage-staging \
+                    --security-groups sg-01af4e696bd2679c3 \
+                    --subnets subnet-0644cadc735c6b557 \
+                    --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
 # The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).
