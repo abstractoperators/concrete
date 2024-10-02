@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
-    <title>Operator - List View</title>
-    <link href="/static/css/abop.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="/static/abstractoperators_favicon.jpg">
+    <title>Orchestrators - List View</title>
+    <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
 
     <!-- htmx -->
     <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
@@ -27,15 +27,15 @@
 
 <body>
     <ul
-        hx-get="{{ url_for('get_operators', orchestrator_id=orchestrator_id) }}"
-        hx-trigger="load, getOperators from:body"
+        hx-get="/orchestrators"
+        hx-trigger="load, getOrchestrators from:body"
         class="operator-card-list"
     ></ul>
     <button
-        hx-get="{{ url_for('operators_sidebar_create', orchestrator_id=orchestrator_id) }}"
+        hx-get="/orchestrators/sidebar/create"
         hx-target="body"
         hx-swap="beforeend"
-    >Create Operator Button. Replace with Icon w/description</button>
+    >Create Orchestrator Button. Replace with Icon w/description</button>
 </body>
 
 </html>

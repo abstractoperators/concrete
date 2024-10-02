@@ -12,22 +12,42 @@ from concrete.db.orm import Session
 from concrete.db.orm.models import OperatorCreate, OrchestratorCreate
 
 from .models import HiddenInput
-from .patterns import sidebar_create
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 
 app = FastAPI(title="Abstract Operators: Concrete")
 templates = Jinja2Templates(directory=os.path.join(dname, "templates"))
+pages = Jinja2Templates(directory=os.path.join(dname, "templates", "pages"))
+components = Jinja2Templates(directory=os.path.join(dname, "templates", "components"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
 
 annotatedFormStr = Annotated[str, Form()]
 
 
+def sidebar_create(
+    classname: str,
+    form_endpoint: str,
+    form_component: str,
+    request: Request,
+    hiddens: list[HiddenInput] = [],
+):
+    return components.TemplateResponse(
+        name="sidebar_create_panel.html",
+        context={
+            "classname": classname,
+            "form_endpoint": form_endpoint,
+            "form_component": form_component,
+            "hiddens": hiddens,
+        },
+        request=request,
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return pages.TemplateResponse(name="index.html", request=request)
 
 
 @app.get("/chat", response_class=HTMLResponse)
@@ -39,40 +59,21 @@ async def chat(request: Request):
         {"Operator 2": "I am operator 2!"},
         {"Operator 3": "I am operator 3!"},
     ]
-    return templates.TemplateResponse("group_chat.html", {"request": request, "messages": messages})
+    return templates.TemplateResponse(
+        name="group_chat.html",
+        context={"messages": messages},
+        request=request,
+    )
 
 
 @app.get("/orchestrators", response_class=HTMLResponse)
-async def get_orchestrators():
+async def get_orchestrator_list(request: Request):
     with Session() as session:
         orchestrators = crud.get_orchestrators(session)
-        return "".join(
-            [
-                f"""
-                <li class="operator-card">
-                    <a href="/orchestrators/{o.id}">
-                        <hgroup class="operator-avatar-and-header">
-                            <div class="operator-avatar-container">
-                                <div class="operator-avatar-mask">
-                                    <img
-                                        src="/static/operator_circle.svg"
-                                        alt="Operator Avatar"
-                                        class="operator-avatar-mask"
-                                    >
-                                    <h1 class="operator-avatar-text">
-                                        {o.title[0] if len(o.title) < 2 else o.title[:2]}
-                                    </h1>
-                                </div>
-                            </div>
-
-                            <h1 class="header small left">{o.title}</h1>
-                        </hgroup>
-                    </a>
-                    <button hx-delete="/orchestrators/{o.id}" hx-swap="none">Delete</button>
-                </li>
-                """
-                for o in orchestrators
-            ]
+        return components.TemplateResponse(
+            name="orchestrator_list.html",
+            context={"orchestrators": orchestrators},
+            request=request,
         )
 
 
@@ -93,11 +94,11 @@ async def create_orchestrator(
 
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
-async def get_orchestrator_page(request: Request, orchestrator_id: UUID):
-    return templates.TemplateResponse(
-        request=request,
+async def get_orchestrator(orchestrator_id: UUID, request: Request):
+    return pages.TemplateResponse(
         name="orchestrator.html",
         context={"orchestrator_id": orchestrator_id},
+        request=request,
     )
 
 
@@ -110,67 +111,28 @@ async def delete_orchestrator(orchestrator_id: UUID):
 
 
 @app.get("/orchestrators/sidebar/create", response_class=HTMLResponse)
-async def orchestrators_sidebar_create():
+async def orchestrators_sidebar_create(request: Request):
     # TODO get owner dynamically
-    inputs = [
-        """
-        <div>
-            <label for="type_name">Type</label>
-            <input type="text" name="type_name" required />
-        </div>
-        """,
-        """
-        <div>
-            <label for="title">Name</label>
-            <input type="text" name="title" required />
-        </div>
-        """,
-    ]
     hiddens = [
         HiddenInput(name="owner", value="dance"),
     ]
     return sidebar_create(
         "Orchestrator",
         "/orchestrators",
-        inputs,
+        "orchestrator_form.html",
+        request,
         hiddens,
     )
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators", response_class=HTMLResponse)
-async def get_operators(orchestrator_id: UUID):
+async def get_operator_list(orchestrator_id: UUID, request: Request):
     with Session() as session:
         operators = crud.get_operators(session, orchestrator_id)
-        return "".join(
-            [
-                f"""
-                <li class="operator-card">
-                    <a href="/orchestrators/{orchestrator_id}/operators/{o.id}">
-                        <hgroup class="operator-avatar-and-header">
-                            <div class="operator-avatar-container">
-                                <div class="operator-avatar-mask">
-                                    <img
-                                        src="/static/operator_circle.svg"
-                                        alt="Operator Avatar"
-                                        class="operator-avatar-mask"
-                                    >
-                                    <h1 class="operator-avatar-text">
-                                        {o.title[0] if len(o.title) < 2 else o.title[:2]}
-                                    </h1>
-                                </div>
-                            </div>
-
-                            <h1 class="header small left">{o.title}</h1>
-                        </hgroup>
-                    </a>
-                    <button
-                        hx-delete="/orchestrators/{orchestrator_id}/operators/{o.id}"
-                        hx-swap="none"
-                    >Delete</button>
-                </li>
-                """
-                for o in operators
-            ]
+        return components.TemplateResponse(
+            name="operator_list.html",
+            context={"orchestrator_id": orchestrator_id, "operators": operators},
+            request=request,
         )
 
 
@@ -181,6 +143,8 @@ async def create_operator(
     title: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
+    # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
+    # https://fastapi.tiangolo.com/tutorial/request-form-models/
     operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
     with Session() as session:
         crud.create_operator(session, operator_create)
@@ -189,14 +153,14 @@ async def create_operator(
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
-async def get_operator_page(request: Request, orchestrator_id: UUID, operator_id: UUID):
-    return templates.TemplateResponse(
-        request=request,
+async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Request):
+    return pages.TemplateResponse(
         name="operator.html",
         context={
             "orchestrator_id": orchestrator_id,
             "operator_id": operator_id,
         },
+        request=request,
     )
 
 
@@ -209,23 +173,10 @@ async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/sidebar/create", response_class=HTMLResponse)
-async def operators_sidebar_create(orchestrator_id: UUID):
-    inputs = [
-        """
-        <div>
-            <label for="instructions">Instructions</label>
-            <input type="text" name="instructions" required />
-        </div>
-        """,
-        """
-        <div>
-            <label for="title">Name</label>
-            <input type="text" name="title" required />
-        </div>
-        """,
-    ]
+async def operators_sidebar_create(orchestrator_id: UUID, request: Request):
     return sidebar_create(
         "Operator",
         f"/orchestrators/{orchestrator_id}/operators",
-        inputs,
+        "operator_form.html",
+        request,
     )

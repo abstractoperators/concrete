@@ -1,0 +1,23 @@
+{% for o in orchestrators %}
+    <li class="operator-card">
+        <a href="{{ url_for('get_orchestrator', orchestrator_id=o.id) }}">
+            <hgroup class="operator-avatar-and-header">
+                <div class="operator-avatar-container">
+                    <div class="operator-avatar-mask">
+                        <img
+                            src="{{ url_for('static', path='/operator_circle.svg') }}"
+                            alt="Orchestrator Avatar"
+                            class="operator-avatar-mask"
+                        >
+                        <h1 class="operator-avatar-text">
+                            {{ o.title[0] if o.title|length < 2 else o.title[:2] }}
+                        </h1>
+                    </div>
+                </div>
+
+                <h1 class="header small left">{{ o.title }}</h1>
+            </hgroup>
+        </a>
+        <button hx-delete="{{ url_for('delete_orchestrator', orchestrator_id=o.id) }}" hx-swap="none">Delete</button>
+    </li>
+{% endfor %}
