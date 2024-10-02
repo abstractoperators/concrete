@@ -9,7 +9,6 @@
   - Alternatively, call `poetry run python -m concrete deploy --image_uri  <image_uri> --container_name <container_name> --container_port <container_port> [--service_name=<custom_service_name>]`
 * To delete the deployment, delete the service through ECS
   
-
 ## Deploying webapps to tailscale network locally
 
 * Create a directory e.g. homepage
@@ -26,14 +25,27 @@
 * Navigate to `http://<ts_service_name[-i]` to view the service. e.g. `http://ts-oauth-demo-1`.
 
 Optional:
+
 * To make localhost work, add ports to the `ts-oauth-[...]` service in `docker-compose.yml` and run as usual
 
 ## Deploying webapps to tailscale network on AWS
-(transcribed from slack devops tailscale thread)
-It's painful to get Tailscale running on AWS. Tailscale recommends installing it on every device, but sometimes that's infeasible, so they offer subnet routers as an alternative. ECS Fargate services don't expose container-level networking, which makes it impossible(?) to use a Tailscale sidecar container like you can with Docker Compose. I also tried installing Tailscale directly in the webapp service containers, but ran into issues with network mounting and IP tables that I didn't fully understand. Switching to EC2 instances would probably work, but that's a big refactor I don't really want to take on without a clear benefit.
 
-So, the subnet routing approach seems like the most reasonable way to go. With this setup, the actual services aren't directly in the Tailnet—only the router is. The router advertises access to the subnet where these services live, allowing it to reach them since they're in the same VPC. The load balancer, which isn't internet-facing, also sits in this private subnet and directs traffic to the services. The idea is that the subnet router advertises the IP of the internal load balancer, and anyone connected to the Tailnet can access it through the router. For routing, Route 53 reuqires alias subdomain records like `homepage-staging.abop.ai` pointing to the internal load balancer. When users on the Tailnet try to access that URL, the subnet router steps in and makes the internal load balancer accessible, effectively connecting them to the service without exposing it to randos.
+Tailscale recommends installing its client on every device, but this isn't always feasible in AWS environments, particularly with ECS Fargate. Subnet routers offer an alternative solution.
+Challenges:
 
+* ECS Fargate doesn't expose container-level networking, preventing the use of Tailscale sidecar containers.
+* Direct installation in webapp service containers faces network mounting and IP tables issues.
+* Switching to EC2 instances potentially solves the problem requires significant refactoring.
+
+Subnet Routing Solution:
+
+* Services are not directly in the Tailnet; only the subnet router is.
+* The router advertises access to the subnet containing the services, allowing communication since both are in the same VPC.
+* The load balancer, which is not internet-facing, resides in the private subnet and directs traffic to the services.
+* The subnet router advertises the IP of the internal load balancer, enabling anyone connected to the Tailnet to access it through the router.
+* Route 53 requires alias subdomain records (e.g., `homepage-staging.abop.ai`) pointing to the internal load balancer for routing.
+* When Tailnet users access that URL, the subnet router makes the internal load balancer reachable, allowing access to the service without public exposure.
+ 
 ### Actual Steps/Notes
 
 Besides networking differences, deploying a webapp to staging is identical to deploying to production. The only difference is the subnet, security group, and listener/load balancer configuration. This is because the subnet router is the one who is actually connecting to tailnet.
