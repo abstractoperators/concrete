@@ -83,6 +83,8 @@ async def create_orchestrator(
     owner: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
+    # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
+    # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(type_name=type_name, title=title, owner=owner)
     with Session() as session:
         crud.create_orchestrator(session, orchestrator_create)
