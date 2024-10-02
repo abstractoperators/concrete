@@ -14,7 +14,6 @@ services:
       restart: unless-stopped
       ports:
         - "8000:80"
-        - "5432:5432" # for postgres
 
   webapp-homepage:
     image: webapp-homepage
