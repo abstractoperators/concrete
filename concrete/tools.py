@@ -10,7 +10,7 @@ import zipfile
 from datetime import datetime, timezone
 from queue import Queue
 from textwrap import dedent
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 from uuid import UUID
 
 import requests
@@ -93,14 +93,15 @@ def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str):
 
 class HTTPTool(metaclass=MetaTool):
     @classmethod
-    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
+    def _process_response(cls, resp: Response, url: str) -> bytes:
         if not resp.ok:
             CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
+
         return resp.content
 
     @classmethod
-    def request(cls, method: str, url: str, **kwargs) -> Union[dict, str, bytes]:
+    def request(cls, method: str, url: str, **kwargs) -> bytes:
         """
         Make an HTTP request to the specified url
         Throws an error if the request was unsuccessful
@@ -127,7 +128,7 @@ class HTTPTool(metaclass=MetaTool):
 
 class RestApiTool(HTTPTool):
     @classmethod
-    def _process_response(cls, resp: Response, url: Optional[str] = None) -> Union[dict, str, bytes]:
+    def _process_response(cls, resp: Response, url: Optional[str] = None) -> bytes:
         if not resp.ok:
             CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
