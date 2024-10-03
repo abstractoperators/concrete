@@ -101,7 +101,20 @@ services:
     environment:
       - SHARED_VOLUME=/shared
     platform: linux/arm64
-  
+
+
+  postgres:
+    image: postgres:16
+    ports:
+      - 5432:5432
+    volumes:
+      - /var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=local_password
+      - POSTGRES_USER=local_user
+      - POSTGRES_DB=local_db
 
 volumes:
   shared-volume:
+  
+

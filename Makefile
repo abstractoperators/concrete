@@ -68,6 +68,13 @@ run-docs:
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
 
+# Note that the actual postgres server is running on EC2 and is not dockerized. 
+# Therefore the deployment is native, and does not use deployment workflows like webapps do.
+# database url is set in orm/setup, which uses an env variable. 
+# SQLALCHEMY_DATABSE_URL="postgresql+psycopg://local_user:local_password@localhost:5432/local_db"
+run-postgres:
+	docker compose -f docker/docker-compose.yml stop postgres
+	docker compose -f docker/docker-compose.yml up -d postgres
 
 # ----------------------- AWS Commands -----------------------
 # TODO: Use hyphens instead of underscores
@@ -93,6 +100,7 @@ aws-ecr-push-daemons: aws-ecr-login
 
 deploy-daemon-to-aws-staging:
 	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
+
 
 # ------------------------ Local Development without Docker ------------------------
 rabbitmq:
@@ -122,11 +130,3 @@ local-webapp-main:
 local-daemons:
 	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"
 
-
-# ------------------------ Tailscale -----------------------
-build-tailscale:
-	docker compose -f docker/docker-compose.yml build tailscale
-
-run-tailscale:
-	docker compose -f docker/docker-compose.yml down tailscale 
-	docker compose -f docker/docker-compose.yml up -d tailscale
