@@ -294,4 +294,73 @@ This command runs the main FastAPI application locally.
 ```shell
 make local-daemons
 ```
-This command runs the daemons locally, ensuring environment variables are sourced from the `.env.daemons` file.
+This command runs the daemons locally, ensuring environment variables are sourced from the `.env.daemons` file.# Database Module Documentation
+
+## Overview
+This module is responsible for managing the database connection and session handling using SQLAlchemy and SQLModel. It provides a context manager for session management and establishes a connection to the database defined in the environment variables.
+
+## Environment Configuration
+The database connection URL is loaded from the environment variable `SQLALCHEMY_DATABASE_URL`. If this variable is not set, it defaults to using a SQLite database located at `sql_app.db`.
+
+### Loading Environment Variables
+To load environment variables from a `.env` file, the `dotenv` package is used. Ensure that the `.env` file is present in the project root with the necessary configuration.
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+```
+
+## Database Engine
+The database engine is created using SQLModel's `create_engine` function. It supports both SQLite and other databases, with specific connection arguments for SQLite to allow multi-threaded access.
+
+```python
+from sqlmodel import create_engine
+
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+else:
+    connect_args = {}
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+```
+
+## Session Management
+The `SessionLocal` is defined using SQLAlchemy's `sessionmaker`, which is configured to not autocommit or autoflush by default. This ensures that transactions are handled explicitly.
+
+```python
+from sqlalchemy.orm import sessionmaker
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+```
+
+### Context Manager for Sessions
+A context manager named `Session` is provided to facilitate session handling. It ensures that sessions are properly closed after use, preventing potential memory leaks or database locks.
+
+```python
+from contextlib import contextmanager
+
+@contextmanager
+def Session():
+    session = SQLModelSession(engine)
+    try:
+        yield session
+    finally:
+        session.close()
+```
+
+## Usage Example
+To use the session context manager, you can wrap your database operations within the `Session` context. This ensures that the session is properly managed and closed after the operations are complete.
+
+```python
+with Session() as session:
+    # Perform database operations here
+    pass
+```
+
+## Logging
+The module uses the `CLIClient` to emit a log message when connecting to the database, providing visibility into the database connection process.
+
+```python
+from concrete.clients import CLIClient
+CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
+```
