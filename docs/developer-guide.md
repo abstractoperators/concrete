@@ -77,3 +77,221 @@ def delete_my_table_core():
     session.commit()
     return deleted_count
 ```
+# Developer Guide
+
+## Makefile Commands
+
+The following commands are defined in the Makefile to facilitate various tasks related to the project. Each command can be executed using `make <command>`.
+
+### Setup
+
+#### Install Dependencies
+
+```shell
+make install
+```
+This command installs all the dependencies specified in the `pyproject.toml` file using Poetry.
+
+### Run Tests
+
+```shell
+make test
+```
+This command runs the test suite using pytest.
+
+### Demo Commands
+
+#### Hello World
+
+```shell
+make helloworld
+```
+This command orchestrates the creation of a simple hello world program.
+
+#### Hello World with Celery
+
+```shell
+make helloworld_celery
+```
+This command requires RabbitMQ and a Celery worker to be running. It orchestrates the creation of a simple hello world program with Celery support after a brief sleep period.
+
+#### Simple Flask Application
+
+```shell
+make simpleflask
+```
+This command orchestrates the generation of a Flask application with a single route that renders the HTML template 'index.html', containing a header tag with the text 'Hello, World!'.
+
+### Deployment Commands
+
+#### Deploy Simple Flask Application
+
+```shell
+make deploysimpleflask
+```
+This command orchestrates the creation and deployment of a simple hello world Flask application. Note that it requires the dind-builder to be running and resources created in AWS must be manually deleted.
+
+### Build Commands
+
+#### Build Web Application Demo
+
+```shell
+make build-webapp-demo
+```
+This command builds the webapp-demo service using Docker Compose.
+
+#### Build Web Application Homepage
+
+```shell
+make build-webapp-homepage
+```
+This command builds the webapp-homepage service using Docker Compose.
+
+#### Build DIND Builder
+
+```shell
+make build-dind-builder
+```
+This command builds the dind-builder service using Docker Compose.
+
+#### Build Daemons
+
+```shell
+make build-daemons
+```
+This command builds the daemons service using Docker Compose.
+
+#### Build Documentation
+
+```shell
+make build-docs
+```
+This command builds the documentation using MkDocs and Docker Compose.
+
+#### Build Main Application
+
+```shell
+make build-main
+```
+This command builds the main application using Docker Compose.
+
+### Run Commands
+
+#### Run Web Application Demo
+
+```shell
+make run-webapp-demo
+```
+This command stops any running instance of the webapp-demo service and starts it in detached mode.
+
+#### Run Web Application Homepage
+
+```shell
+make run-webapp-homepage
+```
+This command stops any running instance of the webapp-homepage service and starts it in detached mode.
+
+#### Run DIND Builder
+
+```shell
+make run-dind-builder
+```
+This command stops any running instance of the dind-builder service and starts it in detached mode.
+
+#### Run Daemons
+
+```shell
+make run-daemons
+```
+This command stops any running instance of the daemons service and starts it in detached mode.
+
+#### Run Documentation
+
+```shell
+make run-docs
+```
+This command stops any running instance of the docs service and starts it in detached mode.
+
+#### Run Main Application
+
+```shell
+make run-main
+```
+This command builds and runs the main application in detached mode.
+
+#### Run PostgreSQL
+
+```shell
+make run-postgres
+```
+This command stops any running instance of PostgreSQL and starts it in detached mode.
+
+### AWS Commands
+
+#### AWS ECR Login
+
+```shell
+make aws-ecr-login
+```
+This command logs into the AWS Elastic Container Registry (ECR) using the default profile and credentials.
+
+#### AWS ECR Push Commands
+
+These commands build the Docker images and push them to the AWS ECR:
+
+- **Push Homepage**: `make aws-ecr-push-homepage`
+- **Push Demo**: `make aws-ecr-push-demo`
+- **Push Docs**: `make aws-ecr-push-docs`
+- **Push Daemons**: `make aws-ecr-push-daemons`
+- **Push Main**: `make aws-ecr-push-main`
+
+#### Deploy Daemon to AWS Staging
+
+```shell
+make deploy-daemon-to-aws-staging
+```
+This command deploys the daemon service to AWS staging using the specified image URI and container settings.
+
+### Local Development without Docker
+
+#### RabbitMQ
+
+```shell
+make rabbitmq
+```
+This command runs a RabbitMQ container in detached mode.
+
+#### Celery
+
+```shell
+make celery
+```
+This command starts a Celery worker after ensuring RabbitMQ is running, and logs output to a specified log file.
+
+#### Local Documentation
+
+```shell
+make local-docs
+```
+This command builds and serves the documentation locally using MkDocs.
+
+#### Local API
+
+```shell
+make local-api
+```
+This command runs the FastAPI application for the webapp API on port 8001.
+
+#### Local Web Application Main
+
+```shell
+make local-webapp-main
+```
+This command runs the main FastAPI application locally.
+
+#### Local Daemons
+
+```shell
+make local-daemons
+```
+This command runs the daemons locally, ensuring environment variables are sourced from the `.env.daemons` file.
