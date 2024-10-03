@@ -3,7 +3,6 @@ on:
     push:
         branches:
             - main
-            - michael/deploy_fe
 jobs:
     build:
         runs-on: ubuntu-latest
