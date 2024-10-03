@@ -104,6 +104,9 @@ aws-ecr-push-docs: aws-ecr-login
 aws-ecr-push-daemons: aws-ecr-login
 	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+aws-ecr-push-main: aws-ecr-login
+	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
 
 deploy-daemon-to-aws-staging:
 	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging

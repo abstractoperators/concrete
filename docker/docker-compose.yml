@@ -115,8 +115,6 @@ services:
     depends_on: 
       - "ts-oauth-main"
     platform: linux/arm64
-    environment: 
-      - SQLALCHEMY_DATABASE_URL=postgresql+psycopg://local_user:local_password@host.docker.internal:5432/local_db
 
   dind-builder:
     build:

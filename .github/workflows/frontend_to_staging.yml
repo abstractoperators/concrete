@@ -31,11 +31,12 @@ jobs:
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
-                  make build-webapp-demo
+                  echo SQLALCHEMY_DATABASE_URL="TODO" >> .env
+                  make build-main
 
             - name: Push to ECR
               run: |
-                  make aws-ecr-push-demo
+                  make aws-ecr-push-main
     deploy:
         needs: build
         runs-on: ubuntu-latest
@@ -61,8 +62,8 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest \
-                    --container-name demo-staging \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest \
+                    --container-name main-staging \
                     --container-port 80 \
                     --security-groups sg-01af4e696bd2679c3 \
                     --subnets subnet-0644cadc735c6b557 \
