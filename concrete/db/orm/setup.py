@@ -10,16 +10,17 @@ from sqlmodel import create_engine
 from concrete.clients import CLIClient
 
 load_dotenv()
+DB_PORT = os.environ.get("DB_PORT")
+db_port = int(DB_PORT) if DB_PORT else None
 SQLALCHEMY_DATABASE_URL = URL.create(
-    drivername=os.getenv("DB_DRIVER", "sqlite"),
-    username=os.getenv("DB_USERNAME", ""),
-    password=os.getenv("DB_PASSWORD", ""),
-    host=os.getenv("DB_HOST", ""),
-    port=int(os.getenv("DB_PORT", "")),
-    database=os.getenv("DB_DATABASE", ""),
+    drivername=os.environ.get("DB_DRIVER", "sqlite"),
+    username=os.environ.get("DB_USERNAME", None),
+    password=os.environ.get("DB_PASSWORD", None),
+    host=os.environ.get("DB_HOST", None),
+    port=db_port,
+    database=os.environ.get("DB_DATABASE", "sql_app.db"),
 )
 
-CLIClient.emit(SQLALCHEMY_DATABASE_URL.database)
 CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
 
 if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
