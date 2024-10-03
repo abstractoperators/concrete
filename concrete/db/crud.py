@@ -20,6 +20,9 @@ from .orm.models import (
     Orchestrator,
     OrchestratorCreate,
     OrchestratorUpdate,
+    Project,
+    ProjectCreate,
+    ProjectUpdate,
     RepoNode,
     RepoNodeCreate,
     RepoNodeUpdate,
@@ -228,6 +231,8 @@ def delete_tool(db: Session, tool_id: UUID) -> Tool | None:
 
 
 # ===Message=== #
+
+
 def create_message(db: Session, message_create: MessageCreate) -> Message:
     return create_generic(
         db,
@@ -309,6 +314,59 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
         db,
         get_orchestrator(db, orchestrator_id),
     )
+
+
+# ===Project=== #
+
+
+def create_project(db: Session, project_create: ProjectCreate) -> Project:
+    return create_generic(db, Project(**project_create.model_dump()))
+
+
+def get_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Project | None:
+    stmt = select(Project).where(Project.id == project_id).where(Project.orchestrator_id == orchestrator_id)
+    return db.scalars(stmt).first()
+
+
+def get_projects(
+    db: Session,
+    orchestrator_id: UUID | None = None,
+    skip: int = 0,
+    limit: int = 100,
+) -> Sequence[Project]:
+    stmt = (
+        (
+            select(Project)
+            if orchestrator_id is None
+            else select(Project).where(Project.orchestrator_id == orchestrator_id)
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+    return db.scalars(stmt).all()
+
+
+def update_project(
+    db: Session,
+    project_id: UUID,
+    orchestrator_id: UUID,
+    project_update: ProjectUpdate,
+) -> Project | None:
+    return update_generic(
+        db,
+        get_project(db, project_id, orchestrator_id),
+        project_update,
+    )
+
+
+def delete_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Project | None:
+    return delete_generic(
+        db,
+        get_project(db, project_id, orchestrator_id),
+    )
+
+
+# ===Node=== #
 
 
 def create_node(db: Session, node_create: NodeCreate) -> Node:

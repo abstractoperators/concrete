@@ -57,6 +57,10 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
         back_populates="orchestrator",
         cascade_delete=True,
     )
+    projects: list["Project"] = Relationship(
+        back_populates="orchestrator",
+        cascade_delete=True,
+    )
 
 
 # Operator Models
@@ -140,6 +144,48 @@ class ClientCreate(ClientBase):
 # TODO: data models with pseudo-relationships
 class Client(ClientBase, MetadataMixin, table=True):
     operator: Operator = Relationship(back_populates="clients")
+
+
+# Project Models
+class ProjectBase(Base):
+    title: str = Field(description="Title of the project.", max_length=32)
+    orchestrator_id: UUID = Field(
+        description="ID of Orchestrator that owns this project.",
+        foreign_key="orchestrator.id",
+        ondelete="CASCADE",
+    )
+    executive_id: UUID = Field(
+        description="ID of executive operator for this project.",
+        foreign_key="operator.id",
+    )
+    developer_id: UUID = Field(
+        description="ID of developer operator for this project.",
+        foreign_key="operator.id",
+    )
+
+
+class ProjectUpdate(Base):
+    title: str | None = Field(description="Title of the project.", max_length=32, default=None)
+    executive_id: UUID | None = Field(
+        description="ID of executive operator for this project.",
+        foreign_key="operator.id",
+        default=None,
+    )
+    developer_id: UUID | None = Field(
+        description="ID of developer operator for this project.",
+        foreign_key="operator.id",
+        default=None,
+    )
+
+
+class ProjectCreate(ProjectBase):
+    pass
+
+
+class Project(ProjectBase, MetadataMixin, table=True):
+    orchestrator: "Orchestrator" = Relationship(back_populates="projects")
+    executive: Operator = Relationship()
+    developer: Operator = Relationship()
 
 
 # Tool Models
