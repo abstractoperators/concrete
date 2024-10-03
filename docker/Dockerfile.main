@@ -38,3 +38,41 @@ RUN chmod +x ./webapp/main/scripts/start.sh
 EXPOSE 80
 CMD ["./webapp/main/scripts/start.sh"]
 
+# Module Documentation
+
+## Overview
+This module is designed to build and run a Python application using Docker. It utilizes Poetry for dependency management and creates a virtual environment within the project directory.
+
+## Builder Stage
+- **Base Image**: `python:3.11.10-bookworm`
+- **Poetry Installation**: Installs Poetry version 1.8 to manage dependencies.
+- **Environment Variables**:
+  - `POETRY_NO_INTERACTION=1`: Disables interactive prompts during installation.
+  - `POETRY_VIRTUALENVS_IN_PROJECT=1`: Creates virtual environments within the project directory.
+  - `POETRY_VIRTUALENVS_CREATE=1`: Ensures a virtual environment is created.
+  - `POETRY_CACHE_DIR=/tmp/poetry_cache`: Sets the cache directory for Poetry.
+  - `PYTHONUNBUFFERED=1`: Ensures that Python output is sent straight to terminal (unbuffered).
+  - `PYTHONDONTWRITEBYTECODE=1`: Prevents Python from writing .pyc files to disk.
+
+- **Working Directory**: Sets the working directory to `/app`.
+- **Copying Files**: Copies `pyproject.toml` and `poetry.lock` to the working directory.
+- **README Creation**: Creates an empty `README.md` file.
+- **Dependency Installation**: Installs only the main and webapp dependencies without installing the root package, using a cache for faster builds.
+
+## Runtime Stage
+- **Base Image**: `python:3.11.10-slim-bookworm`
+- **Environment Variables**:
+  - `VIRTUAL_ENV=/app/.venv`: Sets the path for the virtual environment.
+  - `PATH="/app/.venv/bin:$PATH"`: Updates the PATH to include the virtual environment's binaries.
+  - `POETRY_NO_INTERACTION=1`: Same as in the builder stage.
+  - `POETRY_VIRTUALENVS_IN_PROJECT=1`: Same as in the builder stage.
+
+- **Working Directory**: Sets the working directory to `/app`.
+- **Copying Virtual Environment**: Copies the virtual environment from the builder stage to the runtime stage.
+- **Copying Application Files**: Copies the `concrete` directory and the `webapp/main` directory to the working directory.
+- **Copying Configuration Files**: Copies `pyproject.toml`, `poetry.lock`, and `.env` files to the working directory.
+- **README Creation**: Creates an empty `README.md` file.
+- **Local Package Installation**: Installs the local package without dependencies.
+- **Script Permissions**: Grants execute permissions to the start script located at `./webapp/main/scripts/start.sh`.
+- **Port Exposure**: Exposes port 80 for the application.
+- **Command Execution**: Sets the default command to execute the start script when the container runs.
