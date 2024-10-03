@@ -75,8 +75,6 @@ run-main: build-main
 	docker compose -f docker/docker-compose.yml stop main
 	docker compose -f docker/docker-compose.yml up -d main
 
-# Note that the actual postgres server is running on EC2 and is not dockerized. 
-# Therefore the deployment is native, and does not use deployment workflows like webapps do.
 # database url is set in orm/setup, which uses an env variable. 
 # SQLALCHEMY_DATABASE_URL="postgresql+psycopg://local_user:local_password@host.docker.internal:5432/local_db"
 run-postgres:
