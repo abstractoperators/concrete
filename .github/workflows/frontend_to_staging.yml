@@ -34,7 +34,7 @@ jobs:
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
-                  echo SQLALCHEMY_DATABASE_URL="postgresql+psycopg://postgres:$POSTGRES_STAGING_PASSWORD@database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com:5432/database-1" >> .env
+                  echo SQLALCHEMY_DATABASE_URL="postgresql+psycopg://postgres:$POSTGRES_STAGING_PASSWORD@postgres.c3auqaqcunqy.us-east-1.rds.amazonaws.com:5432/database-1" >> .env
                   make build-main
             - name: Push to ECR
               run: |
