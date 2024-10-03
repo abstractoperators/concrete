@@ -1,4 +1,4 @@
-name: Deploy docs to staging
+name: Deploy Docs to Staging
 on:
     push:
         branches:

@@ -1,4 +1,4 @@
-name: Deploy daemons to staging
+name: Deploy Daemons to Staging
 on:
     push:
         branches:
