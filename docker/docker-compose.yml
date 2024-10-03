@@ -115,10 +115,8 @@ services:
     depends_on: 
       - "ts-oauth-main"
     platform: linux/arm64
-    environment:
-      - SQLALCHEMY_DATABASE_URL=postgresql+psycopg://local_user:local_password@postgres:5432/local_db
-
-
+    environment: 
+      - SQLALCHEMY_DATABASE_URL=postgresql+psycopg://local_user:local_password@host.docker.internal:5432/local_db
 
   dind-builder:
     build:
@@ -133,11 +131,10 @@ services:
       - SHARED_VOLUME=/shared
     platform: linux/arm64
 
-
   postgres:
     image: postgres:16
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - /var/lib/postgresql/data
     environment:
