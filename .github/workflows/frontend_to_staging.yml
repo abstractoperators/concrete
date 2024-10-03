@@ -3,9 +3,11 @@ on:
     push:
         branches:
             - main
+            - michael/deploy_fe
 jobs:
     build:
         runs-on: ubuntu-latest
+        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -28,12 +30,12 @@ jobs:
             - name: Build the images
               env:
                 OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
+                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
-                  echo SQLALCHEMY_DATABASE_URL="TODO" >> .env
+                  echo SQLALCHEMY_DATABASE_URL="postgresql+psycopg://postgres:$POSTGRES_STAGING_PASSWORD@database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com:5432/database-1" >> .env
                   make build-main
-
             - name: Push to ECR
               run: |
                   make aws-ecr-push-main
