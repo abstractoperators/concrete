@@ -146,3 +146,6 @@ volumes:
   shared-volume:
   
 
+networks:
+  postgres-network:
+    driver: bridge

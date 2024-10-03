@@ -1,12 +1,14 @@
 import os
 from contextlib import contextmanager
 
+from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session as SQLModelSession
 from sqlmodel import create_engine
 
 from concrete.clients import CLIClient
 
+load_dotenv()
 SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL", "sqlite:///sql_app.db")
 CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
 
