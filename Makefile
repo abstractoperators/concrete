@@ -47,6 +47,9 @@ build-docs:
 	$(POETRY) mkdocs build --config-file config/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
+build-main:
+	docker compose -f docker/docker-compose.yml build main
+
 # ----------------------- Run commands -----------------------
 run-webapp-demo: build-webapp-demo
 	docker compose -f docker/docker-compose.yml stop webapp-demo
@@ -67,6 +70,10 @@ run-daemons:
 run-docs:
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
+
+run-main: build-main
+	docker compose -f docker/docker-compose.yml stop main
+	docker compose -f docker/docker-compose.yml up -d main
 
 # Note that the actual postgres server is running on EC2 and is not dockerized. 
 # Therefore the deployment is native, and does not use deployment workflows like webapps do.
