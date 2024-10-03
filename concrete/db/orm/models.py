@@ -1,7 +1,10 @@
-from typing import Optional
+from datetime import datetime
+from typing import Any, Mapping, Optional, cast
 from uuid import UUID, uuid4
 
+from sqlalchemy import DateTime
 from sqlalchemy.schema import Index
+from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
@@ -15,6 +18,17 @@ class Base(SQLModel):
 
 class MetadataMixin(SQLModel):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
+    created_at: datetime | None = Field(
+        default=None,
+        sa_type=cast(Any, DateTime(timezone=True)),
+        sa_column_kwargs=cast(Mapping[str, Any], {"server_default": func.now()}),
+        nullable=False,
+    )
+    modified_at: datetime | None = Field(
+        default=None,
+        sa_type=cast(Any, DateTime(timezone=True)),
+        sa_column_kwargs=cast(Mapping[str, Any], {"onupdate": func.now(), "server_default": func.now()}),
+    )
 
 
 # Relationship Models
@@ -291,6 +305,10 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     )
 
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
+
+
+class User(Base):
+    pass
 
 
 SQLModel.metadata.create_all(bind=engine)
