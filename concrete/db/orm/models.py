@@ -46,17 +46,16 @@ class OrchestratorBase(Base):
     # TODO turn into enum
     type_name: str = Field(description="type of orchestrator", max_length=32)
     title: str = Field(description="Title of the orchestrator.", max_length=32)
-    owner: str = Field(description="name of owner", max_length=32)
+    user_id: UUID = Field(
+        description="The user who created the orchestrator.",
+        foreign_key="user.id",
+        ondelete="CASCADE",
+    )
 
 
 class OrchestratorUpdate(Base):
     title: str | None = Field(
         description="Title of the orchestrator.",
-        max_length=32,
-        default=None,
-    )
-    owner: str | None = Field(
-        description="name of owner",
         max_length=32,
         default=None,
     )
@@ -307,8 +306,26 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
 
 
-class User(Base):
+class UserBase(Base):
+    first_name: str = Field(default=None, max_length=64)
+    last_name: str = Field(default=None, max_length=64)
+    email: str = Field(default=None, max_length=128)
+
+
+class UserUpdate(Base):
+    first_name: str = Field(default=None, max_length=64)
+    last_name: str = Field(default=None, max_length=64)
+
+
+class UserCreate(UserBase):
     pass
+
+
+class User(UserBase, MetadataMixin, table=True):
+    orchestrators: list["Orchestrator"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
 
 
 SQLModel.metadata.create_all(bind=engine)
