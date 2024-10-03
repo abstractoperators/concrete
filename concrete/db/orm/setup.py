@@ -19,6 +19,7 @@ SQLALCHEMY_DATABASE_URL = URL.create(
     database=os.getenv("DB_DATABASE", ""),
 )
 
+CLIClient.emit(SQLALCHEMY_DATABASE_URL.database)
 CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
 
 if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
