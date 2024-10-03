@@ -146,4 +146,157 @@ volumes:
 
 networks:
   postgres-network:
+    driver: bridge# New Documentation for Additional Services
+
+## Services:
+
+### ts-oauth-homepage:
+    image: tailscale/tailscale:latest
+    container_name: ts-oauth-homepage
+    hostname: ts-oauth-homepage
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+
+### webapp-homepage:
+    image: webapp-homepage
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.homepage
+    container_name: webapp-homepage
+    network_mode: service:ts-oauth-homepage
+    platform: linux/arm64
+
+### ts-oauth-demo:
+    image: tailscale/tailscale:latest
+    container_name: ts-oauth-demo
+    hostname: ts-oauth-demo
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+
+### webapp-demo:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.demo
+    image: webapp-demo:latest 
+    container_name: webapp-demo
+    volumes:
+      - shared-volume:/shared
+    environment:
+      - SHARED_VOLUME=/shared
+    network_mode: service:ts-oauth-demo
+    platform: linux/arm64
+
+### daemons:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.daemons
+    container_name: daemons
+    image: daemons:latest
+    ports:
+      - "8000:80"
+    platform: linux/arm64
+  
+### ts-oauth-docs:
+    image: tailscale/tailscale:latest
+    container_name: ts-oauth-docs
+    hostname: ts-oauth-docs
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+
+### docs:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.docs
+    container_name: docs
+    image: docs
+    network_mode: service:ts-oauth-docs
+    depends_on: 
+      - "ts-oauth-docs"
+    platform: linux/arm64 
+
+### ts-oauth-main:
+    image: tailscale/tailscale:latest
+    container_name: ts-oauth-main
+    hostname: ts-oauth-main
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+  
+### main: 
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.main
+    container_name: main
+    image: main
+    network_mode: service:ts-oauth-main
+    depends_on: 
+      - "ts-oauth-main"
+    platform: linux/arm64
+
+### dind-builder:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.dind-builder
+    image: dind-builder:latest
+    container_name: dind-builder
+    privileged: true
+    volumes:
+      - /shared:/shared
+    environment:
+      - SHARED_VOLUME=/shared
+    platform: linux/arm64
+
+### postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=local_password
+      - POSTGRES_USER=local_user
+      - POSTGRES_DB=local_db
+
+## Volumes:
+
+### shared-volume:
+
+## Networks:
+
+### postgres-network:
     driver: bridge
