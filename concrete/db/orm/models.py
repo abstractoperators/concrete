@@ -147,13 +147,10 @@ class Client(ClientBase, MetadataMixin, table=True):
 
 
 # Project Models
+
+
 class ProjectBase(Base):
     title: str = Field(description="Title of the project.", max_length=32)
-    orchestrator_id: UUID = Field(
-        description="ID of Orchestrator that owns this project.",
-        foreign_key="orchestrator.id",
-        ondelete="CASCADE",
-    )
     executive_id: UUID = Field(
         description="ID of executive operator for this project.",
         foreign_key="operator.id",
@@ -161,6 +158,12 @@ class ProjectBase(Base):
     developer_id: UUID = Field(
         description="ID of developer operator for this project.",
         foreign_key="operator.id",
+    )
+
+    orchestrator_id: UUID = Field(
+        description="ID of Orchestrator that owns this project.",
+        foreign_key="orchestrator.id",
+        ondelete="CASCADE",
     )
 
 
@@ -183,9 +186,10 @@ class ProjectCreate(ProjectBase):
 
 
 class Project(ProjectBase, MetadataMixin, table=True):
+    executive: Operator = Relationship(sa_relationship_kwargs={"foreign_keys": "Project.executive_id"})
+    developer: Operator = Relationship(sa_relationship_kwargs={"foreign_keys": "Project.developer_id"})
+
     orchestrator: "Orchestrator" = Relationship(back_populates="projects")
-    executive: Operator = Relationship()
-    developer: Operator = Relationship()
 
 
 # Tool Models
