@@ -75,8 +75,6 @@ run-main: build-main
 	docker compose -f docker/docker-compose.yml stop main
 	docker compose -f docker/docker-compose.yml up -d main
 
-# database url is set in orm/setup, which uses an env variable. 
-# SQLALCHEMY_DATABASE_URL="postgresql+psycopg://local_user:local_password@host.docker.internal:5432/local_db"
 run-postgres:
 	docker compose -f docker/docker-compose.yml stop postgres
 	docker compose -f docker/docker-compose.yml up -d postgres
