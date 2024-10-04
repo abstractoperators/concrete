@@ -211,4 +211,64 @@ This module provides a set of commands and configurations for managing the devel
 
 ## Notes
 - Ensure that your AWS credentials are configured for the default profile before running AWS commands.
-- For webhook functionality, consider using a service like ngrok to expose your local server to the internet.
+- For webhook functionality, consider using a service like ngrok to expose your local server to the internet.# Module Documentation
+
+## Module Overview
+This module provides the core functionality for connecting to a database using SQLAlchemy and SQLModel, managing sessions, and initializing the database schema. It leverages environment variables for configuration and supports both SQLite and PostgreSQL databases.
+
+## Environment Configuration
+The module uses the `dotenv` package to load environment variables from a `.env` file. Ensure that the following variables are set in your `.env` file:
+
+```.env
+DB_DRIVER=sqlite  # or postgresql+psycopg
+DB_USERNAME=your_username  # applicable for PostgreSQL
+DB_PASSWORD=your_password  # applicable for PostgreSQL
+DB_PORT=your_port  # applicable for PostgreSQL
+DB_HOST=your_host  # applicable for PostgreSQL
+DB_DATABASE=your_database_name  # applicable for PostgreSQL
+```
+
+## Database Connection
+The database connection URL is constructed using the `sqlalchemy.URL` method. The default database is SQLite, but it can be configured to connect to a PostgreSQL database by setting the appropriate environment variables.
+
+### Example of Database URL Construction
+```python
+SQLALCHEMY_DATABASE_URL = URL.create(
+    drivername=os.environ.get("DB_DRIVER", "sqlite"),
+    username=os.environ.get("DB_USERNAME", None),
+    password=os.environ.get("DB_PASSWORD", None),
+    host=os.environ.get("DB_HOST", None),
+    port=db_port,
+    database=os.environ.get("DB_DATABASE", "sql_app.db"),
+)
+```
+
+## Session Management
+The module provides a context manager for managing database sessions. This ensures that sessions are properly closed after use, preventing potential memory leaks or connection issues.
+
+### Using the Session Context Manager
+```python
+with Session() as session:
+    # Perform database operations here
+```
+
+## Database Initialization
+For SQLite, the database schema is created automatically when the module is loaded. For PostgreSQL, the database schema should be managed using Alembic migrations as described in the existing documentation.
+
+### Example of Schema Creation for SQLite
+```python
+if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
+    SQLModel.metadata.create_all(engine)
+```
+
+## Logging
+The module emits a log message indicating the database connection details using the `CLIClient` class. This can be useful for debugging and ensuring that the application is connecting to the correct database.
+
+### Example of Logging Connection
+```python
+CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
+```
+
+## Notes
+- Ensure that the required environment variables are set before running the application.
+- The context manager for sessions should be used to ensure proper resource management.
