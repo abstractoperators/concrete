@@ -83,10 +83,15 @@ def delete_my_table_core():
 SQLAlchemy requires a database URL. It's constructed using `sqlalchemy.URL` using environment variables. Place the following into your `.env` folder for local development with a Postgres database.
 
 ```.env
-DB_DRIVER=postgresql
+DB_DRIVER=postgresql+psycopg
 DB_USERNAME=local_user
 DB_PASSWORD=local_password
 DB_PORT=5432
 DB_HOST=localhost
 DB_DATABASE=local_db
 ```
+
+Then, start the postgres server using
+`make run-postgres`
+
+When developing locally outside of docker, `DB_HOST` should be set to `localhost`. When developing inside docker, `DB_HOST` should be set to `host.docker.internal`.
