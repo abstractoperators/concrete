@@ -39,7 +39,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 
 SQLAlchemy is an SQL toolkit and ORM library for Python. We use it in concrete to persist.
 
-## Defining a Construct
+### Defining a Construct
 Use base class defined in `concrete.orm.models` to define a construct.
 
 ```python
@@ -53,7 +53,7 @@ class my_table(Base):
     my_column: Mapped[str] = mapped_column(String(32))
 ```
 
-## DB Operations
+### DB Operations
 Use `concrete.db.orm.SessionLocal` to get a session. 
 Use this session to perform DB operations. Best practice is to use one session per one transaction. By default, sessions will not flush or commit.
 
@@ -77,3 +77,21 @@ def delete_my_table_core():
     session.commit()
     return deleted_count
 ```
+
+###
+
+SQLAlchemy requires a database URL. It's constructed using `sqlalchemy.URL` using environment variables. Place the following into your `.env` folder for local development with a Postgres database.
+
+```.env
+DB_DRIVER=postgresql+psycopg
+DB_USERNAME=local_user
+DB_PASSWORD=local_password
+DB_PORT=5432
+DB_HOST=localhost
+DB_DATABASE=local_db
+```
+
+Then, start the postgres server using
+`make run-postgres`
+
+When developing locally outside of docker, `DB_HOST` should be set to `localhost`. When developing inside docker, `DB_HOST` should be set to `host.docker.internal`.

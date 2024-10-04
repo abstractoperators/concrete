@@ -293,4 +293,5 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
 
 
+# Idempotent operation; Won't handle migrations, but won't overwrite existing tables.
 SQLModel.metadata.create_all(bind=engine)

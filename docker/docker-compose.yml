@@ -89,6 +89,33 @@ services:
       - "ts-oauth-docs"
     platform: linux/arm64 
 
+  ts-oauth-main:
+    image: tailscale/tailscale:latest
+    container_name: ts-oauth-main
+    hostname: ts-oauth-main
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+  
+  main: 
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.main
+    container_name: main
+    image: main
+    network_mode: service:ts-oauth-main
+    depends_on: 
+      - "ts-oauth-main"
+    platform: linux/arm64
+
   dind-builder:
     build:
       context: ../
@@ -102,11 +129,10 @@ services:
       - SHARED_VOLUME=/shared
     platform: linux/arm64
 
-
   postgres:
     image: postgres:16
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - /var/lib/postgresql/data
     environment:
@@ -118,3 +144,6 @@ volumes:
   shared-volume:
   
 
+networks:
+  postgres-network:
+    driver: bridge
