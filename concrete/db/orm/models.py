@@ -32,7 +32,6 @@ class OrchestratorBase(Base):
     type_name: str = Field(description="type of orchestrator", max_length=32)
     title: str = Field(description="Title of the orchestrator.", max_length=32)
     owner: str = Field(description="name of owner", max_length=32)
-    foo: str = Field(description="foo", max_length=32)
 
 
 class OrchestratorUpdate(Base):

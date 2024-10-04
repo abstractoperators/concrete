@@ -99,9 +99,9 @@ When developing locally outside of docker, `DB_HOST` should be set to `localhost
 
 ### Alembic
 
-We use Alembic to manage database migrations and schema creation locally.
+We use Alembic to manage database migrations and schema creation locally for postgres.
 
-Migration scripts are stored in VC, and can be used to recreate database schemas at a particular point in time. This can be especially useful for testing staging/prod migrations, because we can recreate their schemas locally.
+Migration scripts are tracked with git, and can be used to recreate database schemas at a particular point in time. This can be especially useful for testing staging/prod migrations, because we can recreate their schemas locally.
 
 #### Usage
 
@@ -110,7 +110,7 @@ Import all defined models in `migrations/env.py`, e.g. `from concrete.db.orm.mod
 
 Configure target metadata in `migrations/env.py`, e.g. `target_metadata = SQLModel.metadata`.
 
-Import sqlmodel in `script.py.mako` (this is a template file for generation migratio scripts), e.g. `from sqlmodel import SQLModel`.
+Import sqlmodel in `script.py.mako` (this is a template file for generating scripts), e.g. `from sqlmodel import SQLModel`.
 
 Add database URL to `alembic.ini` file, e.g. `
 sqlalchemy.url = postgresql+psycopg://local_user:local_password@localhost:5432/local_db`
