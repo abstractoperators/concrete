@@ -69,7 +69,6 @@ class OperatorBase(Base):
         foreign_key="orchestrator.id",
         ondelete="CASCADE",
     )
-    foo: str = Field(description="foo", max_length=32)
 
 
 class OperatorUpdate(Base):
