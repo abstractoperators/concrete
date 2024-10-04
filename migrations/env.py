@@ -75,3 +75,39 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+# Module Documentation for Migration Management
+
+This module is responsible for managing database migrations using Alembic, a lightweight database migration tool for use with SQLAlchemy. It provides functionality to run migrations in both offline and online modes, allowing for flexibility depending on the environment.
+
+## Functions
+
+### `run_migrations_offline() -> None`
+
+Run migrations in 'offline' mode.
+
+This function configures the migration context with a database URL instead of an Engine. This allows migrations to be executed without requiring a live database connection. The function emits SQL commands to the script output, which can be useful for generating migration scripts.
+
+#### Steps:
+1. Retrieve the database URL from the configuration.
+2. Configure the context with the URL and target metadata.
+3. Begin a transaction and run the migrations.
+
+### `run_migrations_online() -> None`
+
+Run migrations in 'online' mode.
+
+This function creates a database Engine and establishes a connection to the database. It is used when a live database connection is available and necessary for executing migrations.
+
+#### Steps:
+1. Create an Engine using the configuration settings.
+2. Connect to the database using the created Engine.
+3. Configure the context with the connection and target metadata.
+4. Begin a transaction and run the migrations.
+
+## Configuration
+
+The module uses an Alembic Config object to access settings defined in the .ini configuration file. This includes the database URL and logging configuration. The `target_metadata` is set to the metadata of the SQLModel, which is necessary for autogenerating migration scripts based on the defined models.
+
+## Execution Flow
+
+The module checks if the context is in offline mode. If it is, it calls `run_migrations_offline()`. Otherwise, it calls `run_migrations_online()`. This allows the module to adapt to the environment it is running in, ensuring that migrations can be executed appropriately.
