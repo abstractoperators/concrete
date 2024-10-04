@@ -76,8 +76,9 @@ run-main: build-main
 	docker compose -f docker/docker-compose.yml up -d main
 
 run-postgres:
-	docker compose -f docker/docker-compose.yml stop postgres
+	docker compose -f docker/docker-compose.yml down postgres
 	docker compose -f docker/docker-compose.yml up -d postgres
+	$(POETRY) alembic upgrade head
 
 # ----------------------- AWS Commands -----------------------
 # TODO: Use hyphens instead of underscores
