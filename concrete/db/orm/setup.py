@@ -7,7 +7,9 @@ from sqlmodel import create_engine
 
 from concrete.clients import CLIClient
 
-SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL", "sqlite:///sql_app.db")
+# SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL", "sqlite:///sql_app.db")
+SQLALCHEMY_DATABASE_URL = "postgresql+psycopg://local_user:local_password@localhost:5432/local_db"
+
 CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
 
 # https://github.com/fastapi/sqlmodel/issues/75
