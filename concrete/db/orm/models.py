@@ -5,7 +5,6 @@ from sqlalchemy.schema import Index
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
-from .setup import engine
 
 
 class Base(SQLModel):
@@ -293,6 +292,3 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     )
 
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
-
-
-# SQLModel.metadata.create_all(bind=engine)
