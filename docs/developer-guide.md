@@ -120,3 +120,95 @@ To create a new migration script, run `alembic revision --autogenerate -m 'migra
 To apply the migration script, run `alembic upgrade head`. This will alter the database schema. You can also use relative migration numbers, e.g. `alembic upgrade +1`, or `alembic downgrade -2`. Similarly, you can use `alembic downgrade partial_migration_number`.
 
 By default, `make run-postgres` applies all migrations to the database, initializing it with the latest schema. 
+# Developer Guide
+
+## Module Overview
+This module provides a set of commands and configurations for managing the development, testing, and deployment of applications using Docker, Poetry, and AWS services. It includes commands for building, running, and deploying web applications, as well as managing dependencies and database migrations.
+
+## Makefile Commands
+
+### Setup
+- **install**: Installs the project dependencies using Poetry.
+  ```shell
+  make install
+  ```
+
+### Run Tests
+- **test**: Runs the test suite using pytest.
+  ```shell
+  make test
+  ```
+
+### Demo Commands
+- **helloworld**: Creates a simple "Hello World" program.
+  ```shell
+  make helloworld
+  ```
+- **helloworld_celery**: Creates a simple "Hello World" program using Celery. Requires RabbitMQ and a Celery worker to be running.
+  ```shell
+  make helloworld_celery
+  ```
+- **simpleflask**: Provides the code for a Flask application with a single route rendering an HTML template.
+  ```shell
+  make simpleflask
+  ```
+- **deploysimpleflask**: Deploys a simple "Hello World" Flask application. Requires dind-builder to be running.
+  ```shell
+  make deploysimpleflask
+  ```
+
+### Build Commands
+- **build-webapp-demo**: Builds the webapp-demo service using Docker Compose.
+  ```shell
+  make build-webapp-demo
+  ```
+- **build-webapp-homepage**: Builds the webapp-homepage service using Docker Compose.
+  ```shell
+  make build-webapp-homepage
+  ```
+- **build-docs**: Builds the documentation using MkDocs.
+  ```shell
+  make build-docs
+  ```
+
+### Run Commands
+- **run-webapp-demo**: Stops and starts the webapp-demo service.
+  ```shell
+  make run-webapp-demo
+  ```
+- **run-webapp-homepage**: Stops and starts the webapp-homepage service.
+  ```shell
+  make run-webapp-homepage
+  ```
+- **run-postgres**: Starts the PostgreSQL service and applies all migrations to the database.
+  ```shell
+  make run-postgres
+  ```
+
+### AWS Commands
+- **aws-ecr-login**: Logs into the AWS ECR registry.
+  ```shell
+  make aws-ecr-login
+  ```
+- **aws-ecr-push-homepage**: Builds and pushes the webapp-homepage image to AWS ECR.
+  ```shell
+  make aws-ecr-push-homepage
+  ```
+
+### Local Development without Docker
+- **local-docs**: Builds and serves the documentation locally using MkDocs.
+  ```shell
+  make local-docs
+  ```
+- **local-api**: Runs the FastAPI server for the web application API locally.
+  ```shell
+  make local-api
+  ```
+- **local-webapp-main**: Runs the main web application server locally.
+  ```shell
+  make local-webapp-main
+  ```
+
+## Notes
+- Ensure that your AWS credentials are configured for the default profile before running AWS commands.
+- For webhook functionality, consider using a service like ngrok to expose your local server to the internet.
