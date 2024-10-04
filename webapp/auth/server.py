@@ -17,19 +17,25 @@ or the page they were originally trying to access
 """
 
 import os
-from typing import Annotated
 
-from fastapi import Depends, FastAPI, Request
+import dotenv
+from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
-from fastapi.security import OAuth2AuthorizationCodeBearer
+
+# from fastapi.security import OAuth2AuthorizationCodeBearer
 from google_auth_oauthlib.flow import Flow
-from sqlmodel import Session
+
+# from sqlmodel import Session
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from concrete.db.orm.models import User, UserCreate, UserUpdate
+# from typing import Annotated
+
+
+dotenv.load_dotenv(override=True)
 
 # Setup App with Middleware
 middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
@@ -37,10 +43,27 @@ middleware += [
     Middleware(
         TrustedHostMiddleware,
         allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
+        www_redirect=False,
+    ),
+    Middleware(
+        CORSMiddleware,
+        allow_origins=[_ for _ in os.environ['HTTP_CORS_ORIGINS'].split(',')],
+        allow_credentials=True,
+    ),
+    Middleware(
+        SessionMiddleware,
+        secret_key=os.environ['HTTP_SESSION_SECRET'],
+        domain=os.environ['HTTP_SESSION_DOMAIN'],
+        https_only=True,
     ),
 ]
 
 app = FastAPI(title="Concrete API", middleware=middleware)
+
+
+@app.get("/")
+def ping():
+    return {"message": "pong"}
 
 
 @app.get("/login")
@@ -75,19 +98,18 @@ def auth_callback(request: Request):
     Receives a request from Google once the user has completed their auth flow on Google's side.
     The user's authorization code is verified with Google's servers and swapped for a refresh token.
     """
-    breakpoint()
-    pass
+    return {"welcome back ya": "lad"}
 
 
-oauth2_scheme = OAuth2AuthorizationCodeBearer()
+# oauth2_scheme = OAuth2AuthorizationCodeBearer()
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    user = fake_decode_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
+# def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+#     user = fake_decode_token(token)
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid authentication credentials",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     return user

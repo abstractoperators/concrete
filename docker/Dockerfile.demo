@@ -27,13 +27,14 @@ WORKDIR /app
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY concrete ./concrete
-COPY webapp ./webapp
 COPY pyproject.toml poetry.lock ./
 COPY .env .env
 RUN touch README.md
 
 RUN pip install --no-deps .
 
+# App specifics
+COPY webapp/demo ./webapp/demo
 RUN chmod +x ./webapp/demo/scripts/start.sh
 EXPOSE 80
 CMD ["./webapp/demo/scripts/start.sh"]
