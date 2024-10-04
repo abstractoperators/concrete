@@ -37,6 +37,9 @@ build-webapp-demo:
 build-webapp-homepage:
 	docker compose -f docker/docker-compose.yml build webapp-homepage
 
+build-webapp-auth:
+	docker compose -f docker/docker-compose.yml build webapp-auth
+
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
 
@@ -55,6 +58,10 @@ run-webapp-demo: build-webapp-demo
 run-webapp-homepage: build-webapp-homepage
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
+
+run-webapp-auth: build-webapp-auth
+	docker compose -f docker/docker-compose.yml stop webapp-auth
+	docker compose -f docker/docker-compose.yml up -d webapp-auth
 
 run-dind-builder:
 	docker compose -f docker/docker-compose.yml stop dind-builder
@@ -109,13 +116,14 @@ local-docs:
 	poetry run mkdocs build --config-file config/mkdocs.yml
 	mkdocs serve --config-file config/mkdocs.yml
 
-# local swagger UI
 local-api:
 	$(POETRY) fastapi dev webapp/api/server.py --port 8001
 
-# local webapp-main
-local-webapp-main:
+local-main:
 	$(POETRY) fastapi dev webapp/main/server.py
+
+local-auth:
+	$(POETRY) fastapi dev webapp/auth/server.py --port 8002
 
 # Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
 # I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.

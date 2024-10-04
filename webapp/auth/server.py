@@ -16,17 +16,78 @@ We use the OAuth2 standard protocol enabled through google's SDKs to identify an
 or the page they were originally trying to access
 """
 
+import os
+from typing import Annotated
 
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2AuthorizationCodeBearer
+from google_auth_oauthlib.flow import Flow
+from sqlmodel import Session
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+from concrete.db.orm.models import User, UserCreate, UserUpdate
+
+# Setup App with Middleware
+middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
+middleware += [
+    Middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
+    ),
+]
+
+app = FastAPI(title="Concrete API", middleware=middleware)
+
+
+@app.get("/login")
 def login():
     """
     Starting point for the user to authenticate themselves with Google
     """
-    pass
+    flow = Flow.from_client_config(
+        client_config={
+            "web": {
+                'client_id': os.environ['GOOGLE_OAUTH_CLIENT_ID'],
+                'client_secret': os.environ['GOOGLE_OAUTH_CLIENT_SECRET'],
+                'redirect_uris': [_ for _ in os.environ['GOOGLE_OAUTH_REDIRECT_URIS'].split(',')],
+                'auth_uri': "https://accounts.google.com/o/oauth2/auth",
+                'token_uri': "https://oauth2.googleapis.com/token",
+            }
+        },
+        scopes=['openid', 'email', 'profile'],
+    )
+    flow.redirect_uri = os.environ['GOOGLE_OAUTH_REDIRECT']
+    authorization_url, _ = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt="select_account",
+    )
+    return RedirectResponse(authorization_url)
 
 
-def auth_callback():
+@app.get("/auth")
+def auth_callback(request: Request):
     """
     Receives a request from Google once the user has completed their auth flow on Google's side.
     The user's authorization code is verified with Google's servers and swapped for a refresh token.
     """
+    breakpoint()
     pass
+
+
+oauth2_scheme = OAuth2AuthorizationCodeBearer()
+
+
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    user = fake_decode_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
