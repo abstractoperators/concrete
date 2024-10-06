@@ -7,9 +7,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from concrete.clients import CLIClient
 from concrete.db import crud
 from concrete.db.orm import Session
 from concrete.db.orm.models import OperatorCreate, OrchestratorCreate, ProjectCreate
+from concrete.orchestrator import SoftwareOrchestrator
 
 from .models import HiddenInput
 
@@ -54,22 +56,6 @@ async def root(request: Request):
     return pages.TemplateResponse(name="index.html", request=request)
 
 
-@app.get("/chat", response_class=HTMLResponse)
-async def chat(request: Request):
-    # TODO: make dynamic, both in data and in template.
-    messages = [
-        {"Executive": "I am the executive!"},
-        {"Operator 1": "I am operator 1!"},
-        {"Operator 2": "I am operator 2!"},
-        {"Operator 3": "I am operator 3!"},
-    ]
-    return templates.TemplateResponse(
-        name="group_chat.html",
-        context={"messages": messages},
-        request=request,
-    )
-
-
 # === Orchestrators === #
 
 
@@ -77,6 +63,8 @@ async def chat(request: Request):
 async def get_orchestrator_list(request: Request):
     with Session() as session:
         orchestrators = crud.get_orchestrators(session)
+        CLIClient.emit_sequence(orchestrators)
+        CLIClient.emit("\n")
         return components.TemplateResponse(
             name="orchestrator_list.html",
             context={"orchestrators": orchestrators},
@@ -95,7 +83,8 @@ async def create_orchestrator(
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(type_name=type_name, title=title, owner=owner)
     with Session() as session:
-        crud.create_orchestrator(session, orchestrator_create)
+        orchestrator = crud.create_orchestrator(session, orchestrator_create)
+        CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
         return HTMLResponse(content="", headers=headers)
 
@@ -127,7 +116,8 @@ async def get_orchestrator(orchestrator_id: UUID, request: Request):
 @app.delete("/orchestrators/{orchestrator_id}")
 async def delete_orchestrator(orchestrator_id: UUID):
     with Session() as session:
-        crud.delete_orchestrator(session, orchestrator_id)
+        orchestrator = crud.delete_orchestrator(session, orchestrator_id)
+        CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
         return HTMLResponse(content="", headers=headers)
 
@@ -139,6 +129,8 @@ async def delete_orchestrator(orchestrator_id: UUID):
 async def get_operator_list(orchestrator_id: UUID, request: Request):
     with Session() as session:
         operators = crud.get_operators(session, orchestrator_id)
+        CLIClient.emit_sequence(operators)
+        CLIClient.emit("\n")
         return components.TemplateResponse(
             name="operator_list.html",
             context={"orchestrator_id": orchestrator_id, "operators": operators},
@@ -157,7 +149,8 @@ async def create_operator(
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
     with Session() as session:
-        crud.create_operator(session, operator_create)
+        operator = crud.create_operator(session, operator_create)
+        CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
         return HTMLResponse(content="", headers=headers)
 
@@ -187,7 +180,8 @@ async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Reques
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")
 async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
     with Session() as session:
-        crud.delete_operator(session, operator_id, orchestrator_id)
+        operator = crud.delete_operator(session, operator_id, orchestrator_id)
+        CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
         return HTMLResponse(content="", headers=headers)
 
@@ -199,6 +193,8 @@ async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
 async def get_project_list(orchestrator_id: UUID, request: Request):
     with Session() as session:
         projects = crud.get_projects(session, orchestrator_id)
+        CLIClient.emit_sequence(projects)
+        CLIClient.emit("\n")
         return components.TemplateResponse(
             name="project_list.html",
             context={"orchestrator_id": orchestrator_id, "projects": projects},
@@ -223,7 +219,8 @@ async def create_project(
         orchestrator_id=orchestrator_id,
     )
     with Session() as session:
-        crud.create_project(session, project_create)
+        project = crud.create_project(session, project_create)
+        CLIClient.emit(f"{project}\n")
         headers = {"HX-Trigger": "getProjects"}
         return HTMLResponse(content="", headers=headers)
 
@@ -232,6 +229,8 @@ async def create_project(
 async def create_project_form(orchestrator_id: UUID, request: Request):
     with Session() as session:
         operators = crud.get_operators(session, orchestrator_id)
+        CLIClient.emit_sequence(operators)
+        CLIClient.emit("\n")
         return sidebar_create(
             "Project",
             f"/orchestrators/{orchestrator_id}/projects",
@@ -243,19 +242,50 @@ async def create_project_form(orchestrator_id: UUID, request: Request):
 
 @app.get("/orchestrators/{orchestrator_id}/projects/{project_id}", response_class=HTMLResponse)
 async def get_project(orchestrator_id: UUID, project_id: UUID, request: Request):
-    return pages.TemplateResponse(
-        name="project.html",
-        context={
-            "orchestrator_id": orchestrator_id,
-            "project_id": project_id,
-        },
-        request=request,
-    )
+    with Session() as session:
+        project = crud.get_project(session, project_id, orchestrator_id)
+        CLIClient.emit(f"{project}\n")
+        return pages.TemplateResponse(
+            name="project.html",
+            context={
+                "project": project,
+            },
+            request=request,
+        )
 
 
 @app.delete("/orchestrators/{orchestrator_id}/projects/{project_id}")
 async def delete_project(orchestrator_id: UUID, project_id: UUID):
     with Session() as session:
-        crud.delete_project(session, project_id, orchestrator_id)
+        project = crud.delete_project(session, project_id, orchestrator_id)
+        CLIClient.emit(f"{project}\n")
         headers = {"HX-Trigger": "getProjects"}
         return HTMLResponse(content="", headers=headers)
+
+
+@app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/chat", response_class=HTMLResponse)
+async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Request):
+    with Session() as session:
+        chat = crud.get_messages(session, project_id)
+        CLIClient.emit_sequence(chat)
+        CLIClient.emit("\n")
+        return components.TemplateResponse(
+            name="project_chat.html",
+            context={
+                "chat": chat,
+            },
+            request=request,
+        )
+
+
+@app.post("/orchestrators/{orchestrator_id}/projects/{project_id}/chat", response_class=HTMLResponse)
+async def prompt_project(orchestrator_id: UUID, project_id: UUID, prompt: annotatedFormStr):
+    with Session() as session:
+        project = crud.get_project(session, project_id, orchestrator_id)
+        CLIClient.emit(project)
+        CLIClient.emit("\n")
+
+        CLIClient.emit(prompt)
+        so = SoftwareOrchestrator()
+        async for operator, response in so.process_new_project(prompt, use_celery=False):
+            CLIClient.emit(f"[{operator}]:\n{response}\n")

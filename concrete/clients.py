@@ -1,5 +1,5 @@
 import os
-from typing import Any, TypeVar
+from typing import Any, Sequence, TypeVar
 
 import requests
 import requests.adapters
@@ -86,6 +86,12 @@ class CLIClient(Client):
     def emit(cls, content: Any):
         if os.environ.get("ENV") != "PROD":
             print(str(content))
+
+    @classmethod
+    def emit_sequence(cls, content: Sequence):
+        if os.environ.get("ENV") != "PROD":
+            for item in content:
+                print(str(item))
 
 
 class HTTPClient(Client, requests.Session):

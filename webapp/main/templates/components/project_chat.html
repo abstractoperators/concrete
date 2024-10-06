@@ -1,0 +1,11 @@
+{% for message in chat %}
+    <li class="left">
+        <div class="operator-avatar-container">
+            <div class="operator-avatar-mask">
+                <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
+                <h1 class="operator-avatar-text">E</h1>
+            </div>
+        </div>
+        <p class="message">{{ message.content }}</p>
+    </li>
+{% endfor %}

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
-    <title>Project</title>
+    <title>Project: {{ project.title }}</title>
     <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
 
@@ -26,8 +26,26 @@
 </head>
 
 <body>
-    <a href="{{ url_for('get_orchestrator', orchestrator_id=orchestrator_id) }}">Back</a>
-    You've reached a project!
+    <a href="{{ url_for('get_orchestrator', orchestrator_id=project.orchestrator_id) }}">Back</a>
+    <h1>{{ project.title }}</h1>
+    <ol
+        hx-get="{{ url_for('get_project_chat', orchestrator_id=project.orchestrator_id, project_id=project.id) }}"
+        hx-trigger="load, getProjectChat from:body"
+        class="operator-card-list"
+    ></ol>
+    <form
+        hx-post="{{ url_for('prompt_project', orchestrator_id=project.orchestrator_id, project_id=project.id) }}"
+        hx-swap="none"
+    >
+        <textarea
+            name="prompt"
+            placeholder="Send a message"
+            autocomplete="off"
+            required
+        >
+        </textarea>
+        <button>Send. Replace with icon.</button>
+    </form>
 </body>
 
 </html>
