@@ -47,6 +47,9 @@ build-docs:
 	$(POETRY) mkdocs build --config-file config/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
+build-main:
+	docker compose -f docker/docker-compose.yml build main
+
 # ----------------------- Run commands -----------------------
 run-webapp-demo: build-webapp-demo
 	docker compose -f docker/docker-compose.yml stop webapp-demo
@@ -68,6 +71,14 @@ run-docs:
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
 
+run-main: build-main
+	docker compose -f docker/docker-compose.yml stop main
+	docker compose -f docker/docker-compose.yml up -d main
+
+run-postgres:
+	docker compose -f docker/docker-compose.yml down postgres
+	docker compose -f docker/docker-compose.yml up -d postgres
+	$(POETRY) alembic upgrade head
 
 # ----------------------- AWS Commands -----------------------
 # TODO: Use hyphens instead of underscores
@@ -90,9 +101,13 @@ aws-ecr-push-docs: aws-ecr-login
 aws-ecr-push-daemons: aws-ecr-login
 	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+aws-ecr-push-main: aws-ecr-login
+	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
 
 deploy-daemon-to-aws-staging:
 	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
+
 
 # ------------------------ Local Development without Docker ------------------------
 rabbitmq:
@@ -122,11 +137,3 @@ local-webapp-main:
 local-daemons:
 	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"
 
-
-# ------------------------ Tailscale -----------------------
-build-tailscale:
-	docker compose -f docker/docker-compose.yml build tailscale
-
-run-tailscale:
-	docker compose -f docker/docker-compose.yml down tailscale 
-	docker compose -f docker/docker-compose.yml up -d tailscale

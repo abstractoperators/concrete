@@ -39,7 +39,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 
 SQLAlchemy is an SQL toolkit and ORM library for Python. We use it in concrete to persist.
 
-## Defining a Construct
+### Defining a Construct
 Use base class defined in `concrete.orm.models` to define a construct.
 
 ```python
@@ -53,7 +53,7 @@ class my_table(Base):
     my_column: Mapped[str] = mapped_column(String(32))
 ```
 
-## DB Operations
+### DB Operations
 Use `concrete.db.orm.SessionLocal` to get a session. 
 Use this session to perform DB operations. Best practice is to use one session per one transaction. By default, sessions will not flush or commit.
 
@@ -77,3 +77,46 @@ def delete_my_table_core():
     session.commit()
     return deleted_count
 ```
+
+### Connection to DB
+
+SQLAlchemy requires a database URL. It's constructed using `sqlalchemy.URL` using environment variables. By default, the constructed URL will be a SQLite database.
+For a dockerized Postgres database, place the following into your `.env` file.
+
+```.env
+DB_DRIVER=postgresql+psycopg
+DB_USERNAME=local_user
+DB_PASSWORD=local_password
+DB_PORT=5432
+DB_HOST=localhost 
+DB_DATABASE=local_db
+```
+
+Start the postgres server using
+`make run-postgres`
+
+When developing locally outside of docker, `DB_HOST` should be set to `localhost`. When developing inside docker, `DB_HOST` should be set to `host.docker.internal`.
+
+### Alembic
+
+We use Alembic to manage database migrations and schema creation locally for postgres.
+
+Migration scripts are tracked with git, and can be used to recreate database schemas at a particular point in time. This can be especially useful for testing staging/prod migrations, because we can recreate their schemas locally.
+
+#### Usage
+
+SQLModel models are used to define migration scripts.
+Import all defined models in `migrations/env.py`, e.g. `from concrete.db.orm.models import *`.
+
+Configure target metadata in `migrations/env.py`, e.g. `target_metadata = SQLModel.metadata`.
+
+Import sqlmodel in `script.py.mako` (this is a template file for generating scripts), e.g. `from sqlmodel import SQLModel`.
+
+Add database URL to `alembic.ini` file, e.g. `
+sqlalchemy.url = postgresql+psycopg://local_user:local_password@localhost:5432/local_db`
+
+To create a new migration script, run `alembic revision --autogenerate -m 'migration name'`. This will generate a migration script taking the existing database schema to whatever schema is defined by the SQLModel models.
+
+To apply the migration script, run `alembic upgrade head`. This will alter the database schema. You can also use relative migration numbers, e.g. `alembic upgrade +1`, or `alembic downgrade -2`. Similarly, you can use `alembic downgrade partial_migration_number`.
+
+By default, `make run-postgres` applies all migrations to the database, initializing it with the latest schema. 
