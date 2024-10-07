@@ -40,8 +40,6 @@ middleware += [
         allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
         www_redirect=False,
     ),
-    # Session allows us to save state between the client and the be
-    # We use it to store the user's auth
     Middleware(
         SessionMiddleware,
         secret_key=os.environ['HTTP_SESSION_SECRET'],
