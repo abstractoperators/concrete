@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/workflow_fix
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -79,7 +80,7 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-auth:latest \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
                     --container-name auth-staging \
                     --container-port 80 \
                     --security-groups sg-01af4e696bd2679c3 \
