@@ -34,7 +34,7 @@ jobs:
                     --service-name main-staging \
                     --listener-rule-field host-header \
                     --listener-rule-value app-staging.abop.ai \
-                    --container-envs "[[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, {'name': 'DB_DRIVER', 'value': 'postgresql+psycopg'}, {'name': 'DB_USERNAME', 'value': 'postgres'}, {'name': 'DB_PASSWORD', 'value': '$POSTGRES_PRODUCTION_PASSWORD'}, {'name': 'DB_PORT', 'value': '5432'}, {'name': 'DB_HOST', 'value': 'database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com'}, {'name': 'DB_DATABASE', 'value': 'postgres'}]]"
+                    --container-envs "[[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, {'name': 'DB_DRIVER', 'value': 'postgresql+psycopg'}, {'name': 'DB_USERNAME', 'value': 'postgres'}, {'name': 'DB_PASSWORD', 'value': '$POSTGRES_PRODUCTION_PASSWORD'}, {'name': 'DB_PORT', 'value': '5432'}, {'name': 'DB_HOST', 'value': 'production-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com'}, {'name': 'DB_DATABASE', 'value': 'postgres'}]]"
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
