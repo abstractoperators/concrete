@@ -49,11 +49,11 @@ app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name=
 
 @app.get('/login')
 async def login(request: Request):
+    # TODO: Replace this endpoitn with html
     user_data = AuthMiddleware.check_auth(request)
     if user_data:
         return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
-    # TODO NOW: Make dynamic/better
-    return JSONResponse({"login here": "http://auth.abot.bot:8002/login"})
+    return JSONResponse({"login here": "https://auth-staging.abot.ai/login"})
 
 
 @app.get("/", response_class=HTMLResponse)
