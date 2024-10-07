@@ -1,6 +1,6 @@
 import os
 from typing import Annotated, Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
@@ -10,7 +10,12 @@ from fastapi.templating import Jinja2Templates
 from concrete.clients import CLIClient
 from concrete.db import crud
 from concrete.db.orm import Session
-from concrete.db.orm.models import OperatorCreate, OrchestratorCreate, ProjectCreate
+from concrete.db.orm.models import (
+    MessageCreate,
+    OperatorCreate,
+    OrchestratorCreate,
+    ProjectCreate,
+)
 from concrete.orchestrator import SoftwareOrchestrator
 
 from .models import HiddenInput
@@ -281,11 +286,28 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
 @app.post("/orchestrators/{orchestrator_id}/projects/{project_id}/chat", response_class=HTMLResponse)
 async def prompt_project(orchestrator_id: UUID, project_id: UUID, prompt: annotatedFormStr):
     with Session() as session:
+        prompt_message = crud.create_message(
+            session,
+            MessageCreate(
+                type_name="text",
+                content=prompt,
+                prompt=prompt,
+                project_id=project_id,
+                user_id=uuid4(),
+            ),
+        )
+        CLIClient.emit(prompt_message)
+        CLIClient.emit("\n")
+
         project = crud.get_project(session, project_id, orchestrator_id)
         CLIClient.emit(project)
         CLIClient.emit("\n")
 
         CLIClient.emit(prompt)
         so = SoftwareOrchestrator()
-        async for operator, response in so.process_new_project(prompt, use_celery=False):
+        async for operator, response in so.process_new_project(prompt, project_id, use_celery=False):
             CLIClient.emit(f"[{operator}]:\n{response}\n")
+
+        # TODO: live updates
+        headers = {"HX-Trigger": "getProjectChat"}
+        return HTMLResponse(content="", headers=headers)

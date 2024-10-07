@@ -7,6 +7,7 @@ from sqlalchemy.schema import Index
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
+from .setup import engine
 
 
 class Base(SQLModel):
@@ -303,7 +304,7 @@ class MessageBase(Base):
         return self
 
     __table_args__ = (
-        CheckConstraint("(operator_id IS NULL <> user_id IS NULL)", name="The sender can only be one entity!"),
+        CheckConstraint("(operator_id IS NULL) <> (user_id IS NULL)", name="The sender can only be one entity!"),
     )
 
 
@@ -419,3 +420,6 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     )
 
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
+
+
+SQLModel.metadata.create_all(bind=engine)

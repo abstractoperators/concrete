@@ -2,10 +2,9 @@ import json
 from collections.abc import AsyncGenerator
 from textwrap import dedent
 from typing import Optional
-from uuid import uuid1
+from uuid import UUID, uuid1, uuid4
 
 from . import prompts
-from .abstract import AbstractOperator_co
 from .clients import Client_con, OpenAIClient
 from .models.messages import (
     PlannedComponents,
@@ -179,26 +178,38 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     Provides a single entry point for common interactions with Operators
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        executive_id: UUID = uuid4(),
+        developer_id: UUID = uuid4(),
+    ):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
         self.clients = {
             "openai": OpenAIClient(),
         }
-        self.operators: dict[str, AbstractOperator_co] = {
-            "exec": Executive(self.clients),
-            "dev": Developer(self.clients),
-        }
+        self.exec = Executive(self.clients, operator_id=executive_id)
+        self.dev = Developer(self.clients, operator_id=developer_id)
         self.update(status=ProjectStatus.READY)
 
     def process_new_project(
-        self, starting_prompt: str, deploy: bool = False, use_celery: bool = True
+        self,
+        starting_prompt: str,
+        project_id: UUID = uuid4(),
+        deploy: bool = False,
+        use_celery: bool = True,
     ) -> AsyncGenerator[tuple[str, str], None]:
         self.update(status=ProjectStatus.WORKING)
+
+        self.exec.project_id = project_id
+        self.exec.prompt = starting_prompt
+        self.dev.project_id = project_id
+        self.dev.prompt = starting_prompt
+
         current_project = SoftwareProject(
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
-            exec=self.operators["exec"],
-            dev=self.operators["dev"],
+            exec=self.exec,
+            dev=self.dev,
             orchestrator=self,
             clients=self.clients,
             deploy=deploy,
