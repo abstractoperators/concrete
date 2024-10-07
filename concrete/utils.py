@@ -4,11 +4,13 @@ import ast
 import base64
 import os
 import re
-import time
 from datetime import timedelta
 
 import astor
+import dotenv
 import jwt
+
+dotenv.load_dotenv(override=True)
 
 # These are slow-changing, so the certs are hardcoded directly here
 GOOGLE_OIDC_DISCOVERY = "https://accounts.google.com/.well-known/openid-configuration"
@@ -94,6 +96,8 @@ def verify_jwt(jwt_token: str, access_token: str) -> dict[str, str]:
         key=signing_key.key,
         algorithms=GOOGLE_OIDC_ALGOS,
         audience=os.environ['GOOGLE_OAUTH_CLIENT_ID'],
+        # Allow two weeks stale tokens
+        leeway=timedelta(weeks=2).total_seconds(),
     )
     # For payload details, see
     # https://developers.google.com/identity/openid-connect/openid-connect#an-id-tokens-payload
@@ -107,7 +111,5 @@ def verify_jwt(jwt_token: str, access_token: str) -> dict[str, str]:
     # See https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken
     assert payload['iss'] in {'https://accounts.google.com', 'accounts.google.com'}
     assert payload['aud'] == os.environ['GOOGLE_OAUTH_CLIENT_ID']
-    # Allow two weeks stale tokens
-    assert payload['exp'] > time.time() - timedelta(weeks=2).total_seconds()
     assert payload['hd'] == 'abstractoperators.ai'
     return payload

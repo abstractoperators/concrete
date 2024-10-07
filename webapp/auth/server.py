@@ -22,9 +22,8 @@ import urllib
 
 import dotenv
 from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from google_auth_oauthlib.flow import Flow
-from googleapiclient.discovery import build
 from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
@@ -42,6 +41,7 @@ from concrete.db.crud import (
 from concrete.db.orm.models import AuthStateCreate, AuthTokenCreate, UserCreate
 from concrete.db.orm.setup import Session
 from concrete.utils import verify_jwt
+from concrete.webutils import AuthMiddleware
 
 dotenv.load_dotenv(override=True)
 
@@ -97,10 +97,14 @@ def ping():
 
 
 @app.get("/login")
-def login(destination_url: str | None = None):
+def login(request: Request, destination_url: str | None = None):
     """
     Starting point for the user to authenticate themselves with Google
     """
+    user_data = AuthMiddleware.check_auth(request)
+    if user_data:
+        return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
+
     flow = GoogleOAuthClient()
     flow.redirect_uri = os.environ['GOOGLE_OAUTH_REDIRECT']
 
@@ -124,6 +128,12 @@ def login(destination_url: str | None = None):
     return RedirectResponse(authorization_url)
 
 
+@app.get('/logout')
+def logout(request: Request):
+    request.session.clear()
+    return JSONResponse({"Message": "Logged out"})
+
+
 @app.get("/auth")
 def auth_callback(request: Request):
     """
@@ -134,11 +144,10 @@ def auth_callback(request: Request):
     if error := query_params.get('error'):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=error)
     if (code := query_params.get('code')) is None:
+        # code is used later to get tokens
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No authorization code was provided.")
     if (state := query_params.get('state')) is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     with Session() as session:
         auth_state = get_authstate(session, state)
         if auth_state is None:
@@ -149,7 +158,6 @@ def auth_callback(request: Request):
     # Complete PKCE flow with Google
     flow = GoogleOAuthClient()
     flow.redirect_uri = os.environ['GOOGLE_OAUTH_REDIRECT']
-
     try:
         # Hydrates credentials
         flow.fetch_token(code=code)
@@ -159,16 +167,21 @@ def auth_callback(request: Request):
 
     id_token = flow.credentials._id_token
     access_token = flow.credentials.token
+    user_info: dict[str, str]
     try:
-        verify_jwt(jwt_token=id_token, access_token=access_token)
+        user_info = verify_jwt(jwt_token=id_token, access_token=access_token)
     except AssertionError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unrecognized ID token Signature")
     # Set valid id_token to session
     request.session['id_token'] = id_token
     request.session['access_token'] = access_token
 
-    user_info_service = build('oauth2', 'v2', credentials=flow.credentials)
-    user_info = user_info_service.userinfo().get().execute()
+    # Commented because there's no use for invoking the API directly with the access token (for now)
+    # For payload info see
+    # https://googleapis.github.io/google-api-python-client/docs/dyn/oauth2_v2.userinfo.html
+    # user_info_service = build('oauth2', 'v2', credentials=flow.credentials)
+    # user_info = user_info_service.userinfo().get().execute()
+
     with Session() as session:
         user = get_user(session, user_info['email'])
 
@@ -187,6 +200,8 @@ def auth_callback(request: Request):
         auth_token = AuthTokenCreate(refresh_token=flow.credentials.refresh_token, user_id=user.id)
         with Session() as session:
             create_authtoken(session, auth_token)
+
+    # Not strictly necessary as of now
     request.session['user'] = {'uuid': str(user.id), 'email': user.email}
 
     if auth_state.destination_url:
@@ -199,6 +214,6 @@ def token(request: Request):
     """
     Return an auth token or start the auth flow
     """
-    if 'id_token' not in request.session:
+    if 'id_token' not in request.session or (id_token := request.session['id_token']) is None:
         return RedirectResponse(request.url_for('login').include_query_params(destination_url=request.url))
-    return {"access_token": f"{request.session['id_token']}", "token_type": "bearer"}
+    return {"access_token": f"{id_token}", "token_type": "bearer"}

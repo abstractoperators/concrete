@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import dotenv
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session
 from starlette.middleware import Middleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
@@ -24,14 +24,15 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     OrchestratorUpdate,
 )
-from concrete.utils import verify_jwt
+from concrete.webutils import AuthMiddleware
 
 from .models import CommonReadParameters
 
 dotenv.load_dotenv(override=True)
 
-# Setup App with Middleware
+UNAUTHENTICATED_PATHS = {'/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
+# Setup App with Middleware
 middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
 middleware += [
     Middleware(
@@ -44,6 +45,7 @@ middleware += [
         secret_key=os.environ['HTTP_SESSION_SECRET'],
         domain=os.environ['HTTP_SESSION_DOMAIN'],
     ),
+    Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
 ]
 
 
@@ -90,45 +92,14 @@ software_project_not_found = object_not_found("SoftwareProject")
 user_not_found = object_not_found("User")
 
 
-def check_auth(request: Request) -> dict[str, str] | None:
-    access_token = request.session.get('access_token')
-    id_token = request.session.get('id_token')
-    if not access_token or not id_token:
-        request.session['access_token'] = None
-        request.session['id_token'] = None
-        return None
-
-    try:
-        payload = verify_jwt(id_token, access_token)
-    except AssertionError:
-        request.session['access_token'] = None
-        request.session['id_token'] = None
-        return None
-    return payload
-
-
 # ===CRUD operations for Orchestrators=== #
 @app.post("/orchestrators/", response_model=Orchestrator)
-def create_orchestrator(request: Request, orchestrator: OrchestratorCreate, db: DbDep) -> Orchestrator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def create_orchestrator(orchestrator: OrchestratorCreate, db: DbDep) -> Orchestrator:
     return crud.create_orchestrator(db, orchestrator)
 
 
 @app.get("/orchestrators/")
-def get_orchestrators(request: Request, common_read_params: CommonReadDep, db: DbDep) -> Sequence[Orchestrator]:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def get_orchestrators(common_read_params: CommonReadDep, db: DbDep) -> Sequence[Orchestrator]:
     return crud.get_orchestrators(
         db,
         common_read_params.skip,
@@ -137,14 +108,7 @@ def get_orchestrators(request: Request, common_read_params: CommonReadDep, db: D
 
 
 @app.get("/orchestrators/{orchestrator_id}")
-def get_orchestrator(request: Request, orchestrator_id: UUID, db: DbDep) -> Orchestrator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def get_orchestrator(orchestrator_id: UUID, db: DbDep) -> Orchestrator:
     orchestrator = crud.get_orchestrator(db, orchestrator_id)
     if orchestrator is None:
         raise orchestrator_not_found(orchestrator_id)
@@ -152,16 +116,7 @@ def get_orchestrator(request: Request, orchestrator_id: UUID, db: DbDep) -> Orch
 
 
 @app.put("/orchestrators/{orchestrator_id}")
-def update_orchestrator(
-    request: Request, orchestrator_id: UUID, orchestrator: OrchestratorUpdate, db: DbDep
-) -> Orchestrator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def update_orchestrator(orchestrator_id: UUID, orchestrator: OrchestratorUpdate, db: DbDep) -> Orchestrator:
     db_orc = crud.update_orchestrator(db, orchestrator_id, orchestrator)
     if db_orc is None:
         raise orchestrator_not_found(orchestrator_id)
@@ -169,14 +124,7 @@ def update_orchestrator(
 
 
 @app.delete("/orchestrators/{orchestrator_id}")
-def delete_orchestrator(request: Request, orchestrator_id: UUID, db: DbDep) -> Orchestrator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def delete_orchestrator(orchestrator_id: UUID, db: DbDep) -> Orchestrator:
     orchestrator = crud.delete_orchestrator(db, orchestrator_id)
     if orchestrator is None:
         raise orchestrator_not_found(orchestrator_id)
@@ -185,14 +133,7 @@ def delete_orchestrator(request: Request, orchestrator_id: UUID, db: DbDep) -> O
 
 # ===CRUD operations for Operators=== #
 @app.post("/operators/")
-def create_operator(request: Request, operator: OperatorCreate, db: DbDep) -> Operator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def create_operator(operator: OperatorCreate, db: DbDep) -> Operator:
     orchestrator = crud.get_orchestrator(db, operator.orchestrator_id)
     if orchestrator is None:
         raise orchestrator_not_found(operator.orchestrator_id)
@@ -200,7 +141,7 @@ def create_operator(request: Request, operator: OperatorCreate, db: DbDep) -> Op
 
 
 @app.get("/operators/")
-def read_operators(request: Request, common_read_params: CommonReadDep, db: DbDep) -> Sequence[Operator]:
+def read_operators(common_read_params: CommonReadDep, db: DbDep) -> Sequence[Operator]:
     return crud.get_operators(
         db,
         skip=common_read_params.skip,
@@ -210,18 +151,10 @@ def read_operators(request: Request, common_read_params: CommonReadDep, db: DbDe
 
 @app.get("/orchestrators/{orchestrator_id}/operators/")
 def read_orchestrator_operators(
-    request: Request,
     orchestrator_id: UUID,
     common_read_params: CommonReadDep,
     db: DbDep,
 ) -> Sequence[Operator]:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
     return crud.get_operators(
         db,
         orchestrator_id,
@@ -231,14 +164,7 @@ def read_orchestrator_operators(
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}")
-def read_operator(request: Request, orchestrator_id: UUID, operator_id: UUID, db: DbDep) -> Operator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def read_operator(orchestrator_id: UUID, operator_id: UUID, db: DbDep) -> Operator:
     operator = crud.get_operator(db, operator_id, orchestrator_id)
     if operator is None:
         raise operator_not_found(operator_id)
@@ -246,16 +172,7 @@ def read_operator(request: Request, orchestrator_id: UUID, operator_id: UUID, db
 
 
 @app.put("/orchestrators/{orchestrator_id}/operators/{operator_id}")
-def update_operator(
-    request: Request, orchestrator_id: UUID, operator_id: UUID, operator: OperatorUpdate, db: DbDep
-) -> Operator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def update_operator(orchestrator_id: UUID, operator_id: UUID, operator: OperatorUpdate, db: DbDep) -> Operator:
     db_op = crud.update_operator(db, operator_id, orchestrator_id, operator)
     if db_op is None:
         raise operator_not_found(operator_id)
@@ -263,14 +180,7 @@ def update_operator(
 
 
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")
-def delete_operator(request: Request, orchestrator_id: UUID, operator_id: UUID, db: DbDep) -> Operator:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def delete_operator(orchestrator_id: UUID, operator_id: UUID, db: DbDep) -> Operator:
     operator = crud.delete_operator(db, operator_id, orchestrator_id)
     if operator is None:
         raise operator_not_found(operator_id)
@@ -279,14 +189,7 @@ def delete_operator(request: Request, orchestrator_id: UUID, operator_id: UUID, 
 
 # ===CRUD operations for Clients=== #
 @app.post("/clients/")
-def create_client(request: Request, client: ClientCreate, db: DbDep) -> Client:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def create_client(client: ClientCreate, db: DbDep) -> Client:
     operator = crud.get_operator(db, client.operator_id, client.orchestrator_id)
     if operator is None:
         raise operator_not_found(client.operator_id)
@@ -294,14 +197,7 @@ def create_client(request: Request, client: ClientCreate, db: DbDep) -> Client:
 
 
 @app.get("/clients/")
-def read_clients(request: Request, common_read_params: CommonReadDep, db: DbDep) -> Sequence[Client]:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def read_clients(common_read_params: CommonReadDep, db: DbDep) -> Sequence[Client]:
     return crud.get_clients(
         db,
         skip=common_read_params.skip,
@@ -311,15 +207,8 @@ def read_clients(request: Request, common_read_params: CommonReadDep, db: DbDep)
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/")
 def read_operator_clients(
-    request: Request, orchestrator_id: UUID, operator_id: UUID, common_read_params: CommonReadDep, db: DbDep
+    orchestrator_id: UUID, operator_id: UUID, common_read_params: CommonReadDep, db: DbDep
 ) -> Sequence[Client]:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
     return crud.get_clients(
         db,
         orchestrator_id=orchestrator_id,
@@ -330,14 +219,7 @@ def read_operator_clients(
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
-def read_client(request: Request, orchestrator_id: UUID, operator_id: UUID, client_id: UUID, db: DbDep) -> Client:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def read_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, db: DbDep) -> Client:
     client = crud.get_client(db, client_id, operator_id, orchestrator_id)
     if client is None:
         raise client_not_found(client_id)
@@ -345,16 +227,7 @@ def read_client(request: Request, orchestrator_id: UUID, operator_id: UUID, clie
 
 
 @app.put("/orchestrator/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
-def update_client(
-    request: Request, orchestrator_id: UUID, operator_id: UUID, client_id: UUID, client: ClientUpdate, db: DbDep
-) -> Client:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def update_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, client: ClientUpdate, db: DbDep) -> Client:
     db_client = crud.update_client(db, client_id, operator_id, orchestrator_id, client)
     if db_client is None:
         raise client_not_found(client_id)
@@ -362,14 +235,7 @@ def update_client(
 
 
 @app.delete("/orchestrator/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
-def delete_client(request: Request, orchestrator_id: UUID, operator_id: UUID, client_id: UUID, db: DbDep) -> Client:
-    user_data = check_auth(request)
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, db: DbDep) -> Client:
     client = crud.delete_client(db, client_id, operator_id, orchestrator_id)
     if client is None:
         raise client_not_found(client_id)
