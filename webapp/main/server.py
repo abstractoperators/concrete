@@ -101,7 +101,7 @@ async def create_orchestrator(
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
-        return HTMLResponse(content="", headers=headers)
+        return HTMLResponse(content=f"Created orchestrator {orchestrator.id}", headers=headers)
 
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
@@ -134,7 +134,7 @@ async def delete_orchestrator(orchestrator_id: UUID):
         orchestrator = crud.delete_orchestrator(session, orchestrator_id)
         CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
-        return HTMLResponse(content="", headers=headers)
+        return HTMLResponse(content=f"Deleted orchestrator {orchestrator_id}", headers=headers)
 
 
 # === Operators === #
@@ -167,7 +167,7 @@ async def create_operator(
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
-        return HTMLResponse(content="", headers=headers)
+        return HTMLResponse(content=f"Created operator {operator.id}", headers=headers)
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/form", response_class=HTMLResponse)
@@ -198,7 +198,7 @@ async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
         operator = crud.delete_operator(session, operator_id, orchestrator_id)
         CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
-        return HTMLResponse(content="", headers=headers)
+        return HTMLResponse(content=f"Deleted operator {operator_id}", headers=headers)
 
 
 # === Projects === #
@@ -237,7 +237,7 @@ async def create_project(
         project = crud.create_project(session, project_create)
         CLIClient.emit(f"{project}\n")
         headers = {"HX-Trigger": "getProjects"}
-        return HTMLResponse(content="", headers=headers)
+        return HTMLResponse(content=f"Created project {project.id}", headers=headers)
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/form", response_class=HTMLResponse)
@@ -275,7 +275,7 @@ async def delete_project(orchestrator_id: UUID, project_id: UUID):
         project = crud.delete_project(session, project_id, orchestrator_id)
         CLIClient.emit(f"{project}\n")
         headers = {"HX-Trigger": "getProjects"}
-        return HTMLResponse(content="", headers=headers)
+        return HTMLResponse(content=f"Deleted project {project_id}", headers=headers)
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/chat", response_class=HTMLResponse)
