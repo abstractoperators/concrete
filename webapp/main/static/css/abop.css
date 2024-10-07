@@ -20,6 +20,13 @@
     --header-small-letter-spacing: 0px;
 }
 
+#submit-prompt {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
 .icon {
     font-family: var(--sans-serif-family);
     font-style: normal;
@@ -103,6 +110,14 @@ li.left {
     width: 30em;
     display: flex;
     flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+li.right {
+    width: 30em;
+    display: flex;
+    flex-direction: row-reverse;
     justify-content: flex-start;
     align-items: flex-start;
 }

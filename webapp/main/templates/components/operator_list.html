@@ -21,6 +21,8 @@
         <button
             hx-delete="{{ url_for('delete_operator', orchestrator_id=orchestrator_id, operator_id=o.id) }}"
             hx-swap="none"
-        >Delete</button>
+        >
+            Delete
+        </button>
     </li>
 {% endfor %}
