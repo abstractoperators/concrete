@@ -30,7 +30,8 @@ jobs:
                     --container-port 80 \
                     --service-name demo-prod \
                     --listener-rule-field host-header \
-                    --listener-rule-value demo.abop.ai
+                    --listener-rule-value demo.abop.ai \
+                    --container-env "[[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, {'name': 'OPENAI_API_KEY', 'value': '${OPENAI_API_KEY}'}]]"
                     
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
