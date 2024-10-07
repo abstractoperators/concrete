@@ -339,7 +339,9 @@ async def project_chat_ws(
                                 <h1 class="operator-avatar-text">U</h1>
                             </div>
                         </div>
-                        <p class="message">{ prompt }</p>
+                        <p class="message">{
+                            prompt.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                        }</p>
                     </li>
                 </ol>
                 """,
@@ -369,7 +371,9 @@ async def project_chat_ws(
                                     </h1>
                                 </div>
                             </div>
-                            <p class="message">{ response }</p>
+                            <p class="message">{
+                                response.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                            }</p>
                         </li>
                     </ol>
                     """,
