@@ -31,6 +31,9 @@ deploysimpleflask:
 # ----------------------- Build commands -----------------------
 # Note that webapp-demo will require dind-builder to deploy a service to aws. 
 # No actual dependency is defined for flexibility.
+build-webapp-api:
+	docker compose -f docker/docker-compose.yml build webapp-api
+
 build-webapp-demo:
 	docker compose -f docker/docker-compose.yml build webapp-demo
 
@@ -54,6 +57,10 @@ build-main:
 	docker compose -f docker/docker-compose.yml build main
 
 # ----------------------- Run commands -----------------------
+run-webapp-api: build-webapp-api
+	docker compose -f docker/docker-compose.yml stop webapp-api
+	docker compose -f docker/docker-compose.yml up -d webapp-api
+
 run-webapp-demo: build-webapp-demo
 	docker compose -f docker/docker-compose.yml stop webapp-demo
 	docker compose -f docker/docker-compose.yml up -d webapp-demo
@@ -96,6 +103,12 @@ aws-ecr-login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
 
 # Build before pushing to registry
+aws-ecr-push-api: aws-ecr-login
+	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest
+aws-ecr-push-auth: aws-ecr-login
+	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-auth:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest
 aws-ecr-push-homepage: aws-ecr-login
 	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest

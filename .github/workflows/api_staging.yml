@@ -1,0 +1,94 @@
+name: Deploy API to Staging
+on:
+    push:
+        branches:
+            - main
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            - name: Configure AWS credentials for ECR
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+                  aws-region: us-east-1
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+              with:
+                  mask-password: "true"
+
+            - name: Build the images
+              env:
+                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
+                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
+              run: |
+                  echo OPENAI_TEMPERATURE=0 > .env
+                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
+                  echo DB_DRIVER=postgresql+psycopg >> .env
+                  echo DB_USERNAME=postgres >> .env
+                  echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
+                  echo DB_PORT=5432 >> .env
+                  echo DB_HOST=database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
+                  echo DB_DATABASE=postgres >> .env
+
+                  echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
+                  echo HTTP_CORS_ORIGINS=$HTTP_CORS_ORIGINS >> .env
+                  echo HTTP_SESSION_DOMAIN=$HTTP_SESSION_DOMAIN >> .env
+                  echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
+                  echo SAAS_AUTH_REDIRECT=$SAAS_AUTH_REDIRECT >> .env
+
+                  echo GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID >> .env
+                  echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
+                  echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
+                  echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
+
+                  make build-webapp-api
+            - name: Push to ECR
+              run: |
+                  make aws-ecr-push-api
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Setup Python for poetry
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.11.9"
+
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Configure AWS Credentials for ECS
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+                  aws-region: us-east-1
+
+            - name: Deploy to ECS staging using AwsTool._deploy_service
+              run: |
+                  curl -sSL https://install.python-poetry.org | python3 -
+                  poetry --version
+                  poetry install
+                  poetry run python -m concrete deploy \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest \
+                    --container-name api-staging \
+                    --container-port 80 \
+                    --security-groups sg-01af4e696bd2679c3 \
+                    --subnets subnet-0644cadc735c6b557 \
+                    --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46
+
+# https://github.com/actions/deploy-pages/issues/329 -
+# https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
+# The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).
+permissions:
+  id-token: write 
+  contents: read
