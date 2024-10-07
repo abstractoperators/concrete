@@ -19,7 +19,7 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
 
-            - name: Deploy to ECS staging using AwsTool._deploy_service
+            - name: Deploy homepage to prod using AwsTool._deploy_service
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
