@@ -3,7 +3,6 @@ on:
     push:
         branches:
             - main
-            - michael/workflow_fix
 jobs:
     build:
         runs-on: ubuntu-latest
