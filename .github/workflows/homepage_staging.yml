@@ -27,6 +27,7 @@ jobs:
 
             - name: Build the images
               run: |
+                  touch .env
                   make build-webapp-homepage
 
             - name: Push to ECR
