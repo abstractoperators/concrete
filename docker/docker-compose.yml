@@ -169,6 +169,35 @@ services:
       - POSTGRES_USER=local_user
       - POSTGRES_DB=local_db
 
+  ts-oauth-api:
+    image: tailscale/tailscale:latest
+    container_name: ts-oauth-api
+    hostname: ts-oauth-api
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+  
+  api:
+    build: 
+      context: ../
+      dockerfile: ./docker/Dockerfile.api
+    image: api
+    container_name: api
+    network_mode: service:ts-oauth-api
+    depends_on: 
+      - "ts-oauth-api"
+    platform: linux/arm64
+  
+
+
 volumes:
   shared-volume:
   

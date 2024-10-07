@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/workflow_fix
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -50,7 +51,7 @@ jobs:
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
 
-                  make build-webapp-auth
+                  make build-auth
             - name: Push to ECR
               run: |
                   make aws-ecr-push-auth
