@@ -39,7 +39,7 @@ build-webapp-homepage:
 	docker compose -f docker/docker-compose.yml build webapp-homepage
 
 build-auth:
-	docker compose -f docker/docker-compose.yml build webapp-auth
+	docker compose -f docker/docker-compose.yml build auth
 
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
@@ -56,8 +56,8 @@ build-main:
 
 # ----------------------- Run commands -----------------------
 run-webapp-api: build-webapp-api
-	docker compose -f docker/docker-compose.yml stop webapp-api
-	docker compose -f docker/docker-compose.yml up -d webapp-api
+	docker compose -f docker/docker-compose.yml stop api
+	docker compose -f docker/docker-compose.yml up -d api
 
 run-webapp-demo: build-webapp-demo
 	docker compose -f docker/docker-compose.yml stop webapp-demo
@@ -68,8 +68,8 @@ run-webapp-homepage: build-webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
 run-webapp-auth: build-webapp-auth
-	docker compose -f docker/docker-compose.yml stop webapp-auth
-	docker compose -f docker/docker-compose.yml up -d webapp-auth
+	docker compose -f docker/docker-compose.yml stop auth
+	docker compose -f docker/docker-compose.yml up -d auth
 
 run-dind-builder:
 	docker compose -f docker/docker-compose.yml stop dind-builder
