@@ -2,8 +2,6 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Any
-from uuid import UUID
 
 from fastapi import (
     BackgroundTasks,
@@ -19,6 +17,8 @@ from fastapi.templating import Jinja2Templates
 from concrete import orchestrator
 from concrete.tools import AwsTool, Container, RestApiTool
 
+from ..common import OrchestratorConnectionManager
+
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -26,30 +26,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-        self.orchestrator_map: dict[UUID, WebSocket] = {}
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-
-    async def send_json(self, message: Any, websocket: WebSocket):
-        await websocket.send_json(message)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
-
-
-manager = ConnectionManager()
+manager = OrchestratorConnectionManager()
 
 
 @app.get("/")

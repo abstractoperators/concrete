@@ -10,6 +10,7 @@
 
     <!-- htmx -->
     <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
 
     <!-- hyperscript -->
     <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
@@ -28,27 +29,28 @@
 <body>
     <a href="{{ url_for('get_orchestrator', orchestrator_id=project.orchestrator_id) }}">Back</a>
     <h1>{{ project.title }}</h1>
-    <ol
-        hx-get="{{ url_for('get_project_chat', orchestrator_id=project.orchestrator_id, project_id=project.id) }}"
-        hx-trigger="load, getProjectChat from:body"
-        class="operator-card-list"
-    ></ol>
-    <form
-        id="submit-prompt"
-        hx-post="{{ url_for('prompt_project', orchestrator_id=project.orchestrator_id, project_id=project.id) }}"
-        hx-swap="none"
-    >
-        <textarea
-            name="prompt"
-            placeholder="Send a message"
-            autocomplete="off"
-            required
-        ></textarea>
-        <button hx-indicator="#grid">
-            Send
-        </button>
-        <img id="#grid" class="htmx-indicator" src="{{ url_for('static', path='/grid.svg')}}">
-    </form>
+    <div hx-ext="ws" ws-connect="{{ url_for('project_chat_ws', orchestrator_id=project.orchestrator_id, project_id=project.id) }}">
+        <ol
+            id="group_chat"
+            class="operator-card-list"
+            hx-get="{{ url_for('get_project_chat', orchestrator_id=project.orchestrator_id, project_id=project.id) }}"
+            hx-trigger="load"
+        ></ol>
+        <form
+            ws-send
+        >
+            <textarea
+                name="prompt"
+                placeholder="Send a message"
+                autocomplete="off"
+                required
+            ></textarea>
+            <button hx-indicator="#grid">
+                Send
+            </button>
+            <img id="#grid" class="htmx-indicator" src="{{ url_for('static', path='/grid.svg')}}">
+        </form>
+    </div>
 </body>
 
 </html>

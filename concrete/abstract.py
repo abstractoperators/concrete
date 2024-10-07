@@ -119,7 +119,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         tools: list[MetaTool] | None = None,
         operator_id: UUID = uuid4(),
         project_id: UUID = uuid4(),
-        prompt: str | None = None,
+        starting_prompt: str | None = None,
     ):
         self._clients = clients if clients is not None else {'openai': OpenAIClient()}
         self.llm_client = "openai"
@@ -128,7 +128,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         self.operator_id = operator_id
         self.project_id = project_id
-        self.prompt = prompt
+        self.starting_prompt = starting_prompt
 
     def _qna(
         self,
@@ -167,7 +167,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 MessageCreate(
                     type_name=response_format.__name__,
                     content=str(answer),
-                    prompt=self.prompt,
+                    prompt=self.starting_prompt,
                     project_id=self.project_id,
                     operator_id=self.operator_id,
                 ),

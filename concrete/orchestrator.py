@@ -69,7 +69,7 @@ class SoftwareProject(StatefulMixin):
             self.starting_prompt, message_format=PlannedComponents
         )  # type: ignore
         components: list[str] = planned_components_resp.components
-        yield Executive.__name__, "\n".join(components)
+        yield Executive.__name__, str(planned_components_resp)
 
         summary = ""
         all_implementations = []
@@ -180,16 +180,16 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
 
     def __init__(
         self,
-        executive_id: UUID = uuid4(),
-        developer_id: UUID = uuid4(),
+        executive_id: UUID | None = uuid4(),
+        developer_id: UUID | None = uuid4(),
     ):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
         self.clients = {
             "openai": OpenAIClient(),
         }
-        self.exec = Executive(self.clients, operator_id=executive_id)
-        self.dev = Developer(self.clients, operator_id=developer_id)
+        self.exec = Executive(self.clients, operator_id=executive_id or uuid4())
+        self.dev = Developer(self.clients, operator_id=developer_id or uuid4())
         self.update(status=ProjectStatus.READY)
 
     def process_new_project(
@@ -202,9 +202,9 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.update(status=ProjectStatus.WORKING)
 
         self.exec.project_id = project_id
-        self.exec.prompt = starting_prompt
+        self.exec.starting_prompt = starting_prompt
         self.dev.project_id = project_id
-        self.dev.prompt = starting_prompt
+        self.dev.starting_prompt = starting_prompt
 
         current_project = SoftwareProject(
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
@@ -251,7 +251,8 @@ async def communicative_dehallucination(
     if starting_prompt:
         context = f"Starting Prompt:\n{starting_prompt}\n{context}"
 
-    yield Executive.__name__, component
+    # TODO: synchronize message persistence and websocket messages
+    # yield Executive.__name__, component
     # Iterative Q&A process
     q_and_a = []
     for _ in range(max_iter):
@@ -304,4 +305,6 @@ async def communicative_dehallucination(
         ).summary
 
     yield Executive.__name__, str(new_summary)
-    yield Executive.__name__, str(implementation)
+
+    # TODO: synchronize message persistence and websocket messages
+    # yield Executive.__name__, str(implementation)

@@ -1,8 +1,16 @@
+import asyncio
 import os
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
-from fastapi import FastAPI, Form, Request
+from fastapi import (
+    FastAPI,
+    Form,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -18,6 +26,7 @@ from concrete.db.orm.models import (
 )
 from concrete.orchestrator import SoftwareOrchestrator
 
+from ..common import ConnectionManager
 from .models import HiddenInput
 
 abspath = os.path.abspath(__file__)
@@ -29,6 +38,7 @@ pages = Jinja2Templates(directory=os.path.join(dname, "templates", "pages"))
 components = Jinja2Templates(directory=os.path.join(dname, "templates", "components"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
+manager = ConnectionManager()
 
 annotatedFormStr = Annotated[str, Form()]
 annotatedFormUuid = Annotated[UUID, Form()]
@@ -283,31 +293,89 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         )
 
 
-@app.post("/orchestrators/{orchestrator_id}/projects/{project_id}/chat", response_class=HTMLResponse)
-async def prompt_project(orchestrator_id: UUID, project_id: UUID, prompt: annotatedFormStr):
-    with Session() as session:
-        prompt_message = crud.create_message(
-            session,
-            MessageCreate(
-                type_name="text",
-                content=prompt,
-                prompt=prompt,
-                project_id=project_id,
-                user_id=uuid4(),
-            ),
-        )
-        CLIClient.emit(prompt_message)
-        CLIClient.emit("\n")
+@app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat")
+async def project_chat_ws(
+    websocket: WebSocket,
+    orchestrator_id: UUID,
+    project_id: UUID,
+):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            prompt = data["prompt"]
+            with Session() as session:
+                prompt_message = crud.create_message(
+                    session,
+                    MessageCreate(
+                        type_name="text",
+                        content=prompt,
+                        prompt=prompt,
+                        project_id=project_id,
+                        user_id=uuid4(),
+                        # TODO get user_id
+                    ),
+                )
+                CLIClient.emit(prompt_message)
+                CLIClient.emit("\n")
 
-        project = crud.get_project(session, project_id, orchestrator_id)
-        CLIClient.emit(project)
-        CLIClient.emit("\n")
+                project = crud.get_project(session, project_id, orchestrator_id)
+                if project is None:
+                    raise HTTPException(status_code=404, detail=f"Project {project_id} not found!")
+                CLIClient.emit(project)
+                CLIClient.emit("\n")
 
-        CLIClient.emit(prompt)
-        so = SoftwareOrchestrator()
-        async for operator, response in so.process_new_project(prompt, project_id, use_celery=False):
-            CLIClient.emit(f"[{operator}]:\n{response}\n")
+            await manager.send_text(
+                f"""
+                <ol id="group_chat" hx-swap-oob="beforeend">
+                    <li class="right">
+                        <div class="operator-avatar-container">
+                            <div class="operator-avatar-mask">
+                                <img
+                                    src="/static/operator_circle.svg"
+                                    alt="Operator Avatar"
+                                    class="operator-avatar-mask"
+                                >
+                                <h1 class="operator-avatar-text">U</h1>
+                            </div>
+                        </div>
+                        <p class="message">{ prompt }</p>
+                    </li>
+                </ol>
+                """,
+                websocket,
+            )
+            await asyncio.sleep(0)
 
-        # TODO: live updates
-        headers = {"HX-Trigger": "getProjectChat"}
-        return HTMLResponse(content="", headers=headers)
+            CLIClient.emit(prompt)
+            so = SoftwareOrchestrator(project.executive_id, project.developer_id)
+            so.update(ws=websocket, manager=manager)
+            async for operator, response in so.process_new_project(prompt, project.id, use_celery=False):
+                CLIClient.emit(f"[{operator}]:\n{response}\n")
+                is_executive = operator == "Executive"
+                await manager.send_text(
+                    f"""
+                    <ol id="group_chat" hx-swap-oob="beforeend">
+                        <li class="left">
+                            <div class="operator-avatar-container">
+                                <div class="operator-avatar-mask">
+                                    <img
+                                        src="/static/operator_circle.svg"
+                                        alt="Operator Avatar"
+                                        class="operator-avatar-mask"
+                                    >
+                                    <h1 class="operator-avatar-text">
+                                        { str(project.executive_id if is_executive else project.developer_id)[:2] }
+                                    </h1>
+                                </div>
+                            </div>
+                            <p class="message">{ response }</p>
+                        </li>
+                    </ol>
+                    """,
+                    websocket,
+                )
+                await asyncio.sleep(0)
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
