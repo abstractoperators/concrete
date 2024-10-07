@@ -70,6 +70,7 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
         back_populates="orchestrator",
         cascade_delete=True,
     )
+    user: "User" = Relationship(back_populates="orchestrators")
 
 
 # Operator Models
@@ -310,11 +311,13 @@ class UserBase(Base):
     first_name: str = Field(default=None, max_length=64)
     last_name: str = Field(default=None, max_length=64)
     email: str = Field(default=None, max_length=128)
+    profile_picture: str = Field(default=None, max_length=256)
 
 
 class UserUpdate(Base):
     first_name: str = Field(default=None, max_length=64)
     last_name: str = Field(default=None, max_length=64)
+    profile_picture: str = Field(default=None, max_length=256)
 
 
 class UserCreate(UserBase):
@@ -326,6 +329,37 @@ class User(UserBase, MetadataMixin, table=True):
         back_populates="user",
         cascade_delete=True,
     )
+    auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
+
+
+class AuthStateBase(Base):
+    state: str = Field(default=None, max_length=128)
+    destination_url: str = Field(default=None, max_length=128)
+
+
+class AuthStateCreate(AuthStateBase):
+    pass
+
+
+class AuthState(AuthStateBase, MetadataMixin, table=True):
+    pass
+
+
+class AuthTokenBase(Base):
+    refresh_token: str = Field(default=None, max_length=128)
+    user_id: UUID = Field(
+        description="The user who's authorization is represented.",
+        foreign_key="user.id",
+        ondelete="CASCADE",
+    )
+
+
+class AuthTokenCreate(AuthTokenBase):
+    pass
+
+
+class AuthToken(AuthTokenBase, MetadataMixin, table=True):
+    user: "User" = Relationship(back_populates="auth_token")
 
 
 SQLModel.metadata.create_all(bind=engine)

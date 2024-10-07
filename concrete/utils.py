@@ -1,9 +1,22 @@
 """AI generated"""
 
 import ast
+import base64
+import os
 import re
+import time
+from datetime import timedelta
 
 import astor
+import jwt
+
+# These are slow-changing, so the certs are hardcoded directly here
+GOOGLE_OIDC_DISCOVERY = "https://accounts.google.com/.well-known/openid-configuration"
+# GOOGLE_OIDC_CONFIG = requests.get(GOOGLE_OIDC_DISCOVERY).json()
+GOOGLE_OIDC_ALGOS = ['RS256']
+# GOOGLE_JWKS_URI = GOOGLE_OIDC_CONFIG["jwks_uri"]
+GOOGLE_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs"
+google_jwks_client = jwt.PyJWKClient(GOOGLE_JWKS_URI)
 
 
 class CommentAndDocstringRemover(ast.NodeTransformer):
@@ -69,3 +82,32 @@ def remove_extra_whitespace(code: str):
         code_without_extra_whitespace = code_without_extra_whitespace.replace(f"__STRING_PLACEHOLDER_{i}__", strings[i])
 
     return code_without_extra_whitespace
+
+
+def verify_jwt(jwt_token: str, access_token: str) -> dict[str, str]:
+    """
+    Raise an assertion error if the JWT cannot be verified.
+    """
+    signing_key = google_jwks_client.get_signing_key_from_jwt(jwt_token)
+    data = jwt.PyJWT().decode_complete(
+        jwt=jwt_token,
+        key=signing_key.key,
+        algorithms=GOOGLE_OIDC_ALGOS,
+        audience=os.environ['GOOGLE_OAUTH_CLIENT_ID'],
+    )
+    # For payload details, see
+    # https://developers.google.com/identity/openid-connect/openid-connect#an-id-tokens-payload
+    payload, header = data["payload"], data["header"]
+    alg_obj = jwt.get_algorithm_by_name(header["alg"])
+    digest = alg_obj.compute_hash_digest(bytes(access_token, 'utf-8'))
+    at_hash = base64.urlsafe_b64encode(digest[: (len(digest) // 2)]).rstrip(b"=")
+    # Check signature
+    assert at_hash == bytes(payload["at_hash"], 'utf-8')
+    # Simple checks
+    # See https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken
+    assert payload['iss'] in {'https://accounts.google.com', 'accounts.google.com'}
+    assert payload['aud'] == os.environ['GOOGLE_OAUTH_CLIENT_ID']
+    # Allow two weeks stale tokens
+    assert payload['exp'] > time.time() - timedelta(weeks=2).total_seconds()
+    assert payload['hd'] == 'abstractoperators.ai'
+    return payload

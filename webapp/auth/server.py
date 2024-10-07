@@ -16,26 +16,65 @@ We use the OAuth2 standard protocol enabled through google's SDKs to identify an
 or the page they were originally trying to access
 """
 
+import functools
 import os
+import urllib
 
 import dotenv
-from fastapi import FastAPI, Request
+import jwt
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-
-# from fastapi.security import OAuth2AuthorizationCodeBearer
 from google_auth_oauthlib.flow import Flow
-
-# from sqlmodel import Session
+from googleapiclient.discovery import build
+from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-# from typing import Annotated
-
+from concrete.db.crud import (
+    create_authstate,
+    create_authtoken,
+    create_user,
+    get_authstate,
+    get_user,
+)
+from concrete.db.orm.models import AuthStateCreate, AuthTokenCreate, UserCreate
+from concrete.db.orm.setup import Session
+from concrete.utils import verify_jwt
 
 dotenv.load_dotenv(override=True)
+
+# Google Auth Details
+GOOGLE_OAUTH_SCOPES = [
+    'openid',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+]
+GoogleOAuthClient = functools.partial(
+    Flow.from_client_config,
+    **{
+        'client_config': {
+            "web": {
+                'client_id': os.environ['GOOGLE_OAUTH_CLIENT_ID'],
+                'client_secret': os.environ['GOOGLE_OAUTH_CLIENT_SECRET'],
+                'redirect_uris': [_ for _ in os.environ['GOOGLE_OAUTH_REDIRECT_URIS'].split(',')],
+                'auth_uri': "https://accounts.google.com/o/oauth2/auth",
+                'token_uri': "https://oauth2.googleapis.com/token",
+            }
+        },
+        'scopes': GOOGLE_OAUTH_SCOPES,
+    },
+)
+
+# These are slow-changing, so the certs are hardcoded directly here
+GOOGLE_OIDC_DISCOVERY = "https://accounts.google.com/.well-known/openid-configuration"
+# GOOGLE_OIDC_CONFIG = requests.get(GOOGLE_OIDC_DISCOVERY).json()
+GOOGLE_OIDC_ALGOS = ['RS256']
+# GOOGLE_JWKS_URI = GOOGLE_OIDC_CONFIG["jwks_uri"]
+GOOGLE_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs"
+google_jwks_client = jwt.PyJWKClient(GOOGLE_JWKS_URI)
 
 # Setup App with Middleware
 middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
@@ -54,7 +93,6 @@ middleware += [
         SessionMiddleware,
         secret_key=os.environ['HTTP_SESSION_SECRET'],
         domain=os.environ['HTTP_SESSION_DOMAIN'],
-        https_only=True,
     ),
 ]
 
@@ -67,28 +105,30 @@ def ping():
 
 
 @app.get("/login")
-def login():
+def login(destination_url: str | None = None):
     """
     Starting point for the user to authenticate themselves with Google
     """
-    flow = Flow.from_client_config(
-        client_config={
-            "web": {
-                'client_id': os.environ['GOOGLE_OAUTH_CLIENT_ID'],
-                'client_secret': os.environ['GOOGLE_OAUTH_CLIENT_SECRET'],
-                'redirect_uris': [_ for _ in os.environ['GOOGLE_OAUTH_REDIRECT_URIS'].split(',')],
-                'auth_uri': "https://accounts.google.com/o/oauth2/auth",
-                'token_uri': "https://oauth2.googleapis.com/token",
-            }
-        },
-        scopes=['openid', 'email', 'profile'],
-    )
+    flow = GoogleOAuthClient()
     flow.redirect_uri = os.environ['GOOGLE_OAUTH_REDIRECT']
-    authorization_url, _ = flow.authorization_url(
+
+    # for security, only redirect to paths on the saas after api auth
+    clean_destination_url = os.environ['SAAS_AUTH_REDIRECT']
+    if destination_url:
+        parsed = urllib.parse.urlparse(destination_url)
+        clean_destination_url += (f':{port}' if (port := parsed.port) else '') + parsed.path
+
+    # Randomly generated state from google's sdk
+    authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',
         prompt="select_account",
     )
+
+    auth_state = AuthStateCreate(state=state, destination_url=clean_destination_url)
+    with Session() as session:
+        create_authstate(session, auth_state)
+
     return RedirectResponse(authorization_url)
 
 
@@ -98,11 +138,86 @@ def auth_callback(request: Request):
     Receives a request from Google once the user has completed their auth flow on Google's side.
     The user's authorization code is verified with Google's servers and swapped for a refresh token.
     """
-    return {"welcome back ya": "lad"}
+    query_params = request.query_params
+    if error := query_params.get('error'):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=error)
+    if (code := query_params.get('code')) is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No authorization code was provided.")
+    if (state := query_params.get('state')) is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+    with Session() as session:
+        auth_state = get_authstate(session, state)
+        if auth_state is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+            )
+
+    # Complete PKCE flow with Google
+    flow = GoogleOAuthClient()
+    flow.redirect_uri = os.environ['GOOGLE_OAUTH_REDIRECT']
+
+    try:
+        # Hydrates credentials
+        flow.fetch_token(code=code)
+    except InvalidGrantError:
+        # A code was re-used or otherwise failed to convert to a token
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Code exchanged failed. Try again.")
+
+    id_token = flow.credentials._id_token
+    access_token = flow.credentials.token
+    try:
+        verify_jwt(jwt_token=id_token, access_token=access_token)
+    except AssertionError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unrecognized ID token Signature")
+    # Set valid id_token to session
+    request.session['id_token'] = id_token
+    request.session['access_token'] = access_token
+
+    user_info_service = build('oauth2', 'v2', credentials=flow.credentials)
+    user_info = user_info_service.userinfo().get().execute()
+    with Session() as session:
+        user = get_user(session, user_info['email'])
+
+    if user is None:
+        # Create the user if they're new
+        new_user = UserCreate(
+            first_name=user_info['given_name'],
+            last_name=user_info['family_name'],
+            email=user_info['email'],
+            profile_picture=user_info['picture'],
+        )
+        with Session() as session:
+            user = create_user(session, new_user)
+
+        # Start saving refresh tokens for later. Only given to us for the first auth.
+        auth_token = AuthTokenCreate(refresh_token=flow.credentials.refresh_token, user_id=user.id)
+        with Session() as session:
+            create_authtoken(session, auth_token)
+    request.session['user'] = {'uuid': str(user.id), 'email': user.email}
+
+    if auth_state.destination_url:
+        return RedirectResponse(auth_state.destination_url)
+    return {"message": "login successful"}
 
 
-# oauth2_scheme = OAuth2AuthorizationCodeBearer()
+@app.get("/token")
+def token(request: Request):
+    """
+    Return an auth token or start the auth flow
+    """
+    if 'id_token' not in request.session:
+        return RedirectResponse(request.url_for('login').include_query_params(destination_url=request.url))
+    return {"access_token": f"{request.session['id_token']}", "token_type": "bearer"}
 
+
+# oauth2_scheme = OAuth2AuthorizationCodeBearer(
+#     authorizationUrl='foo'
+# )
+
+# def fake_decode_token(token):
+#     pass
 
 # def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 #     user = fake_decode_token(token)
