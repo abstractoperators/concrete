@@ -170,6 +170,7 @@ class AwsTool(metaclass=MetaTool):
                         image_uri=image_uri,
                         container_name=project_directory_name,
                         container_port=80,
+                        container_env=[{}],
                     )
                 ]
             )
@@ -397,7 +398,7 @@ class AwsTool(metaclass=MetaTool):
                             "awslogs-stream-prefix": "fg",
                         },
                     },
-                    "environment": [{'name': 'foo', 'value': 'bar'}],
+                    "environment": container.container_env,
                 }
                 for container in containers
             ],
