@@ -51,7 +51,7 @@ jobs:
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
 
-                  make build-webapp-api
+                  make build-api
             - name: Push to ECR
               run: |
                   make aws-ecr-push-api
