@@ -69,12 +69,12 @@ services:
     ports:
       - "8002:80"
 
-  webapp-auth:
+  auth:
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.auth
-    image: webapp-demo:latest 
-    container_name: webapp-auth
+    image: auth:latest 
+    container_name: auth
     volumes:
       - shared-volume:/shared
     environment:
