@@ -14,7 +14,7 @@ class Base(SQLModel):
     def __repr__(self) -> str:
         return self.model_dump_json(indent=4, exclude_unset=True, exclude_none=True)
 
-
+# https://github.com/fastapi/sqlmodel/issues/252#issuecomment-1971383623
 class MetadataMixin(SQLModel):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
     created_at: datetime | None = Field(

@@ -89,6 +89,7 @@ def remove_extra_whitespace(code: str):
 def verify_jwt(jwt_token: str, access_token: str) -> dict[str, str]:
     """
     Raise an assertion error if the JWT cannot be verified.
+    Verifies token authenticity again Google's public keys. 
     """
     signing_key = google_jwks_client.get_signing_key_from_jwt(jwt_token)
     data = jwt.PyJWT().decode_complete(
