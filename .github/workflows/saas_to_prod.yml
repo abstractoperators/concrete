@@ -1,9 +1,10 @@
-name: Deploy SaaS to Staging
+name: Deploy SaaS to Prod
 on: workflow_dispatch
 
 jobs:
     deploy:
         runs-on: ubuntu-latest
+        environment: prod
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -19,7 +20,9 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
 
-            - name: Deploy to ECS staging using AwsTool._deploy_service
+            - name: Deploy SaaS to prod using AwsTool._deploy_service
+              env: 
+                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_PRODUCTION_PASSWORD}}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
@@ -28,17 +31,10 @@ jobs:
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest \
                     --container-name main-staging \
                     --container-port 80 \
-                    --service-name main-prod \ 
+                    --service-name main-staging \
                     --listener-rule-field host-header \
-                    --listener-rule-value main.abop.ai \ 
-                    --container-env "[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, \
-                                      {'name': 'OPENAI_API_KEY', 'value': '$OPENAI_API_KEY'}, \
-                                      {'name': 'DB_DRIVER', 'value': 'postgresql+psycopg'}, \
-                                      {'name': 'DB_USERNAME', 'value': 'postgres'}, \
-                                      {'name': 'DB_PASSWORD', 'value': '$POSTGRES_STAGING_PASSWORD'}, \
-                                      {'name': 'DB_PORT', 'value': '5432'}, \
-                                      {'name': 'DB_HOST', 'value': 'production-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com'}, \
-                                      {'name': 'DB_DATABASE', 'value': 'postgres'}]"
+                    --listener-rule-value app-staging.abop.ai \
+                    --container-envs "[[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, {'name': 'DB_DRIVER', 'value': 'postgresql+psycopg'}, {'name': 'DB_USERNAME', 'value': 'postgres'}, {'name': 'DB_PASSWORD', 'value': '$POSTGRES_PRODUCTION_PASSWORD'}, {'name': 'DB_PORT', 'value': '5432'}, {'name': 'DB_HOST', 'value': 'database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com'}, {'name': 'DB_DATABASE', 'value': 'postgres'}]]"
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
