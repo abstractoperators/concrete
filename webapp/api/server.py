@@ -1,9 +1,15 @@
+import os
 from collections.abc import Callable, Sequence
 from typing import Annotated
 from uuid import UUID
 
+import dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session
+from starlette.middleware import Middleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from concrete.db import crud
 from concrete.db.orm import SessionLocal
@@ -18,15 +24,39 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     OrchestratorUpdate,
 )
+from concrete.webutils import AuthMiddleware
 
 from .models import CommonReadParameters
 
+dotenv.load_dotenv(override=True)
+
+UNAUTHENTICATED_PATHS = {'/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+
+# Setup App with Middleware
+middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
+middleware += [
+    Middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
+        www_redirect=False,
+    ),
+    Middleware(
+        SessionMiddleware,
+        secret_key=os.environ['HTTP_SESSION_SECRET'],
+        domain=os.environ['HTTP_SESSION_DOMAIN'],
+    ),
+    Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
+]
+
+
+app = FastAPI(title="Concrete API", middleware=middleware)
+
+# Database Setup
 """
 If the db already exists and the sql models are the same, then behavior is as expected.
 If the db already exists but the sql models differ, then migrations will need to be run for DB interaction
 to function as expected.
 """
-app = FastAPI(title="Concrete API")
 
 
 def get_db():
@@ -47,6 +77,7 @@ def get_common_read_params(skip: int = 0, limit: int = 100) -> CommonReadParamet
 CommonReadDep = Annotated[CommonReadParameters, Depends(get_common_read_params)]
 
 
+# Object Lookup Exceptions
 def object_not_found(object_name: str) -> Callable[[UUID], HTTPException]:
     def create_exception(object_uid: UUID):
         return HTTPException(status_code=404, detail=f"{object_name} {object_uid} not found")
@@ -58,6 +89,7 @@ orchestrator_not_found = object_not_found("Orchestrator")
 operator_not_found = object_not_found("Operator")
 client_not_found = object_not_found("Client")
 software_project_not_found = object_not_found("SoftwareProject")
+user_not_found = object_not_found("User")
 
 
 # ===CRUD operations for Orchestrators=== #

@@ -27,15 +27,14 @@ WORKDIR /app
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY concrete ./concrete
-COPY webapp ./webapp
 COPY pyproject.toml poetry.lock ./
-COPY .env ./
-# .env.daemons should be in the webapp/daemons directory.
-COPY webapp/daemons ./webapp/daemons 
+COPY .env .env
 RUN touch README.md
 
 RUN pip install --no-deps .
 
+# App specifics
+COPY webapp/daemons ./webapp/daemons 
 RUN chmod +x ./webapp/daemons/scripts/start.sh
 EXPOSE 80
 CMD ["./webapp/daemons/scripts/start.sh"]

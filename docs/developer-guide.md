@@ -120,3 +120,13 @@ To create a new migration script, run `alembic revision --autogenerate -m 'migra
 To apply the migration script, run `alembic upgrade head`. This will alter the database schema. You can also use relative migration numbers, e.g. `alembic upgrade +1`, or `alembic downgrade -2`. Similarly, you can use `alembic downgrade partial_migration_number`.
 
 By default, `make run-postgres` applies all migrations to the database, initializing it with the latest schema. 
+
+## Web Dev
+
+### Allow local subdomains
+By default, auth will be enabled on webapps even when run locally.
+This requires an auth service to be run, which is hosted at a sub-domain in staging/prod.
+To mirror this setup locally add the following lines to the bottom of `/etc/hosts`
+
+```
+127.0.0.1 abop.bot auth.abop.bot

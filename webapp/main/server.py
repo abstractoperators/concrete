@@ -3,13 +3,18 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.middleware import Middleware
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from concrete.db import crud
 from concrete.db.orm import Session
 from concrete.db.orm.models import OperatorCreate, OrchestratorCreate
+from concrete.webutils import AuthMiddleware
 
 from .models import HiddenInput
 from .patterns import sidebar_create
@@ -17,12 +22,38 @@ from .patterns import sidebar_create
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 
-app = FastAPI(title="Abstract Operators: Concrete")
+annotatedFormStr = Annotated[str, Form()]
+
+UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+
+# Setup App with Middleware
+middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
+middleware += [
+    Middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
+        www_redirect=False,
+    ),
+    Middleware(
+        SessionMiddleware,
+        secret_key=os.environ['HTTP_SESSION_SECRET'],
+        domain=os.environ['HTTP_SESSION_DOMAIN'],
+    ),
+    Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
+]
+
+app = FastAPI(title="Abstract Operators: Concrete", middleware=middleware)
 templates = Jinja2Templates(directory=os.path.join(dname, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
 
-annotatedFormStr = Annotated[str, Form()]
+@app.get('/login')
+async def login(request: Request):
+    # TODO: Replace this endpoitn with html
+    user_data = AuthMiddleware.check_auth(request)
+    if user_data:
+        return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
+    return JSONResponse({"login here": "https://auth-staging.abot.ai/login"})
 
 
 @app.get("/", response_class=HTMLResponse)

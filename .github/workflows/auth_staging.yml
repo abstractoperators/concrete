@@ -1,4 +1,4 @@
-name: Deploy Frontend to Staging
+name: Deploy Auth to Staging
 on:
     push:
         branches:
@@ -6,7 +6,6 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
-        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -51,10 +50,10 @@ jobs:
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
 
-                  make build-main
+                  make build-webapp-auth
             - name: Push to ECR
               run: |
-                  make aws-ecr-push-main
+                  make aws-ecr-push-auth
     deploy:
         needs: build
         runs-on: ubuntu-latest
@@ -80,8 +79,8 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest \
-                    --container-name main-staging \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-auth:latest \
+                    --container-name auth-staging \
                     --container-port 80 \
                     --security-groups sg-01af4e696bd2679c3 \
                     --subnets subnet-0644cadc735c6b557 \

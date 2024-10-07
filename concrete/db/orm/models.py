@@ -1,7 +1,10 @@
-from typing import Optional
+from datetime import datetime
+from typing import Any, Mapping, Optional, cast
 from uuid import UUID, uuid4
 
+from sqlalchemy import DateTime
 from sqlalchemy.schema import Index
+from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
@@ -12,8 +15,20 @@ class Base(SQLModel):
         return self.model_dump_json(indent=4, exclude_unset=True, exclude_none=True)
 
 
+# https://github.com/fastapi/sqlmodel/issues/252#issuecomment-1971383623
 class MetadataMixin(SQLModel):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
+    created_at: datetime | None = Field(
+        default=None,
+        sa_type=cast(Any, DateTime(timezone=True)),
+        sa_column_kwargs=cast(Mapping[str, Any], {"server_default": func.now()}),
+        nullable=False,
+    )
+    modified_at: datetime | None = Field(
+        default=None,
+        sa_type=cast(Any, DateTime(timezone=True)),
+        sa_column_kwargs=cast(Mapping[str, Any], {"onupdate": func.now(), "server_default": func.now()}),
+    )
 
 
 # Relationship Models
@@ -31,17 +46,16 @@ class OrchestratorBase(Base):
     # TODO turn into enum
     type_name: str = Field(description="type of orchestrator", max_length=32)
     title: str = Field(description="Title of the orchestrator.", max_length=32)
-    owner: str = Field(description="name of owner", max_length=32)
+    user_id: UUID = Field(
+        description="The user who created the orchestrator.",
+        foreign_key="user.id",
+        ondelete="CASCADE",
+    )
 
 
 class OrchestratorUpdate(Base):
     title: str | None = Field(
         description="Title of the orchestrator.",
-        max_length=32,
-        default=None,
-    )
-    owner: str | None = Field(
-        description="name of owner",
         max_length=32,
         default=None,
     )
@@ -56,6 +70,7 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
         back_populates="orchestrator",
         cascade_delete=True,
     )
+    user: "User" = Relationship(back_populates="orchestrators")
 
 
 # Operator Models
@@ -290,3 +305,59 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     )
 
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
+
+
+class UserBase(Base):
+    first_name: str = Field(default=None, max_length=64)
+    last_name: str = Field(default=None, max_length=64)
+    email: str = Field(default=None, max_length=128)
+    profile_picture: str = Field(default=None, max_length=256)
+
+
+class UserUpdate(Base):
+    first_name: str = Field(default=None, max_length=64)
+    last_name: str = Field(default=None, max_length=64)
+    profile_picture: str = Field(default=None, max_length=256)
+
+
+class UserCreate(UserBase):
+    pass
+
+
+class User(UserBase, MetadataMixin, table=True):
+    orchestrators: list["Orchestrator"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+    # Store Google's refresh token for later
+    auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
+
+
+class AuthStateBase(Base):
+    state: str = Field(default=None, max_length=128)
+    destination_url: str = Field(default=None, max_length=128)
+
+
+class AuthStateCreate(AuthStateBase):
+    pass
+
+
+class AuthState(AuthStateBase, MetadataMixin, table=True):
+    pass
+
+
+class AuthTokenBase(Base):
+    refresh_token: str = Field(default=None, max_length=128)
+    user_id: UUID = Field(
+        description="The user who's authorization is represented.",
+        foreign_key="user.id",
+        ondelete="CASCADE",
+    )
+
+
+class AuthTokenCreate(AuthTokenBase):
+    pass
+
+
+class AuthToken(AuthTokenBase, MetadataMixin, table=True):
+    user: "User" = Relationship(back_populates="auth_token")
