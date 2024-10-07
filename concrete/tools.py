@@ -148,6 +148,7 @@ class Container(ConcreteModel):
     image_uri: str
     container_name: str
     container_port: int
+    container_env: list[dict]  # [{'name': 'foo', 'value': 'bar'}]
 
 
 class AwsTool(metaclass=MetaTool):
@@ -307,6 +308,8 @@ class AwsTool(metaclass=MetaTool):
         security_groups (list(str)): List of security groups to attach to the service. Defaults to allow traffic from concrete ALB.
 
         listener_arn: Arn of the listener to attach to the target group. Defaults to https listener on ConcreteLoadBalancer.
+
+
         """  # noqa: E501
         import boto3
 
@@ -394,6 +397,7 @@ class AwsTool(metaclass=MetaTool):
                             "awslogs-stream-prefix": "fg",
                         },
                     },
+                    "environment": [{'name': 'foo', 'value': 'bar'}],
                 }
                 for container in containers
             ],

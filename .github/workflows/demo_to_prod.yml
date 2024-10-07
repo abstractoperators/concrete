@@ -1,4 +1,4 @@
-name: Deploy Homepage to Prod
+name: Deploy Demo to Prod
 on: workflow_dispatch
 
 jobs:
@@ -25,12 +25,12 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest \
-                    --container-name homepage-prod \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest \
+                    --container-name demo-prod \
                     --container-port 80 \
-                    --service-name homepage-prod \
+                    --service-name demo-prod \
                     --listener-rule-field host-header \
-                    --listener-rule-value abop.ai
+                    --listener-rule-value demo.abop.ai
                     
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed

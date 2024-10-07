@@ -1,4 +1,5 @@
 import argparse
+import ast
 import asyncio
 
 from . import orchestrator
@@ -8,6 +9,7 @@ from .tools import AwsTool, Container
 parser = argparse.ArgumentParser(description="Concrete CLI")
 subparsers = parser.add_subparsers(dest="mode")
 
+# Concrete Prompts
 prompt_parser = subparsers.add_parser("prompt", help="Generate a response for the provided prompt")
 prompt_parser.add_argument("prompt", type=str, help="The prompt to generate a response for")
 prompt_parser.add_argument("--deploy", action="store_true", help="Deploy the project to AWS")
@@ -17,6 +19,7 @@ prompt_parser.add_argument(
     help="Use celery for processing. Otherwise, use plain.",
 )
 
+# AwsTool._deploy_service
 deploy_parser = subparsers.add_parser("deploy", help="Deploy image URIs to AWS")
 deploy_parser.add_argument(
     "--image-uri",
@@ -38,6 +41,23 @@ deploy_parser.add_argument(
     nargs="+",
     required=True,
     help="The ports for the containers",
+)
+
+deploy_parser.add_argument(
+    "--container-env",
+    type=str,
+    help="Environment variables for the container, formatted as a list of dictionaries. Example: \"[{'name': 'foo', 'value': 'bar'}]\"",  # noqa
+    required=False,
+)
+deploy_parser.add_argument(
+    "--listener-rule-field", type=str, help="The field for the listener rule (e.g., 'host-header').", required=False
+)
+
+deploy_parser.add_argument(
+    "--listener-rule-value",
+    type=str,
+    help="The value for the listener rule (e.g., 'service_name.abop.ai').",
+    required=False,
 )
 deploy_parser.add_argument("--service-name", type=str, required=False, help="The service name to deploy to AWS")
 deploy_parser.add_argument(
@@ -62,24 +82,33 @@ async def main():
 
     elif args.mode == "deploy":
         CLIClient.emit("Starting deployment to AWS...")
-        if not (len(args.image_uri) == len(args.container_name) == len(args.container_port)):
+
+        if not (len(args.image_uri) == len(args.container_name) == len(args.container_port) == len(args.container_env)):
             parser.error("The number of image URIs, container names, and ports must be the same")
+
         container_info = [
             Container(
                 image_uri=image_uri,
                 container_name=container_name,
                 container_port=container_port,
+                container_env=ast.literal_eval(container_env_str) if container_env_str else [],
             )
-            for image_uri, container_name, container_port in zip(
-                args.image_uri, args.container_name, args.container_port
+            for image_uri, container_name, container_port, container_env_str in zip(
+                args.image_uri, args.container_name, args.container_port, args.container_env
             )
         ]
+        if args.listener_rule_field and args.listener_rule_value:
+            listener_rule = {'field': args.listener_rule_field, 'value': args.listener_rule_value}
+        else:
+            listener_rule = None
+
         args_dict = {
             'service_name': args.service_name,
             'subnets': args.subnets,
             'vpc': args.vpc,
             'security_groups': args.security_groups,
             'listener_arn': args.listener_arn,
+            'listener_rule': listener_rule,
         }
         args_dict = {key: value for key, value in args_dict.items() if value is not None}
 
