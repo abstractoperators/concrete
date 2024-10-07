@@ -28,7 +28,8 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
-              run: 
+              run: |
+                  touch .env
                   make build-main
             - name: Push to ECR
               run: |
