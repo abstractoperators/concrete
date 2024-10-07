@@ -40,6 +40,17 @@ jobs:
                   echo DB_HOST=database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
                   echo DB_DATABASE=postgres >> .env
 
+                  echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
+                  echo HTTP_CORS_ORIGINS=$HTTP_CORS_ORIGINS >> .env
+                  echo HTTP_SESSION_DOMAIN=$HTTP_SESSION_DOMAIN >> .env
+                  echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
+                  echo SAAS_AUTH_REDIRECT=$SAAS_AUTH_REDIRECT >> .env
+
+                  echo GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID >> .env
+                  echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
+                  echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
+                  echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
+
                   make build-main
             - name: Push to ECR
               run: |
