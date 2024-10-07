@@ -8,7 +8,6 @@ from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
-from .setup import engine
 
 
 class Base(SQLModel):
@@ -360,6 +359,3 @@ class AuthTokenCreate(AuthTokenBase):
 
 class AuthToken(AuthTokenBase, MetadataMixin, table=True):
     user: "User" = Relationship(back_populates="auth_token")
-
-
-SQLModel.metadata.create_all(bind=engine)
