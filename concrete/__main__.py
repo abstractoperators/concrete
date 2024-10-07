@@ -42,17 +42,15 @@ deploy_parser.add_argument(
     required=True,
     help="The ports for the containers",
 )
-
 deploy_parser.add_argument(
-    "--container-env",
+    "--container-envs",
     type=str,
-    help="Environment variables for the container, formatted as a list of dictionaries. Example: \"[{'name': 'foo', 'value': 'bar'}]\"",  # noqa
+    help="Environment variables for all containers, formatted as a list of lists of dictionaries. Example: \"[[{'name': 'foo', 'value': 'bar'}]]\"",  # noqa
     required=False,
 )
 deploy_parser.add_argument(
     "--listener-rule-field", type=str, help="The field for the listener rule (e.g., 'host-header').", required=False
 )
-
 deploy_parser.add_argument(
     "--listener-rule-value",
     type=str,
@@ -83,18 +81,26 @@ async def main():
     elif args.mode == "deploy":
         CLIClient.emit("Starting deployment to AWS...")
 
-        if not (len(args.image_uri) == len(args.container_name) == len(args.container_port) == len(args.container_env)):
-            parser.error("The number of image URIs, container names, and ports must be the same")
+        container_envs_str = args.container_envs
+        if container_envs_str:
+            container_envs = ast.literal_eval(container_envs_str)
+        else:
+            container_envs = []
+
+        if not (len(args.image_uri) == len(args.container_name) == len(args.container_port) == len(container_envs)):
+            parser.error(
+                f'The number of image URIs, container names, ports, and env variables must be the same. Image URIs: {len(args.image_uri)}, Container Names: {len(args.container_name)}, Container Ports: {len(args.container_port)}, Container Env: {len(container_envs)}'  # noqa
+            )
 
         container_info = [
             Container(
                 image_uri=image_uri,
                 container_name=container_name,
                 container_port=container_port,
-                container_env=ast.literal_eval(container_env_str) if container_env_str else [],
+                container_env=container_env,
             )
-            for image_uri, container_name, container_port, container_env_str in zip(
-                args.image_uri, args.container_name, args.container_port, args.container_env
+            for image_uri, container_name, container_port, container_env in zip(
+                args.image_uri, args.container_name, args.container_port, container_envs
             )
         ]
         if args.listener_rule_field and args.listener_rule_value:
