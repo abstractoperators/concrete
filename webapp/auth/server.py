@@ -21,7 +21,6 @@ import os
 import urllib
 
 import dotenv
-import jwt
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
@@ -68,13 +67,6 @@ GoogleOAuthClient = functools.partial(
     },
 )
 
-# These are slow-changing, so the certs are hardcoded directly here
-GOOGLE_OIDC_DISCOVERY = "https://accounts.google.com/.well-known/openid-configuration"
-# GOOGLE_OIDC_CONFIG = requests.get(GOOGLE_OIDC_DISCOVERY).json()
-GOOGLE_OIDC_ALGOS = ['RS256']
-# GOOGLE_JWKS_URI = GOOGLE_OIDC_CONFIG["jwks_uri"]
-GOOGLE_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs"
-google_jwks_client = jwt.PyJWKClient(GOOGLE_JWKS_URI)
 
 # Setup App with Middleware
 middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
@@ -210,21 +202,3 @@ def token(request: Request):
     if 'id_token' not in request.session:
         return RedirectResponse(request.url_for('login').include_query_params(destination_url=request.url))
     return {"access_token": f"{request.session['id_token']}", "token_type": "bearer"}
-
-
-# oauth2_scheme = OAuth2AuthorizationCodeBearer(
-#     authorizationUrl='foo'
-# )
-
-# def fake_decode_token(token):
-#     pass
-
-# def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-#     user = fake_decode_token(token)
-#     if not user:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid authentication credentials",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )
-#     return user
