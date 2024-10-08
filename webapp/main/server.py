@@ -30,8 +30,8 @@ from concrete.db.orm.models import (
 )
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
+from webapp.common import ConnectionManager
 
-from ..common import ConnectionManager
 from .models import HiddenInput
 
 abspath = os.path.abspath(__file__)
