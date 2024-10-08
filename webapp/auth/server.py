@@ -114,7 +114,7 @@ def login(request: Request, destination_url: str | None = None):
     clean_destination_url = os.environ['SAAS_AUTH_REDIRECT']
     if destination_url:
         parsed = urllib.parse.urlparse(destination_url)
-        clean_destination_url += (f':{port}' if (port := parsed.port) else '') + parsed.path
+        clean_destination_url += parsed.path
 
     # Randomly generated state from google's sdk
     authorization_url, state = flow.authorization_url(
