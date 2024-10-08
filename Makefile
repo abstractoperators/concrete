@@ -29,10 +29,8 @@ deploysimpleflask:
 	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
 # ----------------------- Build commands -----------------------
-# Note that webapp-demo will require dind-builder to deploy a service to aws. 
-# No actual dependency is defined for flexibility.
-build-webapp-api:
-	docker compose -f docker/docker-compose.yml build webapp-api
+build-api:
+	docker compose -f docker/docker-compose.yml build api
 
 build-webapp-demo:
 	docker compose -f docker/docker-compose.yml build webapp-demo
@@ -40,8 +38,8 @@ build-webapp-demo:
 build-webapp-homepage:
 	docker compose -f docker/docker-compose.yml build webapp-homepage
 
-build-webapp-auth:
-	docker compose -f docker/docker-compose.yml build webapp-auth
+build-auth:
+	docker compose -f docker/docker-compose.yml build auth
 
 build-dind-builder:
 	docker compose -f docker/docker-compose.yml build dind-builder
@@ -56,10 +54,12 @@ build-docs:
 build-main:
 	docker compose -f docker/docker-compose.yml build main
 
+build-alembic:
+	docker compose -f docker/docker-compose.yml build alembic
 # ----------------------- Run commands -----------------------
 run-webapp-api: build-webapp-api
-	docker compose -f docker/docker-compose.yml stop webapp-api
-	docker compose -f docker/docker-compose.yml up -d webapp-api
+	docker compose -f docker/docker-compose.yml stop api
+	docker compose -f docker/docker-compose.yml up -d api
 
 run-webapp-demo: build-webapp-demo
 	docker compose -f docker/docker-compose.yml stop webapp-demo
@@ -70,8 +70,8 @@ run-webapp-homepage: build-webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
 run-webapp-auth: build-webapp-auth
-	docker compose -f docker/docker-compose.yml stop webapp-auth
-	docker compose -f docker/docker-compose.yml up -d webapp-auth
+	docker compose -f docker/docker-compose.yml stop auth
+	docker compose -f docker/docker-compose.yml up -d auth
 
 run-dind-builder:
 	docker compose -f docker/docker-compose.yml stop dind-builder
@@ -104,11 +104,11 @@ aws-ecr-login:
 
 # Build before pushing to registry
 aws-ecr-push-api: aws-ecr-login
-	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest
+	docker tag api:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
 aws-ecr-push-auth: aws-ecr-login
-	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-auth:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest
+	docker tag auth:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
 aws-ecr-push-homepage: aws-ecr-login
 	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
@@ -124,7 +124,9 @@ aws-ecr-push-daemons: aws-ecr-login
 aws-ecr-push-main: aws-ecr-login
 	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
-
+aws-ecr-push-alembic: aws-ecr-login
+	docker tag alembic:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
 deploy-daemon-to-aws-staging:
 	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
 
