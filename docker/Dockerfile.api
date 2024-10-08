@@ -31,6 +31,7 @@ COPY pyproject.toml poetry.lock ./
 COPY .env .env
 RUN touch README.md
 
+
 RUN pip install --no-deps .
 
 # App specifics
@@ -38,4 +39,3 @@ COPY webapp/api ./webapp/api
 RUN chmod +x ./webapp/api/scripts/start.sh
 EXPOSE 80
 CMD ["./webapp/api/scripts/start.sh"]
-

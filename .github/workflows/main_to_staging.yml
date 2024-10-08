@@ -1,11 +1,10 @@
-name: Deploy Auth to Staging
+name: Deploy Frontend to Staging
 on:
     push:
         branches:
             - main
 jobs:
-    build:  
-        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    build:
         runs-on: ubuntu-latest
         environment: staging
         steps:
@@ -52,10 +51,10 @@ jobs:
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
 
-                  make build-auth
+                  make build-main
             - name: Push to ECR
               run: |
-                  make aws-ecr-push-auth
+                  make aws-ecr-push-main
     deploy:
         needs: build
         runs-on: ubuntu-latest
@@ -81,8 +80,8 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
-                    --container-name auth-staging \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest \
+                    --container-name main-staging \
                     --container-port 80 \
                     --security-groups sg-01af4e696bd2679c3 \
                     --subnets subnet-0644cadc735c6b557 \

@@ -6,6 +6,7 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
+        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -36,7 +37,7 @@ jobs:
                   echo DB_USERNAME=postgres >> .env
                   echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
                   echo DB_PORT=5432 >> .env
-                  echo DB_HOST=database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
+                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
                   echo DB_DATABASE=postgres >> .env
 
                   echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
@@ -50,7 +51,7 @@ jobs:
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
 
-                  make build-webapp-api
+                  make build-api
             - name: Push to ECR
               run: |
                   make aws-ecr-push-api
@@ -79,7 +80,7 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest \
                     --container-name api-staging \
                     --container-port 80 \
                     --security-groups sg-01af4e696bd2679c3 \
