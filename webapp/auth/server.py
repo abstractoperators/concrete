@@ -28,7 +28,6 @@ from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from concrete.db.crud import (
     create_authstate,
@@ -69,11 +68,11 @@ GoogleOAuthClient = functools.partial(
 
 # Setup App with Middleware
 middleware = [
-    Middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
-        www_redirect=False,
-    ),
+    # Middleware(
+    #     TrustedHostMiddleware,
+    #     allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
+    #     www_redirect=False,
+    # ),
     Middleware(
         CORSMiddleware,
         allow_origins=[_ for _ in os.environ['HTTP_CORS_ORIGINS'].split(',')],

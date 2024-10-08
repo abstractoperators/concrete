@@ -16,7 +16,6 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from concrete.clients import CLIClient
 from concrete.db import crud
@@ -70,11 +69,11 @@ UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon
 
 # Setup App with Middleware
 middleware = [
-    Middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=os.environ['HTTP_ALLOWED_HOSTS'].split(','),
-        www_redirect=False,
-    ),
+    # Middleware(
+    #     TrustedHostMiddleware,
+    #     allowed_hosts=os.environ['HTTP_ALLOWED_HOSTS'].split(','),
+    #     www_redirect=False,
+    # ),
     Middleware(
         SessionMiddleware,
         secret_key=os.environ['HTTP_SESSION_SECRET'],
@@ -128,14 +127,16 @@ async def get_orchestrator_list(request: Request):
 
 @app.post("/orchestrators")
 async def create_orchestrator(
+    request: Request,
     type_name: annotatedFormStr,
     title: annotatedFormStr,
-    owner: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    orchestrator_create = OrchestratorCreate(type_name=type_name, title=title, owner=owner)
+    orchestrator_create = OrchestratorCreate(
+        type_name=type_name, title=title, user_id=UUID(request.session['user']['uuid'])
+    )
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
@@ -145,16 +146,11 @@ async def create_orchestrator(
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
 async def create_orchestrator_form(request: Request):
-    # TODO get owner dynamically
-    hiddens = [
-        HiddenInput(name="owner", value="dance"),
-    ]
     return sidebar_create(
         "Orchestrator",
         "/orchestrators",
         "orchestrator_form.html",
         request,
-        hiddens=hiddens,
     )
 
 
