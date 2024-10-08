@@ -30,6 +30,10 @@ COPY migrations migrations
 COPY scripts/run_alembic_migrations.sh scripts/run_alembic_migrations.sh
 
 COPY concrete concrete
+COPY pyproject.toml pyproject.toml
+COPY poetry.lock ./
+COPY .env .env
+RUN touch README.md
 RUN pip install --no-deps .
 
 RUN chmod +x scripts/run_alembic_migrations.sh
