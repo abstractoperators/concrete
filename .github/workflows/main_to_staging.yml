@@ -37,7 +37,7 @@ jobs:
                   echo DB_USERNAME=postgres >> .env
                   echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
                   echo DB_PORT=5432 >> .env
-                  echo DB_HOST=database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
+                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
                   echo DB_DATABASE=postgres >> .env
 
                   echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
