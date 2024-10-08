@@ -74,7 +74,7 @@ middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != '
 middleware += [
     Middleware(
         TrustedHostMiddleware,
-        allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
+        allowed_hosts=os.environ['HTTP_ALLOWED_HOSTS'].split(','),
         www_redirect=False,
     ),
     Middleware(
