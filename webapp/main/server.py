@@ -66,7 +66,7 @@ def replace_html_entities(html_text: str):
     return html_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-UNAUTHENTICATED_PATHS = {'/', '/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
 middleware = [
@@ -100,13 +100,13 @@ async def login(request: Request):
     return JSONResponse({"login here": "https://auth-staging.abot.ai/login"})
 
 
-@app.get("/home", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return pages.TemplateResponse(name="index.html", request=request)
 
 
-@app.get("/")
-async def ping(request: Request):
+@app.get("/ping")
+async def ping():
     return JSONResponse({"message": "pong"})
 
 
