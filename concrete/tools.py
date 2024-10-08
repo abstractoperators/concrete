@@ -336,7 +336,7 @@ class AwsTool(metaclass=MetaTool):
                 }
             },
             enableECSManagedTags=True,
-            propagateTags="TASK",
+            propagateTags="TASK_DEFINITION",
         )
 
     @classmethod
