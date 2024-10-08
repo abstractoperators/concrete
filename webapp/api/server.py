@@ -32,11 +32,6 @@ UNAUTHENTICATED_PATHS = {'/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
 middleware = [
-    # Middleware(
-    #     TrustedHostMiddleware,
-    #     allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
-    #     www_redirect=False,
-    # ),
     Middleware(
         SessionMiddleware,
         secret_key=os.environ['HTTP_SESSION_SECRET'],

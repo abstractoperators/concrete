@@ -15,9 +15,7 @@ from fastapi.middleware import Middleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from concrete.clients import CLIClient
 from concrete.db import crud
@@ -70,13 +68,7 @@ def replace_html_entities(html_text: str):
 UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
-middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
-middleware += [
-    Middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=os.environ['HTTP_ALLOWED_HOSTS'].split(','),
-        www_redirect=False,
-    ),
+middleware = [
     Middleware(
         SessionMiddleware,
         secret_key=os.environ['HTTP_SESSION_SECRET'],
