@@ -1,7 +1,7 @@
 name: Deploy Auth to Staging
 on:
     workflow_run:
-        workflows: ["Run Alembic Migrations on Staging"]
+        workflows: [Run Alembic Migrations on Staging]
         types:
           - completed  
 jobs:
