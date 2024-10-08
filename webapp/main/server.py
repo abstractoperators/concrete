@@ -86,7 +86,6 @@ middleware += [
 ]
 
 app = FastAPI(title="Abstract Operators: Concrete", middleware=middleware)
-templates = Jinja2Templates(directory=os.path.join(dname, "templates"))
 pages = Jinja2Templates(directory=os.path.join(dname, "templates", "pages"))
 components = Jinja2Templates(directory=os.path.join(dname, "templates", "components"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
