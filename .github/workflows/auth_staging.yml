@@ -5,7 +5,8 @@ on:
         types:
           - completed  
 jobs:
-    build:
+    build:  
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
         runs-on: ubuntu-latest
         environment: staging
         steps:
