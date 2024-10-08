@@ -15,7 +15,6 @@ from fastapi.middleware import Middleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -67,11 +66,10 @@ def replace_html_entities(html_text: str):
     return html_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+UNAUTHENTICATED_PATHS = {'/', '/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
-middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
-middleware += [
+middleware = [
     Middleware(
         TrustedHostMiddleware,
         allowed_hosts=os.environ['HTTP_ALLOWED_HOSTS'].split(','),
@@ -102,9 +100,14 @@ async def login(request: Request):
     return JSONResponse({"login here": "https://auth-staging.abot.ai/login"})
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/home", response_class=HTMLResponse)
 async def root(request: Request):
     return pages.TemplateResponse(name="index.html", request=request)
+
+
+@app.get("/")
+async def ping(request: Request):
+    return JSONResponse({"message": "pong"})
 
 
 # === Orchestrators === #
