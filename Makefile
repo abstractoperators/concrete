@@ -55,7 +55,7 @@ build-main:
 	docker compose -f docker/docker-compose.yml build main
 
 build-alembic:
-	docker compose -f docker/docker-compose.ynl build alembic
+	docker compose -f docker/docker-compose.yml build alembic
 # ----------------------- Run commands -----------------------
 run-webapp-api: build-webapp-api
 	docker compose -f docker/docker-compose.yml stop api
