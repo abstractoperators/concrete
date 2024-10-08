@@ -67,7 +67,7 @@ jobs:
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
-                  poetry install
+                  poetry install --only main,tooluse
                   poetry run python -m concrete deploy --task \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest \
                     --container-name alembic-staging \
