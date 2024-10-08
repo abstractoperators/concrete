@@ -1,9 +1,11 @@
-from typing import Optional, Self
+from datetime import datetime
+from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
 from pydantic import ValidationError, model_validator
-from sqlalchemy import CheckConstraint
+from sqlalchemy import CheckConstraint, DateTime
 from sqlalchemy.schema import Index
+from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
@@ -15,8 +17,20 @@ class Base(SQLModel):
         return self.model_dump_json(indent=4, exclude_unset=True, exclude_none=True)
 
 
+# https://github.com/fastapi/sqlmodel/issues/252#issuecomment-1971383623
 class MetadataMixin(SQLModel):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
+    created_at: datetime | None = Field(
+        default=None,
+        sa_type=cast(Any, DateTime(timezone=True)),
+        sa_column_kwargs=cast(Mapping[str, Any], {"server_default": func.now()}),
+        nullable=False,
+    )
+    modified_at: datetime | None = Field(
+        default=None,
+        sa_type=cast(Any, DateTime(timezone=True)),
+        sa_column_kwargs=cast(Mapping[str, Any], {"onupdate": func.now(), "server_default": func.now()}),
+    )
 
 
 class ProfilePictureMixin(SQLModel):
@@ -38,11 +52,14 @@ class OperatorToolLink(Base, table=True):
 
 
 class UserBase(Base, ProfilePictureMixin):
-    pass
+    first_name: str | None = Field(default=None, max_length=64)
+    last_name: str | None = Field(default=None, max_length=64)
+    email: str | None = Field(default=None, max_length=128)
 
 
 class UserUpdate(Base, ProfilePictureMixin):
-    pass
+    first_name: str | None = Field(default=None, max_length=64)
+    last_name: str | None = Field(default=None, max_length=64)
 
 
 class UserCreate(UserBase):
@@ -50,7 +67,12 @@ class UserCreate(UserBase):
 
 
 class User(UserBase, MetadataMixin, table=True):
-    pass
+    orchestrators: list["Orchestrator"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+    # Store Google's refresh token for later
+    auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
 
 
 # Orchestrator Models
@@ -60,17 +82,16 @@ class OrchestratorBase(Base):
     # TODO turn into enum
     type_name: str = Field(description="type of orchestrator", max_length=32)
     title: str = Field(description="Title of the orchestrator.", max_length=32)
-    owner: str = Field(description="name of owner", max_length=32)
+    user_id: UUID = Field(
+        description="The user who created the orchestrator.",
+        foreign_key="user.id",
+        ondelete="CASCADE",
+    )
 
 
 class OrchestratorUpdate(Base):
     title: str | None = Field(
         description="Title of the orchestrator.",
-        max_length=32,
-        default=None,
-    )
-    owner: str | None = Field(
-        description="name of owner",
         max_length=32,
         default=None,
     )
@@ -81,6 +102,8 @@ class OrchestratorCreate(OrchestratorBase):
 
 
 class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
+    user: "User" = Relationship(back_populates="orchestrators")
+
     operators: list["Operator"] = Relationship(
         back_populates="orchestrator",
         cascade_delete=True,
@@ -420,6 +443,36 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     )
 
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
+
+
+class AuthStateBase(Base):
+    state: str = Field(default=None, max_length=128)
+    destination_url: str = Field(default=None, max_length=128)
+
+
+class AuthStateCreate(AuthStateBase):
+    pass
+
+
+class AuthState(AuthStateBase, MetadataMixin, table=True):
+    pass
+
+
+class AuthTokenBase(Base):
+    refresh_token: str = Field(default=None, max_length=128)
+    user_id: UUID = Field(
+        description="The user who's authorization is represented.",
+        foreign_key="user.id",
+        ondelete="CASCADE",
+    )
+
+
+class AuthTokenCreate(AuthTokenBase):
+    pass
+
+
+class AuthToken(AuthTokenBase, MetadataMixin, table=True):
+    user: User = Relationship(back_populates="auth_token")
 
 
 SQLModel.metadata.create_all(bind=engine)
