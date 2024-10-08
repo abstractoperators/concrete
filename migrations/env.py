@@ -1,11 +1,13 @@
+import os
 from logging.config import fileConfig
 
 import dotenv
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import URL, engine_from_config, pool
 from sqlmodel import SQLModel
 
 dotenv.load_dotenv(override=True)
+
 
 from concrete.db.orm.models import *  # noqa: F401, F403, E402
 
@@ -24,10 +26,22 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
 
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+DB_PORT = os.environ.get("DB_PORT")
+db_port = int(DB_PORT) if DB_PORT else None
+SQLALCHEMY_DATABASE_URL = URL.create(
+    drivername=os.environ.get("DB_DRIVER", "sqlite"),
+    username=os.environ.get("DB_USERNAME", None),
+    password=os.environ.get("DB_PASSWORD", None),
+    host=os.environ.get("DB_HOST", None),
+    port=db_port,
+    database=os.environ.get("DB_DATABASE", "sql_app.db"),
+)
+config.set_main_option('sqlalchemy.url', SQLALCHEMY_DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
