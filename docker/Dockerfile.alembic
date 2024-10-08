@@ -27,6 +27,7 @@ COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 # App specifics
 COPY alembic.ini alembic.ini
 COPY migrations migrations
+COPY scripts/run_alembic_migrations.sh scripts/run_alembic_migrations.sh
 
 RUN chmod +x scripts/run_alembic_migrations.sh
 CMD ["./scripts/run_alembic_migrations.sh"]
