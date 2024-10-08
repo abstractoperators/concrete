@@ -41,7 +41,8 @@ SQLALCHEMY_DATABASE_URL = URL.create(
     port=db_port,
     database=os.environ.get("DB_DATABASE", "sql_app.db"),
 )
-config.set_main_option('sqlalchemy.url', SQLALCHEMY_DATABASE_URL)
+
+config.set_main_option('sqlalchemy.url', str(SQLALCHEMY_DATABASE_URL).replace('***', os.environ.get('DB_PASSWORD', "")))
 
 
 def run_migrations_offline() -> None:
