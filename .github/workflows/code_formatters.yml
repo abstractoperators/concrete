@@ -33,6 +33,7 @@ jobs:
           max-line-length: "120"
           ignore: "W293"
           path: "concrete"
+          exclude: "migrations"
       - name: black
         uses: psf/black@stable
         with:

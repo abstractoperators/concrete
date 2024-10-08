@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime
+from pydantic import ValidationError, model_validator
+from sqlalchemy import CheckConstraint, DateTime
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
@@ -31,12 +32,46 @@ class MetadataMixin(SQLModel):
     )
 
 
+class ProfilePictureMixin(SQLModel):
+    profile_picture_url: str | None = Field(
+        description="URL leading to profile picture of sender.",
+        default=None,
+    )  # TODO: probably use urllib here, oos
+
+
 # Relationship Models
 
 
 class OperatorToolLink(Base, table=True):
     operator_id: UUID = Field(foreign_key="operator.id", primary_key=True)
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+
+
+# User Models
+
+
+class UserBase(Base, ProfilePictureMixin):
+    first_name: str | None = Field(default=None, max_length=64)
+    last_name: str | None = Field(default=None, max_length=64)
+    email: str = Field(unique=True, max_length=128)
+
+
+class UserUpdate(Base, ProfilePictureMixin):
+    first_name: str | None = Field(default=None, max_length=64)
+    last_name: str | None = Field(default=None, max_length=64)
+
+
+class UserCreate(UserBase):
+    pass
+
+
+class User(UserBase, MetadataMixin, table=True):
+    orchestrators: list["Orchestrator"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+    # Store Google's refresh token for later
+    auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
 
 
 # Orchestrator Models
@@ -66,27 +101,33 @@ class OrchestratorCreate(OrchestratorBase):
 
 
 class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
+    user: "User" = Relationship(back_populates="orchestrators")
+
     operators: list["Operator"] = Relationship(
         back_populates="orchestrator",
         cascade_delete=True,
     )
-    user: "User" = Relationship(back_populates="orchestrators")
+    projects: list["Project"] = Relationship(
+        back_populates="orchestrator",
+        cascade_delete=True,
+    )
 
 
 # Operator Models
 
 
-class OperatorBase(Base):
+class OperatorBase(Base, ProfilePictureMixin):
     instructions: str = Field(description="Instructions and role of the operator.")
     title: str = Field(description="Title of the operator.", max_length=32)
+
     orchestrator_id: UUID = Field(
-        description="ID of Orchestrator that owns this client.",
+        description="ID of Orchestrator that owns this operator.",
         foreign_key="orchestrator.id",
         ondelete="CASCADE",
     )
 
 
-class OperatorUpdate(Base):
+class OperatorUpdate(Base, ProfilePictureMixin):
     instructions: str | None = Field(description="Instructions and role of the operator.", default=None)
     title: str | None = Field(description="Title of the operator.", max_length=32, default=None)
 
@@ -103,7 +144,15 @@ class Operator(OperatorBase, MetadataMixin, table=True):
         cascade_delete=True,
     )
     tools: list["Tool"] = Relationship(back_populates="operators", link_model=OperatorToolLink)
-    orchestrator: "Orchestrator" = Relationship(back_populates="operators")
+    orchestrator: Orchestrator = Relationship(back_populates="operators")
+
+    direct_message_project: "Project" = Relationship(
+        back_populates="direct_message_operator",
+        cascade_delete=True,
+        sa_relationship_kwargs={
+            "foreign_keys": "Project.direct_message_operator_id",
+        },
+    )
 
 
 # Client Models
@@ -156,6 +205,71 @@ class Client(ClientBase, MetadataMixin, table=True):
     operator: Operator = Relationship(back_populates="clients")
 
 
+# Project Models
+
+
+class ProjectBase(Base):
+    title: str = Field(description="Title of the project.", max_length=64)
+    orchestrator_id: UUID = Field(
+        description="ID of Orchestrator that owns this project.",
+        foreign_key="orchestrator.id",
+        ondelete="CASCADE",
+    )
+
+    executive_id: UUID | None = Field(
+        description="ID of executive operator for this project.",
+        foreign_key="operator.id",
+        default=None,
+    )
+    developer_id: UUID | None = Field(
+        description="ID of developer operator for this project.",
+        foreign_key="operator.id",
+        default=None,
+    )
+
+
+class ProjectUpdate(Base):
+    title: str | None = Field(description="Title of the project.", max_length=32, default=None)
+
+    executive_id: UUID | None = Field(
+        description="ID of executive operator for this project.",
+        foreign_key="operator.id",
+        default=None,
+    )
+    developer_id: UUID | None = Field(
+        description="ID of developer operator for this project.",
+        foreign_key="operator.id",
+        default=None,
+    )
+
+
+class ProjectCreate(ProjectBase):
+    pass
+
+
+class Project(ProjectBase, MetadataMixin, table=True):
+    orchestrator: Orchestrator = Relationship(back_populates="projects")
+
+    direct_message_operator_id: UUID | None = Field(
+        description="ID of operator that owns this project IF it is a direct message project.",
+        foreign_key="operator.id",
+        unique=True,
+        ondelete="CASCADE",
+    )
+    direct_message_operator: Operator | None = Relationship(
+        back_populates="direct_message_project",
+        sa_relationship_kwargs={
+            "foreign_keys": "Project.direct_message_operator_id",
+            "single_parent": True,
+        },
+    )
+
+    executive: Operator | None = Relationship(sa_relationship_kwargs={"foreign_keys": "Project.executive_id"})
+    developer: Operator | None = Relationship(sa_relationship_kwargs={"foreign_keys": "Project.developer_id"})
+
+    messages: list["Message"] = Relationship(back_populates="project", cascade_delete=True)
+
+
 # Tool Models
 
 
@@ -188,10 +302,31 @@ class MessageBase(Base):
     )
     status: ProjectStatus = ProjectStatus.INIT
 
-    orchestrator_id: UUID = Field(
-        description="ID of Orchestrator that owns this client.",
-        foreign_key="orchestrator.id",
+    project_id: UUID = Field(
+        description="ID of Project that owns this message.",
+        foreign_key="project.id",
         ondelete="CASCADE",
+    )
+
+    user_id: UUID | None = Field(
+        description="ID of this message's sender if it's a user.",
+        foreign_key="user.id",
+        default=None,
+    )
+    operator_id: UUID | None = Field(
+        description="ID of this message's sender if it's an operator.",
+        foreign_key="operator.id",
+        default=None,
+    )
+
+    @model_validator(mode="after")
+    def check_operator_xor_user(self) -> Self:
+        if not (bool(self.operator_id) is not bool(self.user_id)):
+            raise ValidationError("The sender can only be one entity!")
+        return self
+
+    __table_args__ = (
+        CheckConstraint("(operator_id IS NULL) <> (user_id IS NULL)", name="The sender can only be one entity!"),
     )
 
 
@@ -204,7 +339,9 @@ class MessageCreate(MessageBase):
 
 
 class Message(MessageBase, MetadataMixin, table=True):
-    pass
+    project: Project = Relationship(back_populates="messages")
+    user: User | None = Relationship()
+    operator: Operator | None = Relationship()
 
 
 # Knowledge Graph Models
@@ -307,32 +444,6 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
 
 
-class UserBase(Base):
-    first_name: str = Field(default=None, max_length=64)
-    last_name: str = Field(default=None, max_length=64)
-    email: str = Field(default=None, max_length=128)
-    profile_picture: str = Field(default=None, max_length=256)
-
-
-class UserUpdate(Base):
-    first_name: str = Field(default=None, max_length=64)
-    last_name: str = Field(default=None, max_length=64)
-    profile_picture: str = Field(default=None, max_length=256)
-
-
-class UserCreate(UserBase):
-    pass
-
-
-class User(UserBase, MetadataMixin, table=True):
-    orchestrators: list["Orchestrator"] = Relationship(
-        back_populates="user",
-        cascade_delete=True,
-    )
-    # Store Google's refresh token for later
-    auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
-
-
 class AuthStateBase(Base):
     state: str = Field(default=None, max_length=128)
     destination_url: str = Field(default=None, max_length=128)
@@ -349,7 +460,7 @@ class AuthState(AuthStateBase, MetadataMixin, table=True):
 class AuthTokenBase(Base):
     refresh_token: str = Field(default=None, max_length=128)
     user_id: UUID = Field(
-        description="The user who's authorization is represented.",
+        description="The user whose authorization is represented.",
         foreign_key="user.id",
         ondelete="CASCADE",
     )
@@ -360,4 +471,4 @@ class AuthTokenCreate(AuthTokenBase):
 
 
 class AuthToken(AuthTokenBase, MetadataMixin, table=True):
-    user: "User" = Relationship(back_populates="auth_token")
+    user: User = Relationship(back_populates="auth_token")

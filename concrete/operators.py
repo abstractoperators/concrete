@@ -1,5 +1,4 @@
 from textwrap import dedent
-from typing import List
 
 from .abstract import AbstractOperator
 
@@ -78,8 +77,8 @@ Use placeholders referencing code/functions already provided in the context. Nev
 
     def integrate_components(
         self,
-        planned_components: List[str],
-        implementations: List[str],
+        planned_components: list[str],
+        implementations: list[str],
         idea: str,
         *args,
         **kwargs,

@@ -1,8 +1,9 @@
 name: Deploy Auth to Staging
 on:
-    push:
-        branches:
-            - main
+    workflow_run:
+        workflows: [Run Alembic Migrations on Staging]
+        types:
+          - completed  
 jobs:
     build:  
         if: ${{ github.event.workflow_run.conclusion == 'success' }}

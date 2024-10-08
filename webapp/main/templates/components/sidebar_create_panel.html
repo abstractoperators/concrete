@@ -1,0 +1,19 @@
+<section class="sidebar right" _="on closeModal add .closing then wait for animationend then remove me">
+    <h1>
+        Create a {{ classname }}
+    </h1>
+    <form hx-post="{{ form_endpoint }}" hx-swap="none">
+        {% for h in hiddens %}
+            <input
+                type="hidden"
+                name="{{ h.name }}"
+                value="{{ h.value }}"
+            />
+        {% endfor %}
+        {% include form_component %}
+        <div>
+            <button>Create</button>
+            <button type="button" _="on click trigger closeModal">Abort</button>
+        </div>
+    </form>
+</section>

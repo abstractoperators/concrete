@@ -1,13 +1,17 @@
 from abc import abstractmethod
 from collections.abc import Callable
 from functools import cache, partial, wraps
-from typing import Any, TypeVar, cast
+from typing import Any, cast
+from uuid import UUID, uuid4
 
 from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
 
 from .celery import app
 from .clients import CLIClient, OpenAIClient
+from .db import crud
+from .db.orm import Session
+from .db.orm.models import MessageCreate
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
 from .models.messages import Message, TextMessage
 from .models.operations import Operation
@@ -109,11 +113,22 @@ class MetaAbstractOperator(type):
 class AbstractOperator(metaclass=MetaAbstractOperator):
 
     # TODO replace OpenAIClient with GenericClient
-    def __init__(self, clients: dict[str, OpenAIClient] | None = None, tools: list[MetaTool] | None = None):
+    def __init__(
+        self,
+        clients: dict[str, OpenAIClient] | None = None,
+        tools: list[MetaTool] | None = None,
+        operator_id: UUID = uuid4(),
+        project_id: UUID = uuid4(),
+        starting_prompt: str | None = None,
+    ):
         self._clients = clients if clients is not None else {'openai': OpenAIClient()}
         self.llm_client = "openai"
         self.llm_client_function = "complete"
         self.tools = tools
+
+        self.operator_id = operator_id
+        self.project_id = project_id
+        self.starting_prompt = starting_prompt
 
     def _qna(
         self,
@@ -145,6 +160,19 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             raise Exception("Operator refused to answer question")
 
         answer = response.parsed
+
+        with Session() as session:
+            crud.create_message(
+                session,
+                MessageCreate(
+                    type_name=response_format.__name__,
+                    content=str(answer),
+                    prompt=self.starting_prompt,
+                    project_id=self.project_id,
+                    operator_id=self.operator_id,
+                ),
+            )
+
         return answer
 
     def qna(self, question_producer: Callable) -> Callable:
@@ -215,6 +243,3 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         Chat with the operator with a direct message.
         """
         return message
-
-
-AbstractOperator_co = TypeVar("AbstractOperator_co", bound=AbstractOperator, covariant=True)
