@@ -1,11 +1,13 @@
 name: Deploy Auth to Staging
 on:
-    push:
-        branches:
-            - main
+    workflow_run:
+        workflows: ["Run Alembic Migrations on Staging"]
+        types:
+          - completed  
 jobs:
     build:
         runs-on: ubuntu-latest
+        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
