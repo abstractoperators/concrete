@@ -11,11 +11,9 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.middleware import Middleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.middleware.sessions import SessionMiddleware
 
 from concrete.clients import CLIClient
 from concrete.db import crud
@@ -68,21 +66,22 @@ def replace_html_entities(html_text: str):
 UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
-middleware = [
-    # Middleware(
-    #     TrustedHostMiddleware,
-    #     allowed_hosts=os.environ['HTTP_ALLOWED_HOSTS'].split(','),
-    #     www_redirect=False,
-    # ),
-    Middleware(
-        SessionMiddleware,
-        secret_key=os.environ['HTTP_SESSION_SECRET'],
-        domain=os.environ['HTTP_SESSION_DOMAIN'],
-    ),
-    Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
-]
+# middleware = [
+# Middleware(
+#     TrustedHostMiddleware,
+#     allowed_hosts=os.environ['HTTP_ALLOWED_HOSTS'].split(','),
+#     www_redirect=False,
+# ),
+# Middleware(
+#     SessionMiddleware,
+#     secret_key=os.environ['HTTP_SESSION_SECRET'],
+#     domain=os.environ['HTTP_SESSION_DOMAIN'],
+# ),
+# Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
+# ]
 
-app = FastAPI(title="Abstract Operators: Concrete", middleware=middleware)
+# app = FastAPI(title="Abstract Operators: Concrete", middleware=middleware)
+app = FastAPI(title="Abstract Operators: Concrete")
 pages = Jinja2Templates(directory=os.path.join(dname, "templates", "pages"))
 components = Jinja2Templates(directory=os.path.join(dname, "templates", "components"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")

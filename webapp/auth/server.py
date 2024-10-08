@@ -25,9 +25,6 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from google_auth_oauthlib.flow import Flow
 from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
-from starlette.middleware import Middleware
-from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 
 from concrete.db.crud import (
     create_authstate,
@@ -67,27 +64,28 @@ GoogleOAuthClient = functools.partial(
 
 
 # Setup App with Middleware
-middleware = [
-    # Middleware(
-    #     TrustedHostMiddleware,
-    #     allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
-    #     www_redirect=False,
-    # ),
-    Middleware(
-        CORSMiddleware,
-        allow_origins=[_ for _ in os.environ['HTTP_CORS_ORIGINS'].split(',')],
-        allow_credentials=True,
-    ),
-    # Session allows us to save state between the client and the be
-    # We use it to store the user's auth
-    Middleware(
-        SessionMiddleware,
-        secret_key=os.environ['HTTP_SESSION_SECRET'],
-        domain=os.environ['HTTP_SESSION_DOMAIN'],
-    ),
-]
+# middleware = [
+# Middleware(
+#     TrustedHostMiddleware,
+#     allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
+#     www_redirect=False,
+# ),
+# Middleware(
+#     CORSMiddleware,
+#     allow_origins=[_ for _ in os.environ['HTTP_CORS_ORIGINS'].split(',')],
+#     allow_credentials=True,
+# ),
+# Session allows us to save state between the client and the be
+# We use it to store the user's auth
+# Middleware(
+#     SessionMiddleware,
+#     secret_key=os.environ['HTTP_SESSION_SECRET'],
+#     domain=os.environ['HTTP_SESSION_DOMAIN'],
+# ),
+# ]
 
-app = FastAPI(title="Concrete API", middleware=middleware)
+# app = FastAPI(title="Concrete Auth Service", middleware=middleware)
+app = FastAPI(title="Concrete Auth Service")
 
 
 @app.get("/")
