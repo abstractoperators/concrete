@@ -69,7 +69,7 @@ run-webapp-homepage: build-webapp-homepage
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
-run-webapp-auth: build-webapp-auth
+run-webapp-auth: build-auth
 	docker compose -f docker/docker-compose.yml stop auth
 	docker compose -f docker/docker-compose.yml up -d auth
 

@@ -27,6 +27,7 @@ WORKDIR /app
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY concrete ./concrete
+COPY webapp/__init__.py ./webapp/
 COPY pyproject.toml poetry.lock ./
 COPY .env .env
 RUN touch README.md
