@@ -7,9 +7,7 @@ import dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session
 from starlette.middleware import Middleware
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from concrete.db import crud
 from concrete.db.orm import SessionLocal
@@ -33,13 +31,7 @@ dotenv.load_dotenv(override=True)
 UNAUTHENTICATED_PATHS = {'/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
-middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
-middleware += [
-    Middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
-        www_redirect=False,
-    ),
+middleware = [
     Middleware(
         SessionMiddleware,
         secret_key=os.environ['HTTP_SESSION_SECRET'],
