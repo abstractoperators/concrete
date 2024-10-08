@@ -3,6 +3,7 @@ import os
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
+import dotenv
 from fastapi import (
     FastAPI,
     Form,
@@ -29,6 +30,8 @@ from concrete.webutils import AuthMiddleware
 
 from ..common import ConnectionManager
 from .models import HiddenInput
+
+dotenv.load_dotenv(override=True)
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
