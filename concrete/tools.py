@@ -274,6 +274,72 @@ class AwsTool(metaclass=MetaTool):
         return False
 
     @classmethod
+    def _run_task(
+        cls,
+        containers: list[Container],
+        cpu: int = 256,
+        memory: int = 512,
+        subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
+        security_groups: list[str] = ["sg-0463bb6000a464f50"],
+        task_name: Optional[str] = None,
+    ):
+        """
+        Defines a task definition, and runs it.
+        """
+        import boto3
+
+        ecs_client = boto3.client("ecs")
+        task_name = task_name or containers[0].container_name
+        execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
+        cluster = "DemoCluster"
+
+        task_definition_arn = ecs_client.register_task_definition(
+            family=task_name,
+            executionRoleArn=execution_role_arn,
+            networkMode="awsvpc",
+            requiresCompatibilities=["FARGATE"],
+            containerDefinitions=[
+                {
+                    "name": container.container_name,
+                    "image": container.image_uri,
+                    "portMappings": [{"containerPort": container.container_port}],
+                    "essential": True,
+                    "logConfiguration": {
+                        "logDriver": "awslogs",
+                        "options": {
+                            "awslogs-group": "fargate-demos",
+                            "awslogs-region": "us-east-1",
+                            "awslogs-stream-prefix": "fg",
+                        },
+                    },
+                }
+                for container in containers
+            ],
+            cpu=str(cpu) if cpu else "256",
+            memory=str(memory) if memory else "512",
+            runtimePlatform={
+                "cpuArchitecture": "ARM64",
+                "operatingSystemFamily": "LINUX",
+            },
+        )["taskDefinition"]["taskDefinitionArn"]
+
+        ecs_client.run_task(
+            cluster=cluster,
+            taskDefinition=task_definition_arn,
+            desiredCount=1,
+            launchType="FARGATE",
+            networkConfiguration={
+                "awsvpcConfiguration": {
+                    "subnets": subnets,
+                    "securityGroups": security_groups,
+                    "assignPublicIp": "ENABLED",
+                }
+            },
+            enableECSManagedTags=True,
+            propagateTags="TASK",
+        )
+
+    @classmethod
     def _deploy_service(
         cls,
         containers: list[Container],

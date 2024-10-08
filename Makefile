@@ -54,6 +54,8 @@ build-docs:
 build-main:
 	docker compose -f docker/docker-compose.yml build main
 
+build-alembic:
+	docker compose -f docker/docker-compose.ynl build alembic
 # ----------------------- Run commands -----------------------
 run-webapp-api: build-webapp-api
 	docker compose -f docker/docker-compose.yml stop api
@@ -122,7 +124,9 @@ aws-ecr-push-daemons: aws-ecr-login
 aws-ecr-push-main: aws-ecr-login
 	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
-
+aws-ecr-push-alembic: aws-ecr-login
+	docker tag alembic:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
 deploy-daemon-to-aws-staging:
 	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
 

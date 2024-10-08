@@ -196,6 +196,13 @@ services:
       - "ts-oauth-api"
     platform: linux/arm64
   
+  alembic:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.alembic
+    image: alembic
+    container_name: alembic
+    
 
 
 volumes:
