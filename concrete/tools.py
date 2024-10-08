@@ -326,7 +326,7 @@ class AwsTool(metaclass=MetaTool):
         ecs_client.run_task(
             cluster=cluster,
             taskDefinition=task_definition_arn,
-            desiredCount=1,
+            count=1,
             launchType="FARGATE",
             networkConfiguration={
                 "awsvpcConfiguration": {

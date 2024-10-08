@@ -1,4 +1,4 @@
-name: RUn Alembic Migrations on Staging
+name: Run Alembic Migrations on Staging
 on:
     push:
         branches:
