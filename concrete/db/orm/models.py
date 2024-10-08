@@ -9,7 +9,6 @@ from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
 from ...state import ProjectStatus
-from .setup import engine
 
 
 class Base(SQLModel):
@@ -54,7 +53,7 @@ class OperatorToolLink(Base, table=True):
 class UserBase(Base, ProfilePictureMixin):
     first_name: str | None = Field(default=None, max_length=64)
     last_name: str | None = Field(default=None, max_length=64)
-    email: str | None = Field(default=None, max_length=128)
+    email: str = Field(unique=True, max_length=128)
 
 
 class UserUpdate(Base, ProfilePictureMixin):
@@ -461,7 +460,7 @@ class AuthState(AuthStateBase, MetadataMixin, table=True):
 class AuthTokenBase(Base):
     refresh_token: str = Field(default=None, max_length=128)
     user_id: UUID = Field(
-        description="The user who's authorization is represented.",
+        description="The user whose authorization is represented.",
         foreign_key="user.id",
         ondelete="CASCADE",
     )
@@ -473,6 +472,3 @@ class AuthTokenCreate(AuthTokenBase):
 
 class AuthToken(AuthTokenBase, MetadataMixin, table=True):
     user: User = Relationship(back_populates="auth_token")
-
-
-SQLModel.metadata.create_all(bind=engine)
