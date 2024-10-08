@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - kent/rm-httpsredirect
 jobs:
     build:
         runs-on: ubuntu-latest
