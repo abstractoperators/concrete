@@ -3,7 +3,9 @@
     --serif-family: "Judson", serif;
     --rounding-rectangle: 16px;
     --primary-100: #C6DBFF;
+    --primary-400: #006bb3;
     --secondary-100: #FFEBFE;
+    --tertiary-400: rgb(174, 119, 0);
     --space-200: 8px;
     --schemes-on-primary: #FFF;
 
@@ -18,6 +20,10 @@
     --header-small-size: 24px;
     --header-small-height: 28px;
     --header-small-letter-spacing: 0px;
+}
+
+body {
+    font-family: var(--serif-family);
 }
 
 #submit-prompt {
@@ -107,19 +113,17 @@ li.operator-card {
 }
 
 li.left {
-    width: 30em;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: start;
 }
 
 li.right {
-    width: 30em;
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: column;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: end;
 }
 
 hgroup.operator-avatar-and-header {
@@ -149,7 +153,7 @@ h1.operator-avatar-text {
     letter-spacing: var(--icon-small-letter-spacing);
 }
 
-p.message {
+.message {
     font-family: var(--sans-serif-family);
     font-style: normal;
 
@@ -158,6 +162,51 @@ p.message {
     box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.25);
     padding: .5em;
     margin: 8px;
+}
+
+.list.row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.main.panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 80vh;
+}
+
+.circle-button {
+    border: none;
+    padding: 0;
+    background: none;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.circle-button img {
+    display: block;
+    border-radius: 50%;
+}
+
+.chat-list {
+    display: flex;
+    width: 75em;
+    padding: var(--space-200);
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-200);
+
+    background: var(--schemes-on-primary);
+}
+
+.chat-list li {
+    width: 100%;
+}
+
+footer {
+    font-family: var(--serif-family);
 }
 
 @keyframes slideLeft {

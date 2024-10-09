@@ -1,0 +1,8 @@
+{% macro back_button(path) %}
+<a
+    class="circle-button"
+    href="{{ path }}"
+>
+    <img height="40rem" src="{{ url_for('static', path='/back_button.svg') }}" alt="Back button">
+</a>
+{% endmacro %}

@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import WebSocket
+from fastapi import Depends, Request, WebSocket
 
 
 class ConnectionManager:
@@ -30,3 +30,21 @@ class OrchestratorConnectionManager(ConnectionManager):
     def __init__(self):
         super().__init__()
         self.orchestrator_map: dict[UUID, WebSocket] = {}
+
+
+def replace_html_entities(html_text: str) -> str:
+    """
+    Replaces <, >, and & in an HTML string for text usage in HTML.
+    """
+    return html_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+async def get_user_id_from_request(request: Request) -> UUID:
+    """
+    Retrieves user id from fastAPI Request object,
+    assuming user has successfully logged in and has a stored session
+    """
+    return UUID(request.session['user']['uuid'])
+
+
+UserIdDep = Annotated[UUID, Depends(get_user_id_from_request)]

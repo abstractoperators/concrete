@@ -26,19 +26,29 @@
 </head>
 
 <body>
-    <ul
-        hx-get="/orchestrators"
-        hx-trigger="load, getOrchestrators from:body"
-        class="operator-card-list"
-    ></ul>
-    <button
-        hx-get="/orchestrators/form"
-        hx-target="body"
-        hx-swap="beforeend"
-    >
-        Create Orchestrator
-    </button>
-    <footer>Welcome {{ request.session.user.email }}!</footer>
+    <div id="main-div" class="main panel">
+        <div>
+            <h1 class="header">Orchestrators</h1>
+            <ul
+                hx-get="/orchestrators"
+                hx-trigger="load, getOrchestrators from:body"
+                class="operator-card-list"
+            ></ul>
+        </div>
+        <div>
+            <button
+                class="circle-button"
+                hx-get="/orchestrators/form"
+                hx-target="#main-div"
+                hx-swap="beforeend"
+            >
+                <img height="65em" src="{{ url_for('static', path='/create_icon.svg') }}" alt="Create Orchestrator button">
+            </button>
+        </div>
+    </div>
+    <!-- figure out extensions -->
+    {% from "footer.html" import footer %}
+    {{ footer(request=request) }}
 </body>
 
 </html>

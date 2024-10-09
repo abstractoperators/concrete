@@ -26,8 +26,13 @@
 </head>
 
 <body>
-    <a href="{{ url_for('get_orchestrator', orchestrator_id=orchestrator_id) }}">Back</a>
+    <!-- figure out if extensions apply here -->
+    {% from "back_button.html" import back_button with context %}
+    {{ back_button(url_for('get_orchestrator', orchestrator_id=orchestrator_id)) }}
     You've reached an operator!
+    <!-- figure out extensions -->
+    {% from "footer.html" import footer %}
+    {{ footer(request=request) }}
 </body>
 
 </html>

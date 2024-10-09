@@ -26,39 +26,48 @@
 </head>
 
 <body>
-    <a href="{{ url_for('root') }}">Back</a>
-    <div>
-        <div>
-            <h1>Operators</h1>
-            <ul
-                hx-get="{{ url_for('get_operator_list', orchestrator_id=orchestrator_id) }}"
-                hx-trigger="load, getOperators from:body"
-                class="operator-card-list"
-            ></ul>
-        </div>
-        <div>
-            <h1>Projects</h1>
-            <ul
-                hx-get="{{ url_for('get_project_list', orchestrator_id=orchestrator_id) }}"
-                hx-trigger="load, getProjects from:body"
-                class="operator-card-list"
-            ></ul>
+    <!-- figure out if extensions apply here -->
+    {% from "back_button.html" import back_button with context %}
+    {{ back_button(url_for('root')) }}
+    <div class="main panel">
+        <div class="list row">
+            <div>
+                <h1 class="header">Operators</h1>
+                <ul
+                    hx-get="{{ url_for('get_operator_list', orchestrator_id=orchestrator_id) }}"
+                    hx-trigger="load, getOperators from:body"
+                    class="operator-card-list"
+                ></ul>
+                <button
+                    class="circle-button"
+                    hx-get="{{ url_for('create_operator_form', orchestrator_id=orchestrator_id) }}"
+                    hx-swap="afterend"
+                >
+                    <img height="65em" src="{{ url_for('static', path='/create_icon.svg') }}" alt="Create Operator button">
+                    Create Operator
+                </button>
+            </div>
+            <div>
+                <h1 class="header">Projects</h1>
+                <ul
+                    hx-get="{{ url_for('get_project_list', orchestrator_id=orchestrator_id) }}"
+                    hx-trigger="load, getProjects from:body"
+                    class="operator-card-list"
+                ></ul>
+                <button
+                    class="circle-button"
+                    hx-get="{{ url_for('create_project_form', orchestrator_id=orchestrator_id) }}"
+                    hx-swap="afterend"
+                >
+                    <img height="65em" src="{{ url_for('static', path='/create_icon.svg') }}" alt="Create Project button">
+                    Create Project
+                </button>
+            </div>
         </div>
     </div>
-    <button
-        hx-get="{{ url_for('create_operator_form', orchestrator_id=orchestrator_id) }}"
-        hx-target="body"
-        hx-swap="beforeend"
-    >
-        Create Operator
-    </button>
-    <button
-        hx-get="{{ url_for('create_project_form', orchestrator_id=orchestrator_id) }}"
-        hx-target="body"
-        hx-swap="beforeend"
-    >
-        Create Project
-    </button>
+    <!-- figure out extensions -->
+    {% from "footer.html" import footer %}
+    {{ footer(request=request) }}
 </body>
 
 </html>
