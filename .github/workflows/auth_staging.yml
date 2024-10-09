@@ -80,7 +80,7 @@ jobs:
                   echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
                   echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
                   echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
-                  echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/login >> .env
+                  echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
                   poetry run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
                     --container-name auth-staging \
