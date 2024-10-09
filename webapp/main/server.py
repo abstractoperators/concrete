@@ -1,8 +1,6 @@
 import asyncio
-import io
 import os
 import urllib
-import zipfile
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -31,7 +29,11 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     ProjectCreate,
 )
-from concrete.models.messages import ProjectDirectory, sqlmessage_to_pydanticmessage
+from concrete.models.messages import (
+    ProjectDirectory,
+    projectdirectory_to_zip,
+    sqlmessage_to_pydanticmessage,
+)
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
@@ -337,15 +339,6 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
             },
             request=request,
         )
-
-
-def projectdirectory_to_zip(project_directory: ProjectDirectory) -> io.BytesIO:
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for project_file in project_directory.files:
-            zip_file.writestr(project_file.file_name, project_file.file_contents)
-    zip_buffer.seek(0)
-    return zip_buffer
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/download_finished", response_class=HTMLResponse)

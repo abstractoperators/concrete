@@ -19,7 +19,9 @@ String, Number, Boolean, Integer, Object, Array, Enum, anyOf
 Optional is not allowed with OpenAI Structured Outputs. All fields must be required.
 """
 
+import io
 import json
+import zipfile
 from typing import TYPE_CHECKING
 
 from pydantic import Field
@@ -104,8 +106,6 @@ class NodeUUID(Message, KombuMixin):
     node_uuid: str = Field(description="UUID of the node")
 
 
-# from concrete.db.orm.models import Message as SQLMessage
-# TODO type hint while avoiding circular import (message: SQLMessage)
 def sqlmessage_to_pydanticmessage(message: 'SQLMessage') -> Message:
     """
     Converts a SQLModel message back into its Pydantic representation.
@@ -115,3 +115,12 @@ def sqlmessage_to_pydanticmessage(message: 'SQLMessage') -> Message:
     message_content = message.content
 
     return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))
+
+
+def projectdirectory_to_zip(project_directory: ProjectDirectory) -> io.BytesIO:
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for project_file in project_directory.files:
+            zip_file.writestr(project_file.file_name, project_file.file_contents)
+    zip_buffer.seek(0)
+    return zip_buffer
