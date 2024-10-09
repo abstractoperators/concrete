@@ -24,14 +24,15 @@ jobs:
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
+                  echo OPENAI_API_KEY=$OPENAI_API_KEY > .env
                   poetry run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest \
                     --container-name demo-prod \
                     --container-port 80 \
+                    --container-env-file .env \
                     --service-name demo-prod \
                     --listener-rule-field host-header \
-                    --listener-rule-value demo.abop.ai \
-                    --container-env "[[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, {'name': 'OPENAI_API_KEY', 'value': '${OPENAI_API_KEY}'}]]"
+                    --listener-rule-value demo.abop.ai 
                     
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
