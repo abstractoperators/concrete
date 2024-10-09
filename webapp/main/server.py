@@ -30,7 +30,12 @@ from concrete.db.orm.models import (
 )
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
-from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
+from webapp.common import (
+    ConnectionManager,
+    UserIdDep,
+    UserIdDepWS,
+    replace_html_entities,
+)
 
 from .models import HiddenInput
 
@@ -334,17 +339,8 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
 
 
 @app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat/ws")
-async def project_chat_ws(
-    websocket: WebSocket,
-    orchestrator_id: UUID,
-    project_id: UUID,
-):
+async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_id: UUID, user_id: UserIdDepWS):
     await manager.connect(websocket)
-    with Session() as session:
-        orchestrator = crud.get_orchestrator(session, orchestrator_id, websocket.sessions['user']['uuid'])
-        if orchestrator is None:
-            raise HTTPException(status_code=404, detail=f"Orchestrator {orchestrator_id} not found!")
-        user_id = orchestrator.user_id
     try:
         while True:
             data = await websocket.receive_json()
