@@ -171,7 +171,7 @@ class AwsTool(metaclass=MetaTool):
                         image_uri=image_uri,
                         container_name=project_directory_name,
                         container_port=80,
-                        container_env_file=dotenv_values(None),
+                        container_env_file="",
                     )
                 ]
             )
