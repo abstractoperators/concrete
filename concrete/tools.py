@@ -359,7 +359,7 @@ class AwsTool(metaclass=MetaTool):
         "/f7cec30e1ac2e4a4/451389d914171f05",
     ) -> bool:
         """
-        containers: [{"image_uri": str, "container_name": str, "container_port": int}]
+        containers: List of Container objects to deploy.
 
         service_name (str): Custom service name, defaults to the first container name as host header.
 
@@ -376,8 +376,6 @@ class AwsTool(metaclass=MetaTool):
         security_groups (list(str)): List of security groups to attach to the service. Defaults to allow traffic from concrete ALB.
 
         listener_arn: Arn of the listener to attach to the target group. Defaults to https listener on ConcreteLoadBalancer.
-
-
         """  # noqa: E501
         import boto3
 

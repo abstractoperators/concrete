@@ -43,7 +43,7 @@ deploy_parser.add_argument(
     help="The ports for the containers",
 )
 deploy_parser.add_argument(
-    "--container-env-files",
+    "--container-env-file",
     type=str,
     nargs="+",
     help="Environment variables for individual containers, formatted as a space-separated list of file paths. Example: .env.main .env.auth",  # noqa
@@ -83,10 +83,10 @@ async def main():
         CLIClient.emit("Starting deployment to AWS...")
 
         if not (
-            len(args.image_uri) == len(args.container_name) == len(args.container_port) == len(args.container_env_files)
+            len(args.image_uri) == len(args.container_name) == len(args.container_port) == len(args.container_env_file)
         ):
             parser.error(
-                f'The number of image URIs, container names, ports, and env variables must be the same. Image URIs: {len(args.image_uri)}, Container Names: {len(args.container_name)}, Container Ports: {len(args.container_port)}, Container Env: {len(args.container_env_files)}'  # noqa
+                f'The number of image URIs, container names, ports, and env variables must be the same. Image URIs: {len(args.image_uri)}, Container Names: {len(args.container_name)}, Container Ports: {len(args.container_port)}, Container Env: {len(args.container_env_file)}'  # noqa
             )
 
         container_info = [
@@ -94,10 +94,10 @@ async def main():
                 image_uri=image_uri,
                 container_name=container_name,
                 container_port=container_port,
-                container_env_file=container_env,
+                container_env_file=container_env_file,
             )
-            for image_uri, container_name, container_port, container_env in zip(
-                args.image_uri, args.container_name, args.container_port, args.container_env_files
+            for image_uri, container_name, container_port, container_env_file in zip(
+                args.image_uri, args.container_name, args.container_port, args.container_env_file
             )
         ]
 

@@ -31,22 +31,14 @@ jobs:
               env: 
                 POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
-                  touch .env
-                  echo DB_DRIVER=postgresql+psycopg >> .env
-                  echo DB_USERNAME=postgres >> .env
-                  echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
-                  echo DB_PORT=5432 >> .env
-                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
-                  echo DB_DATABASE=postgres >> .env
                   make build-alembic
-
             - name: Push to ECR
               run: |
                   make aws-ecr-push-alembic
     deploy:
         needs: build
         runs-on: ubuntu-latest
-
+        environment: staging
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -63,14 +55,24 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
+              env: 
+                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install --only main,tooluse
+                  touch .env
+                  echo DB_DRIVER=postgresql+psycopg >> .env
+                  echo DB_USERNAME=postgres >> .env
+                  echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
+                  echo DB_PORT=5432 >> .env
+                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
+                  echo DB_DATABASE=postgres >> .env
                   poetry run python -m concrete deploy --task \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest \
                     --container-name alembic-staging \
                     --container-port 80 \
+                    --container-env-file .env \
                     --security-groups sg-01af4e696bd2679c3 \
                     --subnets subnet-0644cadc735c6b557 \
                     
