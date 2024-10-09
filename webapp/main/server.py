@@ -1,8 +1,10 @@
 import asyncio
 import os
+import urllib
 from typing import Annotated, Any
 from uuid import UUID
 
+from dotenv import load_dotenv
 from fastapi import (
     FastAPI,
     Form,
@@ -31,6 +33,8 @@ from concrete.webutils import AuthMiddleware
 from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
 
 from .models import HiddenInput
+
+load_dotenv(override=True)
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
@@ -80,6 +84,17 @@ templates = Jinja2Templates(
         os.path.join(dname, "templates", "components"),
     ],
 )
+
+
+def dyn_url_for(request: Request, name: str, **path_params: Any) -> str:
+    url = request.url_for(name, **path_params)
+    parsed = list(urllib.parse.urlparse(str(url)))
+    if os.environ.get("ENV") != 'DEV':
+        parsed[0] = 'https'  # Change the scheme to 'https' (Optional)
+    return urllib.parse.urlunparse(parsed)
+
+
+templates.env.globals['dyn_url_for'] = dyn_url_for
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
 manager = ConnectionManager()

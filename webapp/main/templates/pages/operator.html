@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
     <title>Operator</title>
-    <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
+    <link href="{{ dyn_url_for(request, 'static', path='/css/abop.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ dyn_url_for(request, 'static', path='/abstractoperators_favicon.jpg') }}">
 
     <!-- htmx -->
     <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
@@ -28,7 +28,7 @@
 <body>
     <!-- figure out if extensions apply here -->
     {% from "back_button.html" import back_button with context %}
-    {{ back_button(url_for('get_orchestrator', orchestrator_id=orchestrator_id)) }}
+    {{ back_button(dyn_url_for(request, 'get_orchestrator', orchestrator_id=orchestrator_id)) }}
     You've reached an operator!
     <!-- figure out extensions -->
     {% from "footer.html" import footer %}
