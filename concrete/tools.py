@@ -14,6 +14,7 @@ from typing import Dict, Optional
 from uuid import UUID
 
 import requests
+from dotenv import dotenv_values
 from requests import Response
 
 from concrete.clients import OpenAIClient
@@ -148,6 +149,7 @@ class Container(ConcreteModel):
     image_uri: str
     container_name: str
     container_port: int
+    container_env_file: str
 
 
 class AwsTool(metaclass=MetaTool):
@@ -169,6 +171,7 @@ class AwsTool(metaclass=MetaTool):
                         image_uri=image_uri,
                         container_name=project_directory_name,
                         container_port=80,
+                        container_env_file="",
                     )
                 ]
             )
@@ -356,7 +359,7 @@ class AwsTool(metaclass=MetaTool):
         "/f7cec30e1ac2e4a4/451389d914171f05",
     ) -> bool:
         """
-        containers: [{"image_uri": str, "container_name": str, "container_port": int}]
+        containers: List of Container objects to deploy.
 
         service_name (str): Custom service name, defaults to the first container name as host header.
 
@@ -379,16 +382,12 @@ class AwsTool(metaclass=MetaTool):
         ecs_client = boto3.client("ecs")
         elbv2_client = boto3.client("elbv2")
 
-        # Arns are not considered secrets
-        # https://devops.stackexchange.com/questions/11101/should-aws-arn-values-be-treated-as-secrets
         cluster = "DemoCluster"
         service_name = service_name or containers[0].container_name
         task_name = service_name
         target_group_name = service_name
         execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
 
-        # TODO: Load balancer should be able to point to multiple containers on a single service.
-        # e.g.) service_name.container1; atm, consider only the first container to route traffic to.
         target_group_arn = None
         if listener_rule is None:
             rule_field = "host-header"
@@ -460,6 +459,9 @@ class AwsTool(metaclass=MetaTool):
                             "awslogs-stream-prefix": "fg",
                         },
                     },
+                    "environment": [
+                        {'name': k, 'value': v} for k, v in dotenv_values(container.container_env_file).items()
+                    ],
                 }
                 for container in containers
             ],

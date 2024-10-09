@@ -3,10 +3,10 @@ on:
   push:
       branches:
           - main
+          - kent/fix-env2
 jobs:
     build:  
         runs-on: ubuntu-latest
-        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -27,30 +27,8 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
-              env:
-                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
-                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
-                  echo OPENAI_TEMPERATURE=0 > .env
-                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
-                  echo DB_DRIVER=postgresql+psycopg >> .env
-                  echo DB_USERNAME=postgres >> .env
-                  echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
-                  echo DB_PORT=5432 >> .env
-                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
-                  echo DB_DATABASE=postgres >> .env
-
-                  echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
-                  echo HTTP_CORS_ORIGINS=$HTTP_CORS_ORIGINS >> .env
-                  echo HTTP_SESSION_DOMAIN=$HTTP_SESSION_DOMAIN >> .env
-                  echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
-                  echo SAAS_AUTH_REDIRECT=$SAAS_AUTH_REDIRECT >> .env
-
-                  echo GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID >> .env
-                  echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
-                  echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
-                  echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
-
+                  touch .env
                   make build-auth
             - name: Push to ECR
               run: |
@@ -58,7 +36,7 @@ jobs:
     deploy:
         needs: build
         runs-on: ubuntu-latest
-
+        environment: staging
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -75,14 +53,39 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
+              env:
+                  OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
+                  DB_PASSWORD: ${{secrets.DB_PASSWORD}}
+                  DB_HOST: ${{secrets.DB_HOST}}
+                  HTTP_SESSION_SECRET: ${{ secrets.HTTP_SESSION_SECRET }}
+                  GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
+                  echo OPENAI_TEMPERATURE=0 > .env
+                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
+                  echo DB_DRIVER=postgresql+psycopg >> .env
+                  echo DB_USERNAME=postgres >> .env
+                  echo DB_PASSWORD=$DB_PASSWORD >> .env
+                  echo DB_PORT=5432 >> .env
+                  echo DB_HOST=$DB_HOST >> .env
+                  echo DB_DATABASE=postgres >> .env
+
+                  echo HTTP_CORS_ORIGINS=*.abop.bot >> .env
+                  echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                  echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
+                  echo SAAS_AUTH_REDIRECT=https://app-staging.abop.ai >> .env
+
+                  echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                  echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
+                  echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
+                  echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/login >> .env
                   poetry run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
                     --container-name auth-staging \
                     --container-port 80 \
+                    --container-env-file .env \
                     --security-groups sg-01af4e696bd2679c3 \
                     --subnets subnet-0644cadc735c6b557 \
                     --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46

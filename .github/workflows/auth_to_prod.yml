@@ -1,42 +1,10 @@
-name: Deploy API to Staging
-on:
-    push:
-        branches:
-            - main
-            - kent/fix-env2
+name: Deploy Auth to Prod
+on: workflow_dispatch
+
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v2
-
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v1
-
-            - name: Configure AWS credentials for ECR
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
-                  aws-region: us-east-1
-
-            - name: Login to Amazon ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
-              with:
-                  mask-password: "true"
-
-            - name: Build the images
-              run: |
-                  touch .env
-                  make build-api
-            - name: Push to ECR
-              run: |
-                  make aws-ecr-push-api
     deploy:
-        needs: build
         runs-on: ubuntu-latest
-        environment: staging
+        environment: prod
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -52,17 +20,17 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
 
-            - name: Deploy to ECS staging using AwsTool._deploy_service
+            - name: Deploy to ECS prod using AwsTool._deploy_service
               env:
                   OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
                   DB_PASSWORD: ${{secrets.DB_PASSWORD}}
                   DB_HOST: ${{secrets.DB_HOST}}
                   HTTP_SESSION_SECRET: ${{ secrets.HTTP_SESSION_SECRET }}
+                  GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
-                  touch .env
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
                   echo DB_DRIVER=postgresql+psycopg >> .env
@@ -72,17 +40,22 @@ jobs:
                   echo DB_HOST=$DB_HOST >> .env
                   echo DB_DATABASE=postgres >> .env
 
-                  echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                  echo HTTP_CORS_ORIGINS=*.abop.bot >> .env
                   echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                   echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
+                  echo SAAS_AUTH_REDIRECT=https://app.abop.ai >> .env
+
+                  echo GOOGLE_OAUTH_CLIENT_ID=400682780267-8rn26kuvcsqk0aj60rk9q3bijk1fnjor.apps.googleusercontent.com >> .env
+                  echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
+                  echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
+                  echo GOOGLE_OAUTH_REDIRECT=https://auth.abop.ai/login >> .env
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest \
-                    --container-name api-staging \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
+                    --container-name auth \
                     --container-port 80 \
                     --container-env-file .env \
-                    --security-groups sg-01af4e696bd2679c3 \
-                    --subnets subnet-0644cadc735c6b557 \
-                    --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46
+                    --listener-rule-field host-header \
+                    --listener-rule-value auth.abop.ai \
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
