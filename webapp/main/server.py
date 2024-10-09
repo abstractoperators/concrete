@@ -149,7 +149,7 @@ async def create_orchestrator(
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(
-        type="unknown",
+        type_name="unknown",
         title=title,
         user_id=user_id,
     )
