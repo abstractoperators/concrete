@@ -84,6 +84,7 @@ jobs:
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
                     --container-name auth-staging \
                     --container-port 80 \
+                    --container-env-file .env \
                     --security-groups sg-01af4e696bd2679c3 \
                     --subnets subnet-0644cadc735c6b557 \
                     --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46
