@@ -112,5 +112,4 @@ def verify_jwt(jwt_token: str, access_token: str) -> dict[str, str]:
     # See https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken
     assert payload['iss'] in {'https://accounts.google.com', 'accounts.google.com'}
     assert payload['aud'] == os.environ['GOOGLE_OAUTH_CLIENT_ID']
-    assert payload['hd'] == 'abstractoperators.ai'
     return payload
