@@ -27,23 +27,6 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
-              env:
-                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
-                POSTGRES_STAGING_PASSWORD: ${{ secrets.POSTGRES_STAGING_PASSWORD }}
-                HTTP_SESSION_SECRET: ${{ secrets.HTTP_SESSION_SECRET }}
-              run: |
-                  echo OPENAI_TEMPERATURE=0 > .env
-                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
-                  echo DB_DRIVER=postgresql+psycopg >> .env
-                  echo DB_USERNAME=postgres >> .env
-                  echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
-                  echo DB_PORT=5432 >> .env
-                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
-                  echo DB_DATABASE=postgres >> .env
-
-                  echo HTTP_SESSION_DOMAIN=abop.ai >> .env
-                  echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
-
               run: |
                   touch .env
                   make build-api
