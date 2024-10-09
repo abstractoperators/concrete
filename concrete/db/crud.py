@@ -285,6 +285,23 @@ def get_messages(
     return db.scalars(stmt).all()
 
 
+def get_completed_project(
+    db: Session,
+    project_id: UUID,
+    prompt: str | None = None,
+) -> Message | None:
+    """
+    Returns message for the completed project
+    # TODO Swap out for project status instead of type = projectdirectory
+    """
+    stmt = (
+        (select(Message) if prompt is None else select(Message).where(Message.prompt == prompt))
+        .where(Message.project_id == project_id)
+        .where(Message.type_name == 'ProjectDirectory')
+    )
+    return db.scalars(stmt).first()
+
+
 def update_message(
     db: Session,
     message_id: UUID,

@@ -161,7 +161,7 @@ class SoftwareProject(StatefulMixin):
                 message_format=Tool,
             ).message
 
-            invoke_tool(**deploy_tool_call.dict())
+            invoke_tool(**deploy_tool_call.model_dump())
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)

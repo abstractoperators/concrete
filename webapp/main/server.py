@@ -14,7 +14,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware import Middleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -27,6 +27,11 @@ from concrete.db.orm.models import (
     OperatorCreate,
     OrchestratorCreate,
     ProjectCreate,
+)
+from concrete.models.messages import (
+    ProjectDirectory,
+    projectdirectory_to_zip,
+    sqlmessage_to_pydanticmessage,
 )
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
@@ -91,7 +96,7 @@ templates = Jinja2Templates(
 )
 
 
-def dyn_url_for(request: Request, name: str, **path_params: Any) -> str:
+def dyn_url_for(request: Request | WebSocket, name: str, **path_params: Any) -> str:
     url = request.url_for(name, **path_params)
     parsed = list(urllib.parse.urlparse(str(url)))
     if os.environ.get("ENV") != 'DEV':
@@ -338,6 +343,28 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         )
 
 
+@app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/download_finished", response_class=HTMLResponse)
+async def get_downloadable_completed_project(orchestrator_id: UUID, project_id: UUID) -> StreamingResponse:
+
+    with Session() as session:
+        final_message = crud.get_completed_project(session, project_id)
+        if final_message is None:
+            raise HTTPException(status_code=404, detail=f"No completed project found for project {project_id}!")
+
+        pydantic_message = sqlmessage_to_pydanticmessage(final_message)
+
+    if not isinstance(pydantic_message, ProjectDirectory):
+        raise HTTPException(
+            status_code=500, detail=f"Expected ProjectDirectory, but got {pydantic_message.__class__.__name__}"
+        )
+    zip_buffer = projectdirectory_to_zip(pydantic_message)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": f"attachment; filename=project_{project_id}.zip"},
+    )
+
+
 @app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat/ws")
 async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_id: UUID, user_id: UserIdDepWS):
     await manager.connect(websocket)
@@ -416,6 +443,31 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                     websocket,
                 )
                 await asyncio.sleep(0)
-
+            await manager.send_text(
+                f"""
+                <ol id="group_chat" hx-swap-oob="beforeend">
+                    <li class="left">
+                        <div class="operator-avatar-container">
+                            <div class="operator-avatar-mask">
+                                <img
+                                    src="/static/operator_circle.svg"
+                                    alt="Operator Avatar"
+                                    class="operator-avatar-mask"
+                                >
+                                <h1 class="operator-avatar-text">
+                                    {str(project.executive_id)}
+                                </h1>
+                            </div>
+                        </div>
+                        <a href="{dyn_url_for(
+                            websocket,
+                            'get_downloadable_completed_project',
+                            orchestrator_id=orchestrator_id,
+                            project_id=project_id )}">Download Files</a>
+                    </li>
+                </ol>
+                """,
+                websocket,
+            )
     except WebSocketDisconnect:
         manager.disconnect(websocket)
