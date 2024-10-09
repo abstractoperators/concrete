@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
     <title>Orchestrators - List View</title>
-    <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
+    <link href="{{ dyn_url_for('static', path='/css/abop.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ dyn_url_for('static', path='/abstractoperators_favicon.jpg') }}">
 
     <!-- htmx -->
     <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
@@ -42,7 +42,7 @@
                 hx-target="#main-div"
                 hx-swap="beforeend"
             >
-                <img height="65em" src="{{ url_for('static', path='/create_icon.svg') }}" alt="Create Orchestrator button">
+                <img height="65em" src="{{ dyn_url_for('static', path='/create_icon.svg') }}" alt="Create Orchestrator button">
             </button>
         </div>
     </div>

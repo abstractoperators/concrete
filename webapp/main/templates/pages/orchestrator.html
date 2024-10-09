@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
     <title>Operators - List View</title>
-    <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
+    <link href="{{ dyn_url_for('static', path='/css/abop.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ dyn_url_for('static', path='/abstractoperators_favicon.jpg') }}">
 
     <!-- htmx -->
     <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
@@ -28,38 +28,38 @@
 <body>
     <!-- figure out if extensions apply here -->
     {% from "back_button.html" import back_button with context %}
-    {{ back_button(url_for('root')) }}
+    {{ back_button(dyn_url_for('root')) }}
     <div class="main panel">
         <div class="list row">
             <div>
                 <h1 class="header">Operators</h1>
                 <ul
-                    hx-get="{{ url_for('get_operator_list', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for('get_operator_list', orchestrator_id=orchestrator_id) }}"
                     hx-trigger="load, getOperators from:body"
                     class="operator-card-list"
                 ></ul>
                 <button
                     class="circle-button"
-                    hx-get="{{ url_for('create_operator_form', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for('create_operator_form', orchestrator_id=orchestrator_id) }}"
                     hx-swap="afterend"
                 >
-                    <img height="65em" src="{{ url_for('static', path='/create_icon.svg') }}" alt="Create Operator button">
+                    <img height="65em" src="{{ dyn_url_for('static', path='/create_icon.svg') }}" alt="Create Operator button">
                     Create Operator
                 </button>
             </div>
             <div>
                 <h1 class="header">Projects</h1>
                 <ul
-                    hx-get="{{ url_for('get_project_list', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for('get_project_list', orchestrator_id=orchestrator_id) }}"
                     hx-trigger="load, getProjects from:body"
                     class="operator-card-list"
                 ></ul>
                 <button
                     class="circle-button"
-                    hx-get="{{ url_for('create_project_form', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for('create_project_form', orchestrator_id=orchestrator_id) }}"
                     hx-swap="afterend"
                 >
-                    <img height="65em" src="{{ url_for('static', path='/create_icon.svg') }}" alt="Create Project button">
+                    <img height="65em" src="{{ dyn_url_for('static', path='/create_icon.svg') }}" alt="Create Project button">
                     Create Project
                 </button>
             </div>

@@ -1,11 +1,11 @@
 {% for p in projects %}
     <li class="operator-card">
-        <a href="{{ url_for('get_project', orchestrator_id=orchestrator_id, project_id=p.id) }}">
+        <a href="{{ dyn_url_for('get_project', orchestrator_id=orchestrator_id, project_id=p.id) }}">
             <hgroup class="operator-avatar-and-header">
                 <div class="operator-avatar-container">
                     <div class="operator-avatar-mask">
                         <img
-                            src="{{ url_for('static', path='/operator_circle.svg') }}"
+                            src="{{ dyn_url_for('static', path='/operator_circle.svg') }}"
                             alt="Project Avatar"
                             class="operator-avatar-mask"
                         >
@@ -19,7 +19,7 @@
             </hgroup>
         </a>
         <button
-            hx-delete="{{ url_for('delete_project', orchestrator_id=orchestrator_id, project_id=p.id) }}"
+            hx-delete="{{ dyn_url_for('delete_project', orchestrator_id=orchestrator_id, project_id=p.id) }}"
             hx-swap="none"
         >Delete</button>
     </li>

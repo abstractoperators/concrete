@@ -1,11 +1,11 @@
 {% for o in orchestrators %}
     <li class="operator-card">
-        <a href="{{ url_for('get_orchestrator', orchestrator_id=o.id) }}">
+        <a href="{{ dyn_url_for('get_orchestrator', orchestrator_id=o.id) }}">
             <hgroup class="operator-avatar-and-header">
                 <div class="operator-avatar-container">
                     <div class="operator-avatar-mask">
                         <img
-                            src="{{ url_for('static', path='/operator_circle.svg') }}"
+                            src="{{ dyn_url_for('static', path='/operator_circle.svg') }}"
                             alt="Orchestrator Avatar"
                             class="operator-avatar-mask"
                         >
@@ -18,6 +18,6 @@
                 <h1 class="header small left">{{ o.title }}</h1>
             </hgroup>
         </a>
-        <button hx-delete="{{ url_for('delete_orchestrator', orchestrator_id=o.id) }}" hx-swap="none">Delete</button>
+        <button hx-delete="{{ dyn_url_for('delete_orchestrator', orchestrator_id=o.id) }}" hx-swap="none">Delete</button>
     </li>
 {% endfor %}
