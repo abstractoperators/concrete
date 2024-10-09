@@ -127,9 +127,6 @@ aws-ecr-push-main: aws-ecr-login
 aws-ecr-push-alembic: aws-ecr-login
 	docker tag alembic:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
-deploy-daemon-to-aws-staging:
-	$(POETRY) python -m concrete deploy --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest --container-name daemons-staging --container-port 80 --service-name=daemons-staging
-
 
 # ------------------------ Local Development without Docker ------------------------
 rabbitmq:
