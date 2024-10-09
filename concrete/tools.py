@@ -461,7 +461,9 @@ class AwsTool(metaclass=MetaTool):
                             "awslogs-stream-prefix": "fg",
                         },
                     },
-                    "environment": [{'name': k, 'value': v} for k, v in dotenv_values(container.container_env_file)],
+                    "environment": [
+                        {'name': k, 'value': v} for k, v in dotenv_values(container.container_env_file).items()
+                    ],
                 }
                 for container in containers
             ],
