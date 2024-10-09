@@ -166,7 +166,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 session,
                 MessageCreate(
                     type_name=response_format.__name__,
-                    content=str(answer),
+                    content=repr(answer),
                     prompt=self.starting_prompt,
                     project_id=self.project_id,
                     operator_id=self.operator_id,
