@@ -110,7 +110,7 @@ class SoftwareProject(StatefulMixin):
             invoke_tool(**deploy_tool_call.model_dump())  # dict() is deprecated
 
         self.update(status=ProjectStatus.FINISHED)
-        yield Developer.__name__, repr(files)
+        yield Developer.__name__, str(files)
 
     # TODO: implement using Celery task calls
     async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
@@ -164,7 +164,7 @@ class SoftwareProject(StatefulMixin):
             invoke_tool(**deploy_tool_call.model_dump())
 
         self.update(status=ProjectStatus.FINISHED)
-        yield Developer.__name__, repr(files)
+        yield Developer.__name__, str(files)
 
 
 class Orchestrator:
