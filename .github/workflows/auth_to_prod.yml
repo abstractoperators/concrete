@@ -1,42 +1,10 @@
-name: Deploy SaaS to Staging
-on:
-    push:
-        branches:
-            - main
-            - michael/deploy_to_prod
+name: Deploy Auth to Prod
+on: workflow_dispatch
+
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v2
-
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v1
-
-            - name: Configure AWS credentials for ECR
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
-                  aws-region: us-east-1
-
-            - name: Login to Amazon ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
-              with:
-                  mask-password: "true"
-
-            - name: Build the images
-              run: |
-                  touch .env 
-                  make build-main
-            - name: Push to ECR
-              run: |
-                  make aws-ecr-push-main
     deploy:
-        needs: build
         runs-on: ubuntu-latest
-        environment: staging
+        environment: prod
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -53,19 +21,19 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
-              env: 
-                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
-                DB_PASSWORD: ${{secrets.DB_PASSWORD}}
-                DB_HOST: ${{secrets.DB_HOST}}
-                HTTP_ALLOWED_HOSTS: ${{secrets.HTTP_ALLOWED_HOSTS}}
-                HTTP_CORS_ORIGINS: ${{secrets.HTTP_CORS_ORIGINS}}
-                HTTP_SESSION_DOMAIN: ${{secrets.HTTP_SESSION_DOMAIN}}
-                HTTP_SESSION_SECRET: ${{secrets.HTTP_SESSION_SECRET}}
-                SAAS_AUTH_REDIRECT: ${{secrets.SAAS_AUTH_REDIRECT}}
-                GOOGLE_OAUTH_CLIENT_ID: ${{secrets.GOOGLE_OAUTH_CLIENT_ID}}
-                GOOGLE_OAUTH_CLIENT_SECRET: ${{secrets.GOOGLE_OAUTH_CLIENT_SECRET}}
-                GOOGLE_OAUTH_REDIRECT_URIS: ${{secrets.GOOGLE_OAUTH_REDIRECT_URIS}}
-                GOOGLE_OAUTH_REDIRECT: ${{secrets.GOOGLE_OAUTH_REDIRECT}}
+              env:
+                  OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
+                  DB_PASSWORD: ${{secrets.DB_PASSWORD}}
+                  DB_HOST: ${{secrets.DB_HOST}}
+                  HTTP_ALLOWED_HOSTS: ${{secrets.HTTP_ALLOWED_HOSTS}}
+                  HTTP_CORS_ORIGINS: ${{secrets.HTTP_CORS_ORIGINS}}
+                  HTTP_SESSION_DOMAIN: ${{secrets.HTTP_SESSION_DOMAIN}}
+                  HTTP_SESSION_SECRET: ${{secrets.HTTP_SESSION_SECRET}}
+                  SAAS_AUTH_REDIRECT: ${{secrets.SAAS_AUTH_REDIRECT}}
+                  GOOGLE_OAUTH_CLIENT_ID: ${{secrets.GOOGLE_OAUTH_CLIENT_ID}}
+                  GOOGLE_OAUTH_CLIENT_SECRET: ${{secrets.GOOGLE_OAUTH_CLIENT_SECRET}}
+                  GOOGLE_OAUTH_REDIRECT_URIS: ${{secrets.GOOGLE_OAUTH_REDIRECT_URIS}}
+                  GOOGLE_OAUTH_REDIRECT: ${{secrets.GOOGLE_OAUTH_REDIRECT}}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
@@ -90,13 +58,12 @@ jobs:
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest \
-                    --container-name main-staging \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
+                    --container-name auth-staging \
                     --container-port 80 \
                     --container-env-file .env \
-                    --service-name main-staging \
                     --listener-rule-field host-header \
-                    --listener-rule-value app-staging.abop.ai \
+                    --listener-rule-value auth.abop.ai \
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
