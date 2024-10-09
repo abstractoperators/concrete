@@ -19,9 +19,16 @@ String, Number, Boolean, Integer, Object, Array, Enum, anyOf
 Optional is not allowed with OpenAI Structured Outputs. All fields must be required.
 """
 
+import json
+from typing import TYPE_CHECKING
+
 from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
+
+# I have no clue how hacky this is
+if TYPE_CHECKING:
+    from concrete.db.orm.models import Message as SQLMessage
 
 # Tracks all message types created as a sub class of Message
 # Keys are not type sensitive
@@ -95,3 +102,16 @@ class NodeSummary(Message, KombuMixin):
 
 class NodeUUID(Message, KombuMixin):
     node_uuid: str = Field(description="UUID of the node")
+
+
+# from concrete.db.orm.models import Message as SQLMessage
+# TODO type hint while avoiding circular import (message: SQLMessage)
+def sqlmessage_to_pydanticmessage(message: 'SQLMessage') -> Message:
+    """
+    Converts a SQLModel message back into its Pydantic representation.
+    """
+
+    message_type = message.type_name
+    message_content = message.content
+
+    return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))

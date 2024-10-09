@@ -31,7 +31,7 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     ProjectCreate,
 )
-from concrete.models.messages import MESSAGE_REGISTRY
+from concrete.models.messages import sqlmessage_to_pydanticmessage
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
@@ -350,20 +350,16 @@ async def get_downloadable_completed_project(
         final_message = crud.get_completed_project(session, project_id)
         if final_message is None:
             raise HTTPException(status_code=404, detail=f"No completed project found for project {project_id}!")
-        type = final_message.type_name
-        content = final_message.content
-        CLIClient.emit(f"Final message content: \n{content}\n")
-        content_dict = json.loads(content)
-        CLIClient.emit(f"Final message content dict: \n{content_dict}\n")
-        pydantic_type = MESSAGE_REGISTRY[type.lower()]
-        CLIClient.emit(f"Final message type: {type}\n")
-        pydantic_instance = pydantic_type.parse_obj(content_dict)
-        CLIClient.emit(f"Final message instance: {pydantic_instance}\n")
+
+        pydantic_message = sqlmessage_to_pydanticmessage(final_message)
+        CLIClient.emit(pydantic_message)
+
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix='.txt') as temp:
-            temp.write(content)
+            temp.write(str(pydantic_message))
             temp_file_path = temp.name
+
         background_tasks.add_task(os.remove, temp_file_path)
-    return FileResponse(temp_file_path, filename=f"project_{project_id}.{type}")
+    return FileResponse(temp_file_path, filename=f"project_{project_id}.txt")
 
 
 @app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat/ws")
