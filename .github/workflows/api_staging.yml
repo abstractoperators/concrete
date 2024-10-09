@@ -3,7 +3,6 @@ on:
     push:
         branches:
             - main
-            - michael/deploy_to_prod
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -57,9 +56,6 @@ jobs:
                   OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
                   DB_PASSWORD: ${{secrets.DB_PASSWORD}}
                   DB_HOST: ${{secrets.DB_HOST}}
-                  HTTP_ALLOWED_HOSTS: ${{secrets.HTTP_ALLOWED_HOSTS}}
-                  HTTP_CORS_ORIGINS: ${{secrets.HTTP_CORS_ORIGINS}}
-                  HTTP_SESSION_DOMAIN: ${{secrets.HTTP_SESSION_DOMAIN}}
                   HTTP_SESSION_SECRET: ${{secrets.HTTP_SESSION_SECRET}}
                   SAAS_AUTH_REDIRECT: ${{secrets.SAAS_AUTH_REDIRECT}}
                   GOOGLE_OAUTH_CLIENT_ID: ${{secrets.GOOGLE_OAUTH_CLIENT_ID}}
@@ -81,10 +77,10 @@ jobs:
                   echo DB_DATABASE=postgres >> .env
 
                   echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
-                  echo HTTP_CORS_ORIGINS=$HTTP_CORS_ORIGINS >> .env
-                  echo HTTP_SESSION_DOMAIN=$HTTP_SESSION_DOMAIN >> .env
+                  echo HTTP_CORS_ORIGINS=*.abop.ai >> .env
+                  echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                   echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
-                  echo SAAS_AUTH_REDIRECT=$SAAS_AUTH_REDIRECT >> .env
+                  echo SAAS_AUTH_REDIRECT=https://app-staging.abop.ai >> .env
 
                   echo GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID >> .env
                   echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
