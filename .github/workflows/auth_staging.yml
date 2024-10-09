@@ -3,7 +3,7 @@ on:
   push:
       branches:
           - main
-          - kent/fix-env
+          - kent/fix-env2
 jobs:
     build:  
         runs-on: ubuntu-latest
