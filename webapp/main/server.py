@@ -1,9 +1,12 @@
 import asyncio
+import json
 import os
+import tempfile
 from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import (
+    BackgroundTasks,
     FastAPI,
     Form,
     HTTPException,
@@ -12,7 +15,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware import Middleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -26,6 +29,7 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     ProjectCreate,
 )
+from concrete.models.messages import MESSAGE_REGISTRY
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
@@ -318,6 +322,31 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
             },
             request=request,
         )
+
+
+@app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/download_finished", response_class=HTMLResponse)
+async def get_downloadable_completed_project(
+    orchestrator_id: UUID, project_id: UUID, background_tasks: BackgroundTasks
+) -> FileResponse:
+
+    # ConcreteModel.__str__ escapes content, which makes it non json loadable
+    # We invert it here, but really we should be saving the __repr__ content instead of the __str__ content.
+    with Session() as session:
+        final_message = crud.get_completed_project(session, project_id)
+        if final_message is None:
+            raise HTTPException(status_code=404, detail=f"No completed project found for project {project_id}!")
+        type = final_message.type_name
+        pretty_content = final_message.content
+
+        CLIClient.emit(f"Final message content: \n{pretty_content}\n")
+        pydantic_type = MESSAGE_REGISTRY[type.lower()]
+        CLIClient.emit(f"Final message type: {type}\n")
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix='.txt') as temp:
+            temp.write(pretty_content)
+            temp_file_path = temp.name
+        background_tasks.add_task(os.remove, temp_file_path)
+    return FileResponse(temp_file_path, filename=f"project_{project_id}.{type}")
 
 
 @app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat/ws")
