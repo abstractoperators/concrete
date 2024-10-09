@@ -118,9 +118,9 @@ async def root(request: Request):
 
 
 @app.get("/orchestrators", response_class=HTMLResponse)
-async def get_orchestrator_list(request: Request):
+async def get_orchestrator_list(request: Request, user_id: UserIdDep):
     with Session() as session:
-        orchestrators = crud.get_orchestrators(session, user_id=request.session['user']['uuid'])
+        orchestrators = crud.get_orchestrators(session, user_id)
         CLIClient.emit_sequence(orchestrators)
         CLIClient.emit("\n")
         return templates.TemplateResponse(
@@ -132,7 +132,6 @@ async def get_orchestrator_list(request: Request):
 
 @app.post("/orchestrators")
 async def create_orchestrator(
-    type_name: annotatedFormStr,
     title: annotatedFormStr,
     user_id: UserIdDep,
 ):
@@ -140,7 +139,7 @@ async def create_orchestrator(
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(
-        type_name=type_name,
+        type="unknown",
         title=title,
         user_id=user_id,
     )
@@ -171,9 +170,9 @@ async def get_orchestrator(orchestrator_id: UUID, request: Request):
 
 
 @app.delete("/orchestrators/{orchestrator_id}")
-async def delete_orchestrator(request: Request, orchestrator_id: UUID):
+async def delete_orchestrator(orchestrator_id: UUID, user_id: UserIdDep):
     with Session() as session:
-        orchestrator = crud.delete_orchestrator(session, orchestrator_id, request.session['user']['uuid'])
+        orchestrator = crud.delete_orchestrator(session, orchestrator_id, user_id)
         CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
         return HTMLResponse(content=f"Deleted orchestrator {orchestrator_id}", headers=headers)
@@ -198,13 +197,12 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
 @app.post("/orchestrators/{orchestrator_id}/operators")
 async def create_operator(
     orchestrator_id: UUID,
-    instructions: annotatedFormStr,
     title: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
+    operator_create = OperatorCreate(instructions="", title=title, orchestrator_id=orchestrator_id)
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
