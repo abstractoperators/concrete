@@ -88,7 +88,7 @@ templates = Jinja2Templates(
 
 def dyn_url_for(request: Request, name: str, **path_params: Any) -> str:
     url = request.url_for(name, **path_params)
-    parsed = list(urllib.parse.urlparse(url))
+    parsed = list(urllib.parse.urlparse(str(url)))
     if os.environ.get("ENV") != 'DEV':
         parsed[0] = 'https'  # Change the scheme to 'https' (Optional)
     return urllib.parse.urlunparse(parsed)
