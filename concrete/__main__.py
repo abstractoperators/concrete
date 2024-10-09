@@ -1,5 +1,4 @@
 import argparse
-import ast
 import asyncio
 
 from . import orchestrator
@@ -34,7 +33,7 @@ deploy_parser.add_argument(
     type=str,
     nargs="+",
     required=True,
-    help="The custom names for the containers",
+    help="The custom names for the containers. ",
 )
 deploy_parser.add_argument(
     "--container-port",
@@ -44,9 +43,10 @@ deploy_parser.add_argument(
     help="The ports for the containers",
 )
 deploy_parser.add_argument(
-    "--container-envs",
+    "--container-env-files",
     type=str,
-    help="Environment variables for all containers, formatted as a list of lists of dictionaries. Example: \"[[{'name': 'foo', 'value': 'bar'}]]\"",  # noqa
+    nargs="+",
+    help="Environment variables for individual containers, formatted as a space-separated list of file paths. Example: .env.main .env.auth",  # noqa
     required=False,
 )
 deploy_parser.add_argument(
@@ -82,15 +82,11 @@ async def main():
     elif args.mode == "deploy":
         CLIClient.emit("Starting deployment to AWS...")
 
-        container_envs_str = args.container_envs
-        if container_envs_str:
-            container_envs = ast.literal_eval(container_envs_str)
-        else:
-            container_envs = []
-
-        if not (len(args.image_uri) == len(args.container_name) == len(args.container_port) == len(container_envs)):
+        if not (
+            len(args.image_uri) == len(args.container_name) == len(args.container_port) == len(args.container_env_files)
+        ):
             parser.error(
-                f'The number of image URIs, container names, ports, and env variables must be the same. Image URIs: {len(args.image_uri)}, Container Names: {len(args.container_name)}, Container Ports: {len(args.container_port)}, Container Env: {len(container_envs)}'  # noqa
+                f'The number of image URIs, container names, ports, and env variables must be the same. Image URIs: {len(args.image_uri)}, Container Names: {len(args.container_name)}, Container Ports: {len(args.container_port)}, Container Env: {len(args.container_env_files)}'  # noqa
             )
 
         container_info = [
@@ -98,26 +94,19 @@ async def main():
                 image_uri=image_uri,
                 container_name=container_name,
                 container_port=container_port,
-                container_env=container_env,
+                container_env_file=container_env,
             )
             for image_uri, container_name, container_port, container_env in zip(
-                args.image_uri, args.container_name, args.container_port, container_envs
+                args.image_uri, args.container_name, args.container_port, args.container_env_files
             )
         ]
-        if args.listener_rule_field and args.listener_rule_value:
+
+        if bool(args.listener_rule_field) ^ bool(args.listener_rule_value):
+            parser.error("Both listener_rule_field and listener_rule_value must be provided if one is provided.")
+        elif args.listener_rule_field and args.listener_rule_value:
             listener_rule = {'field': args.listener_rule_field, 'value': args.listener_rule_value}
         else:
             listener_rule = None
-
-        args_dict = {
-            'service_name': args.service_name,
-            'subnets': args.subnets,
-            'vpc': args.vpc,
-            'security_groups': args.security_groups,
-            'listener_arn': args.listener_arn,
-            'listener_rule': listener_rule,
-        }
-        args_dict = {key: value for key, value in args_dict.items() if value is not None}
 
         if args.task:
             args_dict = {
@@ -135,6 +124,7 @@ async def main():
                 'vpc': args.vpc,
                 'security_groups': args.security_groups,
                 'listener_arn': args.listener_arn,
+                'listener_rule': listener_rule,
             }
             args_dict = {key: value for key, value in args_dict.items() if value is not None}
 
