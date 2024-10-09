@@ -5,6 +5,10 @@ from uuid import UUID
 from sqlmodel import Session, select
 
 from .orm.models import (
+    AuthState,
+    AuthStateCreate,
+    AuthToken,
+    AuthTokenCreate,
     Base,
     Client,
     ClientCreate,
@@ -26,6 +30,8 @@ from .orm.models import (
     Tool,
     ToolCreate,
     ToolUpdate,
+    User,
+    UserCreate,
 )
 
 M = TypeVar("M", bound=Base)
@@ -311,6 +317,7 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
     )
 
 
+# ===Knowledge Graph=== #
 def create_node(db: Session, node_create: NodeCreate) -> Node:
     return create_generic(db, Node(**node_create.model_dump()))
 
@@ -340,3 +347,32 @@ def get_root_repo_node(db: Session, org: str, repo: str, branch: str = 'main') -
 def get_repo_node_by_path(db: Session, org: str, repo: str, abs_path: str, branch: str = 'main') -> RepoNode | None:
     stmt = select(RepoNode).where(RepoNode.org == org, RepoNode.repo == repo, RepoNode.abs_path == abs_path)
     return db.scalars(stmt).first()
+
+
+# ===User Auth=== #
+def create_authstate(db: Session, authstate_create: AuthStateCreate) -> AuthState:
+    return create_generic(
+        db,
+        AuthState(**authstate_create.model_dump()),
+    )
+
+
+def get_authstate(db: Session, state: str) -> AuthState | None:
+    stmt = select(AuthState).where(AuthState.state == state)
+    return db.scalars(stmt).first()
+
+
+def create_user(db: Session, user_create: UserCreate) -> User:
+    return create_generic(
+        db,
+        User(**user_create.model_dump()),
+    )
+
+
+def get_user(db: Session, email: str) -> User | None:
+    stmt = select(User).where(User.email == email)
+    return db.scalars(stmt).first()
+
+
+def create_authtoken(db: Session, authtoken_create: AuthTokenCreate) -> AuthToken:
+    return create_generic(db, AuthToken(**authtoken_create.model_dump()))

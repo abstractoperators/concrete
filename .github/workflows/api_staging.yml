@@ -1,4 +1,4 @@
-name: Deploy SaaS to Staging
+name: Deploy API to Staging
 on:
     push:
         branches:
@@ -6,7 +6,6 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
-        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -27,6 +26,9 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
+              env:
+                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
+                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
@@ -48,14 +50,14 @@ jobs:
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
 
-                  make build-main
+                  make build-webapp-api
             - name: Push to ECR
               run: |
-                  make aws-ecr-push-main
+                  make aws-ecr-push-api
     deploy:
         needs: build
         runs-on: ubuntu-latest
-        environment: staging
+
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -72,20 +74,17 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
-              env: 
-                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest \
-                    --container-name main-staging \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-api:latest \
+                    --container-name api-staging \
                     --container-port 80 \
-                    --service-name main-staging \
-                    --listener-rule-field host-header \
-                    --listener-rule-value app-staging.abop.ai \
-                    --container-envs "[[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, {'name': 'DB_DRIVER', 'value': 'postgresql+psycopg'}, {'name': 'DB_USERNAME', 'value': 'postgres'}, {'name': 'DB_PASSWORD', 'value': '$POSTGRES_STAGING_PASSWORD'}, {'name': 'DB_PORT', 'value': '5432'}, {'name': 'DB_HOST', 'value': 'database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com'}, {'name': 'DB_DATABASE', 'value': 'postgres'}]]"
+                    --security-groups sg-01af4e696bd2679c3 \
+                    --subnets subnet-0644cadc735c6b557 \
+                    --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed

@@ -19,16 +19,23 @@ RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --only main,webap
 FROM python:3.11.10-slim-bookworm AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
+    PATH="/app/.venv/bin:$PATH" \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 
 
 WORKDIR /app
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
+COPY concrete ./concrete
+COPY pyproject.toml poetry.lock ./
 COPY .env .env
+RUN touch README.md
+
+RUN pip install --no-deps .
 
 # App specifics
-COPY webapp/homepage ./webapp/homepage
-RUN chmod +x ./webapp/homepage/scripts/start.sh
+COPY webapp/api ./webapp/api
+RUN chmod +x ./webapp/api/scripts/start.sh
 EXPOSE 80
-CMD ["./webapp/homepage/scripts/start.sh"]
+CMD ["./webapp/api/scripts/start.sh"]
 

@@ -43,6 +43,12 @@ alembic = "==1.13.2"
 gunicorn = "==22.0.0"
 uvicorn = "==0.30.4"
 fastapi = "==0.111.1"
+google-auth = "==2.35.0"
+google-auth-oauthlib = "==1.2.1"
+google-api-python-client = "==2.147.0"
+itsdangerous = "==2.2.0"  # session middleware
+pyjwt = "==2.9.0"
+cryptography = "==43.0.1"  # for pyjwt
 
 
 [tool.poetry.group.docs.dependencies]

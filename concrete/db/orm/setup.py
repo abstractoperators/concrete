@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import URL
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session as SQLModelSession
-from sqlmodel import create_engine
+from sqlmodel import SQLModel, create_engine
 
 from concrete.clients import CLIClient
 
@@ -31,6 +31,11 @@ else:
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+# Postgres uses alembic to initialize the database. SQLite is extra ephemeral, so we just hit it with a create all
+if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
+    SQLModel.metadata.create_all(engine)
 
 
 @contextmanager
