@@ -1,8 +1,9 @@
-name: Deploy SaaS to Staging
+name: Run Alembic Migrations on Staging
 on:
     push:
         branches:
             - main
+
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -27,35 +28,25 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
+              env: 
+                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
-                  echo OPENAI_TEMPERATURE=0 > .env
-                  echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
+                  touch .env
                   echo DB_DRIVER=postgresql+psycopg >> .env
                   echo DB_USERNAME=postgres >> .env
                   echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
                   echo DB_PORT=5432 >> .env
-                  echo DB_HOST=database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
+                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
                   echo DB_DATABASE=postgres >> .env
+                  make build-alembic
 
-                  echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
-                  echo HTTP_CORS_ORIGINS=$HTTP_CORS_ORIGINS >> .env
-                  echo HTTP_SESSION_DOMAIN=$HTTP_SESSION_DOMAIN >> .env
-                  echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
-                  echo SAAS_AUTH_REDIRECT=$SAAS_AUTH_REDIRECT >> .env
-
-                  echo GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID >> .env
-                  echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
-                  echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
-                  echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
-
-                  make build-main
             - name: Push to ECR
               run: |
-                  make aws-ecr-push-main
+                  make aws-ecr-push-alembic
     deploy:
         needs: build
         runs-on: ubuntu-latest
-        environment: staging
+
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -72,21 +63,17 @@ jobs:
                   aws-region: us-east-1
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
-              env: 
-                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
-                  poetry install
-                  poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest \
-                    --container-name main-staging \
+                  poetry install --only main,tooluse
+                  poetry run python -m concrete deploy --task \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest \
+                    --container-name alembic-staging \
                     --container-port 80 \
-                    --service-name main-staging \
-                    --listener-rule-field host-header \
-                    --listener-rule-value app-staging.abop.ai \
-                    --container-envs "[[{'name': 'OPENAI_TEMPERATURE', 'value': '0'}, {'name': 'DB_DRIVER', 'value': 'postgresql+psycopg'}, {'name': 'DB_USERNAME', 'value': 'postgres'}, {'name': 'DB_PASSWORD', 'value': '$POSTGRES_STAGING_PASSWORD'}, {'name': 'DB_PORT', 'value': '5432'}, {'name': 'DB_HOST', 'value': 'database-1.c3auqaqcunqy.us-east-1.rds.amazonaws.com'}, {'name': 'DB_DATABASE', 'value': 'postgres'}]]"
-
+                    --security-groups sg-01af4e696bd2679c3 \
+                    --subnets subnet-0644cadc735c6b557 \
+                    
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
 # The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).

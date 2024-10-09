@@ -21,6 +21,7 @@ prompt_parser.add_argument(
 
 # AwsTool._deploy_service
 deploy_parser = subparsers.add_parser("deploy", help="Deploy image URIs to AWS")
+deploy_parser.add_argument("--task", action='store_true', help="Run the task as a standalone that runs and exits")
 deploy_parser.add_argument(
     "--image-uri",
     type=str,
@@ -118,7 +119,26 @@ async def main():
         }
         args_dict = {key: value for key, value in args_dict.items() if value is not None}
 
-        AwsTool._deploy_service(containers=container_info, **args_dict)
+        if args.task:
+            args_dict = {
+                'subnets': args.subnets,
+                'vpc': args.vpc,
+                'security_groups': args.security_groups,
+            }
+            args_dict = {key: value for key, value in args_dict.items() if value is not None}
+
+            AwsTool._run_task(containers=container_info, **args_dict)
+        else:
+            args_dict = {
+                'service_name': args.service_name,
+                'subnets': args.subnets,
+                'vpc': args.vpc,
+                'security_groups': args.security_groups,
+                'listener_arn': args.listener_arn,
+            }
+            args_dict = {key: value for key, value in args_dict.items() if value is not None}
+
+            AwsTool._deploy_service(containers=container_info, **args_dict)
         CLIClient.emit("Deployment completed.")
 
 

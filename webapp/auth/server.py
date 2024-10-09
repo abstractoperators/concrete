@@ -27,9 +27,7 @@ from google_auth_oauthlib.flow import Flow
 from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from concrete.db.crud import (
     create_authstate,
@@ -69,16 +67,10 @@ GoogleOAuthClient = functools.partial(
 
 
 # Setup App with Middleware
-middleware = [Middleware(HTTPSRedirectMiddleware)] if os.environ.get('ENV') != 'DEV' else []
-middleware += [
-    Middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=[_ for _ in os.environ['HTTP_ALLOWED_HOSTS'].split(',')],
-        www_redirect=False,
-    ),
+middleware = [
     Middleware(
         CORSMiddleware,
-        allow_origins=[_ for _ in os.environ['HTTP_CORS_ORIGINS'].split(',')],
+        allow_origins=os.environ['HTTP_CORS_ORIGINS'].split(','),
         allow_credentials=True,
     ),
     # Session allows us to save state between the client and the be
@@ -114,7 +106,7 @@ def login(request: Request, destination_url: str | None = None):
     clean_destination_url = os.environ['SAAS_AUTH_REDIRECT']
     if destination_url:
         parsed = urllib.parse.urlparse(destination_url)
-        clean_destination_url += (f':{port}' if (port := parsed.port) else '') + parsed.path
+        clean_destination_url += parsed.path
 
     # Randomly generated state from google's sdk
     authorization_url, state = flow.authorization_url(
@@ -193,7 +185,7 @@ def auth_callback(request: Request):
             first_name=user_info['given_name'],
             last_name=user_info['family_name'],
             email=user_info['email'],
-            profile_picture=user_info['picture'],
+            profile_picture_url=user_info['picture'],
         )
         with Session() as session:
             user = create_user(session, new_user)

@@ -1,11 +1,15 @@
+import os
 from logging.config import fileConfig
 
 import dotenv
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import URL, engine_from_config, pool
 from sqlmodel import SQLModel
 
+from concrete.clients import CLIClient
+
 dotenv.load_dotenv(override=True)
+
 
 from concrete.db.orm.models import *  # noqa: F401, F403, E402
 
@@ -24,10 +28,25 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
 
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+DB_PORT = os.environ.get("DB_PORT")
+db_port = int(DB_PORT) if DB_PORT else None
+SQLALCHEMY_DATABASE_URL = URL.create(
+    drivername=os.environ.get("DB_DRIVER", "sqlite"),
+    username=os.environ.get("DB_USERNAME", None),
+    password=os.environ.get("DB_PASSWORD", None),
+    host=os.environ.get("DB_HOST", None),
+    port=db_port,
+    database=os.environ.get("DB_DATABASE", "sql_app.db"),
+)
+
+CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
+CLIClient.emit(f'Password starts with: {os.environ.get("DB_PASSWORD", "")[0]}')
+config.set_main_option('sqlalchemy.url', str(SQLALCHEMY_DATABASE_URL).replace('***', os.environ.get('DB_PASSWORD', "")))
 
 
 def run_migrations_offline() -> None:

@@ -1,0 +1,25 @@
+{% for message in chat %}
+    {% if message.user_id is not none %}
+        <li class="right">
+            <div class="operator-avatar-container">
+                <div class="operator-avatar-mask">
+                    <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
+                    <h1 class="operator-avatar-text">U</h1>
+                </div>
+            </div>
+            <p class="message">{{ message.content }}</p>
+        </li>
+    {% else %}
+        <li class="left">
+            <div class="operator-avatar-container">
+                <div class="operator-avatar-mask">
+                    <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
+                    <h1 class="operator-avatar-text">
+                        {{ (message.operator_id|string)[:2] }}
+                    </h1>
+                </div>
+            </div>
+            <p class="message">{{ message.content }}</p>
+        </li>
+    {% endif %}
+{% endfor %}

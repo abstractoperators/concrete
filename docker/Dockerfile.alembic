@@ -14,7 +14,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 RUN touch README.md
 
-RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --only main,webapp --no-root
+RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --only main,dev --no-root
 
 FROM python:3.11.10-slim-bookworm AS runtime
 
@@ -25,8 +25,17 @@ WORKDIR /app
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 # App specifics
-COPY webapp/homepage ./webapp/homepage
-RUN chmod +x ./webapp/homepage/scripts/start.sh
-EXPOSE 80
-CMD ["./webapp/homepage/scripts/start.sh"]
+COPY alembic.ini alembic.ini
+COPY migrations migrations
+COPY scripts/run_alembic_migrations.sh scripts/run_alembic_migrations.sh
+
+COPY concrete concrete
+COPY pyproject.toml pyproject.toml
+COPY poetry.lock ./
+COPY .env .env
+RUN touch README.md
+RUN pip install --no-deps .
+
+RUN chmod +x scripts/run_alembic_migrations.sh
+CMD ["./scripts/run_alembic_migrations.sh"]
 

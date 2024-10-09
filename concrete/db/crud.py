@@ -24,6 +24,9 @@ from .orm.models import (
     Orchestrator,
     OrchestratorCreate,
     OrchestratorUpdate,
+    Project,
+    ProjectCreate,
+    ProjectUpdate,
     RepoNode,
     RepoNodeCreate,
     RepoNodeUpdate,
@@ -71,8 +74,26 @@ def delete_generic(db: Session, model: M | None) -> M | None:
 # ===Operator=== #
 
 
+# TODO: automate project creation via DML trigger/event
 def create_operator(db: Session, operator_create: OperatorCreate) -> Operator:
-    return create_generic(db, Operator(**operator_create.model_dump()))
+    project_create = ProjectCreate(
+        title=f"{operator_create.title}'s Direct Messages",
+        orchestrator_id=operator_create.orchestrator_id,
+    )
+    project = create_project(db, project_create)
+
+    operator = create_generic(
+        db,
+        Operator(
+            direct_message_project_id=project.id,
+            **operator_create.model_dump(),
+        ),
+    )
+
+    project.direct_message_operator_id = operator.id
+    db.commit()
+
+    return operator
 
 
 def get_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Operator | None:
@@ -149,9 +170,9 @@ def get_clients(
         (
             select(Client)
             if (orchestrator_id is None) or (operator_id is None)
-            else (
-                select(Client).where(Client.operator_id == operator_id).where(Client.orchestrator_id == orchestrator_id)
-            )
+            else select(Client)
+            .where(Client.operator_id == operator_id)
+            .where(Client.orchestrator_id == orchestrator_id)
         )
         .offset(skip)
         .limit(limit)
@@ -207,7 +228,7 @@ def get_tools(
     limit: int = 100,
 ) -> Sequence[Tool]:
     stmt = (
-        (select(Tool) if operator_id is None else (select(Operator.tools).where(Operator.id == operator_id)))
+        (select(Tool) if operator_id is None else select(Operator.tools).where(Operator.id == operator_id))
         .offset(skip)
         .limit(limit)
     )  # TODO: unpack from Operator.tools properly
@@ -234,6 +255,8 @@ def delete_tool(db: Session, tool_id: UUID) -> Tool | None:
 
 
 # ===Message=== #
+
+
 def create_message(db: Session, message_create: MessageCreate) -> Message:
     return create_generic(
         db,
@@ -241,30 +264,35 @@ def create_message(db: Session, message_create: MessageCreate) -> Message:
     )
 
 
-def get_message(db: Session, message_id: UUID, orchestrator_id: UUID) -> Message | None:
-    stmt = select(Message).where(Message.id == message_id).where(Message.orchestrator_id == orchestrator_id)
+def get_message(db: Session, message_id: UUID) -> Message | None:
+    stmt = select(Message).where(Message.id == message_id)
     return db.scalars(stmt).first()
 
 
 def get_messages(
     db: Session,
-    orchestrator_id: UUID,
+    project_id: UUID,
+    prompt: str | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Message]:
-    stmt = select(Message).where(Message.orchestrator_id == orchestrator_id).offset(skip).limit(limit)
+    stmt = (
+        (select(Message) if prompt is None else select(Message).where(Message.prompt == prompt))
+        .where(Message.project_id == project_id)
+        .offset(skip)
+        .limit(limit)
+    )
     return db.scalars(stmt).all()
 
 
 def update_message(
     db: Session,
     message_id: UUID,
-    orchestrator_id: UUID,
     message_update: MessageUpdate,
 ) -> Message | None:
     return update_generic(
         db,
-        get_message(db, message_id, orchestrator_id),
+        get_message(db, message_id),
         message_update,
     )
 
@@ -272,9 +300,8 @@ def update_message(
 def delete_message(
     db: Session,
     message_id: UUID,
-    orchestrator_id: UUID,
 ) -> Message | None:
-    return delete_generic(db, get_message(db, message_id, orchestrator_id))
+    return delete_generic(db, get_message(db, message_id))
 
 
 # ===Orchestrator=== #
@@ -317,7 +344,58 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | No
     )
 
 
-# ===Knowledge Graph=== #
+# ===Project=== #
+
+
+def create_project(db: Session, project_create: ProjectCreate) -> Project:
+    return create_generic(db, Project(**project_create.model_dump()))
+
+
+def get_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Project | None:
+    stmt = select(Project).where(Project.id == project_id).where(Project.orchestrator_id == orchestrator_id)
+    return db.scalars(stmt).first()
+
+
+def get_projects(
+    db: Session,
+    orchestrator_id: UUID | None = None,
+    include_direct_messages: bool = False,
+    skip: int = 0,
+    limit: int = 100,
+) -> Sequence[Project]:
+    stmt = select(Project)
+    if orchestrator_id:
+        stmt = stmt.where(Project.orchestrator_id == orchestrator_id)
+    if not include_direct_messages:
+        stmt = stmt.where(Project.direct_message_operator_id == None)  # noqa: E711
+    stmt = stmt.offset(skip).limit(limit)
+
+    return db.scalars(stmt).all()
+
+
+def update_project(
+    db: Session,
+    project_id: UUID,
+    orchestrator_id: UUID,
+    project_update: ProjectUpdate,
+) -> Project | None:
+    return update_generic(
+        db,
+        get_project(db, project_id, orchestrator_id),
+        project_update,
+    )
+
+
+def delete_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Project | None:
+    return delete_generic(
+        db,
+        get_project(db, project_id, orchestrator_id),
+    )
+
+
+# ===Node=== #
+
+
 def create_node(db: Session, node_create: NodeCreate) -> Node:
     return create_generic(db, Node(**node_create.model_dump()))
 

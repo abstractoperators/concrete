@@ -9,7 +9,7 @@ from sqlmodel import SQLModel, create_engine
 
 from concrete.clients import CLIClient
 
-load_dotenv()
+load_dotenv(override=True)
 DB_PORT = os.environ.get("DB_PORT")
 db_port = int(DB_PORT) if DB_PORT else None
 SQLALCHEMY_DATABASE_URL = URL.create(

@@ -30,7 +30,7 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-load_dotenv('.env.daemons')
+load_dotenv('.env.daemons', override=True)
 
 
 class Webhook(ABC):
