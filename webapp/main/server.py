@@ -1,7 +1,7 @@
 import asyncio
 import os
 from typing import Annotated, Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import (
     FastAPI,
@@ -28,7 +28,7 @@ from concrete.db.orm.models import (
 )
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
-from webapp.common import ConnectionManager
+from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
 
 from .models import HiddenInput
 
@@ -54,15 +54,11 @@ def sidebar_create(
         "hiddens": hiddens,
     }
 
-    return components.TemplateResponse(
+    return templates.TemplateResponse(
         name="sidebar_create_panel.html",
         context=context,
         request=request,
     )
-
-
-def replace_html_entities(html_text: str):
-    return html_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
@@ -78,8 +74,12 @@ middleware = [
 ]
 
 app = FastAPI(title="Abstract Operators: Concrete", middleware=middleware)
-pages = Jinja2Templates(directory=os.path.join(dname, "templates", "pages"))
-components = Jinja2Templates(directory=os.path.join(dname, "templates", "components"))
+templates = Jinja2Templates(
+    directory=[
+        os.path.join(dname, "templates", "pages"),
+        os.path.join(dname, "templates", "components"),
+    ],
+)
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
 manager = ConnectionManager()
@@ -96,7 +96,7 @@ async def login(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return pages.TemplateResponse(name="index.html", request=request)
+    return templates.TemplateResponse(name="index.html", request=request)
 
 
 # === Orchestrators === #
@@ -108,7 +108,7 @@ async def get_orchestrator_list(request: Request):
         orchestrators = crud.get_orchestrators(session)
         CLIClient.emit_sequence(orchestrators)
         CLIClient.emit("\n")
-        return components.TemplateResponse(
+        return templates.TemplateResponse(
             name="orchestrator_list.html",
             context={"orchestrators": orchestrators},
             request=request,
@@ -119,12 +119,16 @@ async def get_orchestrator_list(request: Request):
 async def create_orchestrator(
     type_name: annotatedFormStr,
     title: annotatedFormStr,
-    owner: annotatedFormStr,
+    user_id: UserIdDep,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    orchestrator_create = OrchestratorCreate(type_name=type_name, title=title, owner=owner)
+    orchestrator_create = OrchestratorCreate(
+        type_name=type_name,
+        title=title,
+        user_id=user_id,
+    )
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
@@ -134,22 +138,17 @@ async def create_orchestrator(
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
 async def create_orchestrator_form(request: Request):
-    # TODO get owner dynamically
-    hiddens = [
-        HiddenInput(name="owner", value="dance"),
-    ]
     return sidebar_create(
         "Orchestrator",
         "/orchestrators",
         "orchestrator_form.html",
         request,
-        hiddens=hiddens,
     )
 
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
 async def get_orchestrator(orchestrator_id: UUID, request: Request):
-    return pages.TemplateResponse(
+    return templates.TemplateResponse(
         name="orchestrator.html",
         context={"orchestrator_id": orchestrator_id},
         request=request,
@@ -174,7 +173,7 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
         operators = crud.get_operators(session, orchestrator_id)
         CLIClient.emit_sequence(operators)
         CLIClient.emit("\n")
-        return components.TemplateResponse(
+        return templates.TemplateResponse(
             name="operator_list.html",
             context={"orchestrator_id": orchestrator_id, "operators": operators},
             request=request,
@@ -210,7 +209,7 @@ async def create_operator_form(orchestrator_id: UUID, request: Request):
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
 async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Request):
-    return pages.TemplateResponse(
+    return templates.TemplateResponse(
         name="operator.html",
         context={
             "orchestrator_id": orchestrator_id,
@@ -238,7 +237,7 @@ async def get_project_list(orchestrator_id: UUID, request: Request):
         projects = crud.get_projects(session, orchestrator_id)
         CLIClient.emit_sequence(projects)
         CLIClient.emit("\n")
-        return components.TemplateResponse(
+        return templates.TemplateResponse(
             name="project_list.html",
             context={"orchestrator_id": orchestrator_id, "projects": projects},
             request=request,
@@ -288,7 +287,7 @@ async def get_project(orchestrator_id: UUID, project_id: UUID, request: Request)
     with Session() as session:
         project = crud.get_project(session, project_id, orchestrator_id)
         CLIClient.emit(f"{project}\n")
-        return pages.TemplateResponse(
+        return templates.TemplateResponse(
             name="project.html",
             context={
                 "project": project,
@@ -312,7 +311,7 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         chat = crud.get_messages(session, project_id)
         CLIClient.emit_sequence(chat)
         CLIClient.emit("\n")
-        return components.TemplateResponse(
+        return templates.TemplateResponse(
             name="project_chat.html",
             context={
                 "chat": chat,
@@ -321,13 +320,18 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         )
 
 
-@app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat")
+@app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat/ws")
 async def project_chat_ws(
     websocket: WebSocket,
     orchestrator_id: UUID,
     project_id: UUID,
 ):
     await manager.connect(websocket)
+    with Session() as session:
+        orchestrator = crud.get_orchestrator(session, orchestrator_id)
+        if orchestrator is None:
+            raise HTTPException(status_code=404, detail=f"Orchestrator {orchestrator_id} not found!")
+        user_id = orchestrator.user_id
     try:
         while True:
             data = await websocket.receive_json()
@@ -340,8 +344,7 @@ async def project_chat_ws(
                         content=prompt,
                         prompt=prompt,
                         project_id=project_id,
-                        user_id=uuid4(),
-                        # TODO get user_id
+                        user_id=user_id,
                     ),
                 )
                 CLIClient.emit(prompt_message)
@@ -397,7 +400,7 @@ async def project_chat_ws(
                                     </h1>
                                 </div>
                             </div>
-                            <p class="message">{ replace_html_entities(response) }</p>
+                            <pre class="message">{ replace_html_entities(response) }</pre>
                         </li>
                     </ol>
                     """,
