@@ -20,20 +20,13 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
 
-            - name: Deploy to ECS staging using AwsTool._deploy_service
+            - name: Deploy to ECS prod using AwsTool._deploy_service
               env:
                   OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
                   DB_PASSWORD: ${{secrets.DB_PASSWORD}}
                   DB_HOST: ${{secrets.DB_HOST}}
-                  HTTP_ALLOWED_HOSTS: ${{secrets.HTTP_ALLOWED_HOSTS}}
-                  HTTP_CORS_ORIGINS: ${{secrets.HTTP_CORS_ORIGINS}}
-                  HTTP_SESSION_DOMAIN: ${{secrets.HTTP_SESSION_DOMAIN}}
-                  HTTP_SESSION_SECRET: ${{secrets.HTTP_SESSION_SECRET}}
-                  SAAS_AUTH_REDIRECT: ${{secrets.SAAS_AUTH_REDIRECT}}
-                  GOOGLE_OAUTH_CLIENT_ID: ${{secrets.GOOGLE_OAUTH_CLIENT_ID}}
-                  GOOGLE_OAUTH_CLIENT_SECRET: ${{secrets.GOOGLE_OAUTH_CLIENT_SECRET}}
-                  GOOGLE_OAUTH_REDIRECT_URIS: ${{secrets.GOOGLE_OAUTH_REDIRECT_URIS}}
-                  GOOGLE_OAUTH_REDIRECT: ${{secrets.GOOGLE_OAUTH_REDIRECT}}
+                  HTTP_SESSION_SECRET: ${{ secrets.HTTP_SESSION_SECRET }}
+                  GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
               run: |
                   curl -sSL https://install.python-poetry.org | python3 -
                   poetry --version
@@ -42,21 +35,19 @@ jobs:
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
                   echo DB_DRIVER=postgresql+psycopg >> .env
                   echo DB_USERNAME=postgres >> .env
-                  echo DB_PASSWORD=$DB_PASSWORD >> .env
+                  echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
                   echo DB_PORT=5432 >> .env
-                  echo DB_HOST=$DB_HOST >> .env
+                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
                   echo DB_DATABASE=postgres >> .env
 
-                  echo HTTP_ALLOWED_HOSTS=$HTTP_ALLOWED_HOSTS >> .env
-                  echo HTTP_CORS_ORIGINS=$HTTP_CORS_ORIGINS >> .env
-                  echo HTTP_SESSION_DOMAIN=$HTTP_SESSION_DOMAIN >> .env
+                  echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                   echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
-                  echo SAAS_AUTH_REDIRECT=$SAAS_AUTH_REDIRECT >> .env
+                  echo SAAS_AUTH_REDIRECT=https://main-staging.abop.ai >> .env
 
-                  echo GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID >> .env
+                  echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
                   echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
-                  echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
-                  echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
+                  echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
+                  echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/login >> .env
                   poetry run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
                     --container-name auth-staging \
