@@ -35,19 +35,20 @@ jobs:
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
                   echo DB_DRIVER=postgresql+psycopg >> .env
                   echo DB_USERNAME=postgres >> .env
-                  echo DB_PASSWORD=$POSTGRES_STAGING_PASSWORD >> .env
+                  echo DB_PASSWORD=$DB_PASSWORD >> .env
                   echo DB_PORT=5432 >> .env
-                  echo DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com >> .env
+                  echo DB_HOST=$DB_HOST >> .env
                   echo DB_DATABASE=postgres >> .env
 
+                  echo HTTP_CORS_ORIGINS=*.abop.bot >> .env
                   echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                   echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
-                  echo SAAS_AUTH_REDIRECT=https://main-staging.abop.ai >> .env
+                  echo SAAS_AUTH_REDIRECT=https://app.abop.ai >> .env
 
-                  echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                  echo GOOGLE_OAUTH_CLIENT_ID=400682780267-8rn26kuvcsqk0aj60rk9q3bijk1fnjor.apps.googleusercontent.com >> .env
                   echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
                   echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
-                  echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/login >> .env
+                  echo GOOGLE_OAUTH_REDIRECT=https://auth.abop.ai/login >> .env
                   poetry run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
                     --container-name auth-staging \
