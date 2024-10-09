@@ -1,8 +1,8 @@
 import asyncio
-import json
+import io
 import os
-import tempfile
 import urllib
+import zipfile
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -17,7 +17,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware import Middleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -31,7 +31,7 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     ProjectCreate,
 )
-from concrete.models.messages import sqlmessage_to_pydanticmessage
+from concrete.models.messages import ProjectDirectory, sqlmessage_to_pydanticmessage
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
@@ -339,27 +339,37 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         )
 
 
+def projectdirectory_to_zip(project_directory: ProjectDirectory) -> io.BytesIO:
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for project_file in project_directory.files:
+            zip_file.writestr(project_file.file_name, project_file.file_contents)
+    zip_buffer.seek(0)
+    return zip_buffer
+
+
 @app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/download_finished", response_class=HTMLResponse)
 async def get_downloadable_completed_project(
     orchestrator_id: UUID, project_id: UUID, background_tasks: BackgroundTasks
-) -> FileResponse:
+) -> StreamingResponse:
 
-    # ConcreteModel.__str__ escapes content, which makes it non json loadable
-    # We invert it here, but really we should be saving the __repr__ content instead of the __str__ content.
     with Session() as session:
         final_message = crud.get_completed_project(session, project_id)
         if final_message is None:
             raise HTTPException(status_code=404, detail=f"No completed project found for project {project_id}!")
 
         pydantic_message = sqlmessage_to_pydanticmessage(final_message)
-        CLIClient.emit(pydantic_message)
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix='.txt') as temp:
-            temp.write(str(pydantic_message))
-            temp_file_path = temp.name
-
-        background_tasks.add_task(os.remove, temp_file_path)
-    return FileResponse(temp_file_path, filename=f"project_{project_id}.txt")
+    if not isinstance(pydantic_message, ProjectDirectory):
+        raise HTTPException(
+            status_code=500, detail=f"Expected ProjectDirectory, but got {pydantic_message.__class__.__name__}"
+        )
+    zip_buffer = projectdirectory_to_zip(pydantic_message)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": f"attachment; filename=project_{project_id}.zip"},
+    )
 
 
 @app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat/ws")
