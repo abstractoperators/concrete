@@ -106,7 +106,7 @@ async def login(request: Request):
     user_data = AuthMiddleware.check_auth(request)
     if user_data:
         return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
-    return JSONResponse({"login here": "https://auth-staging.abot.ai/login"})
+    return JSONResponse({"login here": "https://auth.abot.ai/login"})
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -120,7 +120,7 @@ async def root(request: Request):
 @app.get("/orchestrators", response_class=HTMLResponse)
 async def get_orchestrator_list(request: Request):
     with Session() as session:
-        orchestrators = crud.get_orchestrators(session)
+        orchestrators = crud.get_orchestrators(session, user_id=request.session['user']['uuid'])
         CLIClient.emit_sequence(orchestrators)
         CLIClient.emit("\n")
         return templates.TemplateResponse(
@@ -171,9 +171,9 @@ async def get_orchestrator(orchestrator_id: UUID, request: Request):
 
 
 @app.delete("/orchestrators/{orchestrator_id}")
-async def delete_orchestrator(orchestrator_id: UUID):
+async def delete_orchestrator(request: Request, orchestrator_id: UUID):
     with Session() as session:
-        orchestrator = crud.delete_orchestrator(session, orchestrator_id)
+        orchestrator = crud.delete_orchestrator(session, orchestrator_id, request.session['user']['uuid'])
         CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
         return HTMLResponse(content=f"Deleted orchestrator {orchestrator_id}", headers=headers)
@@ -343,7 +343,7 @@ async def project_chat_ws(
 ):
     await manager.connect(websocket)
     with Session() as session:
-        orchestrator = crud.get_orchestrator(session, orchestrator_id)
+        orchestrator = crud.get_orchestrator(session, orchestrator_id, websocket.sessions['user']['uuid'])
         if orchestrator is None:
             raise HTTPException(status_code=404, detail=f"Orchestrator {orchestrator_id} not found!")
         user_id = orchestrator.user_id
