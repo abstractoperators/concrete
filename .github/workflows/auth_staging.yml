@@ -3,10 +3,10 @@ on:
   push:
       branches:
           - main
+          - michael/deploy_to_prod
 jobs:
     build:  
         runs-on: ubuntu-latest
-        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -27,10 +27,39 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
-              env:
-                OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
-                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
+                  touch .env
+                  make build-auth
+            - name: Push to ECR
+              run: |
+                  make aws-ecr-push-auth
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        environment: staging
+        steps:
+            - name: Setup Python for poetry
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.11.9"
+
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Configure AWS Credentials for ECS
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+                  aws-region: us-east-1
+
+            - name: Deploy to ECS staging using AwsTool._deploy_service
+              env:
+                  OPENAI_API_KEY: ${{ secrets.DEMO_OPENAI_API_KEY }}
+                  POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
+              run: |
+                  curl -sSL https://install.python-poetry.org | python3 -
+                  poetry --version
+                  poetry install
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
                   echo DB_DRIVER=postgresql+psycopg >> .env
@@ -50,35 +79,6 @@ jobs:
                   echo GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET >> .env
                   echo GOOGLE_OAUTH_REDIRECT_URIS=$GOOGLE_OAUTH_REDIRECT_URIS >> .env
                   echo GOOGLE_OAUTH_REDIRECT=$GOOGLE_OAUTH_REDIRECT >> .env
-
-                  make build-auth
-            - name: Push to ECR
-              run: |
-                  make aws-ecr-push-auth
-    deploy:
-        needs: build
-        runs-on: ubuntu-latest
-
-        steps:
-            - name: Setup Python for poetry
-              uses: actions/setup-python@v5
-              with:
-                python-version: "3.11.9"
-
-            - name: Checkout code
-              uses: actions/checkout@v2
-
-            - name: Configure AWS Credentials for ECS
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
-                  aws-region: us-east-1
-
-            - name: Deploy to ECS staging using AwsTool._deploy_service
-              run: |
-                  curl -sSL https://install.python-poetry.org | python3 -
-                  poetry --version
-                  poetry install
                   poetry run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest \
                     --container-name auth-staging \

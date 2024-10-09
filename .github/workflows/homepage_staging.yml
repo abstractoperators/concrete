@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/deploy_to_prod
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -61,6 +62,7 @@ jobs:
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest \
                     --container-name homepage-staging \
                     --container-port 80 \
+                    --container-env-file "" \
                     --service-name homepage-staging \
                     --security-groups sg-01af4e696bd2679c3 \
                     --subnets subnet-0644cadc735c6b557 \

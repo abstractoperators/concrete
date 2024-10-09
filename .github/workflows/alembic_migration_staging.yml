@@ -3,11 +3,10 @@ on:
     push:
         branches:
             - main
-
+            - michael/deploy_to_prod
 jobs:
     build:
         runs-on: ubuntu-latest
-        environment: staging
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -28,9 +27,8 @@ jobs:
                   mask-password: "true"
 
             - name: Build the images
-              env: 
-                POSTGRES_STAGING_PASSWORD: ${{secrets.POSTGRES_STAGING_PASSWORD}}
               run: |
+                  touch .env
                   make build-alembic
             - name: Push to ECR
               run: |
