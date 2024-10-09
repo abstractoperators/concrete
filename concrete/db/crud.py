@@ -328,36 +328,38 @@ def create_orchestrator(db: Session, orchestrator_create: OrchestratorCreate) ->
     return create_generic(db, Orchestrator(**orchestrator_create.model_dump()))
 
 
-def get_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | None:
-    stmt = select(Orchestrator).where(Orchestrator.id == orchestrator_id)
+def get_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID) -> Orchestrator | None:
+    stmt = select(Orchestrator).where(Orchestrator.id == orchestrator_id).where(Orchestrator.user_id == user_id)
     return db.scalars(stmt).first()
 
 
 def get_orchestrators(
     db: Session,
+    user_id: UUID,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Orchestrator]:
-    stmt = select(Orchestrator).offset(skip).limit(limit)
+    stmt = select(Orchestrator).where(Orchestrator.user_id == user_id).offset(skip).limit(limit)
     return db.scalars(stmt).all()
 
 
 def update_orchestrator(
     db: Session,
     orchestrator_id: UUID,
+    user_id: UUID,
     orchestrator_update: OrchestratorUpdate,
 ) -> Orchestrator | None:
     return update_generic(
         db,
-        get_orchestrator(db, orchestrator_id),
+        get_orchestrator(db, orchestrator_id, user_id),
         orchestrator_update,
     )
 
 
-def delete_orchestrator(db: Session, orchestrator_id: UUID) -> Orchestrator | None:
+def delete_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID) -> Orchestrator | None:
     return delete_generic(
         db,
-        get_orchestrator(db, orchestrator_id),
+        get_orchestrator(db, orchestrator_id, user_id),
     )
 
 
