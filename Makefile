@@ -92,8 +92,12 @@ run-main: build-main
 run-postgres:
 	docker compose -f docker/docker-compose.yml down postgres
 	docker compose -f docker/docker-compose.yml up -d postgres
+	@echo "Waiting for PostgreSQL to be ready..."
+	while ! docker exec postgres pg_isready -h localhost -p 5432 -q; do \
+		echo "Waiting for postgres..."; \
+		sleep 1; \
+	done
 	$(POETRY) alembic upgrade head
-
 # ----------------------- AWS Commands -----------------------
 # TODO: Use hyphens instead of underscores
 # https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
