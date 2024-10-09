@@ -47,4 +47,13 @@ async def get_user_id_from_request(request: Request) -> UUID:
     return UUID(request.session['user']['uuid'])
 
 
+async def get_user_id_from_ws(websocket: WebSocket) -> UUID:
+    """
+    Retrieves user id from fastAPI Request object,
+    assuming user has successfully logged in and has a stored session
+    """
+    return UUID(websocket.session['user']['uuid'])
+
+
 UserIdDep = Annotated[UUID, Depends(get_user_id_from_request)]
+UserIdDepWS = Annotated[UUID, Depends(get_user_id_from_ws)]

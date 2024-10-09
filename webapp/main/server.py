@@ -30,7 +30,12 @@ from concrete.db.orm.models import (
 )
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
-from webapp.common import ConnectionManager, UserIdDep, replace_html_entities
+from webapp.common import (
+    ConnectionManager,
+    UserIdDep,
+    UserIdDepWS,
+    replace_html_entities,
+)
 
 from .models import HiddenInput
 
@@ -106,7 +111,7 @@ async def login(request: Request):
     user_data = AuthMiddleware.check_auth(request)
     if user_data:
         return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
-    return JSONResponse({"login here": "https://auth-staging.abot.ai/login"})
+    return JSONResponse({"login here": "https://auth.abot.ai/login"})
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -118,9 +123,9 @@ async def root(request: Request):
 
 
 @app.get("/orchestrators", response_class=HTMLResponse)
-async def get_orchestrator_list(request: Request):
+async def get_orchestrator_list(request: Request, user_id: UserIdDep):
     with Session() as session:
-        orchestrators = crud.get_orchestrators(session)
+        orchestrators = crud.get_orchestrators(session, user_id)
         CLIClient.emit_sequence(orchestrators)
         CLIClient.emit("\n")
         return templates.TemplateResponse(
@@ -132,7 +137,6 @@ async def get_orchestrator_list(request: Request):
 
 @app.post("/orchestrators")
 async def create_orchestrator(
-    type_name: annotatedFormStr,
     title: annotatedFormStr,
     user_id: UserIdDep,
 ):
@@ -140,7 +144,7 @@ async def create_orchestrator(
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(
-        type_name=type_name,
+        type="unknown",
         title=title,
         user_id=user_id,
     )
@@ -171,9 +175,9 @@ async def get_orchestrator(orchestrator_id: UUID, request: Request):
 
 
 @app.delete("/orchestrators/{orchestrator_id}")
-async def delete_orchestrator(orchestrator_id: UUID):
+async def delete_orchestrator(orchestrator_id: UUID, user_id: UserIdDep):
     with Session() as session:
-        orchestrator = crud.delete_orchestrator(session, orchestrator_id)
+        orchestrator = crud.delete_orchestrator(session, orchestrator_id, user_id)
         CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
         return HTMLResponse(content=f"Deleted orchestrator {orchestrator_id}", headers=headers)
@@ -198,13 +202,12 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
 @app.post("/orchestrators/{orchestrator_id}/operators")
 async def create_operator(
     orchestrator_id: UUID,
-    instructions: annotatedFormStr,
     title: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
+    operator_create = OperatorCreate(instructions="", title=title, orchestrator_id=orchestrator_id)
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
@@ -336,17 +339,8 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
 
 
 @app.websocket("/orchestrators/{orchestrator_id}/projects/{project_id}/chat/ws")
-async def project_chat_ws(
-    websocket: WebSocket,
-    orchestrator_id: UUID,
-    project_id: UUID,
-):
+async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_id: UUID, user_id: UserIdDepWS):
     await manager.connect(websocket)
-    with Session() as session:
-        orchestrator = crud.get_orchestrator(session, orchestrator_id)
-        if orchestrator is None:
-            raise HTTPException(status_code=404, detail=f"Orchestrator {orchestrator_id} not found!")
-        user_id = orchestrator.user_id
     try:
         while True:
             data = await websocket.receive_json()
