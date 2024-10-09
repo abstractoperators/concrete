@@ -351,14 +351,16 @@ async def get_downloadable_completed_project(
         if final_message is None:
             raise HTTPException(status_code=404, detail=f"No completed project found for project {project_id}!")
         type = final_message.type_name
-        pretty_content = final_message.content
-
-        CLIClient.emit(f"Final message content: \n{pretty_content}\n")
+        content = final_message.content
+        CLIClient.emit(f"Final message content: \n{content}\n")
+        content_dict = json.loads(content)
+        CLIClient.emit(f"Final message content dict: \n{content_dict}\n")
         pydantic_type = MESSAGE_REGISTRY[type.lower()]
         CLIClient.emit(f"Final message type: {type}\n")
-
+        pydantic_instance = pydantic_type.parse_obj(content_dict)
+        CLIClient.emit(f"Final message instance: {pydantic_instance}\n")
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix='.txt') as temp:
-            temp.write(pretty_content)
+            temp.write(content)
             temp_file_path = temp.name
         background_tasks.add_task(os.remove, temp_file_path)
     return FileResponse(temp_file_path, filename=f"project_{project_id}.{type}")
