@@ -32,6 +32,7 @@ jobs:
                 GH_PRIVATE_KEY_PATH: ${{ secrets.GH_PRIVATE_KEY_PATH }}
               run: |
                   echo "$GH_PRIVATE_KEY" >> "./webapp/daemons/$GH_PRIVATE_KEY_PATH"
+                  touch .env
                   make build-daemons
 
             - name: Push to ECR
