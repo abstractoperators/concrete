@@ -187,3 +187,5 @@ shared/
 
 # mkdocs™
 .site/
+
+.vsls.json

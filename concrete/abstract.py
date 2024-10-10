@@ -117,8 +117,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         self,
         clients: dict[str, OpenAIClient] | None = None,
         tools: list[MetaTool] | None = None,
-        operator_id: UUID = uuid4(),
-        project_id: UUID = uuid4(),
+        operator_id: UUID = uuid4(),  # TODO: Don't set a default
+        project_id: UUID = uuid4(),  # TODO: Don't set a default
         starting_prompt: str | None = None,
     ):
         self._clients = clients if clients is not None else {'openai': OpenAIClient()}
@@ -161,6 +161,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         answer = response.parsed
 
+        # TODO: Only do this for the SaaS
         with Session() as session:
             crud.create_message(
                 session,

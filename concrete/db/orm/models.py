@@ -54,6 +54,7 @@ class UserBase(Base, ProfilePictureMixin):
     first_name: str | None = Field(default=None, max_length=64)
     last_name: str | None = Field(default=None, max_length=64)
     email: str = Field(unique=True, max_length=128)
+    # TODO: Change user email to be primary semantic key
 
 
 class UserUpdate(Base, ProfilePictureMixin):
@@ -86,6 +87,7 @@ class OrchestratorBase(Base):
         foreign_key="user.id",
         ondelete="CASCADE",
     )
+    # TODO: Change orchestrator to have semantic primary key on name + user
 
 
 class OrchestratorUpdate(Base):
@@ -118,13 +120,15 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
 
 class OperatorBase(Base, ProfilePictureMixin):
     instructions: str = Field(description="Instructions and role of the operator.")
-    title: str = Field(description="Title of the operator.", max_length=32)
+    title: str = Field(description="Title of the operator.", max_length=32)  # dropdown for title exec/dev
 
     orchestrator_id: UUID = Field(
         description="ID of Orchestrator that owns this operator.",
         foreign_key="orchestrator.id",
         ondelete="CASCADE",
     )
+
+    # TODO: Add unique name + orchestrator composite key
 
 
 class OperatorUpdate(Base, ProfilePictureMixin):
@@ -153,6 +157,18 @@ class Operator(OperatorBase, MetadataMixin, table=True):
             "foreign_keys": "Project.direct_message_operator_id",
         },
     )
+
+    def to_obj(self):
+        from concrete.operators import Developer, Executive
+
+        # TODO: Abide by orchestrator clients
+        if self.title == 'executive':
+            operator = Executive()
+        if self.title == 'developer':
+            operator = Developer()
+        operator.operator_id = self.id
+        operator.instructions = self.instructions
+        return operator
 
 
 # Client Models

@@ -208,11 +208,12 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
 async def create_operator(
     orchestrator_id: UUID,
     title: annotatedFormStr,
+    instructions: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    operator_create = OperatorCreate(instructions="", title=title, orchestrator_id=orchestrator_id)
+    operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
@@ -386,9 +387,24 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 CLIClient.emit(prompt_message)
                 CLIClient.emit("\n")
 
-                project = crud.get_project(session, project_id, orchestrator_id)
+                project = crud.get_project(session, project_id, orchestrator_id)  # Operator pydantic type
                 if project is None:
-                    raise HTTPException(status_code=404, detail=f"Project {project_id} not found!")
+                    raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+                if project.executive_id is None or project.developer_id is None:
+                    raise HTTPException(status_code=404, detail=f"Operators undefined on project {project_id}")
+
+                sqlmodel_executive = crud.get_operator(session, (project.executive_id), orchestrator_id)
+                if sqlmodel_executive is None:
+                    raise HTTPException(status_code=404, detail=f"Developer {project.executive_id} not found")
+                executive = sqlmodel_executive.to_obj()
+                executive.project_id = project.id
+
+                sqlmodel_developer = crud.get_operator(session, project.developer_id, orchestrator_id)
+                if sqlmodel_developer is None:
+                    raise HTTPException(status_code=404, detail=f"Developer {project.developer_id} not found")
+                developer = sqlmodel_developer.to_obj()
+                developer.project_id = project.id
+
                 CLIClient.emit(project)
                 CLIClient.emit("\n")
 
@@ -415,7 +431,10 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
             await asyncio.sleep(0)
 
             CLIClient.emit(prompt)
-            so = SoftwareOrchestrator(project.executive_id, project.developer_id)
+            so = SoftwareOrchestrator()
+            so.add_operator(executive, 'exec')
+            so.add_operator(developer, 'dev')
+
             so.update(ws=websocket, manager=manager)
             async for operator, response in so.process_new_project(prompt, project.id, use_celery=False):
                 CLIClient.emit(f"[{operator}]:\n{response}\n")
@@ -455,7 +474,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                                     class="operator-avatar-mask"
                                 >
                                 <h1 class="operator-avatar-text">
-                                    {str(project.executive_id)}
+                                    {str(project.executive_id)[:2]}
                                 </h1>
                             </div>
                         </div>

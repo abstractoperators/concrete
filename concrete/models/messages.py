@@ -28,7 +28,7 @@ from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
 
-# I have no clue how hacky this is
+# TODO I have no clue how hacky this is
 if TYPE_CHECKING:
     from concrete.db.orm.models import Message as SQLMessage
 
