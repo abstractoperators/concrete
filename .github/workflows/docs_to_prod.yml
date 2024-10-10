@@ -4,7 +4,6 @@ on: workflow_dispatch
 jobs:
     deploy:
         runs-on: ubuntu-latest
-
         steps:
             - name: Setup Python for poetry
               uses: actions/setup-python@v5
@@ -27,10 +26,10 @@ jobs:
                   poetry install
                   poetry run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest \
-                    --container-name docs-staging \
+                    --container-name docs \
                     --container-port 80 \
                     --container-env-file "" \
-                    --service-name docs-staging 
+                    --service-name docs 
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
