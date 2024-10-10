@@ -42,6 +42,7 @@
                 hx-get="{{ dyn_url_for(request, 'get_project_chat', orchestrator_id=project.orchestrator_id, project_id=project.id) }}"
                 hx-trigger="load"
             ></ol>
+            <a href="{{ dyn_url_for(request, 'get_downloadable_completed_project', orchestrator_id=project.orchestrator_id, project_id=project_id) }}">Download Files</a>
             <form
                 ws-send
             >

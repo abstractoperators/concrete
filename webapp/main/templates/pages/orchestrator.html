@@ -34,13 +34,13 @@
             <div>
                 <h1 class="header">Operators</h1>
                 <ul
-                    hx-get="{{ dyn_url_for(request, 'get_operator_list', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for(request, 'get_operator_list', orchestrator_name=orchestrator.name, orchestrator_id=orchestrator.id) }}"
                     hx-trigger="load, getOperators from:body"
                     class="operator-card-list"
                 ></ul>
                 <button
                     class="circle-button"
-                    hx-get="{{ dyn_url_for(request, 'create_operator_form', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for(request, 'create_operator_form', orchestrator_id=orchestrator.id) }}"
                     hx-swap="afterend"
                 >
                     <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}" alt="Create Operator button">
@@ -50,13 +50,13 @@
             <div>
                 <h1 class="header">Projects</h1>
                 <ul
-                    hx-get="{{ dyn_url_for(request, 'get_project_list', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for(request, 'get_project_list', orchestrator_name=orchestrator.name, orchestrator_id=orchestrator.id) }}"
                     hx-trigger="load, getProjects from:body"
                     class="operator-card-list"
                 ></ul>
                 <button
                     class="circle-button"
-                    hx-get="{{ dyn_url_for(request, 'create_project_form', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for(request, 'create_project_form', orchestrator_id=orchestrator.id) }}"
                     hx-swap="afterend"
                 >
                     <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}" alt="Create Project button">

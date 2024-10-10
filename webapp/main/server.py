@@ -142,7 +142,7 @@ async def get_orchestrator_list(request: Request, user_id: UserIdDep):
 
 @app.post("/orchestrators")
 async def create_orchestrator(
-    title: annotatedFormStr,
+    name: annotatedFormStr,
     user_id: UserIdDep,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
@@ -150,7 +150,7 @@ async def create_orchestrator(
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(
         type_name="unknown",
-        title=title,
+        name=name,
         user_id=user_id,
     )
     with Session() as session:
@@ -170,11 +170,11 @@ async def create_orchestrator_form(request: Request):
     )
 
 
-@app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
-async def get_orchestrator(orchestrator_id: UUID, request: Request):
+@app.get("/orchestrators/{orchestrator_name}", response_class=HTMLResponse)
+async def get_orchestrator(orchestrator_name: str, request: Request):
     return templates.TemplateResponse(
         name="orchestrator.html",
-        context={"orchestrator_id": orchestrator_id},
+        context={"orchestrator_name": orchestrator_name},
         request=request,
     )
 
@@ -191,7 +191,7 @@ async def delete_orchestrator(orchestrator_id: UUID, user_id: UserIdDep):
 # === Operators === #
 
 
-@app.get("/orchestrators/{orchestrator_id}/operators", response_class=HTMLResponse)
+@app.get("/orchestrators/{orchestrator_name}/operators", response_class=HTMLResponse)
 async def get_operator_list(orchestrator_id: UUID, request: Request):
     with Session() as session:
         operators = crud.get_operators(session, orchestrator_id)
@@ -207,12 +207,13 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
 @app.post("/orchestrators/{orchestrator_id}/operators")
 async def create_operator(
     orchestrator_id: UUID,
-    title: annotatedFormStr,
+    instructions: annotatedFormStr,
+    name: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    operator_create = OperatorCreate(instructions="", title=title, orchestrator_id=orchestrator_id)
+    operator_create = OperatorCreate(instructions=instructions, name=name, orchestrator_id=orchestrator_id)
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
@@ -270,7 +271,7 @@ async def get_project_list(orchestrator_id: UUID, request: Request):
 @app.post("/orchestrators/{orchestrator_id}/projects", response_class=HTMLResponse)
 async def create_project(
     orchestrator_id: UUID,
-    title: annotatedFormStr,
+    name: annotatedFormStr,
     executive_id: annotatedFormUuid,
     developer_id: annotatedFormUuid,
 ):
@@ -278,7 +279,7 @@ async def create_project(
     # defining parameter Annotated[ProjectCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     project_create = ProjectCreate(
-        title=title,
+        name=name,
         executive_id=executive_id,
         developer_id=developer_id,
         orchestrator_id=orchestrator_id,
