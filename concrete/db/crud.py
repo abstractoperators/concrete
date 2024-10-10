@@ -77,7 +77,7 @@ def delete_generic(db: Session, model: M | None) -> M | None:
 # TODO: automate project creation via DML trigger/event
 def create_operator(db: Session, operator_create: OperatorCreate) -> Operator:
     project_create = ProjectCreate(
-        title=f"{operator_create.title}'s Direct Messages",
+        name=f"{operator_create.name}'s Direct Messages",
         orchestrator_id=operator_create.orchestrator_id,
     )
     project = create_project(db, project_create)
@@ -86,7 +86,7 @@ def create_operator(db: Session, operator_create: OperatorCreate) -> Operator:
         db,
         Operator(
             direct_message_project_id=project.id,
-            **operator_create.model_dump(),
+            **operator_create.model_dump(exclude_none=True),
         ),
     )
 
@@ -145,7 +145,7 @@ def delete_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Op
 def create_client(db: Session, client_create: ClientCreate) -> Client:
     return create_generic(
         db,
-        Client(**client_create.model_dump()),
+        Client(**client_create.model_dump(exclude_none=True)),
     )
 
 
@@ -212,7 +212,7 @@ def delete_client(
 def create_tool(db: Session, tool_create: ToolCreate) -> Tool:
     return create_generic(
         db,
-        Tool(**tool_create.model_dump()),
+        Tool(**tool_create.model_dump(exclude_none=True)),
     )
 
 
@@ -260,7 +260,7 @@ def delete_tool(db: Session, tool_id: UUID) -> Tool | None:
 def create_message(db: Session, message_create: MessageCreate) -> Message:
     return create_generic(
         db,
-        Message(**message_create.model_dump()),
+        Message(**message_create.model_dump(exclude_none=True)),
     )
 
 
@@ -325,29 +325,35 @@ def delete_message(
 
 
 def create_orchestrator(db: Session, orchestrator_create: OrchestratorCreate) -> Orchestrator:
-    return create_generic(db, Orchestrator(**orchestrator_create.model_dump()))
+    return create_generic(db, Orchestrator(**orchestrator_create.model_dump(exclude_none=True)))
 
 
-def get_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID) -> Orchestrator | None:
-    stmt = select(Orchestrator).where(Orchestrator.id == orchestrator_id).where(Orchestrator.user_id == user_id)
+def get_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID | None = None) -> Orchestrator | None:
+    stmt = select(Orchestrator).where(Orchestrator.id == orchestrator_id)
+    if user_id is not None:
+        stmt = stmt.where(Orchestrator.user_id == user_id)
     return db.scalars(stmt).first()
 
 
 def get_orchestrators(
     db: Session,
-    user_id: UUID,
+    user_id: UUID | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Orchestrator]:
-    stmt = select(Orchestrator).where(Orchestrator.user_id == user_id).offset(skip).limit(limit)
+    stmt = (
+        (select(Orchestrator) if user_id is None else select(Orchestrator).where(Orchestrator.user_id == user_id))
+        .offset(skip)
+        .limit(limit)
+    )
     return db.scalars(stmt).all()
 
 
 def update_orchestrator(
     db: Session,
     orchestrator_id: UUID,
-    user_id: UUID,
     orchestrator_update: OrchestratorUpdate,
+    user_id: UUID | None = None,
 ) -> Orchestrator | None:
     return update_generic(
         db,
@@ -356,7 +362,7 @@ def update_orchestrator(
     )
 
 
-def delete_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID) -> Orchestrator | None:
+def delete_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID | None = None) -> Orchestrator | None:
     return delete_generic(
         db,
         get_orchestrator(db, orchestrator_id, user_id),
@@ -367,7 +373,7 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID) -> Or
 
 
 def create_project(db: Session, project_create: ProjectCreate) -> Project:
-    return create_generic(db, Project(**project_create.model_dump()))
+    return create_generic(db, Project(**project_create.model_dump(exclude_none=True)))
 
 
 def get_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Project | None:
@@ -416,11 +422,11 @@ def delete_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Proj
 
 
 def create_node(db: Session, node_create: NodeCreate) -> Node:
-    return create_generic(db, Node(**node_create.model_dump()))
+    return create_generic(db, Node(**node_create.model_dump(exclude_none=True)))
 
 
 def create_repo_node(db: Session, repo_node_create: RepoNodeCreate) -> RepoNode:
-    return create_generic(db, RepoNode(**repo_node_create.model_dump()))
+    return create_generic(db, RepoNode(**repo_node_create.model_dump(exclude_none=True)))
 
 
 def get_repo_node(db: Session, repo_node_id: UUID) -> RepoNode | None:
@@ -450,7 +456,7 @@ def get_repo_node_by_path(db: Session, org: str, repo: str, abs_path: str, branc
 def create_authstate(db: Session, authstate_create: AuthStateCreate) -> AuthState:
     return create_generic(
         db,
-        AuthState(**authstate_create.model_dump()),
+        AuthState(**authstate_create.model_dump(exclude_none=True)),
     )
 
 
@@ -462,7 +468,7 @@ def get_authstate(db: Session, state: str) -> AuthState | None:
 def create_user(db: Session, user_create: UserCreate) -> User:
     return create_generic(
         db,
-        User(**user_create.model_dump()),
+        User(**user_create.model_dump(exclude_none=True)),
     )
 
 
@@ -472,4 +478,4 @@ def get_user(db: Session, email: str) -> User | None:
 
 
 def create_authtoken(db: Session, authtoken_create: AuthTokenCreate) -> AuthToken:
-    return create_generic(db, AuthToken(**authtoken_create.model_dump()))
+    return create_generic(db, AuthToken(**authtoken_create.model_dump(exclude_none=True)))
