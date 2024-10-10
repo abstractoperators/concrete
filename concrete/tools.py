@@ -341,10 +341,10 @@ class AwsTool(metaclass=MetaTool):
     def _deploy_service(
         cls,
         containers: list[Container],
-        service_name: str | None,
-        listener_rule: dict | None,
         cpu: int = 256,
         memory: int = 512,
+        service_name: str | None = None,
+        listener_rule: dict | None = None,
         subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
         vpc: str = "vpc-022b256b8d0487543",
         security_groups: list[str] = ["sg-0463bb6000a464f50"],

@@ -25,3 +25,8 @@ async def get_pdf():
             headers={"Content-Disposition": "inline; filename=abstractoperators_pitchdeck.pdf"},
         )
     return {"error": "PDF not found"}
+
+
+@app.get("/ping")
+def ping():
+    return {"message": "pong"}
