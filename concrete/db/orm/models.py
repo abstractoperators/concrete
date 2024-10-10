@@ -120,7 +120,7 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
 
 class OperatorBase(Base, ProfilePictureMixin):
     instructions: str = Field(description="Instructions and role of the operator.")
-    title: str = Field(description="Title of the operator.", max_length=32)
+    title: str = Field(description="Title of the operator.", max_length=32)  # dropdown for title exec/dev
 
     orchestrator_id: UUID = Field(
         description="ID of Orchestrator that owns this operator.",
@@ -157,6 +157,18 @@ class Operator(OperatorBase, MetadataMixin, table=True):
             "foreign_keys": "Project.direct_message_operator_id",
         },
     )
+
+    def to_obj(self):
+        from concrete.operators import Developer, Executive
+
+        # TODO: Abide by orchestrator clients
+        if self.title == 'executive':
+            operator = Executive()
+        if self.title == 'developer':
+            operator = Developer()
+        operator.operator_id = self.id
+        operator.instructions = self.instructions
+        return operator
 
 
 # Client Models
