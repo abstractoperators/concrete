@@ -292,7 +292,7 @@ class AwsTool(metaclass=MetaTool):
         target_group_arn = None
         for rule in existing_rules:
             if rule['Actions'][0]['Type'] == 'forward' and rule["Actions"][0]["TargetGroupArn"].startswith(
-                arn_prefix + ":targetgroup/target_group_name"
+                arn_prefix + f":targetgroup/{target_group_name}"
             ):
                 elbv2_client.delete_rule(RuleArn=rule['RuleArn'])
                 target_group_arn = rule["Actions"][0]["TargetGroupArn"]
