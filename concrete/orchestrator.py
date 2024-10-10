@@ -14,7 +14,7 @@ from .models.messages import (
     TextMessage,
     Tool,
 )
-from .operators import Developer, Executive
+from .operators import Developer, Executive, Operator
 from .state import ProjectStatus, State
 from .tools import AwsTool, invoke_tool
 
@@ -45,8 +45,6 @@ class SoftwareProject(StatefulMixin):
         self.uuid = uuid1()  # suffix is unique based on network id
         self.clients = clients
         self.starting_prompt = starting_prompt
-        self.exec = exec
-        self.dev = dev
         self.exec = exec
         self.dev = dev
         self.orchestrator = orchestrator
@@ -178,19 +176,17 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     Provides a single entry point for common interactions with Operators
     """
 
-    def __init__(
-        self,
-        executive_id: UUID | None = uuid4(),
-        developer_id: UUID | None = uuid4(),
-    ):
+    def __init__(self):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
         self.clients = {
             "openai": OpenAIClient(),
         }
-        self.exec = Executive(self.clients, operator_id=executive_id or uuid4())
-        self.dev = Developer(self.clients, operator_id=developer_id or uuid4())
         self.update(status=ProjectStatus.READY)
+        self.operators = {'exec': Executive(self.clients), 'dev': Developer(self.clients)}
+
+    def add_operator(self, operator: "Operator", title: str) -> None:
+        self.operators[title] = operator
 
     def process_new_project(
         self,
@@ -198,18 +194,27 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         project_id: UUID = uuid4(),
         deploy: bool = False,
         use_celery: bool = True,
+        exec: str | None = None,
+        dev: str | None = None,
     ) -> AsyncGenerator[tuple[str, str], None]:
-        self.update(status=ProjectStatus.WORKING)
+        """
+        exec (str): Name of operator in self.operators to use as exec
+        dev (str): Name of operator in self.operators to use as dev
+        """
+        if exec is not None and exec not in self.operators:
+            raise ValueError(f"{exec} not found.")
+        if dev is not None and dev not in self.operators:
+            raise ValueError(f"{dev} not found.")
 
-        self.exec.project_id = project_id
-        self.exec.starting_prompt = starting_prompt
-        self.dev.project_id = project_id
-        self.dev.starting_prompt = starting_prompt
+        exec_operator: Executive = self.operators[exec] if exec is not None else self.operators['exec']
+        dev_operator: Developer = self.operators[dev] if dev is not None else self.operators['dev']
+
+        self.update(status=ProjectStatus.WORKING)
 
         current_project = SoftwareProject(
             starting_prompt=starting_prompt.strip() or prompts.HELLO_WORLD_PROMPT,
-            exec=self.exec,
-            dev=self.dev,
+            exec=exec_operator,
+            dev=dev_operator,
             orchestrator=self,
             clients=self.clients,
             deploy=deploy,
