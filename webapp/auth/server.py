@@ -86,6 +86,11 @@ app = FastAPI(title="Concrete API", middleware=middleware)
 
 
 @app.get("/")
+def index():
+    return {"message": "pong"}
+
+
+@app.get("/ping")
 def ping():
     return {"message": "pong"}
 

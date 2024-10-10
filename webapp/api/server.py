@@ -28,7 +28,7 @@ from .models import CommonReadParameters
 
 dotenv.load_dotenv(override=True)
 
-UNAUTHENTICATED_PATHS = {'/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+UNAUTHENTICATED_PATHS = {'/ping', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
 middleware = [
@@ -82,6 +82,11 @@ operator_not_found = object_not_found("Operator")
 client_not_found = object_not_found("Client")
 software_project_not_found = object_not_found("SoftwareProject")
 user_not_found = object_not_found("User")
+
+
+@app.get("/ping")
+def ping():
+    return {"message": "pong"}
 
 
 # ===CRUD operations for Orchestrators=== #

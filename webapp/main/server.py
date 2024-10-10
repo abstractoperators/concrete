@@ -75,7 +75,7 @@ def sidebar_create(
     )
 
 
-UNAUTHENTICATED_PATHS = {'/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+UNAUTHENTICATED_PATHS = {'/ping', '/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
 middleware = [
@@ -122,6 +122,11 @@ async def login(request: Request):
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse(name="index.html", request=request)
+
+
+@app.get("/ping")
+def ping():
+    return {"message": "pong"}
 
 
 # === Orchestrators === #
