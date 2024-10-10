@@ -258,8 +258,8 @@ class AwsTool(metaclass=MetaTool):
         health_check_path: str = "/",
     ) -> str:
         """
-        Defines a new listener rule and target group on a listener.
-        Overwrites existing rules and target groups.
+        Creates or updates an existing listener rule.
+        If a rule using the same target group already exists, it will be overwritten
 
         Args:
             listener_arn: The ARN of the listener to attach the rule to.
@@ -286,18 +286,29 @@ class AwsTool(metaclass=MetaTool):
             else:
                 raise ValueError('listener_rule must contain both field and value keys.')
 
-        # Delete matching existing rule/target group
+        arn_prefix = listener_arn.split(':listener')[0]
+        # Replace rule for target group if it already exists
         existing_rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        target_group_arn = None
         for rule in existing_rules:
-            if (
-                rule["Conditions"]
-                and rule["Conditions"][0]["Field"] == listener_rule_field
-                and rule["Conditions"][0]["Values"][0] == listener_rule_value
-            ):
+            if rule["Actions"][0]["TargetGroupArn"].startswith(arn_prefix + ":targetgroup/target_group_name"):
                 elbv2_client.delete_rule(RuleArn=rule['RuleArn'])
-                elbv2_client.delete_target_group(
-                    TargetGroupArn=rule["Actions"][0]["TargetGroupArn"]
-                )  # can't delete target group if it's attached to a listener rule
+                target_group_arn = rule["Actions"][0]["TargetGroupArn"]
+
+        if target_group_arn is None:
+            target_group_arn = elbv2_client.create_target_group(
+                Name=target_group_name,
+                Protocol='HTTP',
+                Port=port,
+                VpcId=vpc,
+                TargetType="ip",
+                HealthCheckEnabled=True,
+                HealthCheckPath=health_check_path,
+                HealthCheckIntervalSeconds=30,
+                HealthCheckTimeoutSeconds=5,
+                HealthyThresholdCount=2,
+                UnhealthyThresholdCount=2,
+            )["TargetGroups"][0]["TargetGroupArn"]
 
         # Calculate lowest unused rule priority
         existing_rule_priorities = set(
@@ -308,20 +319,6 @@ class AwsTool(metaclass=MetaTool):
             if i not in existing_rule_priorities:
                 listener_rule_priority = i
                 break
-
-        target_group_arn = elbv2_client.create_target_group(
-            Name=target_group_name,
-            Protocol='HTTP',
-            Port=port,
-            VpcId=vpc,
-            TargetType="ip",
-            HealthCheckEnabled=True,
-            HealthCheckPath=health_check_path,
-            HealthCheckIntervalSeconds=30,
-            HealthCheckTimeoutSeconds=5,
-            HealthyThresholdCount=2,
-            UnhealthyThresholdCount=2,
-        )["TargetGroups"][0]["TargetGroupArn"]
 
         elbv2_client.create_rule(
             ListenerArn=listener_arn,
