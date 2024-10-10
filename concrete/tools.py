@@ -374,7 +374,7 @@ class AwsTool(metaclass=MetaTool):
         service_name = service_name or containers[0].container_name
         execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
 
-        target_group_arn = cls._new_listener_rule(
+        target_group_arn, deleted_target_group = cls._new_listener_rule(
             listener_arn=listener_arn,
             target_group_name=service_name,
             listener_rule=listener_rule,
@@ -383,7 +383,7 @@ class AwsTool(metaclass=MetaTool):
             health_check_path=health_check_path,
         )
 
-        task_definition_arn, deleted_target_group = ecs_client.register_task_definition(
+        task_definition_arn = ecs_client.register_task_definition(
             family=service_name,
             executionRoleArn=execution_role_arn,
             networkMode="awsvpc",
