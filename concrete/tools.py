@@ -291,7 +291,9 @@ class AwsTool(metaclass=MetaTool):
         existing_rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
         target_group_arn = None
         for rule in existing_rules:
-            if rule["Actions"][0]["TargetGroupArn"].startswith(arn_prefix + ":targetgroup/target_group_name"):
+            if rule['Actions'][0]['Type'] == 'forward' and rule["Actions"][0]["TargetGroupArn"].startswith(
+                arn_prefix + ":targetgroup/target_group_name"
+            ):
                 elbv2_client.delete_rule(RuleArn=rule['RuleArn'])
                 target_group_arn = rule["Actions"][0]["TargetGroupArn"]
 
@@ -345,8 +347,7 @@ class AwsTool(metaclass=MetaTool):
         subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
         vpc: str = "vpc-022b256b8d0487543",
         security_groups: list[str] = ["sg-0463bb6000a464f50"],
-        listener_arn: str = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
-        "/f7cec30e1ac2e4a4/451389d914171f05",
+        listener_arn: str = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4/451389d914171f05",  # noqa E501
         health_check_path: str = "/",
         cluster: str = "DemoCluster",
     ) -> bool:
