@@ -1,12 +1,14 @@
 import unittest
 
+from concrete.db.orm.models import Message as SQLModelMessage
 from concrete.db.orm.models import Operator as SQLModelOperator
+from concrete.models.messages import TextMessage
 from concrete.operators import Developer, Executive
 
 
 class TestSQLModels(unittest.TestCase):
     """
-    Test that SQLModels can be created from and dumped back to their original state.
+    Test that SQLModels can be created from and dumped back to their original Pydantic models.
     """
 
     def test_message(self):
@@ -14,7 +16,19 @@ class TestSQLModels(unittest.TestCase):
         Test that a concrete.models.messages.Message can be created from a
         SQLModel Message concrete.db.orm.models.Message
         """
-        pass
+        sql_message_text = SQLModelMessage(
+            type_name='textmessage',
+            content='{\n    "text": "print(\\"Hello, World!\\")"\n}',
+            prompt="Make a helloworld script",
+            status='completed',
+            project_id=1,
+            user_id=1,
+            operator_id=1,
+        )
+
+        pydantic_message_text = sql_message_text.to_obj()
+        self.assertIsInstance(pydantic_message_text, TextMessage)
+        self.assertEqual(pydantic_message_text.text, "print(\"Hello, World!\")")
 
     def test_operator(self):
         """
