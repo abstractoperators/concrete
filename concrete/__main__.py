@@ -69,6 +69,7 @@ deploy_parser.add_argument(
 deploy_parser.add_argument(
     "--listener-arn", type=str, required=False, help="Listener ARN of Load Balancer for the service"
 )
+deploy_parser.add_argument("--health-check-path", type=str, required=False, help="Health check path for the service")
 
 args = parser.parse_args()
 
@@ -125,6 +126,7 @@ async def main():
                 'security_groups': args.security_groups,
                 'listener_arn': args.listener_arn,
                 'listener_rule': listener_rule,
+                'health_check_path': args.health_check_path,
             }
             args_dict = {key: value for key, value in args_dict.items() if value is not None}
 

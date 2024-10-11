@@ -3,13 +3,11 @@ import fnmatch
 import inspect
 import io
 import os
-import socket
 import tempfile
 import time
 import zipfile
 from datetime import datetime, timezone
 from queue import Queue
-from textwrap import dedent
 from typing import Dict, Optional
 from uuid import UUID
 
@@ -23,7 +21,7 @@ from .clients import CLIClient, HTTPClient
 from .db import crud
 from .db.orm import Session, models
 from .models.base import ConcreteModel
-from .models.messages import ChildNodeSummary, NodeSummary, ProjectDirectory
+from .models.messages import ChildNodeSummary, NodeSummary
 
 TOOLS_REGISTRY = {}
 
@@ -159,102 +157,6 @@ class AwsTool(metaclass=MetaTool):
     DIND_BUILDER_PORT = 5002
 
     @classmethod
-    def build_and_deploy_to_aws(cls, project_directory_name: str) -> None:
-        """
-        project_directory_name (str): The name of the project directory to deploy.
-        """
-        pushed, image_uri = cls._build_and_push_image(project_directory_name)
-        if pushed:
-            cls._deploy_service(
-                [
-                    Container(
-                        image_uri=image_uri,
-                        container_name=project_directory_name,
-                        container_port=80,
-                        container_env_file="",
-                    )
-                ]
-            )
-        else:
-            CLIClient.emit("Failed to deploy project")
-
-    @classmethod
-    def _build_and_push_image(cls, project_directory_name: str) -> tuple[bool, str]:
-        """
-        Calls dind-builder service to build and push the image to ECR.
-        """
-        project_directory = ProjectDirectory.model_validate(cls.results[project_directory_name])
-        project_directory_name = project_directory_name.lower().replace(" ", "-").replace("_", "-")
-        build_dir_path = os.path.join(cls.SHARED_VOLUME, project_directory_name)
-        os.makedirs(build_dir_path, exist_ok=True)
-
-        dockerfile_content = dedent(
-            f"""
-            FROM python:3.11.9-slim-bookworm
-            WORKDIR /app
-            RUN pip install flask concrete-operators
-            COPY . .
-            ENV OPENAI_API_KEY={os.environ['OPENAI_API_KEY']}
-            ENV OPENAI_TEMPERATURE=0
-            CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
-            """
-        )
-        start_script = dedent(
-            """
-            #!/bin/sh
-            set -e
-            if ! command -v flask &> /dev/null
-            then
-                echo "Flask is not installed. Installing..."
-                pip install flask
-            fi
-
-            if ! pip show concrete-operators &> /dev/null
-            then
-                echo "concrete-operators is not installed. Installing..."
-                pip install concrete-operators
-            fi
-
-            if [ -z "$OPENAI_API_KEY" ]
-            then
-                echo "Error: OPENAI_API_KEY is not set. Please set it before running this script."
-                exit 1
-            fi
-            flask run --host=0.0.0.0 --port=80
-            """
-        )
-
-        with open(os.path.join(build_dir_path, "Dockerfile"), "w") as f:
-            f.write(dockerfile_content)
-        with open(os.path.join(build_dir_path, "start.sh"), "w") as f:
-            f.write(start_script)
-
-        for project_file in project_directory.files:
-            file_path = os.path.join(build_dir_path, project_file.file_name)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, "w") as f:
-                f.write(project_file.file_contents)
-
-        max_retries = 2
-        for _ in range(max_retries):
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.connect((cls.DIND_BUILDER_HOST, cls.DIND_BUILDER_PORT))
-                    s.sendall(project_directory_name.encode())
-                break
-            except Exception as e:
-                print(e)
-                time.sleep(5)
-
-        image_uri = f"008971649127.dkr.ecr.us-east-1.amazonaws.com/{project_directory_name}"
-        if not cls._poll_image_status(project_directory_name):
-            CLIClient.emit("Failed to build and push image.")
-            return (False, "")
-        else:
-            CLIClient.emit("Image built and pushed successfully.")
-            return (True, image_uri)
-
-    @classmethod
     def _poll_image_status(cls, repo_name: str) -> bool:
         """
         Polls ECR until an image is pushed. True if image is pushed, False otherwise.
@@ -346,105 +248,140 @@ class AwsTool(metaclass=MetaTool):
         )
 
     @classmethod
-    def _deploy_service(
+    def _new_listener_rule(
         cls,
-        containers: list[Container],
-        service_name: Optional[str] = None,
-        cpu: int = 256,
-        memory: int = 512,
-        listener_rule: Optional[dict] = None,
-        subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
+        listener_arn: str,
+        target_group_name: str,
+        listener_rule: dict | None = None,
+        port: int = 80,
         vpc: str = "vpc-022b256b8d0487543",
-        security_groups: list[str] = ["sg-0463bb6000a464f50"],
-        listener_arn: (
-            str | None
-        ) = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer"
-        "/f7cec30e1ac2e4a4/451389d914171f05",
-    ) -> bool:
+        health_check_path: str = "/",
+    ) -> tuple[str, bool]:
         """
-        containers: List of Container objects to deploy.
+        Creates or updates an existing listener rule.
+        If a rule using the same target group already exists, it will be overwritten
 
-        service_name (str): Custom service name, defaults to the first container name as host header.
-
-        cpu (int): The amount of CPU to allocate to the service. Defaults to 256.
-
-        memory (int): The amount of memory to allocate to the service. Defaults to 512
-
-        listener_rule: Dictionary of {field: str, value: str} for the listener rule. Defaults to {'field': 'host-header', 'value': f"{service_name}.abop.ai"}}
-
-        subnets (list(str)): List of subnets to consider for placement. Defaults to AZ-a, us-east-1, public
-
-        vpc (str): The VPC to deploy the service in. Defaults to us-east-1
-
-        security_groups (list(str)): List of security groups to attach to the service. Defaults to allow traffic from concrete ALB.
-
-        listener_arn: Arn of the listener to attach to the target group. Defaults to https listener on ConcreteLoadBalancer.
-        """  # noqa: E501
+        Args:
+            listener_arn: The ARN of the listener to attach the rule to.
+            listener_rule: {'field': str, 'value': str}.
+                Defaults to {'field': 'host-header', 'value': f"{target_group_name}.abop.ai"}
+            target_group_name: The name of the target group to create.
+            cluster: The cluster to create the target group in.
+            port: The port to attach the target group to.
+            health_check_path: The path to use for the health check.
+        Returns:
+            target_group_arn
+        """
         import boto3
 
-        ecs_client = boto3.client("ecs")
-        elbv2_client = boto3.client("elbv2")
-
-        cluster = "DemoCluster"
-        service_name = service_name or containers[0].container_name
-        task_name = service_name
-        target_group_name = service_name
-        execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
-
+        elbv2_client = boto3.client('elbv2')
         target_group_arn = None
         if listener_rule is None:
-            rule_field = "host-header"
-            rule_value = f"{service_name}.abop.ai"
+            listener_rule_field = 'host-header'
+            listener_rule_value = f'{target_group_name}.abop.ai'
         else:
-            rule_field = listener_rule.get("field", None) or "host-header"
-            rule_value = listener_rule.get("value", None) or f"{target_group_name}.abop.ai"
-
-        rules = elbv2_client.describe_rules(ListenerArn=listener_arn)["Rules"]
-        for rule in rules:
-            if (
-                rule["Conditions"]
-                and rule["Conditions"][0]["Field"] == rule_field
-                and rule["Conditions"][0]["Values"][0] == rule_value
-            ):
-                target_group_arn = rule["Actions"][0]["TargetGroupArn"]
-                break
-
-        if not target_group_arn:
-            # Calculate minimum unused rule priority
-            rule_priorities = [int(rule["Priority"]) for rule in rules if rule["Priority"] != "default"]
-            if set(range(1, len(rules))) - set(rule_priorities):
-                listener_rule_priority = min(set(range(1, len(rules))) - set(rule_priorities))
+            if listener_rule.get('field') and listener_rule.get('value'):
+                listener_rule_field = str(listener_rule.get('field'))
+                listener_rule_value = str(listener_rule.get('value'))
             else:
-                listener_rule_priority = len(rules) + 1
+                raise ValueError('listener_rule must contain both field and value keys.')
 
+        arn_prefix = listener_arn.split(':listener')[0]
+        # Replace rule for target group if it already exists
+        existing_rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        target_group_arn = None
+        for rule in existing_rules:
+            if rule['Actions'][0]['Type'] == 'forward' and rule["Actions"][0]["TargetGroupArn"].startswith(
+                arn_prefix + f":targetgroup/{target_group_name}"
+            ):
+                elbv2_client.delete_rule(RuleArn=rule['RuleArn'])
+
+        if target_group_arn is None:
             target_group_arn = elbv2_client.create_target_group(
                 Name=target_group_name,
                 Protocol='HTTP',
-                Port=containers[0].container_port,
+                Port=port,
                 VpcId=vpc,
                 TargetType="ip",
                 HealthCheckEnabled=True,
-                HealthCheckPath="/",
+                HealthCheckPath=health_check_path,
                 HealthCheckIntervalSeconds=30,
                 HealthCheckTimeoutSeconds=5,
                 HealthyThresholdCount=2,
                 UnhealthyThresholdCount=2,
             )["TargetGroups"][0]["TargetGroupArn"]
 
-            elbv2_client.create_rule(
-                ListenerArn=listener_arn,
-                Priority=listener_rule_priority,
-                Conditions=[{"Field": rule_field, "Values": [rule_value]}],
-                Actions=[
-                    {
-                        "Type": "forward",
-                        "TargetGroupArn": target_group_arn,
-                    }
-                ],
-            )
+        # Calculate lowest unused rule priority
+        existing_rule_priorities = set(
+            [int(rule["Priority"]) for rule in existing_rules if rule["Priority"] != "default"]
+        )
+        listener_rule_priority = len(existing_rule_priorities) + 1
+        for i in range(1, len(existing_rules) + 1):
+            if i not in existing_rule_priorities:
+                listener_rule_priority = i
+                break
+
+        elbv2_client.create_rule(
+            ListenerArn=listener_arn,
+            Priority=listener_rule_priority,
+            Conditions=[{"Field": listener_rule_field, "Values": [listener_rule_value]}],
+            Actions=[
+                {
+                    "Type": "forward",
+                    "TargetGroupArn": target_group_arn,
+                }
+            ],
+        )
+
+        return target_group_arn
+
+    @classmethod
+    def _deploy_service(
+        cls,
+        containers: list[Container],
+        cpu: int = 256,
+        memory: int = 512,
+        service_name: str | None = None,
+        listener_rule: dict | None = None,
+        subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
+        vpc: str = "vpc-022b256b8d0487543",
+        security_groups: list[str] = ["sg-0463bb6000a464f50"],
+        listener_arn: str = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4/451389d914171f05",  # noqa E501
+        health_check_path: str = "/",
+        cluster: str = "DemoCluster",
+    ) -> bool:
+        """
+        Args
+            containers (Container): List of Container objects to deploy.
+            service_name (str): Custom service name, defaults to the first container name as host header. Also used as task name.
+            cpu (int): The amount of CPU to allocate to the service. Defaults to 256.
+            memory (int): The amount of memory to allocate to the service. Defaults to 512
+            listener_rule: Dictionary of {field: str, value: str} for the listener rule. Defaults to {'field': 'host-header', 'value': f"{service_name}.abop.ai"}}
+            subnets (list(str)): List of subnets to consider for placement. Defaults to AZ-a, us-east-1, public
+            vpc (str): The VPC to deploy the service in. Defaults to us-east-1
+            security_groups (list(str)): List of security groups to attach to the service. Defaults to allow traffic from concrete ALB.
+            listener_arn: Arn of the listener to attach to the target group. Defaults to https listener on ConcreteLoadBalancer.
+        Returns:
+            bool: True if the service started successfully, False otherwise.
+        """  # noqa: E501
+        import boto3
+
+        ecs_client = boto3.client("ecs")
+
+        service_name = service_name or containers[0].container_name
+        execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
+
+        target_group_arn = cls._new_listener_rule(
+            listener_arn=listener_arn,
+            target_group_name=service_name,
+            listener_rule=listener_rule,
+            port=containers[0].container_port,
+            vpc=vpc,
+            health_check_path=health_check_path,
+        )
 
         task_definition_arn = ecs_client.register_task_definition(
-            family=task_name,
+            family=service_name,
             executionRoleArn=execution_role_arn,
             networkMode="awsvpc",
             requiresCompatibilities=["FARGATE"],
@@ -475,6 +412,7 @@ class AwsTool(metaclass=MetaTool):
                 "operatingSystemFamily": "LINUX",
             },
         )["taskDefinition"]["taskDefinitionArn"]
+
         if (
             service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])["services"]
         ) and service_desc[0]["status"] == "ACTIVE":
@@ -505,7 +443,7 @@ class AwsTool(metaclass=MetaTool):
                 loadBalancers=[
                     {
                         "targetGroupArn": target_group_arn,
-                        "containerName": task_name,
+                        "containerName": service_name,
                         "containerPort": containers[0].container_port,
                     }
                 ],

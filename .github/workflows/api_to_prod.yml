@@ -50,6 +50,7 @@ jobs:
                     --container-env-file .env \
                     --listener-rule-field host-header \
                     --listener-rule-value api.abop.ai \
+                    --health-check-path /ping
 
 # https://github.com/actions/deploy-pages/issues/329 -
 # https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
