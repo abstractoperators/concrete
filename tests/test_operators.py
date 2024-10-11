@@ -3,10 +3,6 @@ import unittest
 from concrete.abstract import AbstractOperator
 from concrete.operators import Operator
 
-# Test Orchestrations
-# Test that process_new_project returns an async gen?
-# Test communicative_dehallucination?
-
 
 def get_all_subclasses(cls):
     subclasses = set()
@@ -111,7 +107,3 @@ class TestOperator(unittest.TestCase):
                 wrapped_result,
                 f"Method '{method_name}' should not invoke _qna and return the original response",
             )
-
-
-class TestOrchestration(unittest.TestCase):
-    pass
