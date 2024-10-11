@@ -308,7 +308,7 @@ class AwsTool(metaclass=MetaTool):
                 HealthCheckIntervalSeconds=30,
                 HealthCheckTimeoutSeconds=5,
                 HealthyThresholdCount=2,
-                UnhealthyThresholdCount=2,
+                UnhealthyThresholdCount=10,
             )["TargetGroups"][0]["TargetGroupArn"]
 
         # Calculate lowest unused rule priority
