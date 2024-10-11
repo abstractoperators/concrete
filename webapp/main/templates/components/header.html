@@ -1,0 +1,7 @@
+{% macro header(request) %}
+<header>
+    <a id=#home-button href="{{ dyn_url_for(request, 'root') }}">
+        <img height="40rem" src="{{ dyn_url_for(request, 'static', path='/home.svg') }}" alt="Home">
+    </a>
+</header>
+{% endmacro %}

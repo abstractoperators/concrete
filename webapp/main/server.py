@@ -129,6 +129,11 @@ def ping():
     return {"message": "pong"}
 
 
+@app.get("/log", response_class=HTMLResponse)
+async def get_changelog(request: Request):
+    return templates.TemplateResponse(name="log.html", request=request)
+
+
 # === Orchestrators === #
 
 
