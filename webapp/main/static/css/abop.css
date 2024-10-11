@@ -3,7 +3,8 @@
     --serif-family: "Judson", serif;
     --rounding-rectangle: 16px;
     --primary-100: #C6DBFF;
-    --primary-400: #006bb3;
+    --primary-200: rgb(122, 182, 255);
+    --primary-400: rgb(0, 107, 179);
     --secondary-100: #FFEBFE;
     --tertiary-400: rgb(174, 119, 0);
     --space-200: 8px;
@@ -24,6 +25,8 @@
 
 body {
     font-family: var(--serif-family);
+    margin: 0px;
+    padding: 0px;
 }
 
 #submit-prompt {
@@ -183,6 +186,7 @@ h1.operator-avatar-text {
     background: none;
     display: inline-block;
     cursor: pointer;
+    margin: 8px;
 }
 
 .circle-button img {
@@ -205,8 +209,38 @@ h1.operator-avatar-text {
     width: 100%;
 }
 
+header {
+    width: 100%;
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+header a {
+    margin: 8px;
+}
+
 footer {
     font-family: var(--serif-family);
+    display: flex;
+    justify-content: space-around;
+}
+
+footer img {
+    height: 32px;
+}
+
+#footer-nav-icons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+#footer-nav-icons a {
+    margin: 4px;
 }
 
 @keyframes slideLeft {

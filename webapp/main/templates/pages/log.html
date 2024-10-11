@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
-    <title>Orchestrators - List View</title>
+    <title>Changelog</title>
     <link href="{{ dyn_url_for(request, 'static', path='/css/abop.css') }}" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="{{ dyn_url_for(request, 'static', path='/abstractoperators_favicon.jpg') }}">
 
@@ -28,29 +28,19 @@
 <body>
     {% from "header.html" import header %}
     {{ header(request=request) }}
-    <div id="main-div" class="main panel">
+    <div class="main panel">
+        <h1>Changelog</h1>
         <div>
-            <h1 class="header">Orchestrators</h1>
-            <ul
-                hx-get="/orchestrators"
-                hx-trigger="load, getOrchestrators from:body"
-                class="operator-card-list"
-            ></ul>
-        </div>
-        <div>
-            <button
-                class="circle-button"
-                hx-get="/orchestrators/form"
-                hx-target="#main-div"
-                hx-swap="beforeend"
-            >
-                <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}" alt="Create Orchestrator button">
-            </button>
+            <h2>October 11th, 2024</h2>
+            <ul>
+                <li>Added a changelog.</li>
+                <li>Added a footer link to changelog.</li>
+                <li>Added icon links to github, documentation, and linkedin.</li>
+                <li>Added a header with icon link to landing page.</li>
+            </ul>
         </div>
     </div>
-    <!-- figure out extensions -->
     {% from "footer.html" import footer %}
     {{ footer(request=request) }}
 </body>
-
 </html>

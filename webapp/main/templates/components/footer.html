@@ -1,3 +1,23 @@
 {% macro footer(request) %}
-<footer>Welcome {{ request.session.user.email }}!</footer>
+<footer>
+    <div>
+        Welcome {{ request.session.user.email }}!
+    </div>
+    <nav>
+        <a href="{{ dyn_url_for(request, 'get_changelog') }}">
+            Changelog
+        </a>
+    </nav>
+    <nav id="footer-nav-icons">
+        <a href="https://github.com/abstractoperators/concrete">
+            <img src="{{ dyn_url_for(request, 'static', path='/github.svg')}}" alt="Github">
+        </a>
+        <a href="https://docs.abop.ai/">
+            <img src="{{ dyn_url_for(request, 'static', path='/doc.svg') }}" alt="Documentation">
+        </a>
+        <a href="https://www.linkedin.com/company/abstractoperators/">
+            <img src="{{ dyn_url_for(request, 'static', path='/linkedin.svg') }}" alt="LinkedIn">
+        </a>
+    </nav>
+</footer>
 {% endmacro %}
