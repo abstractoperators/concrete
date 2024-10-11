@@ -111,3 +111,7 @@ class TestOperator(unittest.TestCase):
                 wrapped_result,
                 f"Method '{method_name}' should not invoke _qna and return the original response",
             )
+
+
+class TestOrchestration(unittest.TestCase):
+    pass
