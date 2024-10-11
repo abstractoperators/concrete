@@ -379,6 +379,8 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
         while True:
             data = await websocket.receive_json()
             prompt = data["prompt"]
+            # TODO: Use concrete.messages.TextMessage and
+            # more tightly-couple Pydantic models with SQLModel models
             with Session() as session:
                 prompt_message = crud.create_message(
                     session,
