@@ -26,7 +26,7 @@ jobs:
                   poetry --version
                   poetry install
                   poetry run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest \ 
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest \
                     --container-name homepage \
                     --container-port 80 \
                     --container-env-file "" \
