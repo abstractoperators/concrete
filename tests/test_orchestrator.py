@@ -8,27 +8,12 @@ from concrete.operators import Operator
 # Test communicative_dehallucination?
 
 
-# Test Operators
-# Test that all operators inheriting from Operator have instructions
-# Test Operator magic attaching qna to functions
-# Test that all operators have a chat
-# That the qna of operators has the correct output format
-
-
 def get_all_subclasses(cls):
     subclasses = set()
     for subclass in cls.__subclasses__():
         subclasses.add(subclass)
         subclasses.update(get_all_subclasses(subclass))
     return subclasses
-
-
-class MockOperator(AbstractOperator):
-    def string_method(self):
-        return "this is a string"
-
-    def non_string_method(self):
-        return 42
 
 
 class TestOperator(unittest.TestCase):
@@ -44,6 +29,19 @@ class TestOperator(unittest.TestCase):
             instructions = subclass.__dict__['instructions']
             self.assertIsInstance(
                 instructions, str, f"{subclass.__name__}'s 'instructions' attribute must be of type str"
+            )
+
+    def test_operator_chat(self):
+        """
+        Verify every class inheriting from AbstractOperator gets a chat method.
+        """
+        subclasses = get_all_subclasses(AbstractOperator)
+        for subclass in subclasses:
+            # Ensure that each subclass has a 'chat' method
+            self.assertIn(
+                'chat',
+                dir(subclass),
+                f"Subclass '{subclass.__name__}' does not implement a 'chat' method. Existing methods: {dir(subclass)}",
             )
 
     def test_operator_qna(self):
