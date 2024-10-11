@@ -233,11 +233,18 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         if name.startswith("__") or name in {"qna", "_qna"} or not callable(attr):
             return attr
 
-        CLIClient.emit(f"[operator]: {self.__class__.__name__}")
+        # Only wrap with qna if the result is a string.
+        # Impossible to figure out return type without running it
+        def wrapped_func(*args, **kwargs):
+            result = attr(*args, **kwargs)
+            if isinstance(result, str):
+                str_func = self.qna(attr)
+                str_func.delay = partial(str_func._delay, self)
+                return str_func(*args, **kwargs)
 
-        prepped_func = self.qna(attr)
-        prepped_func.delay = partial(prepped_func._delay, self)
-        return prepped_func
+            return result
+
+        return wrapped_func
 
     def chat(self, message: str, *args, **kwargs) -> str:
         """
