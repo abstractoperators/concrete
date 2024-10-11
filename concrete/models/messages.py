@@ -70,6 +70,14 @@ class ProjectDirectory(Message, KombuMixin):
         description="A list of files in the project directory. Each list item represents a file"
     )
 
+    def to_zip(self) -> io.BytesIO:
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for project_file in self.files:
+                zip_file.writestr(project_file.file_name, project_file.file_contents)
+        zip_buffer.seek(0)
+        return zip_buffer
+
 
 class TextMessage(Message, KombuMixin):
     text: str = Field(description="Text")
@@ -98,12 +106,3 @@ class NodeSummary(Message, KombuMixin):
 
 class NodeUUID(Message, KombuMixin):
     node_uuid: str = Field(description="UUID of the node")
-
-
-def projectdirectory_to_zip(project_directory: ProjectDirectory) -> io.BytesIO:
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for project_file in project_directory.files:
-            zip_file.writestr(project_file.file_name, project_file.file_contents)
-    zip_buffer.seek(0)
-    return zip_buffer

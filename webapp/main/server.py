@@ -28,7 +28,7 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     ProjectCreate,
 )
-from concrete.models.messages import ProjectDirectory, projectdirectory_to_zip
+from concrete.models.messages import ProjectDirectory
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import (
@@ -364,7 +364,7 @@ async def get_downloadable_completed_project(orchestrator_id: UUID, project_id: 
         raise HTTPException(
             status_code=500, detail=f"Expected ProjectDirectory, but got {pydantic_message.__class__.__name__}"
         )
-    zip_buffer = projectdirectory_to_zip(pydantic_message)
+    zip_buffer = pydantic_message.to_zip()
     return StreamingResponse(
         zip_buffer,
         media_type="application/x-zip-compressed",
