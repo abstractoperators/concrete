@@ -82,7 +82,7 @@ class MetaTool(type):
         return str(cls)
 
 
-def invoke_tool(tool_name: str, tool_function: str, tool_parameters: str):
+def invoke_tool(tool_name: str, tool_function: str, tool_parameters: list[str]):
     """
     Throws KeyError if the tool doesn't exist.
     Throws AttributeError if the function on the tool doesn't exist.
