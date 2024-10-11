@@ -290,14 +290,11 @@ class AwsTool(metaclass=MetaTool):
         # Replace rule for target group if it already exists
         existing_rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
         target_group_arn = None
-        deleted_target_group = False
         for rule in existing_rules:
             if rule['Actions'][0]['Type'] == 'forward' and rule["Actions"][0]["TargetGroupArn"].startswith(
                 arn_prefix + f":targetgroup/{target_group_name}"
             ):
                 elbv2_client.delete_rule(RuleArn=rule['RuleArn'])
-                elbv2_client.delete_target_group(TargetGroupArn=rule["Actions"][0]["TargetGroupArn"])
-                deleted_target_group = True
 
         if target_group_arn is None:
             target_group_arn = elbv2_client.create_target_group(
@@ -336,7 +333,7 @@ class AwsTool(metaclass=MetaTool):
             ],
         )
 
-        return target_group_arn, deleted_target_group
+        return target_group_arn
 
     @classmethod
     def _deploy_service(
@@ -374,7 +371,7 @@ class AwsTool(metaclass=MetaTool):
         service_name = service_name or containers[0].container_name
         execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
 
-        target_group_arn, deleted_target_group = cls._new_listener_rule(
+        target_group_arn = cls._new_listener_rule(
             listener_arn=listener_arn,
             target_group_name=service_name,
             listener_rule=listener_rule,
@@ -416,19 +413,9 @@ class AwsTool(metaclass=MetaTool):
             },
         )["taskDefinition"]["taskDefinitionArn"]
 
-        if deleted_target_group:
-            while True:
-                service_desc = ecs_client.describe_services(cluster=cluster, services=[service_name])["services"]
-                if not service_desc or service_desc[0]["status"] == "INACTIVE":
-                    break
-                time.sleep(10)  # Wait for the service to be deleted.
-            ecs_client.delete_service(cluster=cluster, service=service_name)
-
         if (
-            (service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])["services"])
-            and service_desc[0]["status"] == "ACTIVE"
-            and not deleted_target_group  # Must recreate service if target group was deleted
-        ):
+            service_desc := ecs_client.describe_services(cluster=cluster, services=[service_name])["services"]
+        ) and service_desc[0]["status"] == "ACTIVE":
             CLIClient.emit(f"Service {service_name} found. Updating service.")
             ecs_client.update_service(
                 cluster=cluster,
