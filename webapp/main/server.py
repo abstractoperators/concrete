@@ -28,11 +28,7 @@ from concrete.db.orm.models import (
     OrchestratorCreate,
     ProjectCreate,
 )
-from concrete.models.messages import (
-    ProjectDirectory,
-    projectdirectory_to_zip,
-    sqlmessage_to_pydanticmessage,
-)
+from concrete.models.messages import ProjectDirectory, projectdirectory_to_zip
 from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import (
@@ -362,7 +358,7 @@ async def get_downloadable_completed_project(orchestrator_id: UUID, project_id: 
         if final_message is None:
             raise HTTPException(status_code=404, detail=f"No completed project found for project {project_id}!")
 
-        pydantic_message = sqlmessage_to_pydanticmessage(final_message)
+        pydantic_message = final_message.to_obj()
 
     if not isinstance(pydantic_message, ProjectDirectory):
         raise HTTPException(

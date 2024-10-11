@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
@@ -358,6 +359,14 @@ class Message(MessageBase, MetadataMixin, table=True):
     project: Project = Relationship(back_populates="messages")
     user: User | None = Relationship()
     operator: Operator | None = Relationship()
+
+    def to_obj(self):
+        from concrete.models.messages import MESSAGE_REGISTRY
+
+        message_type = self.type_name
+        message_content = self.content
+
+        return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))
 
 
 # Knowledge Graph Models
