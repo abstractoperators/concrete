@@ -20,7 +20,7 @@ class TestOperator(unittest.TestCase):
         subclasses = get_all_subclasses(Operator)
         for subclass in subclasses:
             self.assertIn(
-                'instructions', subclass.__dict__, f"{subclass.__name__} must override the 'instructions' attribute"
+                'instructions', subclass.__dict__, f"Attribute `instructions` must be defined on {subclass.__name__}"
             )
             instructions = subclass.__dict__['instructions']
             self.assertIsInstance(
@@ -80,7 +80,7 @@ class TestOperator(unittest.TestCase):
             return f"Mocked: {query}"
 
         # Attach the mock qna to the operator
-        operator._qna = mock_qna.__get__(operator, MockOperator)
+        MockOperator._qna = mock_qna
 
         # Methods returning strings should be wrapped by qna, modifying the return value with
         # prefix 'Mocked: '
