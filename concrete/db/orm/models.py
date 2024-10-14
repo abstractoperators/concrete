@@ -527,5 +527,4 @@ class OperatorOptions(Base):
         default=[],
     )
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
