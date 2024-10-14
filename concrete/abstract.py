@@ -176,7 +176,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         return answer
 
-    def qna(self, question_producer: Callable) -> Callable:
+    def qna(self, question_producer: Callable[..., str]) -> Callable:
         """
         Decorate something on a child object downstream to get a response from a query
 
