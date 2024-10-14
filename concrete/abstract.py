@@ -120,7 +120,11 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         operator_id: UUID = uuid4(),  # TODO: Don't set a default
         project_id: UUID = uuid4(),  # TODO: Don't set a default
         starting_prompt: str | None = None,
+        store_messages: bool = False,
     ):
+        """
+        store_messages (bool): Whether or not to save the messages in db
+        """
         self._clients = clients if clients is not None else {'openai': OpenAIClient()}
         self.llm_client = "openai"
         self.llm_client_function = "complete"
@@ -129,6 +133,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         self.operator_id = operator_id
         self.project_id = project_id
         self.starting_prompt = starting_prompt
+        self.store_messages = store_messages
 
     def _qna(
         self,
@@ -161,18 +166,18 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
 
         answer = response.parsed
 
-        # TODO: Only do this for the SaaS
-        with Session() as session:
-            crud.create_message(
-                session,
-                MessageCreate(
-                    type_name=response_format.__name__,
-                    content=repr(answer),
-                    prompt=self.starting_prompt,
-                    project_id=self.project_id,
-                    operator_id=self.operator_id,
-                ),
-            )
+        if self.store_messages:
+            with Session() as session:
+                crud.create_message(
+                    session,
+                    MessageCreate(
+                        type_name=response_format.__name__,
+                        content=repr(answer),
+                        prompt=self.starting_prompt,
+                        project_id=self.project_id,
+                        operator_id=self.operator_id,
+                    ),
+                )
 
         return answer
 

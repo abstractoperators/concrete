@@ -164,9 +164,12 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
         # TODO: Abide by orchestrator clients
         if self.title == 'executive':
-            operator = Executive()
-        if self.title == 'developer':
-            operator = Developer()
+            operator = Executive(store_messages=True)
+        elif self.title == 'developer':
+            operator = Developer(store_messages=True)
+        else:
+            # Otherwise just use a normal Operator
+            operator = Operator(store_messages=True)
         operator.operator_id = self.id
         operator.instructions = self.instructions
         return operator
