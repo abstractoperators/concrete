@@ -75,7 +75,7 @@ class MetaAbstractOperator(type):
             def _delay(
                 self: "AbstractOperator",
                 *args,
-                extra_kwargs: OperatorOptions,
+                options: OperatorOptions,
                 **kwargs,
             ) -> AsyncResult:
                 # Pop extra kwargs and set defaults
@@ -84,10 +84,10 @@ class MetaAbstractOperator(type):
                     function_name=self.llm_client_function,
                     arg_dict={
                         "messages": [
-                            {"role": "system", "content": OperatorOptions.instructions},
+                            {"role": "system", "content": options.instructions},
                             {"role": "user", "content": string_func(self, *args, **kwargs)},
                         ],
-                        "message_format": OpenAIClient.model_to_schema(extra_kwargs.response_format),
+                        "message_format": OpenAIClient.model_to_schema(options.response_format),
                     },
                 )
                 # TODO unhardcode client conversion
@@ -196,11 +196,11 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         @wraps(question_producer)
         def _send_and_await_reply(
             *args,
-            extra_kwargs: OperatorOptions,
+            options: OperatorOptions,
             **kwargs,
         ):
             """
-            extra_kwargs (dict): can contain extra options:
+            options (dict): can contain extra options:
                 response_format ([PydanticModel, ConcreteModel]): something json-like
                 run_async (bool): whether to use the celery .delay function
                 use_tools (bool):  whether to use tools set on the operator
@@ -212,10 +212,10 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             # Pop extra kwargs and set defaults
             tools_addendum = ""
             if tools := (
-                extra_kwargs.tools
-                if extra_kwargs.tools
+                options.tools
+                if options.tools
                 # TODO Have a multi-select drop down in the SaaS
-                else (self.tools if extra_kwargs.use_tools else [])
+                else (self.tools if options.use_tools else [])
             ):
                 # LLMs don't really know what should go in what field even if output struct
                 # is guaranteed
@@ -231,8 +231,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             # Process the finalized query
             return self._qna(
                 query,
-                response_format=extra_kwargs.response_format,
-                instructions=extra_kwargs.instructions,
+                response_format=options.response_format,
+                instructions=options.instructions,
             )
 
         return _send_and_await_reply
@@ -260,26 +260,26 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             return attr
 
         def wrapped_func(*args, **kwargs):
-            extra_kwargs = OperatorOptions(**(self._extra_kwargs | kwargs.pop("extra_kwargs", {})))
+            options = OperatorOptions(**(self._options | kwargs.pop("options")))
 
-            result = attr(*args, extra_kwargs=extra_kwargs.model_dump(), **kwargs)
+            result = attr(*args, options=options.model_dump(), **kwargs)
             assert isinstance(result, str)
 
             llm_func = self.qna(attr)
-            if extra_kwargs.run_async:
+            if options.run_async:
                 # TODO: Converts args into kwargs for this function
                 # Return an async job if requested
-                return llm_func._delay(self, *args, extra_kwargs=extra_kwargs, **kwargs)
+                return llm_func._delay(self, *args, options=options, **kwargs)
 
-            return llm_func(*args, extra_kwargs=extra_kwargs, **kwargs)
+            return llm_func(*args, options=options, **kwargs)
 
         return wrapped_func
 
     @property
-    def _extra_kwargs(self) -> dict[str, Any]:
+    def _options(self) -> dict[str, Any]:
         return {'instructions': self.instructions}
 
-    def chat(self, message: str, extra_kwargs: dict[str, Any]) -> str:
+    def chat(self, message: str, options: dict[str, Any] = {}) -> str:
         """
         Chat with the operator with a direct message.
         """

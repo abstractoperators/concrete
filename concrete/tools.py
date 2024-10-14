@@ -1016,7 +1016,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         exec = Executive(clients={"openai": OpenAIClient()})
         child_node_summary = exec.summarize_file(
-            contents=contents, file_name=path, extra_kwargs={'message_format': ChildNodeSummary}
+            contents=contents, file_name=path, options={'message_format': ChildNodeSummary}
         )
         repo_node_create = models.RepoNodeUpdate(summary=child_node_summary.summary)
         with Session() as db:
@@ -1045,7 +1045,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         exec = Executive({"openai": OpenAIClient()})
         node_summary = exec.summarize_from_children(
-            children_summaries, parent_name, extra_kwargs={'message_format': NodeSummary}
+            children_summaries, parent_name, options={'message_format': NodeSummary}
         )
         overall_summary = node_summary.overall_summary
         parent_children_summaries = '\n'.join(

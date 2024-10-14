@@ -526,3 +526,6 @@ class OperatorOptions(Base):
         description="List of tools to override the operator's tools",
         default=[],
     )
+
+    class Config:
+        arbitrary_types_allowed = True

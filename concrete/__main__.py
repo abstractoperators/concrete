@@ -13,7 +13,7 @@ prompt_parser = subparsers.add_parser("prompt", help="Generate a response for th
 prompt_parser.add_argument("prompt", type=str, help="The prompt to generate a response for")
 prompt_parser.add_argument("--deploy", action="store_true", help="Deploy the project to AWS")
 prompt_parser.add_argument(
-    "--celery",
+    "--run-async",
     action="store_true",
     help="Use celery for processing. Otherwise, use plain.",
 )
@@ -77,7 +77,7 @@ args = parser.parse_args()
 async def main():
     if args.mode == "prompt":
         so = orchestrator.SoftwareOrchestrator()
-        async for operator, response in so.process_new_project(args.prompt, deploy=args.deploy, use_celery=args.celery):
+        async for operator, response in so.process_new_project(args.prompt, deploy=args.deploy, run_async=args.celery):
             CLIClient.emit(f"[{operator}]:\n{response}\n")
 
     elif args.mode == "deploy":
