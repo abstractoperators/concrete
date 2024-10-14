@@ -1,9 +1,10 @@
+import unittest
 from unittest.mock import Mock, patch
 
 import pytest
 from requests.exceptions import HTTPError
 
-from concrete.tools import HTTPTool
+from concrete.tools import HTTPTool, invoke_tool
 
 
 def test_http_tool_process_response_ok():
@@ -53,3 +54,36 @@ def test_http_tool_request(mock_http_client):
 #     assert service_active is True
 #     assert mock_client_instance.describe_services.call_count == 2
 #     mock_client_instance.describe_services.assert_any_call(cluster="DemoCluster", services=["example_service"])
+
+
+class TestInvokeTool(unittest.TestCase):
+    @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
+    def test_invoke_tool_success(self, mock_tools_registry):
+        self.mock_tool = Mock()
+        self.mock_tool.mock_function = Mock(return_value='example result')
+
+        mock_tools_registry['mock_tool'] = self.mock_tool
+        res = invoke_tool('mock_tool', 'mock_function', ['example arg'])
+        self.mock_tool.mock_function.assert_called_once_with('example arg')
+        assert res == 'example result'
+
+    def test_invoke_tool_keyerror(self):
+        with self.assertRaises(KeyError):
+            invoke_tool('mock_tool', 'mock_function', ['example arg'])
+
+    @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
+    def test_invoke_tool_attributeerror(self, mock_tools_registry):
+        self.mock_tool = Mock(spec=[])
+        mock_tools_registry['mock_tool'] = self.mock_tool
+        with self.assertRaises(AttributeError):
+            invoke_tool('mock_tool', 'mock_function_dne', ['example arg'])
+
+    @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
+    def test_invoke_tool_typeerror(self, mock_tools_registry):
+        self.mock_tool = Mock()
+        self.mock_tool.mock_function = Mock(return_value='example result')
+        self.mock_tool.mock_function.side_effect = TypeError
+
+        mock_tools_registry['mock_tool'] = self.mock_tool
+        with self.assertRaises(TypeError):
+            invoke_tool('mock_tool', 'mock_function', ['example arg'])

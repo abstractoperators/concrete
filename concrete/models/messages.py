@@ -20,17 +20,11 @@ Optional is not allowed with OpenAI Structured Outputs. All fields must be requi
 """
 
 import io
-import json
 import zipfile
-from typing import TYPE_CHECKING
 
 from pydantic import Field
 
 from .base import ConcreteModel, KombuMixin
-
-# TODO I have no clue how hacky this is
-if TYPE_CHECKING:
-    from concrete.db.orm.models import Message as SQLMessage
 
 # Tracks all message types created as a sub class of Message
 # Keys are not type sensitive
@@ -76,6 +70,14 @@ class ProjectDirectory(Message, KombuMixin):
         description="A list of files in the project directory. Each list item represents a file"
     )
 
+    def to_zip(self) -> io.BytesIO:
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for project_file in self.files:
+                zip_file.writestr(project_file.file_name, project_file.file_contents)
+        zip_buffer.seek(0)
+        return zip_buffer
+
 
 class TextMessage(Message, KombuMixin):
     text: str = Field(description="Text")
@@ -104,23 +106,3 @@ class NodeSummary(Message, KombuMixin):
 
 class NodeUUID(Message, KombuMixin):
     node_uuid: str = Field(description="UUID of the node")
-
-
-def sqlmessage_to_pydanticmessage(message: 'SQLMessage') -> Message:
-    """
-    Converts a SQLModel message back into its Pydantic representation.
-    """
-
-    message_type = message.type_name
-    message_content = message.content
-
-    return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))
-
-
-def projectdirectory_to_zip(project_directory: ProjectDirectory) -> io.BytesIO:
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for project_file in project_directory.files:
-            zip_file.writestr(project_file.file_name, project_file.file_contents)
-    zip_buffer.seek(0)
-    return zip_buffer
