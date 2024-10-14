@@ -259,6 +259,10 @@ async def communicative_dehallucination(
     # TODO: synchronize message persistence and websocket messages
     # yield Executive.__name__, component
     # Iterative Q&A process
+
+    # TODO: Remove .delay in favor of run_async
+    # TODO: Switch to extra_kwargs
+    # TODO: Test out makefile helloworld, saas, and celery helloworld?
     q_and_a = []
     for _ in range(max_iter):
         if celery:
@@ -287,7 +291,9 @@ async def communicative_dehallucination(
 
     if celery:
         implementation: ProjectFile = (
-            developer.implement_component.delay(context=context, message_format=ProjectFile).get().message
+            developer.implement_component.delay(context=context, extra_kwargs={'response_format': ProjectFile})
+            .get()
+            .message
         )
     else:
         implementation: ProjectFile = developer.implement_component(context, message_format=ProjectFile)  # type: ignore

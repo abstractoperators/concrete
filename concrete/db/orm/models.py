@@ -9,7 +9,10 @@ from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
+from ...models.messages import Message as ConcreteMessage
+from ...models.messages import TextMessage
 from ...state import ProjectStatus
+from ...tools import MetaTool
 
 
 class Base(SQLModel):
@@ -500,3 +503,26 @@ class AuthTokenCreate(AuthTokenBase):
 
 class AuthToken(AuthTokenBase, MetadataMixin, table=True):
     user: User = Relationship(back_populates="auth_token")
+
+
+class OperatorOptions(Base):
+    response_format: type[ConcreteMessage] = Field(
+        description="Response format to be returned by LLM",
+        default=TextMessage,
+    )
+    run_async: bool = Field(
+        description="Whether to use the celery .delay function",
+        default=False,
+    )
+    use_tools: bool = Field(
+        description="Whether to use tools set on the operator",
+        default=False,
+    )
+
+    instructions: str = Field(
+        description="Instructions to override system prompt",
+    )
+    tools: list[MetaTool] = Field(
+        description="List of tools to override the operator's tools",
+        default=[],
+    )

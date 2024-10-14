@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Callable
-from functools import cache, partial, wraps
+from functools import cache, wraps
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -11,9 +11,9 @@ from .celery import app
 from .clients import CLIClient, OpenAIClient
 from .db import crud
 from .db.orm import Session
-from .db.orm.models import MessageCreate
+from .db.orm.models import MessageCreate, OperatorOptions
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
-from .models.messages import Message, TextMessage
+from .models.messages import Message
 from .models.operations import Operation
 from .tools import MetaTool
 
@@ -45,7 +45,12 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
     """
 
     client = OpenAIClient(**clients[operation.client_name].model_dump())
+    # func = e.g. OpenAIClient.complete
     func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
+    # res = e.g. OpenAIClient.complete(
+    #   messages=[{"role": "system", ...}, {"role": "user", ...}]
+    #   message_format=response_format
+    # )
     res = func(**operation.arg_dict).model_dump()
 
     message_format_name = cast(dict, operation.arg_dict["message_format"])["json_schema"]["name"]
@@ -65,24 +70,24 @@ class MetaAbstractOperator(type):
 
     def __new__(cls, clsname, bases, attrs):
         # identify methods and add delay functionality
-        def _delay_factory(func: Callable[..., str]) -> Callable[..., AsyncResult]:
+        def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult]:
 
             def _delay(
                 self: "AbstractOperator",
                 *args,
-                clients: dict[str, OpenAIClient] | None = None,
-                client_name: str | None = None,
-                client_function: str | None = None,
-                message_format: type[Message] = TextMessage,
+                extra_kwargs: OperatorOptions,
                 **kwargs,
             ) -> AsyncResult:
-
+                # Pop extra kwargs and set defaults
                 operation = Operation(
-                    client_name=client_name or self.llm_client,
-                    function_name=client_function or self.llm_client_function,
+                    client_name=self.llm_client,
+                    function_name=self.llm_client_function,
                     arg_dict={
-                        "messages": [{"role": "user", "content": func(self, **kwargs)}],
-                        "message_format": OpenAIClient.model_to_schema(message_format),
+                        "messages": [
+                            {"role": "system", "content": OperatorOptions.instructions},
+                            {"role": "user", "content": string_func(self, *args, **kwargs)},
+                        ],
+                        "message_format": OpenAIClient.model_to_schema(extra_kwargs.response_format),
                     },
                 )
                 # TODO unhardcode client conversion
@@ -91,7 +96,7 @@ class MetaAbstractOperator(type):
                         model=client.model,
                         temperature=client.default_temperature,
                     )
-                    for name, client in (clients or self.clients).items()
+                    for name, client in (self.clients).items()
                 }
                 operation_result = abstract_operation.delay(
                     operation=operation, clients=client_models
@@ -154,7 +159,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             self.clients["openai"]
             .complete(
                 messages=messages,
-                response_format=response_format,
+                message_format=response_format,
             )
             .choices[0]
             .message
@@ -191,28 +196,44 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         @wraps(question_producer)
         def _send_and_await_reply(
             *args,
-            instructions: str | None = None,
+            extra_kwargs: OperatorOptions,
             **kwargs,
         ):
-            response_format = kwargs.pop("message_format", TextMessage)
+            """
+            extra_kwargs (dict): can contain extra options:
+                response_format ([PydanticModel, ConcreteModel]): something json-like
+                run_async (bool): whether to use the celery .delay function
+                use_tools (bool):  whether to use tools set on the operator
 
-            tools = (
-                explicit_tools
-                if (explicit_tools := kwargs.pop("tools", []))
-                else (self.tools if kwargs.pop("use_tools", False) else [])
-            )
-
-            query = question_producer(*args, **kwargs)
-
-            # Add additional prompt to inform agent about tools
-            if tools:
+                # Clobbers the Operator instance attributes
+                instructions (str): override system prompt
+                tools (list[concrete.models.MetaTool]): list of tools available for the operator
+            """
+            # Pop extra kwargs and set defaults
+            tools_addendum = ""
+            if tools := (
+                extra_kwargs.tools
+                if extra_kwargs.tools
+                # TODO Have a multi-select drop down in the SaaS
+                else (self.tools if extra_kwargs.use_tools else [])
+            ):
                 # LLMs don't really know what should go in what field even if output struct
                 # is guaranteed
-                query += """Here are your available tools:\
+                tools_addendum = """Here are your available tools:\
     Either call the tool with the specified syntax, or leave its field blank.\n"""
                 for tool in tools:
-                    query += str(tool)
-            return self._qna(query, response_format=response_format, instructions=instructions)
+                    tools_addendum += str(tool)
+
+            # Fetch underlying prompt, post string interpolation
+            query = question_producer(*args, **kwargs)
+            query += tools_addendum
+
+            # Process the finalized query
+            return self._qna(
+                query,
+                response_format=extra_kwargs.response_format,
+                instructions=extra_kwargs.instructions,
+            )
 
         return _send_and_await_reply
 
@@ -238,20 +259,27 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         if name.startswith("__") or name in {"qna", "_qna"} or not callable(attr):
             return attr
 
-        # Only wrap with qna if the result is a string.
-        # Impossible to figure out return type without running it
         def wrapped_func(*args, **kwargs):
-            result = attr(*args, **kwargs)
-            if isinstance(result, str):
-                str_func = self.qna(attr)
-                str_func.delay = partial(str_func._delay, self)
-                return str_func(*args, **kwargs)
+            extra_kwargs = OperatorOptions(**(self._extra_kwargs | kwargs.pop("extra_kwargs", {})))
 
-            return result
+            result = attr(*args, extra_kwargs=extra_kwargs.model_dump(), **kwargs)
+            assert isinstance(result, str)
+
+            llm_func = self.qna(attr)
+            if extra_kwargs.run_async:
+                # TODO: Converts args into kwargs for this function
+                # Return an async job if requested
+                return llm_func._delay(self, *args, extra_kwargs=extra_kwargs, **kwargs)
+
+            return llm_func(*args, extra_kwargs=extra_kwargs, **kwargs)
 
         return wrapped_func
 
-    def chat(self, message: str, *args, **kwargs) -> str:
+    @property
+    def _extra_kwargs(self) -> dict[str, Any]:
+        return {'instructions': self.instructions}
+
+    def chat(self, message: str, extra_kwargs: dict[str, Any]) -> str:
         """
         Chat with the operator with a direct message.
         """
