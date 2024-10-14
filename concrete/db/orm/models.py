@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
-from pydantic import ValidationError, model_validator
+from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
@@ -527,4 +527,4 @@ class OperatorOptions(Base):
         default=[],
     )
 
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # type: ignore
