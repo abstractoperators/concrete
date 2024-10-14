@@ -14,8 +14,6 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from concrete.models.base import ConcreteModel
-
 from .models.messages import Message, TextMessage
 
 
@@ -70,7 +68,7 @@ class OpenAIClient(Client):
             raise e  # retry decorator
 
     @staticmethod
-    def model_to_schema(model: type[PydanticModel] | type[ConcreteModel]) -> dict[str, str | dict]:
+    def model_to_schema(model: type[PydanticModel]) -> dict[str, str | dict]:
         """
         Utility for formatting a pydantic model into a json output for OpenAI.
         """
