@@ -50,7 +50,7 @@ class Message(ConcreteModel):
 
 class Tool(Message):
     tool_name: str = Field(description="Name of the tool")
-    tool_function: str = Field(description="Command to call the tool")
+    tool_method: str = Field(description="Command to call the tool")
     tool_parameters: list[str] = Field(description="Parameters to pass into the tool function call.")
 
 

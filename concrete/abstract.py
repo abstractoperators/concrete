@@ -13,7 +13,7 @@ from .db import crud
 from .db.orm import Session
 from .db.orm.models import MessageCreate, OperatorOptions
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
-from .models.messages import Message
+from .models.messages import Message, Tool
 from .models.operations import Operation
 from .tools import MetaTool
 
@@ -78,6 +78,7 @@ class MetaAbstractOperator(type):
                 options: OperatorOptions,
                 **kwargs,
             ) -> AsyncResult:
+                # TODO Make generic to support other delayable methods
                 # Pop extra kwargs and set defaults
                 operation = Operation(
                     client_name=self.llm_client,
@@ -184,6 +185,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                     ),
                 )
 
+        # TODO Invoke tool here? Or manual invocation?
         return answer
 
     def qna(self, question_producer: Callable[..., str]) -> Callable:
@@ -221,6 +223,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 # is guaranteed
                 tools_addendum = """Here are your available tools:\
     Either call the tool with the specified syntax, or leave its field blank.\n"""
+
                 for tool in tools:
                     tools_addendum += str(tool)
 
@@ -228,12 +231,25 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             query = question_producer(*args, **kwargs)
             query += tools_addendum
 
+            # Only add a tools field to message format if there are tools
+            if tools:
+                response_format = type(
+                    f'{options.response_format.__name__}WithTools',
+                    (options.response_format, Tool),
+                    {},
+                )
+            else:
+                response_format = options.response_format
+
             # Process the finalized query
-            return self._qna(
+            answer = self._qna(
                 query,
-                response_format=options.response_format,
+                response_format=response_format,
                 instructions=options.instructions,
             )
+
+            # Potentially invoke tools here
+            return answer
 
         return _send_and_await_reply
 

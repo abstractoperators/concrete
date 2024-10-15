@@ -7,7 +7,6 @@ from pydantic import BaseModel as PydanticModel
 class ConcreteModel(PydanticModel):
     def __str__(self):
         # Remove tools from output if empty to improve prompt chaining quality.
-        # Unfortunately, still affected by nesting of tools.
         model_dict = self.model_dump(mode="json", exclude_unset=True, exclude_none=True)
         if not model_dict.get("tools"):
             model_dict.pop("tools", None)
