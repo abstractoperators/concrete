@@ -148,15 +148,15 @@ async def get_orchestrator_list(request: Request, user_id: UserIdDep):
 
 @app.post("/orchestrators")
 async def create_orchestrator(
-    title: annotatedFormStr,
+    name: annotatedFormStr,
     user_id: UserIdDep,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(
-        type_name="unknown",
-        title=title,
+        type="unknown",
+        name=name,
         user_id=user_id,
     )
     with Session() as session:
@@ -213,13 +213,19 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
 @app.post("/orchestrators/{orchestrator_id}/operators")
 async def create_operator(
     orchestrator_id: UUID,
+    name: annotatedFormStr,
     title: annotatedFormStr,
     instructions: annotatedFormStr,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
+    operator_create = OperatorCreate(
+        instructions=instructions,
+        name=name,
+        title=title,
+        orchestrator_id=orchestrator_id,
+    )
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
@@ -277,7 +283,7 @@ async def get_project_list(orchestrator_id: UUID, request: Request):
 @app.post("/orchestrators/{orchestrator_id}/projects", response_class=HTMLResponse)
 async def create_project(
     orchestrator_id: UUID,
-    title: annotatedFormStr,
+    name: annotatedFormStr,
     executive_id: annotatedFormUuid,
     developer_id: annotatedFormUuid,
 ):
@@ -285,7 +291,7 @@ async def create_project(
     # defining parameter Annotated[ProjectCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     project_create = ProjectCreate(
-        title=title,
+        name=name,
         executive_id=executive_id,
         developer_id=developer_id,
         orchestrator_id=orchestrator_id,
@@ -385,7 +391,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 prompt_message = crud.create_message(
                     session,
                     MessageCreate(
-                        type_name="text",
+                        type="text",
                         content=prompt,
                         prompt=prompt,
                         project_id=project_id,
@@ -401,7 +407,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 if project.executive_id is None or project.developer_id is None:
                     raise HTTPException(status_code=404, detail=f"Operators undefined on project {project_id}")
 
-                sqlmodel_executive = crud.get_operator(session, (project.executive_id), orchestrator_id)
+                sqlmodel_executive = crud.get_operator(session, project.executive_id, orchestrator_id)
                 if sqlmodel_executive is None:
                     raise HTTPException(status_code=404, detail=f"Developer {project.executive_id} not found")
                 executive = sqlmodel_executive.to_obj()
