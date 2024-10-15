@@ -24,35 +24,6 @@ services:
     network_mode: service:ts-oauth-homepage
     platform: linux/arm64
 
-  ts-oauth-demo:
-    image: tailscale/tailscale:latest
-    container_name: ts-oauth-demo
-    hostname: ts-oauth-demo
-    environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - "TS_EXTRA_ARGS=--advertise-tags=tag:container --reset"
-    volumes:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-      - sys_module
-    restart: unless-stopped
-    ports:
-      - "8001:80"
-
-  webapp-demo:
-    build:
-      context: ../
-      dockerfile: ./docker/Dockerfile.demo
-    image: webapp-demo:latest 
-    container_name: webapp-demo
-    volumes:
-      - shared-volume:/shared
-    environment:
-      - SHARED_VOLUME=/shared
-    network_mode: service:ts-oauth-demo
-    platform: linux/arm64
-
   ts-oauth-auth:
     image: tailscale/tailscale:latest
     container_name: ts-oauth-auth

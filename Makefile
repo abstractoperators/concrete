@@ -32,9 +32,6 @@ deploysimpleflask:
 build-api:
 	docker compose -f docker/docker-compose.yml build api
 
-build-webapp-demo:
-	docker compose -f docker/docker-compose.yml build webapp-demo
-
 build-webapp-homepage:
 	docker compose -f docker/docker-compose.yml build webapp-homepage
 
@@ -63,10 +60,6 @@ build-alembic:
 run-webapp-api: build-webapp-api
 	docker compose -f docker/docker-compose.yml stop api
 	docker compose -f docker/docker-compose.yml up -d api
-
-run-webapp-demo: build-webapp-demo
-	docker compose -f docker/docker-compose.yml stop webapp-demo
-	docker compose -f docker/docker-compose.yml up -d webapp-demo
 
 run-webapp-homepage: build-webapp-homepage
 	docker compose -f docker/docker-compose.yml stop webapp-homepage
@@ -119,9 +112,6 @@ aws-ecr-push-auth: aws-ecr-login
 aws-ecr-push-homepage: aws-ecr-login
 	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
-aws-ecr-push-demo: aws-ecr-login
-	docker tag webapp-demo:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest
 aws-ecr-push-docs: aws-ecr-login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
