@@ -17,7 +17,7 @@ helloworld:
 # Requires rabbitmq and celery worker to be running
 helloworld_celery: celery
 	sleep 10
-	$(ORCHESTRATE) "Create a simple hello world program" --celery
+	$(ORCHESTRATE) "Create a simple hello world program" --run-async
 	
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."

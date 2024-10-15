@@ -1,7 +1,6 @@
 import json
 from collections.abc import AsyncGenerator
 from textwrap import dedent
-from typing import Optional
 from uuid import UUID, uuid1, uuid4
 
 from . import prompts
@@ -38,8 +37,8 @@ class SoftwareProject(StatefulMixin):
         exec: Executive,
         dev: Developer,
         clients: dict[str, Client_con],
-        deploy: bool = False,
-        use_celery: bool = True,
+        deploy: bool,
+        run_async: bool,
     ):
         self.state = State(self, orchestrator=orchestrator)
         self.uuid = uuid1()  # suffix is unique based on network id
@@ -51,21 +50,23 @@ class SoftwareProject(StatefulMixin):
         self.results = None
         self.update(status=ProjectStatus.READY)
         self.deploy = deploy
-        self.use_celery = use_celery
+        self.run_async = run_async
 
-    def do_work(self) -> AsyncGenerator[tuple[str, str], None]:
+    async def do_work(self) -> AsyncGenerator[tuple[str, str], None]:
         """
         Break down prompt into smaller components and write the code for each individually.
         """
         self.update(status=ProjectStatus.WORKING)
-        if self.use_celery:
-            return self._do_work_celery()
-        return self._do_work_plain()
 
-    async def _do_work_plain(self) -> AsyncGenerator[tuple[str, str], None]:
         planned_components_resp: PlannedComponents = self.exec.plan_components(
-            self.starting_prompt, message_format=PlannedComponents
+            self.starting_prompt,
+            options={
+                "response_format": PlannedComponents,
+                "run_async": self.run_async,
+            },
         )  # type: ignore
+        if self.run_async:
+            planned_components_resp = planned_components_resp.get().message
         components: list[str] = planned_components_resp.components
         yield Executive.__name__, str(planned_components_resp)
 
@@ -78,6 +79,7 @@ class SoftwareProject(StatefulMixin):
                 self.dev,
                 summary,
                 component,
+                self.run_async,
                 starting_prompt=self.starting_prompt,
                 max_iter=0,
             ):
@@ -91,8 +93,13 @@ class SoftwareProject(StatefulMixin):
             components,
             all_implementations,
             self.starting_prompt,
-            message_format=ProjectDirectory,
+            options={
+                "response_format": ProjectDirectory,
+                "run_async": self.run_async,
+            },
         )
+        if self.run_async:
+            files = files.get().message
 
         if self.deploy:
             # TODO Use an actual DB instead of emulating one with a dictionary
@@ -102,64 +109,12 @@ class SoftwareProject(StatefulMixin):
 
             deploy_tool_call: Tool = self.dev.chat(
                 f"""Deploy the provided project to AWS. The project directory is: {files}""",
-                tools=[AwsTool],
-                message_format=Tool,
+                options={
+                    "tools": [AwsTool],
+                    "response_format": Tool,
+                },
             )  # type: ignore
             invoke_tool(**deploy_tool_call.model_dump())  # dict() is deprecated
-
-        self.update(status=ProjectStatus.FINISHED)
-        yield Developer.__name__, str(files)
-
-    # TODO: implement using Celery task calls
-    async def _do_work_celery(self) -> AsyncGenerator[tuple[str, str], None]:
-        planned_components_resp: PlannedComponents = (
-            self.exec.plan_components.delay(
-                starting_prompt=self.starting_prompt, message_format=PlannedComponents
-            ).get()
-        ).message
-        components: list[str] = planned_components_resp.components
-
-        yield Executive.__name__, "\n".join(components)
-
-        summary = ""
-        all_implementations = []
-        for component in components:
-            # Use communicative_dehallucination for each component
-            async for agent_or_implementation, message in communicative_dehallucination(
-                self.exec,
-                self.dev,
-                summary,
-                component,
-                starting_prompt=self.starting_prompt,
-                max_iter=0,
-                celery=True,
-            ):
-                if agent_or_implementation in (Developer.__name__, Executive.__name__):
-                    yield agent_or_implementation, message
-                else:  # last result
-                    all_implementations.append(agent_or_implementation)
-                    summary = message
-        files: ProjectDirectory = (
-            self.dev.integrate_components.delay(
-                planned_components=components,
-                implementations=all_implementations,
-                idea=self.starting_prompt,
-                message_format=ProjectDirectory,
-            ).get()
-        ).message
-
-        if self.deploy:
-            # TODO Use an actual DB instead of emulating one with a dictionary
-            yield "executive", "Deploying to AWS"
-            AwsTool.results.update({files.project_name: json.loads(files.__repr__())})
-
-            deploy_tool_call: Tool = self.dev.chat.delay(
-                message=f"Deploy the provided project to AWS. The project directory is: {files}",
-                tools=[AwsTool],
-                message_format=Tool,
-            ).message
-
-            invoke_tool(**deploy_tool_call.model_dump())
 
         self.update(status=ProjectStatus.FINISHED)
         yield Developer.__name__, str(files)
@@ -185,7 +140,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         self.update(status=ProjectStatus.READY)
         self.operators = {'exec': Executive(self.clients), 'dev': Developer(self.clients)}
 
-    def add_operator(self, operator: "Operator", title: str) -> None:
+    def add_operator(self, operator: Operator, title: str) -> None:
         self.operators[title] = operator
 
     def process_new_project(
@@ -193,7 +148,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         starting_prompt: str,
         project_id: UUID = uuid4(),
         deploy: bool = False,
-        use_celery: bool = True,
+        run_async: bool = False,
         exec: str | None = None,
         dev: str | None = None,
     ) -> AsyncGenerator[tuple[str, str], None]:
@@ -218,7 +173,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             orchestrator=self,
             clients=self.clients,
             deploy=deploy,
-            use_celery=use_celery,
+            run_async=run_async,
         )
         return current_project.do_work()
 
@@ -228,9 +183,9 @@ async def communicative_dehallucination(
     developer: Developer,
     summary: str,
     component: str,
+    run_async: bool,
     max_iter: int = 1,
-    starting_prompt: Optional[str] = None,
-    celery: bool = False,
+    starting_prompt: str | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """
     Implements a communicative dehallucination process for software development.
@@ -240,8 +195,9 @@ async def communicative_dehallucination(
         developer (Developer): The developer assistant object for asking questions and implementing.
         summary (str): A summary of previously implemented components.
         component (str): The current component to be implemented.
-        starting_prompt (str): The initial prompt for the project.
-        max_iter (int, optional): Maximum number of Q&A iterations.
+        run_async (bool): Whether to complete process via Celery calls.
+        starting_prompt (str, default = None): The initial prompt for the project.
+        max_iter (int, default = 1): Maximum number of Q&A iterations.
 
     Returns:
         tuple: A tuple containing:
@@ -259,22 +215,23 @@ async def communicative_dehallucination(
     # TODO: synchronize message persistence and websocket messages
     # yield Executive.__name__, component
     # Iterative Q&A process
+
+    # TODO: Test out makefile helloworld, saas, and celery helloworld?
+    run_async_kwarg = {"run_async": run_async}
     q_and_a = []
     for _ in range(max_iter):
-        if celery:
-            question: TextMessage = developer.ask_question.delay(context=context).get().message
-        else:
-            question: TextMessage = developer.ask_question(context)  # type: ignore
+        question: TextMessage = developer.ask_question(context, options=run_async_kwarg).get().message
+        if run_async:
+            question = question.get().message
 
         if question == "No Question":
             break
 
         yield Developer.__name__, question.text
 
-        if celery:
-            answer: TextMessage = executive.answer_question.delay(context=context, question=question).get().message
-        else:
-            answer: TextMessage = executive.answer_question(context, question)  # type: ignore
+        answer: TextMessage = executive.answer_question(context, question, options=run_async_kwarg)  # type: ignore
+        if run_async:
+            answer = answer.get().message
         q_and_a.append((question, answer))
 
         yield Executive.__name__, answer.text
@@ -285,29 +242,24 @@ async def communicative_dehallucination(
             context += f"\nQuestion: {question}"
             context += f"\nAnswer: {answer}"
 
-    if celery:
-        implementation: ProjectFile = (
-            developer.implement_component.delay(context=context, message_format=ProjectFile).get().message
-        )
-    else:
-        implementation: ProjectFile = developer.implement_component(context, message_format=ProjectFile)  # type: ignore
+    implementation: ProjectFile = developer.implement_component(  # type: ignore
+        context,
+        options=run_async_kwarg | {"response_format": ProjectFile},
+    )
+    if run_async:
+        implementation = implementation.get().message
 
     yield Developer.__name__, str(implementation)
 
-    if celery:
-        new_summary: Summary = (
-            executive.generate_summary.delay(
-                summary=summary,
-                implementation=str(implementation),
-                message_format=Summary,
-            )
-            .get()
-            .message
-        )  # type: ignore
+    new_summary: Summary = executive.generate_summary(  # type: ignore
+        summary,
+        str(implementation),
+        options=run_async_kwarg | {"response_format": Summary},
+    )
+    if run_async:
+        new_summary = new_summary.get().message
     else:
-        new_summary: Summary = executive.generate_summary(  # type: ignore
-            summary, str(implementation), message_format=Summary
-        ).summary
+        new_summary = new_summary.summary  # type: ignore
 
     yield Executive.__name__, str(new_summary)
 

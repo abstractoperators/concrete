@@ -444,7 +444,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
             so.add_operator(developer, 'dev')
 
             so.update(ws=websocket, manager=manager)
-            async for operator, response in so.process_new_project(prompt, project.id, use_celery=False):
+            async for operator, response in so.process_new_project(prompt, project.id, run_async=False):
                 CLIClient.emit(f"[{operator}]:\n{response}\n")
                 is_executive = operator == "Executive"
                 await manager.send_text(

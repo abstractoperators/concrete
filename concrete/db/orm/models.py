@@ -3,13 +3,16 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
-from pydantic import ValidationError, model_validator
+from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
+from ...models.messages import Message as ConcreteMessage
+from ...models.messages import TextMessage
 from ...state import ProjectStatus
+from ...tools import MetaTool
 
 
 class Base(SQLModel):
@@ -164,9 +167,12 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
         # TODO: Abide by orchestrator clients
         if self.title == 'executive':
-            operator = Executive()
-        if self.title == 'developer':
-            operator = Developer()
+            operator = Executive(store_messages=True)
+        elif self.title == 'developer':
+            operator = Developer(store_messages=True)
+        else:
+            # Otherwise just use a normal Operator
+            operator = Operator(store_messages=True)
         operator.operator_id = self.id
         operator.instructions = self.instructions
         return operator
@@ -497,3 +503,28 @@ class AuthTokenCreate(AuthTokenBase):
 
 class AuthToken(AuthTokenBase, MetadataMixin, table=True):
     user: User = Relationship(back_populates="auth_token")
+
+
+class OperatorOptions(Base):
+    response_format: type[ConcreteMessage] = Field(
+        description="Response format to be returned by LLM",
+        default=TextMessage,
+    )
+    run_async: bool = Field(
+        description="Whether to use the celery .delay function",
+        default=False,
+    )
+    use_tools: bool = Field(
+        description="Whether to use tools set on the operator",
+        default=False,
+    )
+
+    instructions: str = Field(
+        description="Instructions to override system prompt",
+    )
+    tools: list[MetaTool] = Field(
+        description="List of tools to override the operator's tools",
+        default=[],
+    )
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # type: ignore

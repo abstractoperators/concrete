@@ -1,4 +1,5 @@
 from textwrap import dedent
+from typing import Any
 
 from .abstract import AbstractOperator
 
@@ -30,7 +31,7 @@ class Developer(Operator):
         Leverage your technical expertise to create robust, scalable, and innovative AI agent orchestration systems. Apply clarity, completeness, specificity, adaptability, and creativity to deliver high-quality, impactful solutions.
     """  # noqa E501
 
-    def ask_question(self, context: str, *args, **kwargs) -> str:
+    def ask_question(self, context: str, options: dict[str, Any] = {}) -> str:
         """
         Accept instructions and ask a question about it if necessary.
 
@@ -64,7 +65,7 @@ class Developer(Operator):
                 What should the function be called?"""
         )
 
-    def implement_component(self, context: str, *args, **kwargs) -> str:
+    def implement_component(self, context: str, options: dict[str, Any] = {}) -> str:
         """
         Prompts the Operator to implement a component based off of the components context.
         Returns the code for the component
@@ -80,8 +81,7 @@ Use placeholders referencing code/functions already provided in the context. Nev
         planned_components: list[str],
         implementations: list[str],
         idea: str,
-        *args,
-        **kwargs,
+        options: dict[str, Any] = {},
     ) -> str:
         """
         Prompts Operator to combine code implementations of multiple components
@@ -103,7 +103,7 @@ First, think about all files you intend to use in the final output. Then, combin
             """  # noqa E501
         return out_str
 
-    def implement_html_element(self, prompt: str, *args, **kwargs) -> str:
+    def implement_html_element(self, prompt: str, options: dict[str, Any] = {}) -> str:
         out_str = f"""\
 Generate an html element with the following description:\n
 {prompt}
@@ -159,7 +159,7 @@ class Executive(Operator):
         growth objectives.
     """
 
-    def plan_components(self, starting_prompt, *args, **kwargs) -> str:
+    def plan_components(self, starting_prompt, options: dict[str, Any] = {}) -> str:
         return """\
 List the essential code components required to implement the project idea. Each component should be atomic, \
 such that a developer could implement it in isolation provided placeholders for preceding components.
@@ -180,7 +180,7 @@ Project Idea:
             starting_prompt=starting_prompt
         )
 
-    def answer_question(self, context: str, question: str, *args, **kwargs) -> str:
+    def answer_question(self, context: str, question: str, options: dict[str, Any] = {}) -> str:
         """
         Prompts the Operator to answer a question
         Returns the answer
@@ -191,7 +191,7 @@ Project Idea:
             "If there is no question, then respond with 'Okay'. Do not provide clarification unprompted."
         )
 
-    def generate_summary(self, summary: str, implementation: str, *args, **kwargs) -> str:
+    def generate_summary(self, summary: str, implementation: str, options: dict[str, Any] = {}) -> str:
         """
         Generates a summary of completed components
         Returns the summary
@@ -215,7 +215,12 @@ Previous Components: {summary}"""  # noqa E501
         return prompt
 
     def update_parent_summary(
-        self, parent_summary: str, child_summary: str, parent_child_summaries: str, child_name: str, *args, **kwargs
+        self,
+        parent_summary: str,
+        child_summary: str,
+        parent_child_summaries: str,
+        child_name: str,
+        options: dict[str, Any] = {},
     ) -> str:
         """
         Updates the parent summary with the child summary
@@ -252,7 +257,7 @@ Guidelines:
 - Each child summary should accurately represent its corresponding node.
 """  # noqa
 
-    def summarize_file(self, contents: str, file_name: str, *args, **kwargs) -> str:
+    def summarize_file(self, contents: str, file_name: str, options: dict[str, Any] = {}) -> str:
         return f"""Provide a concise summary of the following file, focusing on its purpose and the key functionalities of its contents. 
 The summary should give a high-level overview that explains what the file is for and its primary components or actions. Keep critical implementation details in mind.
 Return the summary in one paragraph.
@@ -265,7 +270,12 @@ node_name: <Name>
 summary: <summary of file contents>
 """  # noqa
 
-    def summarize_from_children(self, children_summaries: list[str], parent_name: str, *args, **kwargs) -> str:
+    def summarize_from_children(
+        self,
+        children_summaries: list[str],
+        parent_name: str,
+        options: dict[str, Any] = {},
+    ) -> str:
         joined_summaries = "\n\n".join(children_summaries)
         return f"""Summarize the following by aggregating the following children. Deliver a high-level overview. Ensure ALL children and their summaries are captured. Emphasize the summaries of children core to the application's functionality. Keep critical implementation details in children summaries in mind.
     
