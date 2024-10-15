@@ -45,9 +45,10 @@ def _deploy_to_prod(response_url: str):
                 image_uri="008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest",
                 container_name="webapp-homepage",
                 container_port=80,
+                container_env_file=".env",
             ),
         ],
-        "webapp-homepage",
+        service_name="webapp-homepage",
         listener_rule={"field": "host-header", "value": "abop.ai"},
     ) and AwsTool._deploy_service(
         [
@@ -55,6 +56,7 @@ def _deploy_to_prod(response_url: str):
                 image_uri="008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-demo:latest",
                 container_name="webapp-demo",
                 container_port=80,
+                container_env_file=".env",
             ),
         ],
         listener_rule={"field": "host-header", "value": "demo.abop.ai"},
@@ -216,7 +218,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             so.update(ws=websocket, manager=manager)
             result = ""
             async for operator_type, message in so.process_new_project(
-                starting_prompt=data, deploy=False, use_celery=False
+                starting_prompt=data, deploy=False, run_async=False
             ):
                 result = message
 

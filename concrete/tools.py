@@ -1015,7 +1015,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             contents = raw_data.decode('utf-8', errors='replace')
 
         exec = Executive(clients={"openai": OpenAIClient()})
-        child_node_summary = exec.summarize_file(contents=contents, file_name=path, message_format=ChildNodeSummary)
+        child_node_summary = exec.summarize_file(
+            contents=contents, file_name=path, options={'message_format': ChildNodeSummary}
+        )
         repo_node_create = models.RepoNodeUpdate(summary=child_node_summary.summary)
         with Session() as db:
             crud.update_repo_node(db=db, repo_node_id=leaf_node_id, repo_node_update=repo_node_create)
@@ -1042,7 +1044,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                     children_summaries.append(f'{child.abs_path}: {child.summary}')
 
         exec = Executive({"openai": OpenAIClient()})
-        node_summary = exec.summarize_from_children(children_summaries, parent_name, message_format=NodeSummary)
+        node_summary = exec.summarize_from_children(
+            children_summaries, parent_name, options={'message_format': NodeSummary}
+        )
         overall_summary = node_summary.overall_summary
         parent_children_summaries = '\n'.join(
             [f'{child_summary.node_name}: {child_summary.summary}' for child_summary in node_summary.children_summaries]
