@@ -260,10 +260,11 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             return attr
 
         def wrapped_func(*args, **kwargs):
-            options = OperatorOptions(**(self._options | kwargs.pop("options")))
+            options = OperatorOptions(**(self._options | kwargs.pop("options", {})))
 
             result = attr(*args, options=options.model_dump(), **kwargs)
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                return result
 
             llm_func = self.qna(attr)
             if options.run_async:

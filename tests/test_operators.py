@@ -48,19 +48,19 @@ class TestOperator(unittest.TestCase):
         class MockOperator(AbstractOperator):
             instructions = "Foo bar baz."
 
-            def method_returning_str(self):
+            def method_returning_str(self, options={}):
                 return "This is a string."
 
-            def method_returning_int(self):
+            def method_returning_int(self, **kwargs):
                 return 42
 
-            def method_returning_none(self):
+            def method_returning_none(self, **kwargs):
                 return None
 
-            def method_returning_list(self):
+            def method_returning_list(self, **kwargs):
                 return [1, 2, 3]
 
-            def method_with_args(self, x=1, y=2):
+            def method_with_args(self, x=1, y=2, options={}):
                 return f"Sum of {x} and {y} is {x + y}"
 
         string_methods = [
