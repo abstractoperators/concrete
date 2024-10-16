@@ -59,10 +59,6 @@ class Tool(Message):
     tool_parameters: list[Param] = Field(description="List of parameters for the tool")
 
 
-class Tools(Message):
-    tools: list[Tool] = Field(description="List of tools")
-
-
 # N.B. KombuMixin must be added to each leaf child node class due to serializer registration
 class ProjectFile(Message, KombuMixin):
     file_name: str = Field(description="A file path relative to root")
