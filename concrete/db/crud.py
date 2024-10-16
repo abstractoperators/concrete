@@ -101,6 +101,11 @@ def get_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Opera
     return db.scalars(stmt).first()
 
 
+def get_operator_by_name(db: Session, name: str, orchestrator_id: UUID) -> Operator | None:
+    stmt = select(Operator).where(Operator.name == name).where(Operator.orchestrator_id == orchestrator_id)
+    return db.scalars(stmt).first()
+
+
 def get_operators(
     db: Session,
     orchestrator_id: UUID | None = None,
@@ -335,6 +340,11 @@ def get_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID | None = 
     return db.scalars(stmt).first()
 
 
+def get_orchestrator_by_name(db: Session, name: str, user_id: UUID) -> Orchestrator | None:
+    stmt = select(Orchestrator).where(Orchestrator.name == name).where(Orchestrator.user_id == user_id)
+    return db.scalars(stmt).first()
+
+
 def get_orchestrators(
     db: Session,
     user_id: UUID | None = None,
@@ -378,6 +388,11 @@ def create_project(db: Session, project_create: ProjectCreate) -> Project:
 
 def get_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Project | None:
     stmt = select(Project).where(Project.id == project_id).where(Project.orchestrator_id == orchestrator_id)
+    return db.scalars(stmt).first()
+
+
+def get_project_by_name(db: Session, name: str, orchestrator_id: UUID) -> Project | None:
+    stmt = select(Project).where(Project.name == name).where(Project.orchestrator_id == orchestrator_id)
     return db.scalars(stmt).first()
 
 

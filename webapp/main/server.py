@@ -56,6 +56,7 @@ def sidebar_create(
     request: Request,
     hiddens: list[HiddenInput] = [],
     context: dict[str, Any] = {},
+    headers: dict[str, str] = {},
 ):
     context |= {
         "classname": classname,
@@ -68,7 +69,44 @@ def sidebar_create(
         name="sidebar_create_panel.html",
         context=context,
         request=request,
+        headers=headers,
     )
+
+
+def sidebar_create_orchestrator(request: Request):
+    return sidebar_create(
+        "Orchestrator",
+        "/orchestrators",
+        "orchestrator_form.html",
+        request,
+        headers={"HX-Trigger": "getOrchestrators"},
+    )
+
+
+def sidebar_create_operator(orchestrator_id: UUID, request: Request):
+    return sidebar_create(
+        "Operator",
+        f"/orchestrators/{orchestrator_id}/operators",
+        "operator_form.html",
+        request,
+        context={"orchestrator_id": orchestrator_id},
+        headers={"HX-Trigger": "getOperators"},
+    )
+
+
+def sidebar_create_project(orchestrator_id: UUID, request: Request):
+    with Session() as session:
+        operators = crud.get_operators(session, orchestrator_id)
+        CLIClient.emit_sequence(operators)
+        CLIClient.emit("\n")
+        return sidebar_create(
+            "Project",
+            f"/orchestrators/{orchestrator_id}/projects",
+            "project_form.html",
+            request,
+            context={"orchestrator_id": orchestrator_id, "operators": operators},
+            headers={"HX-Trigger": "getProjects"},
+        )
 
 
 UNAUTHENTICATED_PATHS = {'/ping', '/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
@@ -88,6 +126,7 @@ templates = Jinja2Templates(
     directory=[
         os.path.join(dname, "templates", "pages"),
         os.path.join(dname, "templates", "components"),
+        os.path.join(dname, "templates", "errors"),
     ],
 )
 
@@ -146,10 +185,11 @@ async def get_orchestrator_list(request: Request, user_id: UserIdDep):
         )
 
 
-@app.post("/orchestrators")
+@app.post("/orchestrators", response_class=HTMLResponse)
 async def create_orchestrator(
     name: annotatedFormStr,
     user_id: UserIdDep,
+    request: Request,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
@@ -162,18 +202,31 @@ async def create_orchestrator(
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
-        headers = {"HX-Trigger": "getOrchestrators"}
-        return HTMLResponse(content=f"Created orchestrator {orchestrator.id}", headers=headers)
+        return sidebar_create_orchestrator(request)
+
+
+@app.post("/orchestrators/name", response_class=HTMLResponse)
+async def validate_orchestrator_name(
+    user_id: UserIdDep,
+    request: Request,
+    name: annotatedFormStr = "",
+):
+    html_filename = "orchestrator_form.html"
+    if name:
+        with Session() as session:
+            if crud.get_orchestrator_by_name(session, name, user_id):
+                html_filename = "duplicate_orchestrator.html"
+
+    return templates.TemplateResponse(
+        name=html_filename,
+        request=request,
+        context={"orchestrator_name": name},
+    )
 
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
 async def create_orchestrator_form(request: Request):
-    return sidebar_create(
-        "Orchestrator",
-        "/orchestrators",
-        "orchestrator_form.html",
-        request,
-    )
+    return sidebar_create_orchestrator(request)
 
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
@@ -210,12 +263,13 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
         )
 
 
-@app.post("/orchestrators/{orchestrator_id}/operators")
+@app.post("/orchestrators/{orchestrator_id}/operators", response_class=HTMLResponse)
 async def create_operator(
     orchestrator_id: UUID,
     name: annotatedFormStr,
     title: annotatedFormStr,
     instructions: annotatedFormStr,
+    request: Request,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
@@ -229,18 +283,31 @@ async def create_operator(
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
-        headers = {"HX-Trigger": "getOperators"}
-        return HTMLResponse(content=f"Created operator {operator.id}", headers=headers)
+        return sidebar_create_operator(orchestrator_id, request)
+
+
+@app.post("/orchestrators/{orchestrator_id}/operators/name", response_class=HTMLResponse)
+async def validate_operator_name(
+    orchestrator_id: UUID,
+    request: Request,
+    name: annotatedFormStr = "",
+):
+    html_filename = "operator_form.html"
+    if name:
+        with Session() as session:
+            if crud.get_operator_by_name(session, name, orchestrator_id):
+                html_filename = "duplicate_operator.html"
+
+    return templates.TemplateResponse(
+        name=html_filename,
+        request=request,
+        context={"orchestrator_id": orchestrator_id, "operator_name": name},
+    )
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/form", response_class=HTMLResponse)
 async def create_operator_form(orchestrator_id: UUID, request: Request):
-    return sidebar_create(
-        "Operator",
-        f"/orchestrators/{orchestrator_id}/operators",
-        "operator_form.html",
-        request,
-    )
+    return sidebar_create_operator(orchestrator_id, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
@@ -286,6 +353,7 @@ async def create_project(
     name: annotatedFormStr,
     executive_id: annotatedFormUuid,
     developer_id: annotatedFormUuid,
+    request: Request,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[ProjectCreate, Form()] does not extract into form data fields.
@@ -299,23 +367,31 @@ async def create_project(
     with Session() as session:
         project = crud.create_project(session, project_create)
         CLIClient.emit(f"{project}\n")
-        headers = {"HX-Trigger": "getProjects"}
-        return HTMLResponse(content=f"Created project {project.id}", headers=headers)
+        return sidebar_create_project(orchestrator_id, request)
+
+
+@app.post("/orchestrators/{orchestrator_id}/projects/name", response_class=HTMLResponse)
+async def validate_project_name(
+    orchestrator_id: UUID,
+    request: Request,
+    name: annotatedFormStr = "",
+):
+    html_filename = "project_form.html"
+    if name:
+        with Session() as session:
+            if crud.get_project_by_name(session, name, orchestrator_id):
+                html_filename = "duplicate_project.html"
+
+    return templates.TemplateResponse(
+        name=html_filename,
+        request=request,
+        context={"orchestrator_id": orchestrator_id, "project_name": name},
+    )
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/form", response_class=HTMLResponse)
 async def create_project_form(orchestrator_id: UUID, request: Request):
-    with Session() as session:
-        operators = crud.get_operators(session, orchestrator_id)
-        CLIClient.emit_sequence(operators)
-        CLIClient.emit("\n")
-        return sidebar_create(
-            "Project",
-            f"/orchestrators/{orchestrator_id}/projects",
-            "project_form.html",
-            request,
-            context={"operators": operators},
-        )
+    return sidebar_create_project(orchestrator_id, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/{project_id}", response_class=HTMLResponse)
