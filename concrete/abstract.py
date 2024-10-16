@@ -15,7 +15,8 @@ from .db.orm.models import MessageCreate, OperatorOptions
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
 from .models.messages import Message, Tool
 from .models.operations import Operation
-from .tools import TOOLS_REGISTRY, MetaTool
+from .tools import MetaTool
+from .tools import invoke_tool as invoke_tool_func
 
 # TODO replace OpenAIClientModel with GenericClientModel
 
@@ -185,7 +186,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                     ),
                 )
 
-        # TODO Invoke tool here? Or manual invocation?
         return answer
 
     def qna(self, question_producer: Callable[..., str]) -> Callable:
@@ -248,7 +248,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 instructions=options.instructions,
             )
 
-            # Potentially invoke tools here
             return answer
 
         return _send_and_await_reply
@@ -309,11 +308,4 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         Throws AttributeError if the function on the tool doesn't exist.
         Throws TypeError if the parameters are wrong.
         """
-        tool_name = tool.tool_name
-        tool_function = tool.tool_method
-        tool_parameters = tool.tool_parameters
-        func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
-
-        kwargs = {param.name: param.value for param in tool_parameters}
-
-        return func(**kwargs)
+        return invoke_tool_func(tool)

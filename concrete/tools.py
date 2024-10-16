@@ -21,9 +21,26 @@ from .clients import CLIClient, HTTPClient
 from .db import crud
 from .db.orm import Session, models
 from .models.base import ConcreteModel
-from .models.messages import ChildNodeSummary, NodeSummary
+from .models.messages import ChildNodeSummary, NodeSummary, Tool
 
-TOOLS_REGISTRY = {}
+TOOLS_REGISTRY: dict[str, type] = {}
+
+
+def invoke_tool(tool: Tool):
+    """
+    Invokes a tool on a message.
+    Throws KeyError if the tool doesn't exist.
+    Throws AttributeError if the function on the tool doesn't exist.
+    Throws TypeError if the parameters are wrong.
+    """
+    tool_name = tool.tool_name
+    tool_function = tool.tool_method
+    tool_parameters = tool.tool_parameters
+    func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
+
+    kwargs = {param.name: param.value for param in tool_parameters}
+
+    return func(**kwargs)
 
 
 class MetaTool(type):
