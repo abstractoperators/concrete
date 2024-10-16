@@ -248,6 +248,26 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 instructions=options.instructions,
             )
 
+            # TODO Reconsider where this occurs.
+            # This will be blocking, and the intermediate tool call will not be returned.
+            # It also makes it difficult to do a manual invocation of the tool.
+            # However, it aligns with goals of wanting Operators to be able to use tools
+            if issubclass(type(answer), Tool):
+                resp = self.invoke_tool(cast(Tool, answer))
+                if resp is not None and hasattr(resp, '__str__'):
+                    # Update the query to include the tool call results.
+                    tool_preface = f'You called the tool: {answer.tool_name}.{answer.tool_method}\n'
+                    tool_preface += f'with the following parameters: {answer.tool_parameters}\n'
+                    tool_preface += f'The tool returned: {str(resp)}\n'
+                    tool_preface += 'Use these results to answer the following query:\n'
+                    query = tool_preface + question_producer(*args, **kwargs)
+                    answer = self._qna(
+                        query,
+                        response_format=options.response_format,
+                        instructions=options.instructions,
+                    )
+                    print(answer)
+
             return answer
 
         return _send_and_await_reply
@@ -271,7 +291,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     @cache
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
-        if name.startswith("__") or name in {"qna", "_qna"} or not callable(attr):
+        if name.startswith("__") or name in {"qna", "_qna", "invoke_tool"} or not callable(attr):
             return attr
 
         def wrapped_func(*args, **kwargs):
