@@ -84,7 +84,7 @@ class MetaTool(type):
                 method_signature = f"{attr}({', '.join(params)}){return_str}"
                 method_info.append(f"{method_signature}\n\t{docstring}")
 
-        attrs["_str_representation"] = f"{name} Tool with methods:\n" + "\n".join(
+        attrs["_str_representation"] = f"Tool Name: {name}\nTool Methods:\n" + "\n".join(
             f"   - {info}" for info in method_info
         )
         new_class = super().__new__(cls, name, bases, attrs)
