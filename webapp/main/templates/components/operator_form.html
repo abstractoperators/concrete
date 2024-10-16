@@ -1,25 +1,14 @@
-<div hx-target="this" hx-swap="outerHTML">
-    <div>
-        <label for="title">Title</label>
-        <select name="title" id="title">
-            <option value="executive">Executive</option>
-            <option value="developer">Developer</option>
-        </select>
-    </div>
-    <div>
-        <label for="name">Name</label>
-        <input
-            type="text"
-            name="name"
-            hx-post="{{ dyn_url_for(request, 'validate_operator_name', orchestrator_id=orchestrator_id) }}"
-            value="{{ operator_name }}"
-            required
-        >
-    </div>
-    <div>
-        <label for="instructions">Instructions</label>
-        <br>
-        <textarea name="instructions" autocomplete="off"
-            required>You are an expert software developer. You will follow the instructions given to you to complete each task.</textarea>
-    </div>
+<div>
+    <label for="title">Title</label>
+    <select name="title" id="title">
+        <option value="executive">Executive</option>
+        <option value="developer">Developer</option>
+    </select>
+</div>
+{% include "name_input.html" %}
+<div>
+    <label for="instructions">Instructions</label>
+    <br>
+    <textarea name="instructions" autocomplete="off"
+        required>You are an expert software developer. You will follow the instructions given to you to complete each task.</textarea>
 </div>

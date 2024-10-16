@@ -1,7 +1,8 @@
 import asyncio
 import os
 import urllib
-from typing import Annotated, Any
+from collections.abc import Callable
+from typing import Annotated, Any, TypeVar
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -23,6 +24,7 @@ from concrete.clients import CLIClient
 from concrete.db import crud
 from concrete.db.orm import Session
 from concrete.db.orm.models import (
+    Base,
     MessageCreate,
     OperatorCreate,
     OrchestratorCreate,
@@ -48,6 +50,8 @@ dname = os.path.dirname(abspath)
 annotatedFormStr = Annotated[str, Form()]
 annotatedFormUuid = Annotated[UUID, Form()]
 
+M = TypeVar("M", bound=Base)
+
 
 def sidebar_create(
     classname: str,
@@ -62,6 +66,7 @@ def sidebar_create(
         "classname": classname,
         "form_endpoint": form_endpoint,
         "form_component": form_component,
+        "name_validation_endpoint": f"{form_endpoint}/name",
         "hiddens": hiddens,
     }
 
@@ -107,6 +112,20 @@ def sidebar_create_project(orchestrator_id: UUID, request: Request):
             context={"orchestrator_id": orchestrator_id, "operators": operators},
             headers={"HX-Trigger": "getProjects"},
         )
+
+
+def create_name_validation(name: str, db_getter: Callable[[], M | None], request: Request):
+    html_filename = "name_input.html"
+    if not name or db_getter():
+        html_filename = "invalid_name_input.html"
+    return templates.TemplateResponse(
+        name=html_filename,
+        request=request,
+        context={
+            "name_input": name,
+            "name_validation_endpoint": request.url,
+        },
+    )
 
 
 UNAUTHENTICATED_PATHS = {'/ping', '/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
@@ -211,17 +230,11 @@ async def validate_orchestrator_name(
     request: Request,
     name: annotatedFormStr = "",
 ):
-    html_filename = "orchestrator_form.html"
-    if name:
+    def db_getter():
         with Session() as session:
-            if crud.get_orchestrator_by_name(session, name, user_id):
-                html_filename = "duplicate_orchestrator.html"
+            return crud.get_orchestrator_by_name(session, name, user_id)
 
-    return templates.TemplateResponse(
-        name=html_filename,
-        request=request,
-        context={"orchestrator_name": name},
-    )
+    return create_name_validation(name, db_getter, request)
 
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
@@ -292,17 +305,11 @@ async def validate_operator_name(
     request: Request,
     name: annotatedFormStr = "",
 ):
-    html_filename = "operator_form.html"
-    if name:
+    def db_getter():
         with Session() as session:
-            if crud.get_operator_by_name(session, name, orchestrator_id):
-                html_filename = "duplicate_operator.html"
+            return crud.get_operator_by_name(session, name, orchestrator_id)
 
-    return templates.TemplateResponse(
-        name=html_filename,
-        request=request,
-        context={"orchestrator_id": orchestrator_id, "operator_name": name},
-    )
+    return create_name_validation(name, db_getter, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/form", response_class=HTMLResponse)
@@ -376,17 +383,11 @@ async def validate_project_name(
     request: Request,
     name: annotatedFormStr = "",
 ):
-    html_filename = "project_form.html"
-    if name:
+    def db_getter():
         with Session() as session:
-            if crud.get_project_by_name(session, name, orchestrator_id):
-                html_filename = "duplicate_project.html"
+            return crud.get_project_by_name(session, name, orchestrator_id)
 
-    return templates.TemplateResponse(
-        name=html_filename,
-        request=request,
-        context={"orchestrator_id": orchestrator_id, "project_name": name},
-    )
+    return create_name_validation(name, db_getter, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/form", response_class=HTMLResponse)
