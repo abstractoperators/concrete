@@ -221,9 +221,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             ):
                 # LLMs don't really know what should go in what field even if output struct
                 # is guaranteed
-                tools_addendum = """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.
-    Ensure your syntax is exact, \n"""
+                tools_addendum = """Here are your available tools. If invoking a tool will help you answer the question, fill in the exact values for tool_name, tool_method, and tool_parameters. Leave these fields empty if no tool is needed."""  # noqa
 
                 for tool in tools:
                     tools_addendum += str(tool)
@@ -253,7 +251,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             # This will be blocking, and the intermediate tool call will not be returned.
             # It also makes it difficult to do a manual invocation of the tool.
             # However, it aligns with goals of wanting Operators to be able to use tools
-            if issubclass(type(answer), Tool):
+            if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method and answer.tool_parameters:
                 resp = self.invoke_tool(cast(Tool, answer))
                 if resp is not None and hasattr(resp, '__str__'):
                     # Update the query to include the tool call results.
