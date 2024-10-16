@@ -13,13 +13,11 @@
 </div>
 <div id="ToolsCheckboxes">
 
-    <!-- todo dynamically get  Tools -->
     <label for="Tools">Tools</label>
     <br>
-    <input type="checkbox" id="arithmetic" name="tools" value="arithmetic">
-    <label for="arithmetic">Arithmetic</label>
-    <input type="checkbox" id="geometry" name="tools" value="geometry">
-    <label for="geometry">Geometry</label>
-    <input type="checkbox" id="algebra" name="tools" value="algebra">
-    <label for="algebra">Algebra</label>
+    {% for tool in tools %}
+    <input type="checkbox" id="{{ tool }}" name="tools" value="{{ tool }}">
+    <label for="{{ tool }}">{{ tool }}</label><br>
+    {% endfor %}
+
 </div>

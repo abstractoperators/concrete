@@ -20,6 +20,7 @@ from .orm.models import (
     NodeCreate,
     Operator,
     OperatorCreate,
+    OperatorToolLink,
     OperatorUpdate,
     Orchestrator,
     OrchestratorCreate,
@@ -216,8 +217,8 @@ def create_tool(db: Session, tool_create: ToolCreate) -> Tool:
     )
 
 
-def get_tool(db: Session, tool_id: UUID) -> Tool | None:
-    stmt = select(Tool).where(Tool.id == tool_id)
+def get_tool(db: Session, tool_name: str) -> Tool | None:
+    stmt = select(Tool).where(Tool.name == tool_name)
     return db.scalars(stmt).first()
 
 
@@ -237,20 +238,27 @@ def get_tools(
 
 def update_tool(
     db: Session,
-    tool_id: UUID,
+    tool_name: str,
     tool_update: ToolUpdate,
 ) -> Tool | None:
     return update_generic(
         db,
-        get_tool(db, tool_id),
+        get_tool(db, tool_name),
         tool_update,
     )
 
 
-def delete_tool(db: Session, tool_id: UUID) -> Tool | None:
+def delete_tool(db: Session, tool_name: str) -> Tool | None:
     return delete_generic(
         db,
-        get_tool(db, tool_id),
+        get_tool(db, tool_name),
+    )
+
+
+def assign_tool_to_operator(db: Session, operator_id: UUID, tool_name: str) -> OperatorToolLink:
+    return create_generic(
+        db,
+        OperatorToolLink(operator_id=operator_id, tool_name=tool_name),
     )
 
 

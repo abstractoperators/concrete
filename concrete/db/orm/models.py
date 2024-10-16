@@ -48,7 +48,7 @@ class ProfilePictureMixin(SQLModel):
 
 class OperatorToolLink(Base, table=True):
     operator_id: UUID = Field(foreign_key="operator.id", primary_key=True)
-    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+    tool_name: str = Field(foreign_key="tool.name", primary_key=True)
 
 
 # User Models
@@ -163,19 +163,16 @@ class Operator(OperatorBase, MetadataMixin, table=True):
     )
 
     def to_obj(self):
-        from concrete.operators import Developer as PydanticDeveloper
-        from concrete.operators import Executive as PydanticExecutive
-        from concrete.operators import Operator as PydanticOperator
+        from concrete.operators import Developer, Executive
 
         # TODO: Abide by orchestrator clients
         if self.title == 'executive':
-            operator = PydanticExecutive(store_messages=True)
+            operator = Executive(store_messages=True)
         elif self.title == 'developer':
-            operator = PydanticDeveloper(store_messages=True)
+            operator = Developer(store_messages=True)
         else:
             # Otherwise just use a normal Operator
-            operator = PydanticOperator(store_messages=True)
-
+            operator = Operator(store_messages=True)
         operator.operator_id = self.id
         operator.instructions = self.instructions
         return operator
@@ -301,7 +298,7 @@ class Project(ProjectBase, MetadataMixin, table=True):
 
 # May want Enum here to restrict to Predefined tools
 class ToolBase(Base):
-    pass
+    name: str = Field(description="Name of the tool.", max_length=64, unique=True)
 
 
 class ToolUpdate(Base):

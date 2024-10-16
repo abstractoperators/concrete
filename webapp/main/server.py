@@ -27,9 +27,11 @@ from concrete.db.orm.models import (
     OperatorCreate,
     OrchestratorCreate,
     ProjectCreate,
+    ToolCreate,
 )
 from concrete.models.messages import ProjectDirectory
 from concrete.orchestrator import SoftwareOrchestrator
+from concrete.tools import TOOLS_REGISTRY
 from concrete.webutils import AuthMiddleware
 from webapp.common import (
     ConnectionManager,
@@ -131,6 +133,24 @@ async def get_changelog(request: Request):
     return templates.TemplateResponse(name="log.html", request=request)
 
 
+# ===  Tools === #
+
+
+# @app.get("/tools", response_class=HTMLResponse)
+# async def get_tools(request: Request):
+#     tool_names = []
+#     with Session() as session:
+#         tools = crud.get_tools(session, None)
+#         for tool in tools:
+#             tool
+
+
+# @app.get("/tools/{tool_name}", response_class=HTMLResponse)
+# async def get_tool(tool_name: str, request: Request):
+#     with Session() as session:
+#         pass
+
+
 # === Orchestrators === #
 
 
@@ -224,7 +244,16 @@ async def create_operator(
     operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
-        # Assign tools to operator
+        # TODO: Tools assigned to Operator should already exist under the user in db; stop making them here
+        for tool_name in tools:
+            sqlmodel_tool = crud.get_tool(session, tool_name)
+            if sqlmodel_tool is None:
+                tool_create = ToolCreate(name=tool_name)
+                sqlmodel_tool = crud.create_tool(session, tool_create)
+
+            # Assign tool by making record in OperatorToolLink
+            crud.assign_tool_to_operator(db=session, operator_id=operator.id, tool_name=tool_name)
+
         CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
         return HTMLResponse(content=f"Created operator {operator.id}", headers=headers)
@@ -232,11 +261,16 @@ async def create_operator(
 
 @app.get("/orchestrators/{orchestrator_id}/operators/form", response_class=HTMLResponse)
 async def create_operator_form(orchestrator_id: UUID, request: Request):
+    # Get available tools from concrete.tools
+    # TODO: Get tools from db and restrict tools to maybe the orchestrator level.
+    tools = TOOLS_REGISTRY.keys()
+
     return sidebar_create(
         "Operator",
         f"/orchestrators/{orchestrator_id}/operators",
         "operator_form.html",
         request,
+        context={'tools': tools},
     )
 
 
