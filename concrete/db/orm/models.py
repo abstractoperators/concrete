@@ -79,6 +79,7 @@ class User(UserBase, MetadataMixin, table=True):
     )
     # Store Google's refresh token for later
     auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
+    tools: list["Tool"] = Relationship(back_populates="user")
 
 
 # Orchestrator Models
@@ -307,6 +308,7 @@ class Project(ProjectBase, MetadataMixin, table=True):
 # May want Enum here to restrict to Predefined tools
 class ToolBase(Base):
     name: str = Field(description="Name of the tool.", max_length=64, unique=True)
+    user_id: UUID = Field(description="UUID of the user who owns this tool.", foreign_key="user.id", ondelete="CASCADE")
 
 
 class ToolUpdate(Base):
@@ -318,6 +320,8 @@ class ToolCreate(ToolBase):
 
 
 class Tool(ToolBase, MetadataMixin, table=True):
+
+    user: User = Relationship(back_populates="tools")
     operators: list[Operator] = Relationship(back_populates="tools", link_model=OperatorToolLink)
 
 

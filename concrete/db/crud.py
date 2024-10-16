@@ -222,8 +222,8 @@ def create_tool(db: Session, tool_create: ToolCreate) -> Tool:
     )
 
 
-def get_tool(db: Session, tool_name: str) -> Tool | None:
-    stmt = select(Tool).where(Tool.name == tool_name)
+def get_tool(db: Session, user_id: UUID, tool_name: str) -> Tool | None:
+    stmt = select(Tool).where(Tool.user_id == user_id).where(Tool.name == tool_name)
     return db.scalars(stmt).first()
 
 
