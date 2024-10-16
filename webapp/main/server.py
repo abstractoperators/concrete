@@ -331,6 +331,7 @@ async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Reques
 
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")
 async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
+    # TODO: generate error feedback for user when operator is in a group project
     with Session() as session:
         operator = crud.delete_operator(session, operator_id, orchestrator_id)
         CLIClient.emit(f"{operator}\n")
