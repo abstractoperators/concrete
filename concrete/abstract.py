@@ -222,7 +222,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 # LLMs don't really know what should go in what field even if output struct
                 # is guaranteed
                 tools_addendum = """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.\n"""
+    Either call the tool with the specified syntax, or leave its field blank.
+    Ensure your syntax is exact, \n"""
 
                 for tool in tools:
                     tools_addendum += str(tool)
@@ -266,7 +267,6 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                         response_format=options.response_format,
                         instructions=options.instructions,
                     )
-                    print(answer)
 
             return answer
 
