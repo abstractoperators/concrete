@@ -46,6 +46,7 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 
 annotatedFormStr = Annotated[str, Form()]
+annotatedFormListStr = Annotated[list[str], Form()]
 annotatedFormUuid = Annotated[UUID, Form()]
 
 
@@ -195,8 +196,6 @@ async def delete_orchestrator(orchestrator_id: UUID, user_id: UserIdDep):
 
 
 # === Operators === #
-
-
 @app.get("/orchestrators/{orchestrator_id}/operators", response_class=HTMLResponse)
 async def get_operator_list(orchestrator_id: UUID, request: Request):
     with Session() as session:
@@ -215,13 +214,17 @@ async def create_operator(
     orchestrator_id: UUID,
     title: annotatedFormStr,
     instructions: annotatedFormStr,
+    tools: annotatedFormListStr,
 ):
+    print(f'tools: {tools}')
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
+    # print(f'tools{tools}')
     operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
+        # Assign tools to operator
         CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
         return HTMLResponse(content=f"Created operator {operator.id}", headers=headers)
@@ -247,6 +250,15 @@ async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Reques
         },
         request=request,
     )
+
+
+# async def update_operator_form(orchestrator_id: UUID, operator_id, request: Request):
+#     return sidebar_create(
+#         "Operator",
+#         f'/orchestrators/{orchestrator_id}/operators/{operator_id}',
+#         "update_operator_form.html",
+#         request,
+#     )
 
 
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")

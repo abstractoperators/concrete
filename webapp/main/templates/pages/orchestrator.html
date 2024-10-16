@@ -6,10 +6,13 @@
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
     <title>Operators - List View</title>
     <link href="{{ dyn_url_for(request, 'static', path='/css/abop.css') }}" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="{{ dyn_url_for(request, 'static', path='/abstractoperators_favicon.jpg') }}">
+    <link rel="icon" type="image/x-icon"
+        href="{{ dyn_url_for(request, 'static', path='/abstractoperators_favicon.jpg') }}">
 
     <!-- htmx -->
-    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.2"
+        integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ"
+        crossorigin="anonymous"></script>
 
     <!-- hyperscript -->
     <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
@@ -17,12 +20,14 @@
     <!-- Kantumruy Pro -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap"
+        rel="stylesheet">
 
     <!-- Judson -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Judson:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Judson:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
 </head>
 
 <body>
@@ -35,33 +40,25 @@
         <div class="list row">
             <div>
                 <h1 class="header">Operators</h1>
-                <ul
-                    hx-get="{{ dyn_url_for(request, 'get_operator_list', orchestrator_id=orchestrator_id) }}"
-                    hx-trigger="load, getOperators from:body"
-                    class="operator-card-list"
-                ></ul>
-                <button
-                    class="circle-button"
+                <ul hx-get="{{ dyn_url_for(request, 'get_operator_list', orchestrator_id=orchestrator_id) }}"
+                    hx-trigger="load, getOperators from:body" class="operator-card-list"></ul>
+                <button class="circle-button"
                     hx-get="{{ dyn_url_for(request, 'create_operator_form', orchestrator_id=orchestrator_id) }}"
-                    hx-swap="afterend"
-                >
-                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}" alt="Create Operator button">
+                    hx-swap="afterend">
+                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}"
+                        alt="Create Operator button">
                     Create Operator
                 </button>
             </div>
             <div>
                 <h1 class="header">Projects</h1>
-                <ul
-                    hx-get="{{ dyn_url_for(request, 'get_project_list', orchestrator_id=orchestrator_id) }}"
-                    hx-trigger="load, getProjects from:body"
-                    class="operator-card-list"
-                ></ul>
-                <button
-                    class="circle-button"
+                <ul hx-get="{{ dyn_url_for(request, 'get_project_list', orchestrator_id=orchestrator_id) }}"
+                    hx-trigger="load, getProjects from:body" class="operator-card-list"></ul>
+                <button class="circle-button"
                     hx-get="{{ dyn_url_for(request, 'create_project_form', orchestrator_id=orchestrator_id) }}"
-                    hx-swap="afterend"
-                >
-                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}" alt="Create Project button">
+                    hx-swap="afterend">
+                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}"
+                        alt="Create Project button">
                     Create Project
                 </button>
             </div>
