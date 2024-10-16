@@ -15,7 +15,7 @@ from .db.orm.models import MessageCreate, OperatorOptions
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
 from .models.messages import Message, Tool
 from .models.operations import Operation
-from .tools import MetaTool
+from .tools import TOOLS_REGISTRY, MetaTool
 
 # TODO replace OpenAIClientModel with GenericClientModel
 
@@ -301,3 +301,19 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         Chat with the operator with a direct message.
         """
         return message
+
+    def invoke_tool(self, tool: Tool):
+        """
+        Invokes a tool on a message.
+        Throws KeyError if the tool doesn't exist.
+        Throws AttributeError if the function on the tool doesn't exist.
+        Throws TypeError if the parameters are wrong.
+        """
+        tool_name = tool.tool_name
+        tool_function = tool.tool_method
+        tool_parameters = tool.tool_parameters
+        func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
+
+        kwargs = {param.name: param.value for param in tool_parameters}
+
+        return func(**kwargs)
