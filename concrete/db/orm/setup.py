@@ -21,7 +21,7 @@ SQLALCHEMY_DATABASE_URL = URL.create(
     database=os.environ.get("DB_DATABASE", "sql_app.db"),
 )
 
-CLIClient.emit(f'Connecting to database at {SQLALCHEMY_DATABASE_URL}')
+CLIClient.emit(f'ORM URL configured as: {SQLALCHEMY_DATABASE_URL}')
 
 if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
     connect_args = {"check_same_thread": False}
