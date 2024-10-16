@@ -234,7 +234,7 @@ async def create_operator(
     orchestrator_id: UUID,
     title: annotatedFormStr,
     instructions: annotatedFormStr,
-    tools: annotatedFormListStr,
+    tools: annotatedFormListStr | None = None,
 ):
     print(f'tools: {tools}')
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
@@ -245,14 +245,15 @@ async def create_operator(
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         # TODO: Tools assigned to Operator should already exist under the user in db; stop making them here
-        for tool_name in tools:
-            sqlmodel_tool = crud.get_tool(session, tool_name)
-            if sqlmodel_tool is None:
-                tool_create = ToolCreate(name=tool_name)
-                sqlmodel_tool = crud.create_tool(session, tool_create)
+        if tools is not None:
+            for tool_name in tools:
+                sqlmodel_tool = crud.get_tool(session, tool_name)
+                if sqlmodel_tool is None:
+                    tool_create = ToolCreate(name=tool_name)
+                    sqlmodel_tool = crud.create_tool(session, tool_create)
 
-            # Assign tool by making record in OperatorToolLink
-            crud.assign_tool_to_operator(db=session, operator_id=operator.id, tool_name=tool_name)
+                # Assign tool by making record in OperatorToolLink
+                crud.assign_tool_to_operator(db=session, operator_id=operator.id, tool_name=tool_name)
 
         CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
