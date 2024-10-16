@@ -167,16 +167,19 @@ class Operator(OperatorBase, MetadataMixin, table=True):
     )
 
     def to_obj(self):
-        from concrete.operators import Developer, Executive
+        from concrete.operators import Developer as PydanticDeveloper
+        from concrete.operators import Executive as PydanticExecutive
+        from concrete.operators import Operator as PydanticOperator
 
         # TODO: Abide by orchestrator clients
         if self.title == 'executive':
-            operator = Executive(store_messages=True)
+            operator = PydanticExecutive(store_messages=True)
         elif self.title == 'developer':
-            operator = Developer(store_messages=True)
+            operator = PydanticDeveloper(store_messages=True)
         else:
             # Otherwise just use a normal Operator
-            operator = Operator(store_messages=True)
+            operator = PydanticOperator(store_messages=True)
+
         operator.operator_id = self.id
         operator.instructions = self.instructions
         return operator

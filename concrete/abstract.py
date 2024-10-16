@@ -13,9 +13,10 @@ from .db import crud
 from .db.orm import Session
 from .db.orm.models import MessageCreate, OperatorOptions
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
-from .models.messages import Message
+from .models.messages import Message, Tool
 from .models.operations import Operation
 from .tools import MetaTool
+from .tools import invoke_tool as invoke_tool_func
 
 # TODO replace OpenAIClientModel with GenericClientModel
 
@@ -78,6 +79,7 @@ class MetaAbstractOperator(type):
                 options: OperatorOptions,
                 **kwargs,
             ) -> AsyncResult:
+                # TODO Make generic to support other delayable methods
                 # Pop extra kwargs and set defaults
                 operation = Operation(
                     client_name=self.llm_client,
@@ -220,7 +222,9 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 # LLMs don't really know what should go in what field even if output struct
                 # is guaranteed
                 tools_addendum = """Here are your available tools:\
-    Either call the tool with the specified syntax, or leave its field blank.\n"""
+    Either call the tool with the specified syntax, or leave its field blank.
+    Ensure your syntax is exact, \n"""
+
                 for tool in tools:
                     tools_addendum += str(tool)
 
@@ -228,12 +232,43 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             query = question_producer(*args, **kwargs)
             query += tools_addendum
 
+            # Only add a tools field to message format if there are tools
+            if tools:
+                response_format = type(
+                    f'{options.response_format.__name__}WithTools',
+                    (options.response_format, Tool),
+                    {},
+                )
+            else:
+                response_format = options.response_format
+
             # Process the finalized query
-            return self._qna(
+            answer = self._qna(
                 query,
-                response_format=options.response_format,
+                response_format=response_format,
                 instructions=options.instructions,
             )
+
+            # TODO Reconsider where this occurs.
+            # This will be blocking, and the intermediate tool call will not be returned.
+            # It also makes it difficult to do a manual invocation of the tool.
+            # However, it aligns with goals of wanting Operators to be able to use tools
+            if issubclass(type(answer), Tool):
+                resp = self.invoke_tool(cast(Tool, answer))
+                if resp is not None and hasattr(resp, '__str__'):
+                    # Update the query to include the tool call results.
+                    tool_preface = f'You called the tool: {answer.tool_name}.{answer.tool_method}\n'
+                    tool_preface += f'with the following parameters: {answer.tool_parameters}\n'
+                    tool_preface += f'The tool returned: {str(resp)}\n'
+                    tool_preface += 'Use these results to answer the following query:\n'
+                    query = tool_preface + question_producer(*args, **kwargs)
+                    answer = self._qna(
+                        query,
+                        response_format=options.response_format,
+                        instructions=options.instructions,
+                    )
+
+            return answer
 
         return _send_and_await_reply
 
@@ -256,7 +291,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     @cache
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
-        if name.startswith("__") or name in {"qna", "_qna"} or not callable(attr):
+        if name.startswith("__") or name in {"qna", "_qna", "invoke_tool"} or not callable(attr):
             return attr
 
         def wrapped_func(*args, **kwargs):
@@ -285,3 +320,12 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         Chat with the operator with a direct message.
         """
         return message
+
+    def invoke_tool(self, tool: Tool):
+        """
+        Invokes a tool on a message.
+        Throws KeyError if the tool doesn't exist.
+        Throws AttributeError if the function on the tool doesn't exist.
+        Throws TypeError if the parameters are wrong.
+        """
+        return invoke_tool_func(tool)

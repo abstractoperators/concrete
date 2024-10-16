@@ -48,14 +48,15 @@ class Message(ConcreteModel):
         return message_type
 
 
+class Param(Message):
+    name: str = Field(description="Name of the parameter")
+    value: str = Field(description="Value of the parameter")
+
+
 class Tool(Message):
     tool_name: str = Field(description="Name of the tool")
-    tool_function: str = Field(description="Command to call the tool")
-    tool_parameters: list[str] = Field(description="Parameters to pass into the tool function call.")
-
-
-class Tools(Message):
-    tools: list[Tool] = Field(description="List of tools")
+    tool_method: str = Field(description="Command to call the tool")
+    tool_parameters: list[Param] = Field(description="List of parameters for the tool")
 
 
 # N.B. KombuMixin must be added to each leaf child node class due to serializer registration

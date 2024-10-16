@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 from requests.exceptions import HTTPError
 
+from concrete.models import messages
 from concrete.tools import HTTPTool, invoke_tool
 
 
@@ -63,20 +64,35 @@ class TestInvokeTool(unittest.TestCase):
         self.mock_tool.mock_function = Mock(return_value='example result')
 
         mock_tools_registry['mock_tool'] = self.mock_tool
-        res = invoke_tool('mock_tool', 'mock_function', ['example arg'])
-        self.mock_tool.mock_function.assert_called_once_with('example arg')
+        tool = messages.Tool(
+            tool_name='mock_tool',
+            tool_method='mock_function',
+            tool_parameters=[{'name': 'example_arg', 'value': 'example arg value'}],
+        )
+        res = invoke_tool(tool)
+        self.mock_tool.mock_function.assert_called_once_with(example_arg='example arg value')
         assert res == 'example result'
 
     def test_invoke_tool_keyerror(self):
         with self.assertRaises(KeyError):
-            invoke_tool('mock_tool', 'mock_function', ['example arg'])
+            tool = messages.Tool(
+                tool_name='mock_tool',
+                tool_method='mock_function',
+                tool_parameters=[{'name': 'example_arg', 'value': 'example arg value'}],
+            )
+            invoke_tool(tool)
 
     @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
     def test_invoke_tool_attributeerror(self, mock_tools_registry):
         self.mock_tool = Mock(spec=[])
         mock_tools_registry['mock_tool'] = self.mock_tool
+        tool = messages.Tool(
+            tool_name='mock_tool',
+            tool_method='mock_method_dne',
+            tool_parameters=[{'name': 'example_arg', 'value': 'example arg value'}],
+        )
         with self.assertRaises(AttributeError):
-            invoke_tool('mock_tool', 'mock_function_dne', ['example arg'])
+            invoke_tool(tool)
 
     @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
     def test_invoke_tool_typeerror(self, mock_tools_registry):
@@ -85,5 +101,10 @@ class TestInvokeTool(unittest.TestCase):
         self.mock_tool.mock_function.side_effect = TypeError
 
         mock_tools_registry['mock_tool'] = self.mock_tool
+        tool = messages.Tool(
+            tool_name='mock_tool',
+            tool_method='mock_function',
+            tool_parameters=[{'name': 'example_arg', 'value': 'example arg value'}],
+        )
         with self.assertRaises(TypeError):
-            invoke_tool('mock_tool', 'mock_function', ['example arg'])
+            invoke_tool(tool)
