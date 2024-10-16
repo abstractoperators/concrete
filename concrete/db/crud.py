@@ -99,7 +99,12 @@ def create_operator(db: Session, operator_create: OperatorCreate) -> Operator:
 
 def get_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Operator | None:
     stmt = select(Operator).where(Operator.id == operator_id).where(Operator.orchestrator_id == orchestrator_id)
-    return db.scalars(stmt).first()
+    res = db.scalars(stmt).first()
+    if not res:
+        return None
+    _ = res.tools  # TODO eager load instead
+
+    return res
 
 
 def get_operators(

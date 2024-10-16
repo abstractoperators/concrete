@@ -9,6 +9,8 @@ from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
+from concrete.tools import tool_name_to_class
+
 from ...models.messages import Message as ConcreteMessage
 from ...models.messages import TextMessage
 from ...state import ProjectStatus
@@ -163,18 +165,24 @@ class Operator(OperatorBase, MetadataMixin, table=True):
     )
 
     def to_obj(self):
-        from concrete.operators import Developer, Executive
+        from concrete.operators import Developer as PydanticDeveloper
+        from concrete.operators import Executive as PydanticExecutive
+        from concrete.operators import Operator as PydanticOperator
 
         # TODO: Abide by orchestrator clients
         if self.title == 'executive':
-            operator = Executive(store_messages=True)
+            operator = PydanticExecutive(store_messages=True)
         elif self.title == 'developer':
-            operator = Developer(store_messages=True)
+            operator = PydanticDeveloper(store_messages=True)
         else:
             # Otherwise just use a normal Operator
-            operator = Operator(store_messages=True)
+            operator = PydanticOperator(store_messages=True)
+
         operator.operator_id = self.id
         operator.instructions = self.instructions
+        operator.project_id = self.direct_message_project.id
+        tool_names = [tool.name for tool in self.tools]
+        operator.tools = [tool_name_to_class(tool_name) for tool_name in tool_names]
         return operator
 
 

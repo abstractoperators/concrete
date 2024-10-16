@@ -452,12 +452,13 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                     raise HTTPException(status_code=404, detail=f"Developer {project.executive_id} not found")
                 executive = sqlmodel_executive.to_obj()
                 executive.project_id = project.id
-
+                print(executive.tools)
                 sqlmodel_developer = crud.get_operator(session, project.developer_id, orchestrator_id)
                 if sqlmodel_developer is None:
                     raise HTTPException(status_code=404, detail=f"Developer {project.developer_id} not found")
                 developer = sqlmodel_developer.to_obj()
                 developer.project_id = project.id
+                print(developer.tools)
 
                 CLIClient.emit(project)
                 CLIClient.emit("\n")

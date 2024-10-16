@@ -26,6 +26,13 @@ from .models.messages import ChildNodeSummary, NodeSummary, Tool
 TOOLS_REGISTRY: dict[str, type] = {}
 
 
+def tool_name_to_class(tool_name: str) -> type:
+    """
+    Returns the class object of a tool given its name.
+    """
+    return TOOLS_REGISTRY[tool_name]
+
+
 def invoke_tool(tool: Tool):
     """
     Invokes a tool on a message.
@@ -36,7 +43,7 @@ def invoke_tool(tool: Tool):
     tool_name = tool.tool_name
     tool_function = tool.tool_method
     tool_parameters = tool.tool_parameters
-    func = getattr(TOOLS_REGISTRY[tool_name], tool_function)
+    func = getattr(tool_name_to_class(tool_name), tool_function)
 
     kwargs = {param.name: param.value for param in tool_parameters}
 
@@ -1126,3 +1133,25 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             if node is None:
                 return None
             return node.id
+
+
+class Arithmetic(metaclass=MetaTool):
+    @classmethod
+    def add(cls, x: int, y: int) -> int:
+        '''
+        x (int): The first number
+        y (int): The second number
+
+        Returns the sum of x and y
+        '''
+        return x + y
+
+    @classmethod
+    def subtract(cls, x: int, y: int) -> int:
+        '''
+        x (int): The first number
+        y (int): The second number
+
+        Returns the difference of x and y
+        '''
+        return x - y
