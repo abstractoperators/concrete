@@ -323,7 +323,13 @@ class ToolBase(Base):
     name: str = Field(description="Name of the tool.", max_length=64)
     user_id: UUID = Field(description="UUID of the user who owns this tool.", foreign_key="user.id", ondelete="CASCADE")
 
-    __table_args = (UniqueConstraint('ix_user_toolname', 'user_id', 'name'),)
+    __table_args = (
+        UniqueConstraint(
+            'user_id',
+            'name',
+            name='ix_user_toolname',
+        ),
+    )
 
 
 class ToolUpdate(Base):
