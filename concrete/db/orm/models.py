@@ -53,7 +53,7 @@ class OperatorToolLink(Base, table=True):
     tool_name: str = Field(foreign_key="tool.name", primary_key=True)
 
 
-# User Models
+# region User Models
 
 
 class UserBase(Base, ProfilePictureMixin):
@@ -82,7 +82,9 @@ class User(UserBase, MetadataMixin, table=True):
     tools: list["Tool"] = Relationship(back_populates="user")
 
 
-# Orchestrator Models
+# endregion
+
+# region Orchestrator Models
 
 
 class OrchestratorBase(Base):
@@ -122,7 +124,9 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
     )
 
 
-# Operator Models
+# endregion
+
+# region Operator Models
 
 
 class OperatorBase(Base, ProfilePictureMixin):
@@ -187,7 +191,9 @@ class Operator(OperatorBase, MetadataMixin, table=True):
         return operator
 
 
-# Client Models
+# endregion
+
+# region Client Models
 
 
 class ClientBase(Base):
@@ -237,9 +243,10 @@ class Client(ClientBase, MetadataMixin, table=True):
     operator: Operator = Relationship(back_populates="clients")
 
 
-# Project Models
+# endregion
 
 
+# region Project Models
 class ProjectBase(Base):
     title: str = Field(description="Title of the project.", max_length=64)
     orchestrator_id: UUID = Field(
@@ -302,7 +309,9 @@ class Project(ProjectBase, MetadataMixin, table=True):
     messages: list["Message"] = Relationship(back_populates="project", cascade_delete=True)
 
 
-# Tool Models
+# endregion
+
+# region Tool Models
 
 
 # May want Enum here to restrict to Predefined tools
@@ -320,14 +329,14 @@ class ToolCreate(ToolBase):
 
 
 class Tool(ToolBase, MetadataMixin, table=True):
-
     user: User = Relationship(back_populates="tools")
     operators: list[Operator] = Relationship(back_populates="tools", link_model=OperatorToolLink)
 
 
-# Message Models
+# endregion
 
 
+# region Message Models
 class MessageBase(Base):
     type_name: str = Field(description="type of message")
     content: str = Field(description="Content of message as JSON dump")
@@ -387,9 +396,10 @@ class Message(MessageBase, MetadataMixin, table=True):
         return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))
 
 
-# Knowledge Graph Models
+# endregion
 
 
+# region Knowledge Graph Models
 class NodeBase(Base):
     """
     Base model for a Node.
@@ -487,6 +497,10 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
 
 
+# endregion
+
+
+# region Auth Models
 class AuthStateBase(Base):
     state: str = Field(default=None, max_length=128)
     destination_url: str = Field(default=None, max_length=128)
@@ -515,6 +529,9 @@ class AuthTokenCreate(AuthTokenBase):
 
 class AuthToken(AuthTokenBase, MetadataMixin, table=True):
     user: User = Relationship(back_populates="auth_token")
+
+
+# endregion
 
 
 class OperatorOptions(Base):

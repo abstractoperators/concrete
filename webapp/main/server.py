@@ -153,12 +153,6 @@ async def get_changelog(request: Request):
 
 # This is a hack.
 # Need an actual way to add/remove tools on the user level.
-def save_tool_registry(user_id: UUID):
-    with Session() as session:
-        for tool_name in TOOLS_REGISTRY.keys():
-            if not crud.get_tool(session, user_id, tool_name):
-                tool_create = ToolCreate(name=tool_name, user_id=user_id)
-                crud.create_tool(session, tool_create)
 
 
 # === Orchestrators === #
