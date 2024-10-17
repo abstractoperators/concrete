@@ -543,7 +543,7 @@ class OperatorOptions(Base):
     )
     use_tools: bool = Field(
         description="Whether to use tools set on the operator",
-        default=False,
+        default=True,
     )
 
     instructions: str = Field(

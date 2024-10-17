@@ -33,7 +33,6 @@ from .orm.models import (
     RepoNodeUpdate,
     Tool,
     ToolCreate,
-    ToolUpdate,
     User,
     UserCreate,
 )
@@ -222,12 +221,7 @@ def create_tool(db: Session, tool_create: ToolCreate) -> Tool:
     )
 
 
-def get_tool(db: Session, user_id: UUID, tool_name: str) -> Tool | None:
-    stmt = select(Tool).where(Tool.user_id == user_id).where(Tool.name == tool_name)
-    return db.scalars(stmt).first()
-
-
-def get_tools(
+def get_operator_tools(
     db: Session,
     operator_id: UUID | None = None,
     skip: int = 0,
@@ -241,29 +235,25 @@ def get_tools(
     return db.scalars(stmt).all()
 
 
-def update_tool(
+def get_user_tools(
     db: Session,
-    tool_name: str,
-    tool_update: ToolUpdate,
-) -> Tool | None:
-    return update_generic(
-        db,
-        get_tool(db, tool_name),
-        tool_update,
-    )
+    user_id: UUID | None = None,
+    skip: int = 0,
+    limit: int = 100,
+) -> Sequence[Tool]:
+    stmt = select(Tool).where(Tool.user_id == user_id).offset(skip).limit(limit)
+    return db.scalars(stmt).all()
 
 
-def delete_tool(db: Session, tool_name: str) -> Tool | None:
-    return delete_generic(
-        db,
-        get_tool(db, tool_name),
-    )
+def get_tool_by_name(db: Session, user_id: UUID, tool_name: str) -> Tool | None:
+    stmt = select(Tool).where(Tool.user_id == user_id).where(Tool.name == tool_name)
+    return db.scalars(stmt).first()
 
 
-def assign_tool_to_operator(db: Session, operator_id: UUID, tool_name: str) -> OperatorToolLink:
+def assign_tool_to_operator(db: Session, operator_id: UUID, tool_id: UUID) -> OperatorToolLink | None:
     return create_generic(
         db,
-        OperatorToolLink(operator_id=operator_id, tool_name=tool_name),
+        OperatorToolLink(operator_id=operator_id, tool_id=tool_id),
     )
 
 

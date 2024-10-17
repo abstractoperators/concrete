@@ -213,12 +213,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
             """
             # Pop extra kwargs and set defaults
             tools_addendum = ""
-            if tools := (
-                options.tools
-                if options.tools
-                # TODO Have a multi-select drop down in the SaaS
-                else (self.tools if options.use_tools else [])
-            ):
+            if tools := (options.tools if options.tools else (self.tools if options.use_tools else [])):
                 # LLMs don't really know what should go in what field even if output struct
                 # is guaranteed
                 tools_addendum = """Here are your available tools. If invoking a tool will help you answer the question, fill in the exact values for tool_name, tool_method, and tool_parameters. Leave these fields empty if no tool is needed."""  # noqa
