@@ -189,7 +189,6 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
         operator.operator_id = self.id
         operator.instructions = self.instructions
-        operator.project_id = self.direct_message_project.id
         tool_names = [tool.name for tool in self.tools]
         operator.tools = [tool_name_to_class(tool_name) for tool_name in tool_names]
         return operator
