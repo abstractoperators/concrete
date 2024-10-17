@@ -1,8 +1,8 @@
 """Add tools
 
-Revision ID: 83fd2cd1e0a2
-Revises: cb991c369855
-Create Date: 2024-10-17 11:37:08.552187
+Revision ID: 22b22e75b323
+Revises: fc7723965373
+Create Date: 2024-10-17 12:09:36.750912
 
 """
 
@@ -13,8 +13,8 @@ import sqlmodel
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '83fd2cd1e0a2'
-down_revision: Union[str, None] = 'cb991c369855'
+revision: str = '22b22e75b323'
+down_revision: Union[str, None] = 'fc7723965373'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

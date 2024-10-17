@@ -43,11 +43,11 @@ def invoke_tool(tool: Tool):
     tool_name = tool.tool_name
     tool_function = tool.tool_method
     tool_parameters = tool.tool_parameters
+    kwargs = {param.name: param.value for param in tool_parameters}
+    CLIClient.emit(f"Invoking {tool_name}.{tool_function} with {kwargs}")
+
     func = getattr(tool_name_to_class(tool_name), tool_function)
 
-    kwargs = {param.name: param.value for param in tool_parameters}
-
-    CLIClient.emit(f"Invoking {tool_name}.{tool_function} with {kwargs}")
     return func(**kwargs)
 
 
