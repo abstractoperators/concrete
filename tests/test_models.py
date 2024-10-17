@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from concrete.db.orm.models import Message as SQLModelMessage
 from concrete.db.orm.models import Operator as SQLModelOperator
+from concrete.db.orm.models import Project
 from concrete.models.messages import TextMessage
 from concrete.operators import Developer, Executive
 
@@ -42,7 +43,7 @@ class TestSQLModels(unittest.TestCase):
             name='miguel',
             instructions='Instructions for developer operator',
         )
-
+        sql_operator_developer.direct_message_project = Project(id=uuid4())
         pydantic_operator_developer = sql_operator_developer.to_obj()
         self.assertIsInstance(pydantic_operator_developer, Developer)
         self.assertEqual(pydantic_operator_developer.operator_id, sql_operator_developer.id)
@@ -54,6 +55,7 @@ class TestSQLModels(unittest.TestCase):
             name='kentavius',
             instructions='Instructions for executive operator',
         )
+        sql_operator_executive.direct_message_project = Project(id=uuid4())
         pydantic_operator_executive = sql_operator_executive.to_obj()
 
         self.assertIsInstance(pydantic_operator_executive, Executive)
