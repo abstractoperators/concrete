@@ -39,6 +39,7 @@ class TestSQLModels(unittest.TestCase):
         sql_operator_developer = SQLModelOperator(
             id=uuid4(),
             title='developer',
+            name='miguel',
             instructions='Instructions for developer operator',
         )
 
@@ -50,6 +51,7 @@ class TestSQLModels(unittest.TestCase):
         sql_operator_executive = SQLModelOperator(
             id=uuid4(),
             title='executive',
+            name='kentavius',
             instructions='Instructions for executive operator',
         )
         pydantic_operator_executive = sql_operator_executive.to_obj()

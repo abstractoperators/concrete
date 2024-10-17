@@ -397,7 +397,7 @@ class Message(MessageBase, MetadataMixin, table=True):
         message_type = self.type
         message_content = self.content
 
-        return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))
+        return MESSAGE_REGISTRY[message_type.lower()].model_validate(json.loads(message_content))
 
 
 # endregion
