@@ -10,12 +10,12 @@
                             class="operator-avatar-mask"
                         >
                         <h1 class="operator-avatar-text">
-                            {{ o.title[0] if o.title|length < 2 else o.title[:2] }}
+                            {{ o.name[0] if o.name|length < 2 else o.name[:2] }}
                         </h1>
                     </div>
                 </div>
 
-                <h1 class="header small left">{{ o.title }}</h1>
+                <h1 class="header small left">{{ o.name }}</h1>
             </hgroup>
         </a>
         <button

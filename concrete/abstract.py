@@ -178,7 +178,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
                 crud.create_message(
                     session,
                     MessageCreate(
-                        type_name=response_format.__name__,
+                        type=response_format.__name__,
                         content=repr(answer),
                         prompt=self.starting_prompt,
                         project_id=self.project_id,

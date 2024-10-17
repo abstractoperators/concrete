@@ -1,0 +1,10 @@
+<div hx-target="this" hx-swap="outerHTML">
+    <label for="name">Name</label>
+    <input
+        type="text"
+        name="name"
+        hx-post="{{ name_validation_endpoint }}"
+        value="{{ name_input }}"
+        required
+    >
+</div>

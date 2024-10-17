@@ -4,10 +4,10 @@ from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
 from pydantic import ConfigDict, ValidationError, model_validator
-from sqlalchemy import CheckConstraint, DateTime
+from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
-from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
+from sqlmodel import Field, Relationship, SQLModel
 
 from concrete.tools import tool_name_to_class
 
@@ -88,8 +88,8 @@ class User(UserBase, MetadataMixin, table=True):
 
 class OrchestratorBase(Base):
     # TODO turn into enum
-    type_name: str = Field(description="type of orchestrator", max_length=32)
-    title: str = Field(description="Title of the orchestrator.", max_length=32)
+    type: str = Field(description="type of orchestrator", max_length=32)
+    name: str = Field(description="Name of the orchestrator.", max_length=32)
     user_id: UUID = Field(
         description="The user who created the orchestrator.",
         foreign_key="user.id",
@@ -97,10 +97,12 @@ class OrchestratorBase(Base):
     )
     # TODO: Change orchestrator to have semantic primary key on name + user
 
+    __table_args__ = (UniqueConstraint("name", "user_id", name="no_duplicate_names_per_user"),)
+
 
 class OrchestratorUpdate(Base):
-    title: str | None = Field(
-        description="Title of the orchestrator.",
+    name: str | None = Field(
+        description="Name of the orchestrator.",
         max_length=32,
         default=None,
     )
@@ -129,6 +131,7 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
 
 class OperatorBase(Base, ProfilePictureMixin):
     instructions: str = Field(description="Instructions and role of the operator.")
+    name: str = Field(description="Name of the operator.", max_length=64)
     title: str = Field(description="Title of the operator.", max_length=32)  # dropdown for title exec/dev
 
     orchestrator_id: UUID = Field(
@@ -138,11 +141,12 @@ class OperatorBase(Base, ProfilePictureMixin):
     )
 
     # TODO: Add unique name + orchestrator composite key
+    __table_args__ = (UniqueConstraint("name", "orchestrator_id", name="no_duplicate_operators_per_orchestrator"),)
 
 
 class OperatorUpdate(Base, ProfilePictureMixin):
     instructions: str | None = Field(description="Instructions and role of the operator.", default=None)
-    title: str | None = Field(description="Title of the operator.", max_length=32, default=None)
+    name: str | None = Field(description="Name of the operator.", max_length=64, default=None)
 
 
 class OperatorCreate(OperatorBase):
@@ -245,7 +249,7 @@ class Client(ClientBase, MetadataMixin, table=True):
 
 
 class ProjectBase(Base):
-    title: str = Field(description="Title of the project.", max_length=64)
+    name: str = Field(description="Name of the project.", max_length=64)
     orchestrator_id: UUID = Field(
         description="ID of Orchestrator that owns this project.",
         foreign_key="orchestrator.id",
@@ -263,9 +267,11 @@ class ProjectBase(Base):
         default=None,
     )
 
+    __table_args__ = (UniqueConstraint("name", "orchestrator_id", name="no_duplicate_projects_per_orchestrator"),)
+
 
 class ProjectUpdate(Base):
-    title: str | None = Field(description="Title of the project.", max_length=32, default=None)
+    name: str | None = Field(description="Name of the project.", max_length=64, default=None)
 
     executive_id: UUID | None = Field(
         description="ID of executive operator for this project.",
@@ -336,7 +342,7 @@ class Tool(ToolBase, MetadataMixin, table=True):
 
 
 class MessageBase(Base):
-    type_name: str = Field(description="type of message")
+    type: str = Field(description="type of message")
     content: str = Field(description="Content of message as JSON dump")
     prompt: str | None = Field(
         description="Initial prompt for the thread this message belongs to.",
@@ -388,7 +394,7 @@ class Message(MessageBase, MetadataMixin, table=True):
     def to_obj(self):
         from concrete.models.messages import MESSAGE_REGISTRY
 
-        message_type = self.type_name
+        message_type = self.type
         message_content = self.content
 
         return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))

@@ -77,7 +77,7 @@ def delete_generic(db: Session, model: M | None) -> M | None:
 # TODO: automate project creation via DML trigger/event
 def create_operator(db: Session, operator_create: OperatorCreate) -> Operator:
     project_create = ProjectCreate(
-        title=f"{operator_create.title}'s Direct Messages",
+        name=f"{operator_create.name}'s Direct Messages",
         orchestrator_id=operator_create.orchestrator_id,
     )
     project = create_project(db, project_create)
@@ -104,6 +104,11 @@ def get_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Opera
     _ = res.tools  # TODO eager load instead
 
     return res
+
+
+def get_operator_by_name(db: Session, name: str, orchestrator_id: UUID) -> Operator | None:
+    stmt = select(Operator).where(Operator.name == name).where(Operator.orchestrator_id == orchestrator_id)
+    return db.scalars(stmt).first()
 
 
 def get_operators(
@@ -300,7 +305,7 @@ def get_completed_project(
     stmt = (
         (select(Message) if prompt is None else select(Message).where(Message.prompt == prompt))
         .where(Message.project_id == project_id)
-        .where(Message.type_name == 'ProjectDirectory')
+        .where(Message.type == 'ProjectDirectory')
     )
     return db.scalars(stmt).first()
 
@@ -331,26 +336,37 @@ def create_orchestrator(db: Session, orchestrator_create: OrchestratorCreate) ->
     return create_generic(db, Orchestrator(**orchestrator_create.model_dump()))
 
 
-def get_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID) -> Orchestrator | None:
-    stmt = select(Orchestrator).where(Orchestrator.id == orchestrator_id).where(Orchestrator.user_id == user_id)
+def get_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID | None = None) -> Orchestrator | None:
+    stmt = select(Orchestrator).where(Orchestrator.id == orchestrator_id)
+    if user_id is not None:
+        stmt = stmt.where(Orchestrator.user_id == user_id)
+    return db.scalars(stmt).first()
+
+
+def get_orchestrator_by_name(db: Session, name: str, user_id: UUID) -> Orchestrator | None:
+    stmt = select(Orchestrator).where(Orchestrator.name == name).where(Orchestrator.user_id == user_id)
     return db.scalars(stmt).first()
 
 
 def get_orchestrators(
     db: Session,
-    user_id: UUID,
+    user_id: UUID | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Orchestrator]:
-    stmt = select(Orchestrator).where(Orchestrator.user_id == user_id).offset(skip).limit(limit)
+    stmt = (
+        (select(Orchestrator) if user_id is None else select(Orchestrator).where(Orchestrator.user_id == user_id))
+        .offset(skip)
+        .limit(limit)
+    )
     return db.scalars(stmt).all()
 
 
 def update_orchestrator(
     db: Session,
     orchestrator_id: UUID,
-    user_id: UUID,
     orchestrator_update: OrchestratorUpdate,
+    user_id: UUID | None = None,
 ) -> Orchestrator | None:
     return update_generic(
         db,
@@ -359,7 +375,7 @@ def update_orchestrator(
     )
 
 
-def delete_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID) -> Orchestrator | None:
+def delete_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID | None = None) -> Orchestrator | None:
     return delete_generic(
         db,
         get_orchestrator(db, orchestrator_id, user_id),
@@ -375,6 +391,11 @@ def create_project(db: Session, project_create: ProjectCreate) -> Project:
 
 def get_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Project | None:
     stmt = select(Project).where(Project.id == project_id).where(Project.orchestrator_id == orchestrator_id)
+    return db.scalars(stmt).first()
+
+
+def get_project_by_name(db: Session, name: str, orchestrator_id: UUID) -> Project | None:
+    stmt = select(Project).where(Project.name == name).where(Project.orchestrator_id == orchestrator_id)
     return db.scalars(stmt).first()
 
 
