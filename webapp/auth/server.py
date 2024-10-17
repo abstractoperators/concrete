@@ -32,20 +32,12 @@ from starlette.middleware.sessions import SessionMiddleware
 from concrete.db.crud import (
     create_authstate,
     create_authtoken,
-    create_tool,
     create_user,
     get_authstate,
-    get_tool,
     get_user,
 )
-from concrete.db.orm.models import (
-    AuthStateCreate,
-    AuthTokenCreate,
-    ToolCreate,
-    UserCreate,
-)
+from concrete.db.orm.models import AuthStateCreate, AuthTokenCreate, UserCreate
 from concrete.db.orm.setup import Session
-from concrete.tools import TOOLS_REGISTRY
 from concrete.utils import verify_jwt
 from concrete.webutils import AuthMiddleware
 
@@ -202,13 +194,6 @@ def auth_callback(request: Request):
         )
         with Session() as session:
             user = create_user(session, new_user)
-            user_id = user.id
-
-            # This is a hack. Need a real way to add Tools on the user level
-            for tool_name in TOOLS_REGISTRY.keys():
-                if not get_tool(session, user_id, tool_name):
-                    tool_create = ToolCreate(name=tool_name, user_id=user_id)
-                    create_tool(session, tool_create)
 
         # Start saving refresh tokens for later. Only given to us for the first auth.
         auth_token = AuthTokenCreate(refresh_token=flow.credentials.refresh_token, user_id=user.id)
