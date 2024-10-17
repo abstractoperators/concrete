@@ -33,7 +33,6 @@ from concrete.db.orm.models import (
 )
 from concrete.models.messages import ProjectDirectory
 from concrete.orchestrator import SoftwareOrchestrator
-from concrete.tools import TOOLS_REGISTRY
 from concrete.webutils import AuthMiddleware
 from webapp.common import (
     ConnectionManager,
@@ -228,18 +227,18 @@ async def create_orchestrator(
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
-        headers = {"HX-Trigger": "getOrchestrators"}
 
         # This is a hack. Need a real way to add Tools on the user level
-        user_tools = crud.get_user_tools(session, user_id)
-        user_tool_names = [tool.name for tool in user_tools]
-        tools_to_add = set(TOOLS_REGISTRY.keys()) - set(user_tool_names)
+        # user_tools = crud.get_user_tools(session, user_id)
+        # user_tool_names = [tool.name for tool in user_tools]
+        # tools_to_add = set(TOOLS_REGISTRY.keys()) - set(user_tool_names)
+        tools_to_add = ['HTTPTool', 'Arithmetic']
         # print('tools to add:', tools_to_add)
         for tool_name in tools_to_add:
             tool_create = ToolCreate(name=tool_name, user_id=user_id)
             crud.create_tool(session, tool_create)
 
-        return HTMLResponse(content=f"Created orchestrator {orchestrator.id}", headers=headers)
+        return sidebar_create_orchestrator(request)
 
 
 @app.post("/orchestrators/name", response_class=HTMLResponse)
