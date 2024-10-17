@@ -1,7 +1,8 @@
 import asyncio
 import os
 import urllib
-from typing import Annotated, Any
+from collections.abc import Callable
+from typing import Annotated, Any, TypeVar
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -23,6 +24,7 @@ from concrete.clients import CLIClient
 from concrete.db import crud
 from concrete.db.orm import Session
 from concrete.db.orm.models import (
+    Base,
     MessageCreate,
     OperatorCreate,
     OrchestratorCreate,
@@ -48,6 +50,8 @@ dname = os.path.dirname(abspath)
 annotatedFormStr = Annotated[str, Form()]
 annotatedFormUuid = Annotated[UUID, Form()]
 
+M = TypeVar("M", bound=Base)
+
 
 def sidebar_create(
     classname: str,
@@ -56,11 +60,13 @@ def sidebar_create(
     request: Request,
     hiddens: list[HiddenInput] = [],
     context: dict[str, Any] = {},
+    headers: dict[str, str] = {},
 ):
     context |= {
         "classname": classname,
         "form_endpoint": form_endpoint,
         "form_component": form_component,
+        "name_validation_endpoint": f"{form_endpoint}/name",
         "hiddens": hiddens,
     }
 
@@ -68,6 +74,57 @@ def sidebar_create(
         name="sidebar_create_panel.html",
         context=context,
         request=request,
+        headers=headers,
+    )
+
+
+def sidebar_create_orchestrator(request: Request):
+    return sidebar_create(
+        "Orchestrator",
+        "/orchestrators",
+        "orchestrator_form.html",
+        request,
+        headers={"HX-Trigger": "getOrchestrators"},
+    )
+
+
+def sidebar_create_operator(orchestrator_id: UUID, request: Request):
+    return sidebar_create(
+        "Operator",
+        f"/orchestrators/{orchestrator_id}/operators",
+        "operator_form.html",
+        request,
+        context={"orchestrator_id": orchestrator_id},
+        headers={"HX-Trigger": "getOperators"},
+    )
+
+
+def sidebar_create_project(orchestrator_id: UUID, request: Request):
+    with Session() as session:
+        operators = crud.get_operators(session, orchestrator_id)
+        CLIClient.emit_sequence(operators)
+        CLIClient.emit("\n")
+        return sidebar_create(
+            "Project",
+            f"/orchestrators/{orchestrator_id}/projects",
+            "project_form.html",
+            request,
+            context={"orchestrator_id": orchestrator_id, "operators": operators},
+            headers={"HX-Trigger": "getProjects"},
+        )
+
+
+def create_name_validation(name: str, db_getter: Callable[[], M | None], request: Request):
+    html_filename = "name_input.html"
+    if not name or db_getter():
+        html_filename = "invalid_name_input.html"
+    return templates.TemplateResponse(
+        name=html_filename,
+        request=request,
+        context={
+            "name_input": name,
+            "name_validation_endpoint": request.url,
+        },
     )
 
 
@@ -88,6 +145,7 @@ templates = Jinja2Templates(
     directory=[
         os.path.join(dname, "templates", "pages"),
         os.path.join(dname, "templates", "components"),
+        os.path.join(dname, "templates", "errors"),
     ],
 )
 
@@ -146,34 +204,42 @@ async def get_orchestrator_list(request: Request, user_id: UserIdDep):
         )
 
 
-@app.post("/orchestrators")
+@app.post("/orchestrators", response_class=HTMLResponse)
 async def create_orchestrator(
-    title: annotatedFormStr,
+    name: annotatedFormStr,
     user_id: UserIdDep,
+    request: Request,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     orchestrator_create = OrchestratorCreate(
-        type_name="unknown",
-        title=title,
+        type="unknown",
+        name=name,
         user_id=user_id,
     )
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
-        headers = {"HX-Trigger": "getOrchestrators"}
-        return HTMLResponse(content=f"Created orchestrator {orchestrator.id}", headers=headers)
+        return sidebar_create_orchestrator(request)
+
+
+@app.post("/orchestrators/name", response_class=HTMLResponse)
+async def validate_orchestrator_name(
+    user_id: UserIdDep,
+    request: Request,
+    name: annotatedFormStr = "",
+):
+    def db_getter():
+        with Session() as session:
+            return crud.get_orchestrator_by_name(session, name, user_id)
+
+    return create_name_validation(name, db_getter, request)
 
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
 async def create_orchestrator_form(request: Request):
-    return sidebar_create(
-        "Orchestrator",
-        "/orchestrators",
-        "orchestrator_form.html",
-        request,
-    )
+    return sidebar_create_orchestrator(request)
 
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
@@ -210,31 +276,45 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
         )
 
 
-@app.post("/orchestrators/{orchestrator_id}/operators")
+@app.post("/orchestrators/{orchestrator_id}/operators", response_class=HTMLResponse)
 async def create_operator(
     orchestrator_id: UUID,
+    name: annotatedFormStr,
     title: annotatedFormStr,
     instructions: annotatedFormStr,
+    request: Request,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
-    operator_create = OperatorCreate(instructions=instructions, title=title, orchestrator_id=orchestrator_id)
+    operator_create = OperatorCreate(
+        instructions=instructions,
+        name=name,
+        title=title,
+        orchestrator_id=orchestrator_id,
+    )
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
         CLIClient.emit(f"{operator}\n")
-        headers = {"HX-Trigger": "getOperators"}
-        return HTMLResponse(content=f"Created operator {operator.id}", headers=headers)
+        return sidebar_create_operator(orchestrator_id, request)
+
+
+@app.post("/orchestrators/{orchestrator_id}/operators/name", response_class=HTMLResponse)
+async def validate_operator_name(
+    orchestrator_id: UUID,
+    request: Request,
+    name: annotatedFormStr = "",
+):
+    def db_getter():
+        with Session() as session:
+            return crud.get_operator_by_name(session, name, orchestrator_id)
+
+    return create_name_validation(name, db_getter, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/form", response_class=HTMLResponse)
 async def create_operator_form(orchestrator_id: UUID, request: Request):
-    return sidebar_create(
-        "Operator",
-        f"/orchestrators/{orchestrator_id}/operators",
-        "operator_form.html",
-        request,
-    )
+    return sidebar_create_operator(orchestrator_id, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
@@ -251,6 +331,7 @@ async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Reques
 
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")
 async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
+    # TODO: generate error feedback for user when operator is in a group project
     with Session() as session:
         operator = crud.delete_operator(session, operator_id, orchestrator_id)
         CLIClient.emit(f"{operator}\n")
@@ -277,15 +358,16 @@ async def get_project_list(orchestrator_id: UUID, request: Request):
 @app.post("/orchestrators/{orchestrator_id}/projects", response_class=HTMLResponse)
 async def create_project(
     orchestrator_id: UUID,
-    title: annotatedFormStr,
+    name: annotatedFormStr,
     executive_id: annotatedFormUuid,
     developer_id: annotatedFormUuid,
+    request: Request,
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[ProjectCreate, Form()] does not extract into form data fields.
     # https://fastapi.tiangolo.com/tutorial/request-form-models/
     project_create = ProjectCreate(
-        title=title,
+        name=name,
         executive_id=executive_id,
         developer_id=developer_id,
         orchestrator_id=orchestrator_id,
@@ -293,23 +375,25 @@ async def create_project(
     with Session() as session:
         project = crud.create_project(session, project_create)
         CLIClient.emit(f"{project}\n")
-        headers = {"HX-Trigger": "getProjects"}
-        return HTMLResponse(content=f"Created project {project.id}", headers=headers)
+        return sidebar_create_project(orchestrator_id, request)
+
+
+@app.post("/orchestrators/{orchestrator_id}/projects/name", response_class=HTMLResponse)
+async def validate_project_name(
+    orchestrator_id: UUID,
+    request: Request,
+    name: annotatedFormStr = "",
+):
+    def db_getter():
+        with Session() as session:
+            return crud.get_project_by_name(session, name, orchestrator_id)
+
+    return create_name_validation(name, db_getter, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/form", response_class=HTMLResponse)
 async def create_project_form(orchestrator_id: UUID, request: Request):
-    with Session() as session:
-        operators = crud.get_operators(session, orchestrator_id)
-        CLIClient.emit_sequence(operators)
-        CLIClient.emit("\n")
-        return sidebar_create(
-            "Project",
-            f"/orchestrators/{orchestrator_id}/projects",
-            "project_form.html",
-            request,
-            context={"operators": operators},
-        )
+    return sidebar_create_project(orchestrator_id, request)
 
 
 @app.get("/orchestrators/{orchestrator_id}/projects/{project_id}", response_class=HTMLResponse)
@@ -385,7 +469,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 prompt_message = crud.create_message(
                     session,
                     MessageCreate(
-                        type_name="text",
+                        type="text",
                         content=prompt,
                         prompt=prompt,
                         project_id=project_id,
@@ -401,7 +485,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 if project.executive_id is None or project.developer_id is None:
                     raise HTTPException(status_code=404, detail=f"Operators undefined on project {project_id}")
 
-                sqlmodel_executive = crud.get_operator(session, (project.executive_id), orchestrator_id)
+                sqlmodel_executive = crud.get_operator(session, project.executive_id, orchestrator_id)
                 if sqlmodel_executive is None:
                     raise HTTPException(status_code=404, detail=f"Developer {project.executive_id} not found")
                 executive = sqlmodel_executive.to_obj()

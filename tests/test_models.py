@@ -17,7 +17,7 @@ class TestSQLModels(unittest.TestCase):
         SQLModel Message concrete.db.orm.models.Message
         """
         sql_message_text = SQLModelMessage(
-            type_name='textmessage',
+            type='textmessage',
             content='{\n    "text": "print(\\"Hello, World!\\")"\n}',
             prompt="Make a helloworld script",
             status='completed',

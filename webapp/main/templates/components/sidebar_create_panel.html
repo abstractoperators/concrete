@@ -1,8 +1,13 @@
-<section class="sidebar right" _="on closeModal add .closing then wait for animationend then remove me">
+<section
+    hx-target="this"
+    hx-swap="outerHTML"
+    class="sidebar right"
+    _="on closeModal add .closing then wait for animationend then remove me"
+>
     <h1 class="header small">
         Create a {{ classname }}
     </h1>
-    <form hx-post="{{ form_endpoint }}" hx-swap="none">
+    <form hx-post="{{ form_endpoint }}">
         {% for h in hiddens %}
             <input
                 type="hidden"

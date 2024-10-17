@@ -1,20 +1,17 @@
-<div>
-    <label for="title">Name</label>
-    <input type="text" name="title" required>
-</div>
+{% include "name_input.html" %}
 <div>
     <label for="executive_id">Executive</label>
     <select name="executive_id" required>
-        {% for o in operators %}
-            <option value="{{ o.id }}">{{ o.title }} ({{ o.id }})</option>
+        {% for o in operators if o.title == "executive" %}
+            <option value="{{ o.id }}">{{ o.name }} ({{ o.title }})</option>
         {% endfor %}
     </select>
 </div>
 <div>
     <label for="developer_id">Developer</label>
     <select name="developer_id" required>
-        {% for o in operators %}
-            <option value="{{ o.id }}">{{ o.title }} ({{ o.id }})</option>
+        {% for o in operators if o.title == "developer" %}
+            <option value="{{ o.id }}">{{ o.name }} ({{ o.title }})</option>
         {% endfor %}
     </select>
 </div>
