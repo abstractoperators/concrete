@@ -9,9 +9,6 @@ from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
-from concrete.operators import Developer as PydanticDeveloper
-from concrete.operators import Executive as PydanticExecutive
-from concrete.operators import Operator as PydanticOperator
 from concrete.tools import tool_name_to_class
 
 from ...models.messages import Message as ConcreteMessage
@@ -174,8 +171,12 @@ class Operator(OperatorBase, MetadataMixin, table=True):
         },
     )
 
-    def to_obj(self) -> PydanticOperator | PydanticDeveloper | PydanticExecutive:
+    def to_obj(self):
         # TODO: Abide by orchestrator clients
+        from concrete.operators import Developer as PydanticDeveloper
+        from concrete.operators import Executive as PydanticExecutive
+        from concrete.operators import Operator as PydanticOperator
+
         operator: PydanticOperator | PydanticDeveloper | PydanticExecutive
 
         if self.title == 'executive':
