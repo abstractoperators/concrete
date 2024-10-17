@@ -12,3 +12,13 @@
     <textarea name="instructions" autocomplete="off"
         required>You are an expert software developer. You will follow the instructions given to you to complete each task.</textarea>
 </div>
+<div id="ToolsCheckboxes">
+
+    <label for="Tools">Tools</label>
+    <br>
+    {% for tool in tools %}
+    <input type="checkbox" id="{{ tool }}" name="tools" value="{{ tool }}">
+    <label for="{{ tool }}">{{ tool }}</label><br>
+    {% endfor %}
+
+</div>

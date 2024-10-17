@@ -9,6 +9,8 @@ from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
+from concrete.tools import tool_name_to_class
+
 from ...models.messages import Message as ConcreteMessage
 from ...models.messages import TextMessage
 from ...state import ProjectStatus
@@ -51,7 +53,7 @@ class OperatorToolLink(Base, table=True):
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
 
 
-# User Models
+# region User Models
 
 
 class UserBase(Base, ProfilePictureMixin):
@@ -77,9 +79,11 @@ class User(UserBase, MetadataMixin, table=True):
     )
     # Store Google's refresh token for later
     auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
+    tools: list["Tool"] = Relationship(back_populates="user")
 
 
-# Orchestrator Models
+# endregion
+# region Orchestrator Models
 
 
 class OrchestratorBase(Base):
@@ -121,7 +125,8 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
     )
 
 
-# Operator Models
+# endregion
+# region Operator Models
 
 
 class OperatorBase(Base, ProfilePictureMixin):
@@ -167,11 +172,13 @@ class Operator(OperatorBase, MetadataMixin, table=True):
     )
 
     def to_obj(self):
+        # TODO: Abide by orchestrator clients
         from concrete.operators import Developer as PydanticDeveloper
         from concrete.operators import Executive as PydanticExecutive
         from concrete.operators import Operator as PydanticOperator
 
-        # TODO: Abide by orchestrator clients
+        operator: PydanticOperator | PydanticDeveloper | PydanticExecutive
+
         if self.title == 'executive':
             operator = PydanticExecutive(store_messages=True)
         elif self.title == 'developer':
@@ -182,10 +189,13 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
         operator.operator_id = self.id
         operator.instructions = self.instructions
+        operator.project_id = self.direct_message_project.id
+        operator.tools = [tool_name_to_class(tool.name) for tool in self.tools]
         return operator
 
 
-# Client Models
+# endregion
+# region Client Models
 
 
 class ClientBase(Base):
@@ -235,7 +245,8 @@ class Client(ClientBase, MetadataMixin, table=True):
     operator: Operator = Relationship(back_populates="clients")
 
 
-# Project Models
+# endregion
+# region Project Models
 
 
 class ProjectBase(Base):
@@ -302,12 +313,22 @@ class Project(ProjectBase, MetadataMixin, table=True):
     messages: list["Message"] = Relationship(back_populates="project", cascade_delete=True)
 
 
-# Tool Models
+# endregion
+# region Tool Models
 
 
 # May want Enum here to restrict to Predefined tools
 class ToolBase(Base):
-    pass
+    name: str = Field(description="Name of the tool.", max_length=64)
+    user_id: UUID = Field(description="UUID of the user who owns this tool.", foreign_key="user.id", ondelete="CASCADE")
+
+    __table_args = (
+        UniqueConstraint(
+            'user_id',
+            'name',
+            name='ix_user_toolname',
+        ),
+    )
 
 
 class ToolUpdate(Base):
@@ -319,10 +340,12 @@ class ToolCreate(ToolBase):
 
 
 class Tool(ToolBase, MetadataMixin, table=True):
+    user: User = Relationship(back_populates="tools")
     operators: list[Operator] = Relationship(back_populates="tools", link_model=OperatorToolLink)
 
 
-# Message Models
+# endregion
+# region Message Models
 
 
 class MessageBase(Base):
@@ -381,10 +404,11 @@ class Message(MessageBase, MetadataMixin, table=True):
         message_type = self.type
         message_content = self.content
 
-        return MESSAGE_REGISTRY[message_type.lower()].parse_obj(json.loads(message_content))
+        return MESSAGE_REGISTRY[message_type.lower()].model_validate(json.loads(message_content))
 
 
-# Knowledge Graph Models
+# endregion
+# region Knowledge Graph Models
 
 
 class NodeBase(Base):
@@ -484,6 +508,10 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
     __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
 
 
+# endregion
+# region Auth Models
+
+
 class AuthStateBase(Base):
     state: str = Field(default=None, max_length=128)
     destination_url: str = Field(default=None, max_length=128)
@@ -514,6 +542,9 @@ class AuthToken(AuthTokenBase, MetadataMixin, table=True):
     user: User = Relationship(back_populates="auth_token")
 
 
+# endregion
+
+
 class OperatorOptions(Base):
     response_format: type[ConcreteMessage] = Field(
         description="Response format to be returned by LLM",
@@ -525,7 +556,7 @@ class OperatorOptions(Base):
     )
     use_tools: bool = Field(
         description="Whether to use tools set on the operator",
-        default=False,
+        default=True,
     )
 
     instructions: str = Field(

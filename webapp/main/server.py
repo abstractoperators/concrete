@@ -29,9 +29,11 @@ from concrete.db.orm.models import (
     OperatorCreate,
     OrchestratorCreate,
     ProjectCreate,
+    ToolCreate,
 )
 from concrete.models.messages import ProjectDirectory
 from concrete.orchestrator import SoftwareOrchestrator
+from concrete.tools import TOOLS_REGISTRY
 from concrete.webutils import AuthMiddleware
 from webapp.common import (
     ConnectionManager,
@@ -48,6 +50,7 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 
 annotatedFormStr = Annotated[str, Form()]
+annotatedFormListStr = Annotated[list[str], Form()]
 annotatedFormUuid = Annotated[UUID, Form()]
 
 M = TypeVar("M", bound=Base)
@@ -88,13 +91,13 @@ def sidebar_create_orchestrator(request: Request):
     )
 
 
-def sidebar_create_operator(orchestrator_id: UUID, request: Request):
+def sidebar_create_operator(orchestrator_id: UUID, request: Request, tool_names: list[str]):
     return sidebar_create(
         "Operator",
         f"/orchestrators/{orchestrator_id}/operators",
         "operator_form.html",
         request,
-        context={"orchestrator_id": orchestrator_id},
+        context={"orchestrator_id": orchestrator_id, 'tools': tool_names},
         headers={"HX-Trigger": "getOperators"},
     )
 
@@ -188,6 +191,10 @@ async def get_changelog(request: Request):
     return templates.TemplateResponse(name="log.html", request=request)
 
 
+# region ===  Tools === #
+# endregion
+
+
 # === Orchestrators === #
 
 
@@ -221,7 +228,18 @@ async def create_orchestrator(
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
-        return sidebar_create_orchestrator(request)
+        headers = {"HX-Trigger": "getOrchestrators"}
+
+        # This is a hack. Need a real way to add Tools on the user level
+        user_tools = crud.get_user_tools(session, user_id)
+        user_tool_names = [tool.name for tool in user_tools]
+        tools_to_add = set(TOOLS_REGISTRY.keys()) - set(user_tool_names)
+        # print('tools to add:', tools_to_add)
+        for tool_name in tools_to_add:
+            tool_create = ToolCreate(name=tool_name, user_id=user_id)
+            crud.create_tool(session, tool_create)
+
+        return HTMLResponse(content=f"Created orchestrator {orchestrator.id}", headers=headers)
 
 
 @app.post("/orchestrators/name", response_class=HTMLResponse)
@@ -261,8 +279,6 @@ async def delete_orchestrator(orchestrator_id: UUID, user_id: UserIdDep):
 
 
 # === Operators === #
-
-
 @app.get("/orchestrators/{orchestrator_id}/operators", response_class=HTMLResponse)
 async def get_operator_list(orchestrator_id: UUID, request: Request):
     with Session() as session:
@@ -280,9 +296,11 @@ async def get_operator_list(orchestrator_id: UUID, request: Request):
 async def create_operator(
     orchestrator_id: UUID,
     name: annotatedFormStr,
+    user_id: UserIdDep,
     title: annotatedFormStr,
     instructions: annotatedFormStr,
     request: Request,
+    tools: annotatedFormListStr = [],
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
@@ -295,8 +313,18 @@ async def create_operator(
     )
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
-        CLIClient.emit(f"{operator}\n")
-        return sidebar_create_operator(orchestrator_id, request)
+        for tool_name in tools:
+            tool = crud.get_tool_by_name(session, user_id, tool_name)
+            if tool is None:
+                continue
+            crud.assign_tool_to_operator(db=session, operator_id=operator.id, tool_id=tool.id)
+
+        CLIClient.emit(f"Created {operator=}\n")
+        CLIClient.emit(f'With tools: {tools=}\n')
+
+        all_tools = crud.get_user_tools(session, user_id)
+        tool_names = [tool.name for tool in all_tools]
+        return sidebar_create_operator(orchestrator_id, request, tool_names)
 
 
 @app.post("/orchestrators/{orchestrator_id}/operators/name", response_class=HTMLResponse)
@@ -313,8 +341,13 @@ async def validate_operator_name(
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/form", response_class=HTMLResponse)
-async def create_operator_form(orchestrator_id: UUID, request: Request):
-    return sidebar_create_operator(orchestrator_id, request)
+async def create_operator_form(orchestrator_id: UUID, request: Request, user_id: UserIdDep):
+    with Session() as session:
+        tools = crud.get_user_tools(session, user_id)
+        tool_names = [tool.name for tool in tools]
+
+    # TODO to pass entire tool to FE. saves us DB calls in create_operator
+    return sidebar_create_operator(orchestrator_id, request, tool_names)
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
@@ -490,7 +523,6 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                     raise HTTPException(status_code=404, detail=f"Developer {project.executive_id} not found")
                 executive = sqlmodel_executive.to_obj()
                 executive.project_id = project.id
-
                 sqlmodel_developer = crud.get_operator(session, project.developer_id, orchestrator_id)
                 if sqlmodel_developer is None:
                     raise HTTPException(status_code=404, detail=f"Developer {project.developer_id} not found")

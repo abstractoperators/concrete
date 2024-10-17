@@ -20,6 +20,7 @@ from .orm.models import (
     NodeCreate,
     Operator,
     OperatorCreate,
+    OperatorToolLink,
     OperatorUpdate,
     Orchestrator,
     OrchestratorCreate,
@@ -32,7 +33,6 @@ from .orm.models import (
     RepoNodeUpdate,
     Tool,
     ToolCreate,
-    ToolUpdate,
     User,
     UserCreate,
 )
@@ -98,7 +98,12 @@ def create_operator(db: Session, operator_create: OperatorCreate) -> Operator:
 
 def get_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Operator | None:
     stmt = select(Operator).where(Operator.id == operator_id).where(Operator.orchestrator_id == orchestrator_id)
-    return db.scalars(stmt).first()
+    res = db.scalars(stmt).first()
+    if not res:
+        return None
+    _ = res.tools  # TODO eager load instead
+
+    return res
 
 
 def get_operator_by_name(db: Session, name: str, orchestrator_id: UUID) -> Operator | None:
@@ -221,12 +226,7 @@ def create_tool(db: Session, tool_create: ToolCreate) -> Tool:
     )
 
 
-def get_tool(db: Session, tool_id: UUID) -> Tool | None:
-    stmt = select(Tool).where(Tool.id == tool_id)
-    return db.scalars(stmt).first()
-
-
-def get_tools(
+def get_operator_tools(
     db: Session,
     operator_id: UUID | None = None,
     skip: int = 0,
@@ -240,22 +240,25 @@ def get_tools(
     return db.scalars(stmt).all()
 
 
-def update_tool(
+def get_user_tools(
     db: Session,
-    tool_id: UUID,
-    tool_update: ToolUpdate,
-) -> Tool | None:
-    return update_generic(
-        db,
-        get_tool(db, tool_id),
-        tool_update,
-    )
+    user_id: UUID | None = None,
+    skip: int = 0,
+    limit: int = 100,
+) -> Sequence[Tool]:
+    stmt = select(Tool).where(Tool.user_id == user_id).offset(skip).limit(limit)
+    return db.scalars(stmt).all()
 
 
-def delete_tool(db: Session, tool_id: UUID) -> Tool | None:
-    return delete_generic(
+def get_tool_by_name(db: Session, user_id: UUID, tool_name: str) -> Tool | None:
+    stmt = select(Tool).where(Tool.user_id == user_id).where(Tool.name == tool_name)
+    return db.scalars(stmt).first()
+
+
+def assign_tool_to_operator(db: Session, operator_id: UUID, tool_id: UUID) -> OperatorToolLink | None:
+    return create_generic(
         db,
-        get_tool(db, tool_id),
+        OperatorToolLink(operator_id=operator_id, tool_id=tool_id),
     )
 
 
@@ -434,8 +437,6 @@ def delete_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Proj
 
 
 # ===Node=== #
-
-
 def create_node(db: Session, node_create: NodeCreate) -> Node:
     return create_generic(db, Node(**node_create.model_dump()))
 

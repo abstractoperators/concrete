@@ -1,4 +1,6 @@
 [flake8]
 max-line-length = 120
 extend-ignore = W503
-exclude = migrations
+exclude = 
+    # Ignore alembic migrations
+    migrations/*
