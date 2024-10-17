@@ -23,10 +23,10 @@ from .db.orm import Session, models
 from .models.base import ConcreteModel
 from .models.messages import ChildNodeSummary, NodeSummary, Tool
 
-TOOLS_REGISTRY: dict[str, type] = {}
+TOOLS_REGISTRY: dict[str, "MetaTool"] = {}
 
 
-def tool_name_to_class(tool_name: str) -> type:
+def tool_name_to_class(tool_name: str) -> "MetaTool":
     """
     Returns the class object of a tool given its name.
     """
