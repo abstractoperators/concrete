@@ -7,7 +7,7 @@ from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 from concrete.tools import tool_name_to_class
 
@@ -50,7 +50,7 @@ class ProfilePictureMixin(SQLModel):
 
 class OperatorToolLink(Base, table=True):
     operator_id: UUID = Field(foreign_key="operator.id", primary_key=True)
-    tool_name: str = Field(foreign_key="tool.name", primary_key=True)
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
 
 
 # region User Models
@@ -83,7 +83,6 @@ class User(UserBase, MetadataMixin, table=True):
 
 
 # endregion
-
 # region Orchestrator Models
 
 
@@ -125,7 +124,6 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
 
 
 # endregion
-
 # region Operator Models
 
 
@@ -192,7 +190,6 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
 
 # endregion
-
 # region Client Models
 
 
@@ -244,9 +241,9 @@ class Client(ClientBase, MetadataMixin, table=True):
 
 
 # endregion
-
-
 # region Project Models
+
+
 class ProjectBase(Base):
     title: str = Field(description="Title of the project.", max_length=64)
     orchestrator_id: UUID = Field(
@@ -310,14 +307,15 @@ class Project(ProjectBase, MetadataMixin, table=True):
 
 
 # endregion
-
 # region Tool Models
 
 
 # May want Enum here to restrict to Predefined tools
 class ToolBase(Base):
-    name: str = Field(description="Name of the tool.", max_length=64, unique=True)
+    name: str = Field(description="Name of the tool.", max_length=64)
     user_id: UUID = Field(description="UUID of the user who owns this tool.", foreign_key="user.id", ondelete="CASCADE")
+
+    __table_args = (UniqueConstraint('ix_user_toolname', 'user_id', 'name'),)
 
 
 class ToolUpdate(Base):
@@ -334,9 +332,9 @@ class Tool(ToolBase, MetadataMixin, table=True):
 
 
 # endregion
-
-
 # region Message Models
+
+
 class MessageBase(Base):
     type_name: str = Field(description="type of message")
     content: str = Field(description="Content of message as JSON dump")
@@ -397,9 +395,9 @@ class Message(MessageBase, MetadataMixin, table=True):
 
 
 # endregion
-
-
 # region Knowledge Graph Models
+
+
 class NodeBase(Base):
     """
     Base model for a Node.
@@ -498,9 +496,9 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
 
 
 # endregion
-
-
 # region Auth Models
+
+
 class AuthStateBase(Base):
     state: str = Field(default=None, max_length=128)
     destination_url: str = Field(default=None, max_length=128)

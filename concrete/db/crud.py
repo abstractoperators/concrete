@@ -426,8 +426,6 @@ def delete_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Proj
 
 
 # ===Node=== #
-
-
 def create_node(db: Session, node_create: NodeCreate) -> Node:
     return create_generic(db, Node(**node_create.model_dump()))
 
