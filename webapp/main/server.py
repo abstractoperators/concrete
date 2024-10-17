@@ -234,7 +234,7 @@ async def create_orchestrator(
         user_tools = crud.get_user_tools(session, user_id)
         user_tool_names = [tool.name for tool in user_tools]
         tools_to_add = set(TOOLS_REGISTRY.keys()) - set(user_tool_names)
-        print('tools to add:', tools_to_add)
+        # print('tools to add:', tools_to_add)
         for tool_name in tools_to_add:
             tool_create = ToolCreate(name=tool_name, user_id=user_id)
             crud.create_tool(session, tool_create)
@@ -321,7 +321,10 @@ async def create_operator(
 
         CLIClient.emit(f"Created {operator=}\n")
         CLIClient.emit(f'With tools: {tools=}\n')
-        return sidebar_create_operator(orchestrator_id, request, tools)
+
+        all_tools = crud.get_user_tools(session, user_id)
+        tool_names = [tool.name for tool in all_tools]
+        return sidebar_create_operator(orchestrator_id, request, tool_names)
 
 
 @app.post("/orchestrators/{orchestrator_id}/operators/name", response_class=HTMLResponse)
