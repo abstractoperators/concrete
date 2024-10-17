@@ -1,4 +1,5 @@
 import unittest
+from uuid import uuid4
 
 from concrete.db.orm.models import Message as SQLModelMessage
 from concrete.db.orm.models import Operator as SQLModelOperator
@@ -21,9 +22,9 @@ class TestSQLModels(unittest.TestCase):
             content='{\n    "text": "print(\\"Hello, World!\\")"\n}',
             prompt="Make a helloworld script",
             status='completed',
-            project_id=1,
-            user_id=1,
-            operator_id=1,
+            project_id=uuid4(),
+            user_id=uuid4(),
+            operator_id=uuid4(),
         )
 
         pydantic_message_text = sql_message_text.to_obj()
@@ -36,7 +37,7 @@ class TestSQLModels(unittest.TestCase):
         SQLModel Operator concrete.db.orm.models.Operator
         """
         sql_operator_developer = SQLModelOperator(
-            id=1,
+            id=uuid4(),
             title='developer',
             instructions='Instructions for developer operator',
         )
@@ -47,7 +48,7 @@ class TestSQLModels(unittest.TestCase):
         self.assertEqual(pydantic_operator_developer.instructions, sql_operator_developer.instructions)
 
         sql_operator_executive = SQLModelOperator(
-            id=2,
+            id=uuid4(),
             title='executive',
             instructions='Instructions for executive operator',
         )
