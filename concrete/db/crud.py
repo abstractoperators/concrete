@@ -289,6 +289,8 @@ def get_messages(
         .where(Message.project_id == project_id)
         .offset(skip)
         .limit(limit)
+        .order_by(Message.created_at)  # type: ignore
+        # TODO: need to ignore because created_at has type datetime | None; can we get it to just datetime?
     )
     return db.scalars(stmt).all()
 

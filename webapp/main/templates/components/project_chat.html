@@ -1,24 +1,20 @@
 {% for message in chat %}
     {% if message.user_id is not none %}
         <li class="right">
-            <div class="operator-avatar-container">
-                <div class="operator-avatar-mask">
-                    <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
-                    <h1 class="operator-avatar-text">U</h1>
-                </div>
-            </div>
+            <hgroup class="message-avatar-and-name right">
+                <h1 class="operator-avatar-text">U</h1>
+                <h1 class="header small right">{{ request.session.user.email }}</h1>
+            </hgroup>
             <p class="message">{{ message.content }}</p>
         </li>
     {% else %}
         <li class="left">
-            <div class="operator-avatar-container">
-                <div class="operator-avatar-mask">
-                    <img src="/static/operator_circle.svg" alt="Operator Avatar" class="operator-avatar-mask">
-                    <h1 class="operator-avatar-text">
-                        {{ (message.operator_id|string)[:2] }}
-                    </h1>
-                </div>
-            </div>
+            <hgroup class="message-avatar-and-name left">
+                <h1 class="operator-avatar-text">
+                    {{ message.operator.name[:2] }}
+                </h1>
+                <h1 class="header small left">{{ message.operator.name }}</h1>
+            </hgroup>
             <pre class="message">{{ message.content }}</pre>
         </li>
     {% endif %}
