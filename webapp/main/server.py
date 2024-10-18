@@ -230,8 +230,6 @@ async def create_orchestrator(
 
         # This is a hack. Need a real way to add Tools on the user level
         # user_tools = crud.get_user_tools(session, user_id)
-        # user_tool_names = [tool.name for tool in user_tools]
-        # tools_to_add = set(TOOLS_REGISTRY.keys()) - set(user_tool_names)
         tools_to_add = ['HTTPTool', 'Arithmetic']
         # print('tools to add:', tools_to_add)
         for tool_name in tools_to_add:

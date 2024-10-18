@@ -53,6 +53,16 @@ class OperatorToolLink(Base, table=True):
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
 
 
+class OrchestratorToolLink(Base, table=True):
+    orchestrator_id: UUID = Field(foreign_key="orchestrator.id", primary_key=True)
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+
+
+class UserToolLink(Base, table=True):
+    user_id: UUID = Field(foreign_key="user.id", primary_key=True)
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+
+
 # region User Models
 
 
