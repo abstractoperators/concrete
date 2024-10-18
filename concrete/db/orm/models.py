@@ -133,6 +133,7 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
         back_populates="orchestrator",
         cascade_delete=True,
     )
+    tools: list["Tool"] = Relationship(back_populates="orchestrator", link_model=OrchestratorToolLink)
 
 
 # endregion
