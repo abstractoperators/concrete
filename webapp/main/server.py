@@ -81,6 +81,7 @@ def sidebar_create(
 
 
 def sidebar_create_orchestrator(request: Request):
+
     return sidebar_create(
         "Orchestrator",
         "/orchestrators",

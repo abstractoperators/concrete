@@ -24,6 +24,7 @@ from .orm.models import (
     OperatorUpdate,
     Orchestrator,
     OrchestratorCreate,
+    OrchestratorToolLink,
     OrchestratorUpdate,
     Project,
     ProjectCreate,
@@ -35,6 +36,7 @@ from .orm.models import (
     ToolCreate,
     User,
     UserCreate,
+    UserToolLink,
 )
 
 M = TypeVar("M", bound=Base)
@@ -259,6 +261,20 @@ def assign_tool_to_operator(db: Session, operator_id: UUID, tool_id: UUID) -> Op
     return create_generic(
         db,
         OperatorToolLink(operator_id=operator_id, tool_id=tool_id),
+    )
+
+
+def assign_tool_to_orchestrator(db: Session, orchestrator_id: UUID, tool_id: UUID) -> OrchestratorToolLink | None:
+    return create_generic(
+        db,
+        OrchestratorToolLink(orchestrator_id=orchestrator_id, tool_id=tool_id),
+    )
+
+
+def assign_tool_to_user(db: Session, user_id: UUID, tool_id: UUID) -> UserToolLink | None:
+    return create_generic(
+        db,
+        UserToolLink(user_id=user_id, tool_id=tool_id),
     )
 
 
