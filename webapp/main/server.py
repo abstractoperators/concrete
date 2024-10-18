@@ -80,8 +80,7 @@ def sidebar_create(
     )
 
 
-def sidebar_create_orchestrator(request: Request):
-
+def sidebar_create_orchestrator(request: Request, tool_names: list[str] = []):
     return sidebar_create(
         "Orchestrator",
         "/orchestrators",
@@ -225,19 +224,21 @@ async def create_orchestrator(
         name=name,
         user_id=user_id,
     )
+    # This is a hack. Need a real way to add Tools on the user level.
     with Session() as session:
-        orchestrator = crud.create_orchestrator(session, orchestrator_create)
-        CLIClient.emit(f"{orchestrator}\n")
-
-        # This is a hack. Need a real way to add Tools on the user level
-        # user_tools = crud.get_user_tools(session, user_id)
         tools_to_add = ['HTTPTool', 'Arithmetic']
-        # print('tools to add:', tools_to_add)
         for tool_name in tools_to_add:
             tool_create = ToolCreate(name=tool_name, user_id=user_id)
             crud.create_tool(session, tool_create)
 
-        return sidebar_create_orchestrator(request)
+    with Session() as session:
+        orchestrator = crud.create_orchestrator(session, orchestrator_create)
+        CLIClient.emit(f"{orchestrator}\n")
+
+        # Get all tools on the User, and make them available for selection in the Orchestrator
+        user_tools = crud.get_user_tools(session, user_id)
+        tool_names = [tool.name for tool in user_tools]
+        return sidebar_create_orchestrator(request, tool_names)
 
 
 @app.post("/orchestrators/name", response_class=HTMLResponse)
@@ -254,8 +255,11 @@ async def validate_orchestrator_name(
 
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
-async def create_orchestrator_form(request: Request):
-    return sidebar_create_orchestrator(request)
+async def create_orchestrator_form(request: Request, user_id: UserIdDep):
+    with Session() as session:
+        user_tools = crud.get_user_tools(session, user_id)
+        tool_names = [tool.name for tool in user_tools]
+    return sidebar_create_orchestrator(request, tool_names)
 
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
