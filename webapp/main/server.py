@@ -225,6 +225,7 @@ async def create_orchestrator(
         user_id=user_id,
     )
     # This is a hack. Need a real way to add Tools on the user level.
+    # TODO This requires that an orchestrator is made first to load tools in.
     with Session() as session:
         tools_to_add = ['HTTPTool', 'Arithmetic']
         for tool_name in tools_to_add:
@@ -324,8 +325,9 @@ async def create_operator(
         CLIClient.emit(f"Created {operator=}\n")
         CLIClient.emit(f'With tools: {tools=}\n')
 
-        all_tools = crud.get_user_tools(session, user_id)
-        tool_names = [tool.name for tool in all_tools]
+        # all_tools = crud.get_user_tools(session, user_id)
+        available_tools = crud.get_orchestrator_tools(session, orchestrator_id)
+        tool_names = [tool.name for tool in available_tools]
         return sidebar_create_operator(orchestrator_id, request, tool_names)
 
 

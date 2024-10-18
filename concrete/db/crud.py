@@ -228,27 +228,33 @@ def create_tool(db: Session, tool_create: ToolCreate) -> Tool:
     )
 
 
-def get_operator_tools(
+def get_user_tools(
     db: Session,
-    operator_id: UUID | None = None,
+    user_id: UUID,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Tool]:
-    stmt = (
-        (select(Tool) if operator_id is None else select(Operator.tools).where(Operator.id == operator_id))
-        .offset(skip)
-        .limit(limit)
-    )  # TODO: unpack from Operator.tools properly
+    stmt = select(Tool).where(UserToolLink.user_id == user_id).offset(skip).limit(limit)
     return db.scalars(stmt).all()
 
 
-def get_user_tools(
+def get_orchestrator_tools(
     db: Session,
-    user_id: UUID | None = None,
+    orchestrator_id: UUID,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Tool]:
-    stmt = select(Tool).where(Tool.user_id == user_id).offset(skip).limit(limit)
+    stmt = select(Tool).where(OrchestratorToolLink.orchestrator_id == orchestrator_id).offset(skip).limit(limit)
+    return db.scalars(stmt).all()
+
+
+def get_operator_tools(
+    db: Session,
+    operator_id: UUID,
+    skip: int = 0,
+    limit: int = 100,
+) -> Sequence[Tool]:
+    stmt = select(Tool).where(OperatorToolLink.operator_id == operator_id).offset(skip).limit(limit)
     return db.scalars(stmt).all()
 
 
