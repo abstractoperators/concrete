@@ -228,13 +228,16 @@ async def create_orchestrator(
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"{orchestrator}\n")
 
-        # This is a hack. Need a real way to add Tools on the user level
+        # TODO This is a hack. Need a real way to add Tools on the user level
         # user_tools = crud.get_user_tools(session, user_id)
         # user_tool_names = [tool.name for tool in user_tools]
         # tools_to_add = set(TOOLS_REGISTRY.keys()) - set(user_tool_names)
         tools_to_add = ['HTTPTool', 'Arithmetic']
         # print('tools to add:', tools_to_add)
         for tool_name in tools_to_add:
+            db_tool = crud.get_tool_by_name(session, user_id, tool_name)
+            if db_tool:
+                continue
             tool_create = ToolCreate(name=tool_name, user_id=user_id)
             crud.create_tool(session, tool_create)
 
