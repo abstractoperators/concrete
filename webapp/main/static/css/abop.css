@@ -3,9 +3,10 @@
     --serif-family: "Judson", serif;
     --rounding-rectangle: 16px;
     --primary-100: #C6DBFF;
-    --primary-200: rgb(122, 182, 255);
-    --primary-400: rgb(0, 107, 179);
+    --primary-200: #7ab6ff;
+    --primary-400: #006bb3;
     --secondary-100: #FFEBFE;
+    --grey-200: #B1B3B7;
     --tertiary-400: rgb(174, 119, 0);
     --space-200: 8px;
     --schemes-on-primary: #FFF;
@@ -23,10 +24,33 @@
     --header-small-letter-spacing: 0px;
 }
 
+a {
+    text-decoration: none;
+}
+
+a:hover{
+    text-decoration: underline;
+}
+
+html {
+    height: 100%;
+}
+
 body {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+
     font-family: var(--serif-family);
-    margin: 0px;
-    padding: 0px;
+}
+
+header, footer {
+    flex-grow: 0;
+    flex-shrink: 0;
 }
 
 #submit-prompt {
@@ -57,33 +81,18 @@ body {
     text-align: left;
 }
 
+.header.small.right {
+    text-align: right;
+}
+
 .operator-card-list {
     display: flex;
-    width: 500px;
-    padding: var(--space-200);
+    width: 40vw;
     flex-direction: column;
-    align-items: center;
-    gap: var(--space-200);
+    align-items: stretch;
+    gap: 16px;
 
     background: var(--schemes-on-primary);
-}
-
-.operator-avatar-container {
-    width: var(--icon-large-container, 56px);
-    height: var(--icon-large-container, 56px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.operator-avatar-mask {
-    width: var(--circle-large);
-    height: var(--circle-large);
-    border-radius: 50%;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 .operator-avatar-mask img {
@@ -106,13 +115,11 @@ section.sidebar.right.closing {
 
 li.operator-card {
     display: flex;
-    width: 30em;
     justify-content: space-between;
     align-items: center;
     border-radius: var(--rounding-rectangle);
     background: var(--secondary-100);
     box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.25);
-    margin: 16px;
 }
 
 li.left {
@@ -138,13 +145,12 @@ hgroup.operator-avatar-and-header {
 }
 
 h1.operator-avatar-text {
-    position: absolute;
-    width: 1em;
-    height: 1em;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    flex-shrink: 0;
+    width: var(--circle-large);
+    height: var(--circle-large);
+    background-color: var(--primary-200);
+    border-radius: 50%;
+
+    margin: 8px;
 
     color: #000;
     text-align: center;
@@ -152,7 +158,7 @@ h1.operator-avatar-text {
     font-size: var(--icon-small-size);
     font-style: normal;
     font-weight: 500;
-    line-height: var(--icon-small-height);
+    line-height: var(--circle-large);
     letter-spacing: var(--icon-small-letter-spacing);
 }
 
@@ -171,42 +177,63 @@ h1.operator-avatar-text {
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
+    gap: 16px;
 }
 
 .main.panel {
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 80vh;
+    flex-grow: 1;
+    gap: 16px;
 }
 
-.circle-button {
-    border: none;
-    padding: 0;
-    background: none;
-    display: inline-block;
-    cursor: pointer;
+.button {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-direction: row;
+
+    gap: 8px;
     margin: 8px;
+
+    border: none;
+    background: none;
+    cursor: pointer;
 }
 
-.circle-button img {
+.button.circle img {
     display: block;
     border-radius: 50%;
 }
 
 .chat-list {
     display: flex;
-    width: 75em;
-    padding: var(--space-200);
+    width: 80vw;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-200);
+    gap: 16px;
 
     background: var(--schemes-on-primary);
 }
 
 .chat-list li {
     width: 100%;
+}
+
+.message-avatar-and-name {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.message-avatar-and-name.left {
+    flex-direction: row;
+}
+
+.message-avatar-and-name.right {
+    flex-direction: row-reverse;
 }
 
 header {

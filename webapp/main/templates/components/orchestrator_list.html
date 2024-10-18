@@ -2,22 +2,21 @@
     <li class="operator-card">
         <a href="{{ dyn_url_for(request, 'get_orchestrator', orchestrator_id=o.id) }}">
             <hgroup class="operator-avatar-and-header">
-                <div class="operator-avatar-container">
-                    <div class="operator-avatar-mask">
-                        <img
-                            src="{{ dyn_url_for(request, 'static', path='/operator_circle.svg') }}"
-                            alt="Orchestrator Avatar"
-                            class="operator-avatar-mask"
-                        >
-                        <h1 class="operator-avatar-text">
-                            {{ o.name[0] if o.name|length < 2 else o.name[:2] }}
-                        </h1>
-                    </div>
-                </div>
-
+                <h1 class="operator-avatar-text">
+                    {{ o.name[0] if o.name|length < 2 else o.name[:2] }}
+                </h1>
                 <h1 class="header small left">{{ o.name }}</h1>
             </hgroup>
         </a>
-        <button hx-delete="{{ dyn_url_for(request, 'delete_orchestrator', orchestrator_id=o.id) }}" hx-swap="none">Delete</button>
+        <button
+            class="button"
+            hx-delete="{{ dyn_url_for(request, 'delete_orchestrator', orchestrator_id=o.id) }}"
+            hx-swap="none">
+            <img
+                height="30em"
+                src="{{ dyn_url_for(request, 'static', path='/icons/trash.svg') }}"
+                alt="Delete"
+            >
+        </button>
     </li>
 {% endfor %}

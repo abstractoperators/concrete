@@ -36,16 +36,16 @@
     <!-- figure out if extensions apply here -->
     {% from "back_button.html" import back_button with context %}
     {{ back_button(dyn_url_for(request, 'root')) }}
-    <div class="main panel">
+    <main class="main panel">
         <div class="list row">
             <div>
                 <h1 class="header">Operators</h1>
                 <ul hx-get="{{ dyn_url_for(request, 'get_operator_list', orchestrator_id=orchestrator_id) }}"
                     hx-trigger="load, getOperators from:body" class="operator-card-list"></ul>
-                <button class="circle-button"
+                <button class="button circle"
                     hx-get="{{ dyn_url_for(request, 'create_operator_form', orchestrator_id=orchestrator_id) }}"
                     hx-swap="afterend">
-                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}"
+                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/icons/create_icon.svg') }}"
                         alt="Create Operator button">
                     Create Operator
                 </button>
@@ -54,16 +54,16 @@
                 <h1 class="header">Projects</h1>
                 <ul hx-get="{{ dyn_url_for(request, 'get_project_list', orchestrator_id=orchestrator_id) }}"
                     hx-trigger="load, getProjects from:body" class="operator-card-list"></ul>
-                <button class="circle-button"
+                <button class="button circle"
                     hx-get="{{ dyn_url_for(request, 'create_project_form', orchestrator_id=orchestrator_id) }}"
                     hx-swap="afterend">
-                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}"
+                    <img height="65em" src="{{ dyn_url_for(request, 'static', path='/icons/create_icon.svg') }}"
                         alt="Create Project button">
                     Create Project
                 </button>
             </div>
         </div>
-    </div>
+    </main>
     <!-- figure out extensions -->
     {% from "footer.html" import footer %}
     {{ footer(request=request) }}
