@@ -49,7 +49,17 @@ class ProfilePictureMixin(SQLModel):
 
 
 class OperatorToolLink(Base, table=True):
-    operator_id: UUID = Field(foreign_key="operator.id", primary_key=True)
+    operator_id: UUID = Field(foreign_key="operator.id", primary_key=True, index=True)
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+
+
+class OrchestratorToolLink(Base, table=True):
+    orchestrator_id: UUID = Field(foreign_key="orchestrator.id", primary_key=True, index=True)
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+
+
+class UserToolLink(Base, table=True):
+    user_id: UUID = Field(foreign_key="user.id", primary_key=True, index=True)
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
 
 
@@ -79,7 +89,7 @@ class User(UserBase, MetadataMixin, table=True):
     )
     # Store Google's refresh token for later
     auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
-    tools: list["Tool"] = Relationship(back_populates="user")
+    tools: list["Tool"] = Relationship(back_populates="user", link_model=UserToolLink)
 
 
 # endregion
@@ -123,6 +133,7 @@ class Orchestrator(OrchestratorBase, MetadataMixin, table=True):
         back_populates="orchestrator",
         cascade_delete=True,
     )
+    tools: list["Tool"] = Relationship(back_populates="orchestrator", link_model=OrchestratorToolLink)
 
 
 # endregion
@@ -320,15 +331,6 @@ class Project(ProjectBase, MetadataMixin, table=True):
 # May want Enum here to restrict to Predefined tools
 class ToolBase(Base):
     name: str = Field(description="Name of the tool.", max_length=64)
-    user_id: UUID = Field(description="UUID of the user who owns this tool.", foreign_key="user.id", ondelete="CASCADE")
-
-    __table_args = (
-        UniqueConstraint(
-            'user_id',
-            'name',
-            name='ix_user_toolname',
-        ),
-    )
 
 
 class ToolUpdate(Base):
@@ -340,8 +342,7 @@ class ToolCreate(ToolBase):
 
 
 class Tool(ToolBase, MetadataMixin, table=True):
-    user: User = Relationship(back_populates="tools")
-    operators: list[Operator] = Relationship(back_populates="tools", link_model=OperatorToolLink)
+    pass
 
 
 # endregion
