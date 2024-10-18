@@ -70,7 +70,7 @@ class UserBase(Base, ProfilePictureMixin):
     first_name: str | None = Field(default=None, max_length=64)
     last_name: str | None = Field(default=None, max_length=64)
     email: str = Field(unique=True, max_length=128)
-    # TODO: Change user email to be primary semantic key
+    # TODO: Change user email to be primary semantic key`
 
 
 class UserUpdate(Base, ProfilePictureMixin):
