@@ -28,7 +28,7 @@
 <body>
     {% from "header.html" import header %}
     {{ header(request=request) }}
-    <div id="main-div" class="main panel">
+    <main id="main-div" class="main panel">
         <div>
             <h1 class="header">Orchestrators</h1>
             <ul
@@ -39,15 +39,15 @@
         </div>
         <div>
             <button
-                class="circle-button"
+                class="button circle"
                 hx-get="/orchestrators/form"
                 hx-target="#main-div"
                 hx-swap="beforeend"
             >
-                <img height="65em" src="{{ dyn_url_for(request, 'static', path='/create_icon.svg') }}" alt="Create Orchestrator button">
+                <img height="65em" src="{{ dyn_url_for(request, 'static', path='/icons/create_icon.svg') }}" alt="Create Orchestrator button">
             </button>
         </div>
-    </div>
+    </main>
     <!-- figure out extensions -->
     {% from "footer.html" import footer %}
     {{ footer(request=request) }}

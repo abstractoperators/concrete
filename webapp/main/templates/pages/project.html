@@ -32,9 +32,10 @@
     <!-- figure out if extensions apply here -->
     {% from "back_button.html" import back_button with context %}
     {{ back_button(dyn_url_for(request, 'get_orchestrator', orchestrator_id=project.orchestrator_id)) }}
-    <div class="main panel">
-        <h1 class="header">{{ project.title }}</h1>
+    <main class="main panel">
+        <h1 class="header">{{ project.name }}</h1>
         <div
+            class="main panel"
             hx-ext="ws"
             ws-connect="{{ dyn_url_for(request, 'project_chat_ws', orchestrator_id=project.orchestrator_id, project_id=project.id) }}"
         >
@@ -52,17 +53,19 @@
                     placeholder="Send a message"
                     autocomplete="off"
                     required
+                    rows="4"
+                    cols="64"
                 ></textarea>
                 <button hx-indicator="#grid">
                     Send
                 </button>
-                <img id="#grid" class="htmx-indicator" src="{{ dyn_url_for(request, 'static', path='/grid.svg')}}">
+                <img id="#grid" class="htmx-indicator" src="{{ dyn_url_for(request, 'static', path='/icons/grid.svg')}}">
             </form>
         </div>
-        <!-- figure out extensions -->
-        {% from "footer.html" import footer %}
-        {{ footer(request=request) }}
-    </div>
+    </main>
+    <!-- figure out extensions -->
+    {% from "footer.html" import footer %}
+    {{ footer(request=request) }}
 </body>
 
 </html>
