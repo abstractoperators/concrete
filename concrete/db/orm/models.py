@@ -48,6 +48,7 @@ class ProfilePictureMixin(SQLModel):
 # Relationship Models
 
 
+# TODO for all Link models: Drop index on id, replace with semantic primary key
 class OperatorToolLink(Base, table=True):
     operator_id: UUID = Field(foreign_key="operator.id", primary_key=True, index=True)
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
