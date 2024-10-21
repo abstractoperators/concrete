@@ -177,7 +177,16 @@ async def login(request: Request):
 
 
 @app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
+async def root(request: Request, user_id: UserIdDep):
+    # TODO interactive tool creation.
+    with Session() as session:
+        tools_to_add = ['HTTPTool', 'Arithmetic']
+        for tool_name in tools_to_add:
+            tool_create = ToolCreate(name=tool_name)
+            if not crud.get_tool_by_name(session, user_id, tool_name):
+                crud.create_tool(session, tool_create, user_id)
+
+            crud.get_tool_by_name(session, user_id, tool_name)
     return templates.TemplateResponse(name="index.html", request=request)
 
 
@@ -226,17 +235,6 @@ async def create_orchestrator(
         name=name,
         user_id=user_id,
     )
-    # TODO
-    # This is a hack. Tool creation should happen elsewhere, and so should tool assignation to the User.
-    # This requires that an orchestrator is made first to load tools in.
-    with Session() as session:
-        tools_to_add = ['HTTPTool', 'Arithmetic']
-        for tool_name in tools_to_add:
-            tool_create = ToolCreate(name=tool_name)
-            if not crud.get_tool_by_name(session, user_id, tool_name):
-                crud.create_tool(session, tool_create, user_id)
-
-            crud.get_tool_by_name(session, user_id, tool_name)
 
     # Create orchestrator with tools assigned to it
     with Session() as session:

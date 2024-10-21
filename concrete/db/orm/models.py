@@ -342,7 +342,9 @@ class ToolCreate(ToolBase):
 
 
 class Tool(ToolBase, MetadataMixin, table=True):
-    pass
+    user: User = Relationship(back_populates="tools", link_model=UserToolLink)
+    orchestrator: list[Orchestrator] = Relationship(back_populates="tools", link_model=OrchestratorToolLink)
+    operators: list[Operator] = Relationship(back_populates="tools", link_model=OperatorToolLink)
 
 
 # endregion
