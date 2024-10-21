@@ -172,7 +172,7 @@ async def login(request: Request):
     user_data = AuthMiddleware.check_auth(request)
     if user_data:
         return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
-    return JSONResponse({"login here": "https://auth.abot.ai/login"})
+    return JSONResponse({"login here": "https://auth.abop.ai/login"})
 
 
 @app.get("/", response_class=HTMLResponse)
