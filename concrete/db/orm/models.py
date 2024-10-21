@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
+import sqlalchemy as sa
 from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlalchemy.schema import Index
@@ -51,21 +52,34 @@ class ProfilePictureMixin(SQLModel):
 # TODO for all Link models: Drop index on id, replace with semantic primary key
 class OperatorToolLink(Base, table=True):
     operator_id: UUID = Field(
-        foreign_key="operator.id", primary_key=True, index=True, sa_column_kwargs={"ondelete": "CASCADE"}
+        sa.ForeignKey("operator.id", ondelete="CASCADE", name='fk_operatortoollink_operator_id'),
+        primary_key=True,
+        index=True,
     )
-    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, sa_column_kwargs={"ondelete": "CASCADE"})
+    tool_id: UUID = Field(
+        sa.ForeignKey("tool.id", ondelete="CASCADE", name='fk_operatortoollink_tool_id'), primary_key=True
+    )
 
 
 class OrchestratorToolLink(Base, table=True):
     orchestrator_id: UUID = Field(
-        foreign_key="orchestrator.id", primary_key=True, index=True, sa_column_kwargs={"ondelete": "CASCADE"}
+        sa.ForeignKey('orchestrator.id', ondelete='CASCADE', name='fk_orchestratortoollink_orchestrator_id'),
+        primary_key=True,
+        index=True,
     )
-    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, sa_column_kwargs={"ondelete": "CASCADE"})
+    tool_id: UUID = Field(
+        sa.ForeignKey('tool.id', ondelete='CASCADE', name='fk_orchestratortoollink_tool_id'), primary_key=True
+    )
 
 
 class UserToolLink(Base, table=True):
-    user_id: UUID = Field(foreign_key="user.id", primary_key=True, index=True, sa_column_kwargs={"ondelete": "CASCADE"})
-    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, sa_column_kwargs={"ondelete": "CASCADE"})
+    user_id: UUID = Field(
+        sa.ForeignKey('user.id', ondelete='CASCADE', name='fk_usertoollink_user_id'), primary_key=True, index=True
+    )
+
+    tool_id: UUID = Field(
+        sa.ForeignKey('tool.id', ondelete='CASCADE', name='fk_usertoollink_tool_id'), primary_key=True
+    )
 
 
 # region User Models
