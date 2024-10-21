@@ -460,30 +460,47 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         chat = crud.get_messages(session, project_id)
         CLIClient.emit_sequence(chat)
         CLIClient.emit("\n")
+
+        if get_project_is_done(project_id):
+            # TODO Remove after we support https redirection through route 53
+            download_url = dyn_url_for(
+                request, "get_downloadable_completed_project", orchestrator_id=orchestrator_id, project_id=project_id
+            )
+        else:
+            download_url = None
         return templates.TemplateResponse(
             name="project_chat.html",
             context={
                 "chat": chat,
+                "download_url": download_url,
             },
             request=request,
         )
 
 
+def get_project_is_done(project_id: UUID) -> bool:
+    with Session() as session:
+        final_message = crud.get_completed_project(session, project_id)
+        return final_message is not None
+
+
 @app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/download_finished", response_class=HTMLResponse)
-async def get_downloadable_completed_project(orchestrator_id: UUID, project_id: UUID) -> StreamingResponse:
+async def get_downloadable_completed_project(orchestrator_id, project_id: UUID) -> StreamingResponse:
+    if not get_project_is_done(project_id):
+        raise HTTPException(status_code=404, detail=f"Project {project_id} not completed yet!")
 
     with Session() as session:
         final_message = crud.get_completed_project(session, project_id)
-        if final_message is None:
-            raise HTTPException(status_code=404, detail=f"No completed project found for project {project_id}!")
+        if final_message is not None:
+            pydantic_message = final_message.to_obj()
+        CLIClient.emit(f'{pydantic_message = }\n')
 
-        pydantic_message = final_message.to_obj()
+        if not isinstance(pydantic_message, ProjectDirectory):
+            raise HTTPException(
+                status_code=500, detail=f"Expected ProjectDirectory, but got {pydantic_message.__class__.__name__}"
+            )
+        zip_buffer = pydantic_message.to_zip()
 
-    if not isinstance(pydantic_message, ProjectDirectory):
-        raise HTTPException(
-            status_code=500, detail=f"Expected ProjectDirectory, but got {pydantic_message.__class__.__name__}"
-        )
-    zip_buffer = pydantic_message.to_zip()
     return StreamingResponse(
         zip_buffer,
         media_type="application/x-zip-compressed",
@@ -581,25 +598,13 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                     websocket,
                 )
                 await asyncio.sleep(0)
-            await manager.send_text(
-                f"""
-                <ol id="group_chat" hx-swap-oob="beforeend">
-                    <li class="left">
-                        <hgroup class="message-avatar-and-name left">
-                            <h1 class="operator-avatar-text">
-                                { exec_abbr }
-                            </h1>
-                            <h1 class="header small left">{ exec_name }</h1>
-                        </hgroup>
-                        <a href="{dyn_url_for(
-                            websocket,
-                            'get_downloadable_completed_project',
-                            orchestrator_id=orchestrator_id,
-                            project_id=project_id )}" class="message">Download Files</a>
-                    </li>
-                </ol>
-                """,
-                websocket,
+
+            download_url = dyn_url_for(
+                websocket, "get_downloadable_completed_project", orchestrator_id=orchestrator_id, project_id=project_id
             )
+            link = templates.get_template("download_project.html").render(download_url=download_url)
+            wrapped_link = f'<ol id="group_chat" hx-swap-oob="beforeend">{link}</ol>'
+            await manager.send_text(wrapped_link, websocket)
+
     except WebSocketDisconnect:
         manager.disconnect(websocket)

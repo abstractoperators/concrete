@@ -5,7 +5,7 @@ from fastapi import Depends, Request, WebSocket
 
 
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: list[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
@@ -27,7 +27,7 @@ class ConnectionManager:
 
 
 class OrchestratorConnectionManager(ConnectionManager):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.orchestrator_map: dict[UUID, WebSocket] = {}
 
