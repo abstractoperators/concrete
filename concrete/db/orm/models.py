@@ -50,18 +50,22 @@ class ProfilePictureMixin(SQLModel):
 
 # TODO for all Link models: Drop index on id, replace with semantic primary key
 class OperatorToolLink(Base, table=True):
-    operator_id: UUID = Field(foreign_key="operator.id", primary_key=True, index=True)
-    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+    operator_id: UUID = Field(
+        foreign_key="operator.id", primary_key=True, index=True, sa_column_kwargs={"ondelete": "CASCADE"}
+    )
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, sa_column_kwargs={"ondelete": "CASCADE"})
 
 
 class OrchestratorToolLink(Base, table=True):
-    orchestrator_id: UUID = Field(foreign_key="orchestrator.id", primary_key=True, index=True)
-    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+    orchestrator_id: UUID = Field(
+        foreign_key="orchestrator.id", primary_key=True, index=True, sa_column_kwargs={"ondelete": "CASCADE"}
+    )
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, sa_column_kwargs={"ondelete": "CASCADE"})
 
 
 class UserToolLink(Base, table=True):
-    user_id: UUID = Field(foreign_key="user.id", primary_key=True, index=True)
-    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", primary_key=True, index=True, sa_column_kwargs={"ondelete": "CASCADE"})
+    tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, sa_column_kwargs={"ondelete": "CASCADE"})
 
 
 # region User Models
