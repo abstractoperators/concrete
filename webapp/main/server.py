@@ -539,6 +539,11 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 developer = sqlmodel_developer.to_obj()
                 developer.project_id = project.id
 
+                exec_name = "executive" if not project.executive else project.executive.name
+                dev_name = "developer" if not project.developer else project.developer.name
+                exec_abbr = exec_name[0] if len(exec_name) < 2 else exec_name[:2]
+                dev_abbr = dev_name[0] if len(dev_name) < 2 else dev_name[:2]
+
                 CLIClient.emit(project)
                 CLIClient.emit("\n")
 
@@ -546,16 +551,10 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 f"""
                 <ol id="group_chat" hx-swap-oob="beforeend">
                     <li class="right">
-                        <div class="operator-avatar-container">
-                            <div class="operator-avatar-mask">
-                                <img
-                                    src="/static/operator_circle.svg"
-                                    alt="Operator Avatar"
-                                    class="operator-avatar-mask"
-                                >
-                                <h1 class="operator-avatar-text">U</h1>
-                            </div>
-                        </div>
+                        <hgroup class="message-avatar-and-name right">
+                            <h1 class="operator-avatar-text">U</h1>
+                            <h1 class="header small right">{ websocket.session["user"]["email"] }</h1>
+                        </hgroup>
                         <p class="message">{ replace_html_entities(prompt) }</p>
                     </li>
                 </ol>
@@ -577,18 +576,12 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                     f"""
                     <ol id="group_chat" hx-swap-oob="beforeend">
                         <li class="left">
-                            <div class="operator-avatar-container">
-                                <div class="operator-avatar-mask">
-                                    <img
-                                        src="/static/operator_circle.svg"
-                                        alt="Operator Avatar"
-                                        class="operator-avatar-mask"
-                                    >
-                                    <h1 class="operator-avatar-text">
-                                        { str(project.executive_id if is_executive else project.developer_id)[:2] }
-                                    </h1>
-                                </div>
-                            </div>
+                            <hgroup class="message-avatar-and-name left">
+                                <h1 class="operator-avatar-text">
+                                    { exec_abbr if is_executive else dev_abbr }
+                                </h1>
+                                <h1 class="header small left">{ exec_name if is_executive else dev_name }</h1>
+                            </hgroup>
                             <pre class="message">{ replace_html_entities(response) }</pre>
                         </li>
                     </ol>
@@ -600,23 +593,17 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 f"""
                 <ol id="group_chat" hx-swap-oob="beforeend">
                     <li class="left">
-                        <div class="operator-avatar-container">
-                            <div class="operator-avatar-mask">
-                                <img
-                                    src="/static/operator_circle.svg"
-                                    alt="Operator Avatar"
-                                    class="operator-avatar-mask"
-                                >
-                                <h1 class="operator-avatar-text">
-                                    {str(project.executive_id)[:2]}
-                                </h1>
-                            </div>
-                        </div>
+                        <hgroup class="message-avatar-and-name left">
+                            <h1 class="operator-avatar-text">
+                                { exec_abbr }
+                            </h1>
+                            <h1 class="header small left">{ exec_name }</h1>
+                        </hgroup>
                         <a href="{dyn_url_for(
                             websocket,
                             'get_downloadable_completed_project',
                             orchestrator_id=orchestrator_id,
-                            project_id=project_id )}">Download Files</a>
+                            project_id=project_id )}" class="message">Download Files</a>
                     </li>
                 </ol>
                 """,

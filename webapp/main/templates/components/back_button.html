@@ -1,8 +1,8 @@
 {% macro back_button(path) %}
 <a
-    class="circle-button"
+    class="button circle"
     href="{{ path }}"
 >
-    <img height="40rem" src="{{ dyn_url_for(request, 'static', path='/back_button.svg') }}" alt="Back button">
+    <img height="40rem" src="{{ dyn_url_for(request, 'static', path='/icons/back_button.svg') }}" alt="Back button">
 </a>
 {% endmacro %}

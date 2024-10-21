@@ -31,7 +31,9 @@
     <!-- figure out if extensions apply here -->
     {% from "back_button.html" import back_button with context %}
     {{ back_button(dyn_url_for(request, 'get_orchestrator', orchestrator_id=orchestrator_id)) }}
-    <!--Update operator-->
+    <main class="main panel">
+        You've reached an operator!
+    </main>
     <!-- figure out extensions -->
     {% from "footer.html" import footer %}
     {{ footer(request=request) }}
