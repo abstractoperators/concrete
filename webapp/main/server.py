@@ -462,6 +462,7 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         CLIClient.emit("\n")
 
         if get_project_is_done(project_id):
+            # TODO Remove after we support https redirection through route 53
             download_url = dyn_url_for(
                 request, "get_downloadable_completed_project", orchestrator_id=orchestrator_id, project_id=project_id
             )
