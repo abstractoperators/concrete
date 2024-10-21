@@ -232,22 +232,23 @@ def create_tool(db: Session, tool_create: ToolCreate, user_id: UUID) -> Tool:
 
 def get_user_tools(
     db: Session,
-    user_id: UUID,
-    skip: int = 0,
-    limit: int = 100,
-) -> Sequence[Tool]:
-    stmt = select(Tool).where(UserToolLink.user_id == user_id).offset(skip).limit(limit)
-    return db.scalars(stmt).all()
+    user_email: str,
+) -> list[Tool]:
+    user = get_user(db, user_email)
+    if user is None:
+        return []
+    return user.tools
 
 
 def get_orchestrator_tools(
     db: Session,
     orchestrator_id: UUID,
-    skip: int = 0,
-    limit: int = 100,
-) -> Sequence[Tool]:
-    stmt = select(Tool).where(OrchestratorToolLink.orchestrator_id == orchestrator_id).offset(skip).limit(limit)
-    return db.scalars(stmt).all()
+    user_id: UUID,
+) -> list[Tool]:
+    orchestrator = get_orchestrator(db, orchestrator_id, user_id)
+    if orchestrator is None:
+        return []
+    return orchestrator.tools
 
 
 def get_operator_tools(
