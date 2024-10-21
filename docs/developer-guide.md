@@ -1,5 +1,8 @@
 # Developer Guide
 
+Welcome to Abstract Operator's developer guide for `concrete`!
+This guide will take you through environment setup in order to run the codebase locally and contribute to our project. It's recommend that you use MacOS, Unix, or Linux as an operating system for development; we do not support nor provide instructions for Windows systems and development.
+
 ## Setup
 
 ### [Github Repository](https://github.com)
@@ -63,7 +66,7 @@ pyenv global 3.11.9
 ```
 
 ### [Poetry](https://python-poetry.org)
-#### Poetry Setup
+
 Concrete uses poetry for dependency management and environment isolation.
 
 > Again, we recommend following the official
@@ -78,7 +81,8 @@ curl -sSL https://install.python-poetry.org | python3 -
 By default, poetry as a command should be accessible.
 If not, you'll need to manually add it to your path.
 
-For example, in Unix systems:
+For example, on MacOS systems:
+
 ```shell
 # bash
 echo -e 'export PATH="~/Library/Application Support/pypoetry/venv/bin/poetry:$PATH"' >> ~/.bashrc
@@ -87,12 +91,28 @@ echo -e 'export PATH="~/Library/Application Support/pypoetry/venv/bin/poetry:$PA
 echo -e 'export PATH="~/Library/Application Support/pypoetry/venv/bin/poetry:$PATH"' >> ~/.zshrc
 ```
 
-#### Python Package Setup
+For Linux/Unix:
 
+```shell
+# bash
+echo -e 'export PATH="~/.local/share/pypoetry/venv/bin/poetry"' >> ~/.bashrc
+
+# zsh
+echo -e 'export PATH="~/.local/share/pypoetry/venv/bin/poetry"' >> ~/.zshrc
+```
+
+In addition to package and dependency management, we use Poetry to augment the developer git workflow.
+The following command will install the correct dependencies to run `concrete` locally as well as the precommit packages to pass our PR validations.
 In the root folder of the repository:
 
 ```shell
-poetry install
+make install
+```
+
+If you find yourself needing to run the pre-commit manually, use the following:
+
+```shell
+poetry run pre-commit run --all-files
 ```
 
 ### Environment Variables

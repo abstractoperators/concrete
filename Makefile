@@ -5,6 +5,7 @@ ORCHESTRATE := $(PYTHON) -m concrete prompt
 # Setup
 install:
 	poetry install
+	$(POETRY) pre-commit install
 
 # Run tests
 test:
