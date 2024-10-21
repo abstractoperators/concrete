@@ -67,8 +67,6 @@ def upgrade() -> None:
         op.f('ix_orchestratortoollink_orchestrator_id'), 'orchestratortoollink', ['orchestrator_id'], unique=False
     )
 
-    # Update old operatortoollink FK
-    op.drop_constraint('operator_id', 'operatortoollink', type_='foreignkey')
     op.create_foreign_key(
         'fk_operatortoollink_operator_id', 'operatortoollink', 'operator', ['operator_id'], ['id'], ondelete='CASCADE'
     )
