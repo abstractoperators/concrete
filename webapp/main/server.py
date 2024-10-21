@@ -36,6 +36,7 @@ from concrete.orchestrator import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import (
     ConnectionManager,
+    UserEmailDep,
     UserIdDep,
     UserIdDepWS,
     replace_html_entities,
@@ -80,17 +81,25 @@ def sidebar_create(
     )
 
 
-def sidebar_create_orchestrator(request: Request):
+def sidebar_create_orchestrator(request: Request, user_email: str):
+    with Session() as session:
+        user_tools = crud.get_user_tools(session, user_email)
+        tool_names = [tool.name for tool in user_tools]
+
     return sidebar_create(
         "Orchestrator",
         "/orchestrators",
         "orchestrator_form.html",
         request,
         headers={"HX-Trigger": "getOrchestrators"},
+        context={"tools": tool_names},
     )
 
 
-def sidebar_create_operator(orchestrator_id: UUID, request: Request, tool_names: list[str]):
+def sidebar_create_operator(orchestrator_id: UUID, request: Request, user_id: UUID):
+    with Session() as session:
+        orchestrator_tools = crud.get_orchestrator_tools(session, orchestrator_id, user_id)
+        tool_names = [tool.name for tool in orchestrator_tools]
     return sidebar_create(
         "Operator",
         f"/orchestrators/{orchestrator_id}/operators",
@@ -176,7 +185,16 @@ async def login(request: Request):
 
 
 @app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
+async def root(request: Request, user_id: UserIdDep):
+    # TODO interactive tool creation.
+    with Session() as session:
+        tools_to_add = ['HTTPTool', 'Arithmetic']
+        for tool_name in tools_to_add:
+            tool_create = ToolCreate(name=tool_name)
+            if not crud.get_tool_by_name(session, user_id, tool_name):
+                crud.create_tool(session, tool_create, user_id)
+
+            crud.get_tool_by_name(session, user_id, tool_name)
     return templates.TemplateResponse(name="index.html", request=request)
 
 
@@ -213,8 +231,10 @@ async def get_orchestrator_list(request: Request, user_id: UserIdDep):
 @app.post("/orchestrators", response_class=HTMLResponse)
 async def create_orchestrator(
     name: annotatedFormStr,
+    user_email: UserEmailDep,
     user_id: UserIdDep,
     request: Request,
+    tool_names: annotatedFormListStr = [],
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OrchestratorCreate, Form()] does not extract into form data fields.
@@ -224,24 +244,19 @@ async def create_orchestrator(
         name=name,
         user_id=user_id,
     )
+
+    # Create orchestrator with tools assigned to it
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
-        CLIClient.emit(f"{orchestrator}\n")
-
-        # TODO This is a hack. Need a real way to add Tools on the user level
-        # user_tools = crud.get_user_tools(session, user_id)
-        # user_tool_names = [tool.name for tool in user_tools]
-        # tools_to_add = set(TOOLS_REGISTRY.keys()) - set(user_tool_names)
-        tools_to_add = ['HTTPTool', 'Arithmetic']
-        # print('tools to add:', tools_to_add)
-        for tool_name in tools_to_add:
-            db_tool = crud.get_tool_by_name(session, user_id, tool_name)
-            if db_tool:
+        CLIClient.emit(f"Creating {orchestrator=}\n")
+        CLIClient.emit(f'Assigning tools: {tool_names=}\n')
+        for tool_name in tool_names:
+            tool = crud.get_tool_by_name(session, user_id, tool_name)  # Verify that tool exists
+            if tool is None:
                 continue
-            tool_create = ToolCreate(name=tool_name, user_id=user_id)
-            crud.create_tool(session, tool_create)
+            crud.assign_tool_to_orchestrator(db=session, orchestrator_id=orchestrator.id, tool_id=tool.id)
 
-        return sidebar_create_orchestrator(request)
+    return sidebar_create_orchestrator(request, user_email)
 
 
 @app.post("/orchestrators/name", response_class=HTMLResponse)
@@ -258,8 +273,8 @@ async def validate_orchestrator_name(
 
 
 @app.get("/orchestrators/form", response_class=HTMLResponse)
-async def create_orchestrator_form(request: Request):
-    return sidebar_create_orchestrator(request)
+async def create_orchestrator_form(request: Request, user_email: UserEmailDep):
+    return sidebar_create_orchestrator(request, user_email)
 
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
@@ -302,7 +317,7 @@ async def create_operator(
     title: annotatedFormStr,
     instructions: annotatedFormStr,
     request: Request,
-    tools: annotatedFormListStr = [],
+    tool_names: annotatedFormListStr = [],
 ):
     # TODO: keep tabs on proper integration of Pydantic and Form. not working as expected from the FastAPI docs
     # defining parameter Annotated[OperatorCreate, Form()] does not extract into form data fields.
@@ -315,18 +330,16 @@ async def create_operator(
     )
     with Session() as session:
         operator = crud.create_operator(session, operator_create)
-        for tool_name in tools:
+        for tool_name in tool_names:
             tool = crud.get_tool_by_name(session, user_id, tool_name)
             if tool is None:
                 continue
             crud.assign_tool_to_operator(db=session, operator_id=operator.id, tool_id=tool.id)
 
         CLIClient.emit(f"Created {operator=}\n")
-        CLIClient.emit(f'With tools: {tools=}\n')
+        CLIClient.emit(f'With tools: {tool_names=}\n')
 
-        all_tools = crud.get_user_tools(session, user_id)
-        tool_names = [tool.name for tool in all_tools]
-        return sidebar_create_operator(orchestrator_id, request, tool_names)
+        return sidebar_create_operator(orchestrator_id, request, user_id)
 
 
 @app.post("/orchestrators/{orchestrator_id}/operators/name", response_class=HTMLResponse)
@@ -344,12 +357,7 @@ async def validate_operator_name(
 
 @app.get("/orchestrators/{orchestrator_id}/operators/form", response_class=HTMLResponse)
 async def create_operator_form(orchestrator_id: UUID, request: Request, user_id: UserIdDep):
-    with Session() as session:
-        tools = crud.get_user_tools(session, user_id)
-        tool_names = [tool.name for tool in tools]
-
-    # TODO to pass entire tool to FE. saves us DB calls in create_operator
-    return sidebar_create_operator(orchestrator_id, request, tool_names)
+    return sidebar_create_operator(orchestrator_id, request, user_id)
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
