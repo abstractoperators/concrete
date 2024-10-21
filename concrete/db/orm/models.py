@@ -13,6 +13,7 @@ from concrete.tools import tool_name_to_class
 
 from ...models.messages import Message as ConcreteMessage
 from ...models.messages import TextMessage
+from ..orm.setup import SQLALCHEMY_DATABASE_URL, engine
 from ...state import ProjectStatus
 from ...tools import MetaTool
 
@@ -568,3 +569,7 @@ class OperatorOptions(Base):
     )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)  # type: ignore
+
+
+if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
+    SQLModel.metadata.create_all(engine)
