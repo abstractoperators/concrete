@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/daemons-fix
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -79,7 +80,7 @@ jobs:
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest \
                     --container-name daemons-staging \
                     --container-port 80 \
-                    --container-env-file
+                    --container-env-file .env \
                     --service-name=daemons-staging
 
 # https://github.com/actions/deploy-pages/issues/329 -
