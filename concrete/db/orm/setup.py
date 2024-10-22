@@ -48,17 +48,3 @@ def Session():
         yield session
     finally:
         session.close()
-
-
-def create_all_tables():
-    from sqlmodel import SQLModel
-
-    import concrete.db.orm.models  # noqa
-
-    SQLModel.metadata.create_all(engine)
-
-
-if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
-    # Creating all tables won't update schema if a table already exists.
-    CLIClient.emit("Creating all tables for SQLite database.")
-    create_all_tables()
