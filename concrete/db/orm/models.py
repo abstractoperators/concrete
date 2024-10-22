@@ -9,6 +9,7 @@ from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
+from concrete.clients import CLIClient
 from concrete.tools import tool_name_to_class
 
 from ...models.messages import Message as ConcreteMessage
@@ -581,4 +582,5 @@ if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
 
     from .setup import engine
 
+    CLIClient.emit("Creating all sqlite tables")
     SQLModel.metadata.create_all(engine)
