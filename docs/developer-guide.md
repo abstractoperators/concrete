@@ -55,15 +55,18 @@ exec "$SHELL"  # restarts the terminal shell process
 
 #### Python Version
 After you've installed Pyenv, we can install the required version of Python:
-```shell
-pyenv install 3.11.9  # to install Python 3.11.9
 
-pyenv global 3.11.9
+```shell
+pyenv install 3.11  # install latest Python 3.11.
+
+pyenv global 3.11
 
 # Alternatively, to set in a particular directory where the projects will be built
 # cd /Users/personmcpersonsonson/git/concreteproject
-# pyenv local 3.11.9
+# pyenv local 3.11
 ```
+
+> `concrete` requires a minimum of Python 3.11.9 to be installed.
 
 ### [Poetry](https://python-poetry.org)
 
@@ -115,6 +118,12 @@ If you find yourself needing to run the pre-commit manually, use the following:
 poetry run pre-commit run --all-files
 ```
 
+and to skip pre-commit hooks for whatever reason, use
+
+```shell
+git commit -m "Pass butter" --no-verify
+```
+
 ### Environment Variables
 
 We recommend you store all of the relevant environment variables into a `.env` file
@@ -125,7 +134,14 @@ Be sure to set the `ENV` variable as necessary:
 
 ```shell
 ENV=DEV
+# for development
+```
+
+or
+
+```shell
 ENV=PRODUCTION
+# for production
 ```
 
 #### [OpenAI](https://openai.com/index/openai-api/)
