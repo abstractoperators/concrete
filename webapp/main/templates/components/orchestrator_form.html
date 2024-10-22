@@ -1,1 +1,11 @@
 {% include "name_input.html" %}
+<div id="ToolsCheckboxes">
+
+    <label for="Tools">Tools</label>
+    <br>
+    {% for tool in tools %}
+    <input type="checkbox" id="{{ tool }}" name="tool_names" value="{{ tool }}">
+    <label for="{{ tool }}">{{ tool }}</label><br>
+    {% endfor %}
+
+</div>

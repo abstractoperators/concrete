@@ -73,7 +73,7 @@ class ProjectDirectory(Message, KombuMixin):
 
     def to_zip(self) -> io.BytesIO:
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for project_file in self.files:
                 zip_file.writestr(project_file.file_name, project_file.file_contents)
         zip_buffer.seek(0)
