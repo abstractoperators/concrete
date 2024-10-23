@@ -1,6 +1,7 @@
 import json
 from collections.abc import AsyncGenerator
 from textwrap import dedent
+from typing import Any, Callable
 from uuid import UUID, uuid1, uuid4
 
 from . import prompts
@@ -267,25 +268,46 @@ async def communicative_dehallucination(
     # yield Executive.__name__, str(implementation)
 
 
+class DAG(Orchestrator, StatefulMixin):
+    def __init__(self, nodes: list["DAGNode"]) -> None:
+        self.nodes = nodes
+        self.roots = [node for node in nodes if not node.parents]
+
+    def add_edge(self, child: "DAGNode", parent: "DAGNode") -> None:
+        child.parents.add(parent)
+        parent.children[child] = None
+
+    def execute(self) -> Any:
+        for node in self.roots:
+            node.execute()
+
+    def _is_dag(self):
+        pass
+
+
 class DAGNode:
-    def __init__(self) -> None:
-        self.children: set[DAGNode] = set()  # Upstream nodes
+    def __init__(self, task: Callable) -> None:
         self.parents: set[DAGNode] = set()
-        self.completed_children: set[DAGNode] = set()
+        self.children: dict[DAGNode, Any] = {}  # STores results of children
+        self.completed_children: int = 0
 
     def check_ready(self) -> bool:
-        if len(self.completed_children) == len(self.children):
-            return True
-        return False
+        return len(self.children) == self.completed_children
 
-    def receive_completion(self, child: "DAGNode") -> None:
-        self.completed_children.add(child)
+    def receive_update(
+        self,
+        child: "DAGNode",
+        update: Any,
+    ) -> None:
+        self.completed_children += 1
+        self.children[child] = update
         if self.check_ready():
             self.execute()
 
-    def update_parents(self) -> None:
-        for parent in self.parents:
-            parent.receive_completion(self)
-
-    def execute(self) -> None:
-        return None
+    def execute(self) -> Any:
+        res = self.task()
+        if self.parents:
+            for parent in self.parents:
+                parent.receive_update(self, res)
+        else:
+            return res
