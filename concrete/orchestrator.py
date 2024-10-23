@@ -277,9 +277,9 @@ class DAG(Orchestrator, StatefulMixin):
     def add_edge(self, child: "DAGNode", parent: "DAGNode") -> None:
         child.parents.add(parent)
 
-    def execute(self) -> Any:
-        for node in self.roots:
-            
+    def execute(self) -> AsyncGenerator[tuple[str, str], None]:
+        for node in self.root:
+            yield node.execute()
 
     def _is_dag(self):
         pass
@@ -301,23 +301,20 @@ class DAGNode:
         except AttributeError:
             raise ValueError(f"{operator} does not have a method {task}")
 
-        self.returns = returns
-        self.child_results = dict[str, Any]
+        self.children: dict[DAGNode, Any] = {}  # parent: name of result
         self.parents: set[DAGNode] = set()
-        self.completed_children: int = 0
+        self.task_kwargs = dict[str, Any]
         self.operator = operator
 
-    def check_ready(self) -> bool:
-        return len(self.child_results) == self.completed_children
-
-    def receive_update(
+    def update_children(
         self,
-        result_name: str,
-        result: Any,
+        res: Any,
     ) -> None:
-        self.completed_children += 1
-        self.child_results[result_name] = result
+        for child, res_name in self.children.items():
+            child.task_kwargs[res_name] = res
+            child.parents.remove(self)
 
     def execute(self) -> Any:
-        
-        return self.operator.name, self.bound_task(**self.child_results)
+        res = self.bound_task(**self.task_kwargs)
+
+        return self.operator.__name__, res
