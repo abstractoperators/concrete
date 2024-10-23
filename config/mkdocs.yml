@@ -8,7 +8,12 @@ theme:
   logo: favicon.ico
   features:
     - navigation.tabs
-    - navigation.sections
+    - navigation.tabs.sticky
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -28,3 +33,18 @@ theme:
         name: Switch to light mode
 extra_css:
   - stylesheets/extra.css
+nav:
+  - Concrete: index.md
+  - Learn:
+    - learn/index.md
+    - learn/hello-world.md
+    - Key Concepts:
+      - learn/concepts/index.md
+      - learn/concepts/operators.md
+      - learn/concepts/projects.md
+      - learn/concepts/tools.md
+      - learn/concepts/daemons.md
+  - Developer Guide:
+    - developer-guide/index.md
+    - developer-guide/setup.md
+    - developer-guide/db.md
