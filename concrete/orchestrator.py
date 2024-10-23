@@ -272,15 +272,14 @@ async def communicative_dehallucination(
 class DAG(Orchestrator, StatefulMixin):
     def __init__(self, nodes: list["DAGNode"]) -> None:
         self.nodes = nodes
-        self.roots = [node for node in nodes if not node.parents]
+        self.sources: list[DAGNode] = []
 
     def add_edge(self, child: "DAGNode", parent: "DAGNode") -> None:
         child.parents.add(parent)
-        parent.children[child] = None
 
     def execute(self) -> Any:
         for node in self.roots:
-            node.execute()
+            
 
     def _is_dag(self):
         pass
@@ -303,32 +302,22 @@ class DAGNode:
             raise ValueError(f"{operator} does not have a method {task}")
 
         self.returns = returns
+        self.child_results = dict[str, Any]
         self.parents: set[DAGNode] = set()
-        self.children: dict[DAGNode, Any] = {}  # Stores results of children
         self.completed_children: int = 0
+        self.operator = operator
 
     def check_ready(self) -> bool:
-        return len(self.children) == self.completed_children
+        return len(self.child_results) == self.completed_children
 
     def receive_update(
         self,
-        child: "DAGNode",
-        update: Any,
+        result_name: str,
+        result: Any,
     ) -> None:
         self.completed_children += 1
-        self.children[child] = update
-        if self.check_ready():
-            self.execute()
+        self.child_results[result_name] = result
 
     def execute(self) -> Any:
-        print(self.bound_task)
-
-        return self.bound_task('foo')
-        return res
-        res = self.task(self.operator, **self.children.values())
-
-        if self.parents:
-            for parent in self.parents:
-                parent.receive_update(self, res)
-        else:
-            return res
+        
+        return self.operator.name, self.bound_task(**self.child_results)
