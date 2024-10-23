@@ -1,7 +1,8 @@
 import json
 from collections.abc import AsyncGenerator
+from functools import partial
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any, Callable, Protocol
 from uuid import UUID, uuid1, uuid4
 
 from . import prompts
@@ -286,9 +287,24 @@ class DAG(Orchestrator, StatefulMixin):
 
 
 class DAGNode:
-    def __init__(self, task: Callable) -> None:
+    """
+    A DAGNode is a configured Operator + str returning callable
+    """
+
+    def __init__(self, task: str, operator: Operator, returns: str) -> None:
+        """
+        task: Name of method on Operator (e.g. 'chat')
+        operator: Operator instance
+        returns: Name of the returned value of the task
+        """
+        try:
+            self.bound_task = getattr(operator, task)
+        except AttributeError:
+            raise ValueError(f"{operator} does not have a method {task}")
+
+        self.returns = returns
         self.parents: set[DAGNode] = set()
-        self.children: dict[DAGNode, Any] = {}  # STores results of children
+        self.children: dict[DAGNode, Any] = {}  # Stores results of children
         self.completed_children: int = 0
 
     def check_ready(self) -> bool:
@@ -305,7 +321,12 @@ class DAGNode:
             self.execute()
 
     def execute(self) -> Any:
-        res = self.task()
+        print(self.bound_task)
+
+        return self.bound_task('foo')
+        return res
+        res = self.task(self.operator, **self.children.values())
+
         if self.parents:
             for parent in self.parents:
                 parent.receive_update(self, res)
