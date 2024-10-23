@@ -265,3 +265,27 @@ async def communicative_dehallucination(
 
     # TODO: synchronize message persistence and websocket messages
     # yield Executive.__name__, str(implementation)
+
+
+class DAGNode:
+    def __init__(self) -> None:
+        self.children: set[DAGNode] = set()  # Upstream nodes
+        self.parents: set[DAGNode] = set()
+        self.completed_children: set[DAGNode] = set()
+
+    def check_ready(self) -> bool:
+        if len(self.completed_children) == len(self.children):
+            return True
+        return False
+
+    def receive_completion(self, child: "DAGNode") -> None:
+        self.completed_children.add(child)
+        if self.check_ready():
+            self.execute()
+
+    def update_parents(self) -> None:
+        for parent in self.parents:
+            parent.receive_completion(self)
+
+    def execute(self) -> None:
+        return None
