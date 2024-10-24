@@ -181,20 +181,19 @@ async def login(request: Request):
     user_data = AuthMiddleware.check_auth(request)
     if user_data:
         return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
-    return JSONResponse({"login here": "https://auth.abot.ai/login"})
+    return JSONResponse({"login here": "https://auth.abop.ai/login"})
 
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request, user_id: UserIdDep):
     # TODO interactive tool creation.
     with Session() as session:
-        tools_to_add = ['HTTPTool', 'Arithmetic']
+        tools_to_add = ["HTTPTool", "Arithmetic"]
         for tool_name in tools_to_add:
             tool_create = ToolCreate(name=tool_name)
             if not crud.get_tool_by_name(session, user_id, tool_name):
                 crud.create_tool(session, tool_create, user_id)
 
-            crud.get_tool_by_name(session, user_id, tool_name)
     return templates.TemplateResponse(name="index.html", request=request)
 
 
@@ -278,12 +277,16 @@ async def create_orchestrator_form(request: Request, user_email: UserEmailDep):
 
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
-async def get_orchestrator(orchestrator_id: UUID, request: Request):
-    return templates.TemplateResponse(
-        name="orchestrator.html",
-        context={"orchestrator_id": orchestrator_id},
-        request=request,
-    )
+async def get_orchestrator(orchestrator_id: UUID, request: Request, user_id: UserIdDep):
+    with Session() as session:
+        orchestrator = crud.get_orchestrator(session, orchestrator_id, user_id)
+        return templates.TemplateResponse(
+            name="orchestrator.html",
+            context={
+                "orchestrator": orchestrator,
+            },
+            request=request,
+        )
 
 
 @app.delete("/orchestrators/{orchestrator_id}")
@@ -362,14 +365,15 @@ async def create_operator_form(orchestrator_id: UUID, request: Request, user_id:
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
 async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Request):
-    return templates.TemplateResponse(
-        name="operator.html",
-        context={
-            "orchestrator_id": orchestrator_id,
-            "operator_id": operator_id,
-        },
-        request=request,
-    )
+    with Session() as session:
+        operator = crud.get_operator(session, operator_id, orchestrator_id)
+        return templates.TemplateResponse(
+            name="operator.html",
+            context={
+                "operator": operator,
+            },
+            request=request,
+        )
 
 
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")
@@ -599,7 +603,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                                 </h1>
                                 <h1 class="header small left">{ exec_name if is_executive else dev_name }</h1>
                             </hgroup>
-                            <pre class="message">{ replace_html_entities(response) }</pre>
+                            <p class="message">{ replace_html_entities(response) }</p>
                         </li>
                     </ol>
                     """,
