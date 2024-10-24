@@ -269,9 +269,9 @@ async def communicative_dehallucination(
     # yield Executive.__name__, str(implementation)
 
 
-class DAGOrchestrator(Orchestrator, StatefulMixin):
+class DAGProject(StatefulMixin):
     """
-    Represents a DAG of Operator tasks to be executed.
+    Represents a DAG of Operator executions.
     Manages DAGNode executions and dependencies.
     """
 
