@@ -279,11 +279,21 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
     def __init__(self) -> None:
         self.nodes: dict[DAGNode, int] = {}  # node, deps_remaining
         self.edges: dict[DAGNode, list[(DAGNode, str)]] = defaultdict(list)
-        # parent, (child, child_dep_name) result_name is required for child kwarg
 
     def add_edge(
-        self, child: "DAGNode", parent: "DAGNode", res_name: str, res_mutation: Callable = lambda x: x
+        self,
+        child: "DAGNode",
+        parent: "DAGNode",
+        res_name: str,
+        res_mutation: Callable = lambda x: x,
     ) -> None:
+        """
+        child: Downstream node
+        parent: Upstream node
+        res_name: Name of the kwarg for the child
+        res_mutation: Function to apply to the parent result before passing to the child
+        """
+
         if child not in self.nodes or parent not in self.nodes:
             raise ValueError("Nodes must be added before adding edges")
 
