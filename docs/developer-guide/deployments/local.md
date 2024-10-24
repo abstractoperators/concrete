@@ -14,3 +14,11 @@ To mirror this setup locally add the following lines to the bottom of `/etc/host
 ```
 127.0.0.1 abop.bot auth.abop.bot
 ```
+
+The auth service can be deployed locally via
+
+```shell
+make local-auth
+```
+
+Once the auth service is up, create a session by navigating to `auth.abop.bot:8002/login` in your choice of browser.

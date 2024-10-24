@@ -14,6 +14,7 @@ theme:
     - navigation.top
     - navigation.tracking
     - navigation.footer
+    - content.code.copy
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -48,3 +49,13 @@ nav:
     - developer-guide/index.md
     - developer-guide/setup.md
     - developer-guide/db.md
+    - Deployments:
+      - developer-guide/deployments/local.md
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
