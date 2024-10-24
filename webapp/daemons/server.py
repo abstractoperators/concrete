@@ -20,6 +20,7 @@ from concrete.models.messages import NodeUUID
 from concrete.operators import Executive
 from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
 
+from concrete.operators import Operator
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -381,6 +382,24 @@ class AOGitHubDaemon(Webhook):
 
         return suggested_documentation, documentation_path
 
+
+class Daemon(Webhook):
+    """
+    Represents a Daemon. Daemons ~ Stance of an Operator
+    """
+    def __init__(self, operator: Operator, listens_to: str):
+        """
+        listens_to (str): The route the daemon listens to.
+        e.g. "/github/webhook"
+        """
+        super.__init__(self)
+        self.operator = operator
+    
+
+    
+    
+class SlackDaemon(Webhook):
+    
 
 hooks = [gh_daemon := AOGitHubDaemon()]
 for hook in hooks:
