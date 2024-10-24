@@ -24,6 +24,7 @@ from .orm.models import (
     OperatorUpdate,
     Orchestrator,
     OrchestratorCreate,
+    OrchestratorToolLink,
     OrchestratorUpdate,
     Project,
     ProjectCreate,
@@ -35,6 +36,7 @@ from .orm.models import (
     ToolCreate,
     User,
     UserCreate,
+    UserToolLink,
 )
 
 M = TypeVar("M", bound=Base)
@@ -219,40 +221,63 @@ def delete_client(
 # ===Tool=== #
 
 
-def create_tool(db: Session, tool_create: ToolCreate) -> Tool:
-    return create_generic(
+def create_tool(db: Session, tool_create: ToolCreate, user_id: UUID) -> Tool:
+    tool = create_generic(
         db,
         Tool(**tool_create.model_dump()),
     )
-
-
-def get_operator_tools(
-    db: Session,
-    operator_id: UUID | None = None,
-    skip: int = 0,
-    limit: int = 100,
-) -> Sequence[Tool]:
-    stmt = (
-        (select(Tool) if operator_id is None else select(Operator.tools).where(Operator.id == operator_id))
-        .offset(skip)
-        .limit(limit)
-    )  # TODO: unpack from Operator.tools properly
-    return db.scalars(stmt).all()
+    assign_tool_to_user(db, user_id, tool.id)
+    return tool
 
 
 def get_user_tools(
     db: Session,
-    user_id: UUID | None = None,
+    user_email: str,
+) -> list[Tool]:
+    user = get_user(db, user_email)
+    if user is None:
+        return []
+    return user.tools
+
+
+def get_orchestrator_tools(
+    db: Session,
+    orchestrator_id: UUID,
+    user_id: UUID,
+) -> list[Tool]:
+    orchestrator = get_orchestrator(db, orchestrator_id, user_id)
+    if orchestrator is None:
+        return []
+    return orchestrator.tools
+
+
+def get_operator_tools(
+    db: Session,
+    operator_id: UUID,
     skip: int = 0,
     limit: int = 100,
 ) -> Sequence[Tool]:
-    stmt = select(Tool).where(Tool.user_id == user_id).offset(skip).limit(limit)
+    stmt = select(Tool).where(OperatorToolLink.operator_id == operator_id).offset(skip).limit(limit)
     return db.scalars(stmt).all()
 
 
 def get_tool_by_name(db: Session, user_id: UUID, tool_name: str) -> Tool | None:
-    stmt = select(Tool).where(Tool.user_id == user_id).where(Tool.name == tool_name)
+    stmt = select(Tool).where(Tool.name == tool_name).where(UserToolLink.user_id == user_id)
     return db.scalars(stmt).first()
+
+
+def assign_tool_to_user(db: Session, user_id: UUID, tool_id: UUID) -> UserToolLink | None:
+    return create_generic(
+        db,
+        UserToolLink(user_id=user_id, tool_id=tool_id),
+    )
+
+
+def assign_tool_to_orchestrator(db: Session, orchestrator_id: UUID, tool_id: UUID) -> OrchestratorToolLink | None:
+    return create_generic(
+        db,
+        OrchestratorToolLink(orchestrator_id=orchestrator_id, tool_id=tool_id),
+    )
 
 
 def assign_tool_to_operator(db: Session, operator_id: UUID, tool_id: UUID) -> OperatorToolLink | None:
