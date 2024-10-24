@@ -293,11 +293,10 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
         self.ready_nodes = set(self.nodes.keys())
         for child, _ in self.edges.values():
             self.ready_nodes.discard(child)
-        print(self.ready_nodes)
+
         while self.ready_nodes:
             ready_node = self.ready_nodes.pop()
-            print(ready_node)
-            res = ready_node.execute()
+            operator_name, res = ready_node.execute()
 
             # Update children
             for child, res_name in self.edges[ready_node]:
@@ -330,6 +329,9 @@ class DAGNode:
         self.task_kwargs = task_kwargs
         self.operator: Operator = operator
 
+    def __str__(self):
+        return f"{type(self.operator).__name__}.{self.bound_task.__name__}(task_kwargs={self.task_kwargs})"
+
     def update(self, parent_res, res_name) -> None:
         self.task_kwargs[res_name] = parent_res
 
@@ -337,4 +339,4 @@ class DAGNode:
         print((self.task_kwargs | self.dep_kwargs))
         res = self.bound_task(**(self.task_kwargs | self.dep_kwargs))
 
-        return self.operator.__name__, res
+        return type(self.operator).__name__, res
