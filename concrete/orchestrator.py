@@ -269,17 +269,37 @@ async def communicative_dehallucination(
     # yield Executive.__name__, str(implementation)
 
 
-class DAG(Orchestrator, StatefulMixin):
-    def __init__(self, nodes: list["DAGNode"]) -> None:
-        self.nodes = nodes
-        self.sources: list[DAGNode] = []
+class DAGOrchestrator(Orchestrator, StatefulMixin):
+    """
+    Represents a DAG of Operator tasks to be executed.
+    Manages DAGNode executions and dependencies.
+    """
 
-    def add_edge(self, child: "DAGNode", parent: "DAGNode") -> None:
-        child.parents.add(parent)
+    def __init__(self, nodes: list["DAGNode"]) -> None:
+        self.nodes: dict[DAGNode, int]  # node, deps_remaining
+        self.edges: dict[DAGNode, (DAGNode, str)] = (
+            {}
+        )  # parent, (child, parent_result_name) result_name is required for child kwarg
+        self.ready_nodes: set[DAGNode] = set()
+
+    def add_edge(self, child: "DAGNode", parent: "DAGNode", res_name: str) -> None:
+        if child not in self.nodes or parent not in self.nodes:
+            raise ValueError("Nodes must be added before adding edges")
+        self.edges[child] = (parent, res_name)
+
+    def add_node(self, node: "DAGNode") -> None:
+        self.nodes[node] = 0
 
     def execute(self) -> AsyncGenerator[tuple[str, str], None]:
-        for node in self.root:
-            yield node.execute()
+        while self.ready_nodes:
+            ready_node = self.ready_nodes.pop()
+            res = ready_node.execute()
+
+            # Update children
+            for child, res_name in self.edges[ready_node]:
+                child.update(res, res_name)
+                if self.nodes[child] == 0:
+                    self.ready_nodes.add(child)
 
     def _is_dag(self):
         pass
@@ -301,18 +321,12 @@ class DAGNode:
         except AttributeError:
             raise ValueError(f"{operator} does not have a method {task}")
 
-        self.children: dict[DAGNode, Any] = {}  # parent: name of result
-        self.parents: set[DAGNode] = set()
         self.task_kwargs = dict[str, Any]
         self.operator = operator
 
-    def update_children(
-        self,
-        res: Any,
-    ) -> None:
-        for child, res_name in self.children.items():
-            child.task_kwargs[res_name] = res
-            child.parents.remove(self)
+    def update(self, parent_res, res_name):
+        self.task_kwargs[res_name] = parent_res
+        return self.is_ready()
 
     def execute(self) -> Any:
         res = self.bound_task(**self.task_kwargs)
