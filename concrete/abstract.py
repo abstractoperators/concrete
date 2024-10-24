@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Callable
-from functools import cache, wraps
+from functools import wraps
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -281,7 +281,8 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
         """
         pass
 
-    @cache
+    # TODO: Do not re-build function every time on access but
+    # still allow properties to be overridden after instantiation
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
         if name.startswith("__") or name in {"qna", "_qna", "invoke_tool"} or not callable(attr):
