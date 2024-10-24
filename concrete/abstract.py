@@ -285,9 +285,7 @@ class AbstractOperator(metaclass=MetaAbstractOperator):
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
         if name.startswith("__") or name in {"qna", "_qna", "invoke_tool"} or not callable(attr):
-            print(f"Returning {name}")
             return attr
-        print(f'Not returning {name}')
 
         def wrapped_func(*args, **kwargs):
             options = OperatorOptions(**(self._options | kwargs.pop("options", {})))

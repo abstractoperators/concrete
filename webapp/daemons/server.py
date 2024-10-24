@@ -392,7 +392,7 @@ class Daemon(Webhook):
         route (str): The route the daemon listens to.
         e.g. "/github/webhook"
         """
-        super().__init__(self)
+        super().__init__(route)
         self.operator = operator
 
 
@@ -412,12 +412,19 @@ class SlackDaemon(Daemon):
             challenge = json_data.get('challenge')
             return Response(content=challenge, media_type='text/plain')
 
-        elif json_data.get("type") == "event_callack":
+        elif json_data.get("type") == "event_callback":
             event = json_data.get("event")
-            if event.get('type') == 'message' and 'subtype' not in event:
-                self.chat(channel='C07DQNQ7L0K', message='foo')
+            if event.get('type') == 'app_mention':
+                to_respond = self.chat(event.get('text'))
+                self.post_message(channel=event.get('channel'), message=to_respond)
 
-    def chat(self, channel: str, message: str):
+    def chat(self, message: str) -> str:
+        """
+        Responds to a message.
+        """
+        return self.operator.chat(message).text
+
+    def post_message(self, channel: str, message: str):
         """
         Posts a message to a slack channel.
         """
