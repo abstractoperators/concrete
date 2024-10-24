@@ -279,9 +279,10 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
         self,
         options: dict = {},
     ) -> None:
-        self.nodes: dict[DAGNode, int] = {}  # node, deps_remaining
         self.edges: dict[DAGNode, list[(DAGNode, str)]] = defaultdict(list)
         self.options = options
+
+        self.nodes: set[DAGNode] = set()
 
     def add_edge(
         self,
@@ -301,25 +302,29 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
             raise ValueError("Nodes must be added before adding edges")
 
         self.edges[parent].append((child, res_name, res_mutation))
-        self.nodes[child] += 1
 
     def add_node(self, node: "DAGNode") -> None:
-        self.nodes[node] = 0
+        self.nodes.add(node)
 
     async def execute(self) -> AsyncGenerator[tuple[str, str], None]:
-        ready_nodes = set([node for node, deps in self.nodes.items() if deps == 0])
+        node_dep_count = {node: 0 for node in self.nodes}
+        for edges in self.edges.values():
+            for child, _, _ in edges:
+                node_dep_count[child] += 1
 
-        while ready_nodes:
-            ready_node = ready_nodes.pop()
+        no_dep_nodes = set({node for node, deps in node_dep_count.items() if deps == 0})
+
+        while no_dep_nodes:
+            ready_node = no_dep_nodes.pop()
             operator_name, res = await ready_node.execute(self.options)
 
             yield (operator_name, res)
 
             for child, res_name, res_mutation in self.edges[ready_node]:
                 child.update(res_mutation(res), res_name)
-                self.nodes[child] -= 1
-                if self.nodes[child] == 0:
-                    ready_nodes.add(child)
+                node_dep_count[child] -= 1
+                if node_dep_count[child] == 0:
+                    no_dep_nodes.add(child)
 
     def _is_dag(self):
         pass
