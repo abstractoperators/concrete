@@ -1,9 +1,8 @@
 import json
 from collections import defaultdict
 from collections.abc import AsyncGenerator
-from functools import partial
 from textwrap import dedent
-from typing import Any, Callable, Protocol
+from typing import Any, Callable
 from uuid import UUID, uuid1, uuid4
 
 from . import prompts
@@ -276,9 +275,13 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
     Manages DAGNode executions and dependencies.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        options: dict = {},
+    ) -> None:
         self.nodes: dict[DAGNode, int] = {}  # node, deps_remaining
         self.edges: dict[DAGNode, list[(DAGNode, str)]] = defaultdict(list)
+        self.options = options
 
     def add_edge(
         self,
@@ -308,7 +311,8 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
 
         while ready_nodes:
             ready_node = ready_nodes.pop()
-            operator_name, res = await ready_node.execute()
+            operator_name, res = await ready_node.execute(self.options)
+
             yield (operator_name, res)
 
             for child, res_name, res_mutation in self.edges[ready_node]:
@@ -326,7 +330,13 @@ class DAGNode:
     A DAGNode is a configured Operator + str returning callable
     """
 
-    def __init__(self, task: str, operator: Operator, static_kwargs: dict[str, Any] = {}) -> None:
+    def __init__(
+        self,
+        task: str,
+        operator: Operator,
+        static_kwargs: dict[str, Any] = {},
+        options: dict[str, Any] = {},
+    ) -> None:
         """
         task: Name of method on Operator (e.g. 'chat')
         operator: Operator instance
@@ -340,13 +350,19 @@ class DAGNode:
         self.task_str = task
         self.dynamic_kwargs: dict[str, Any] = {}
         self.static_kwargs = static_kwargs
+        self.options = options  # Could also throw this into static_kwargs
 
     def update(self, parent_res, res_name) -> None:
         self.dynamic_kwargs[res_name] = parent_res
 
-    async def execute(self) -> Any:
+    async def execute(self, options: dict = {}) -> Any:
         kwargs = self.static_kwargs | self.dynamic_kwargs
-        res = self.bound_task(**kwargs)
+        options = self.options | options
+        res = self.bound_task(**kwargs, options=self.options | options)
+        if options.get('run_async'):
+            res = res.get().message
+            print('run_async')
+
         return type(self.operator).__name__, res
 
     def __str__(self):
