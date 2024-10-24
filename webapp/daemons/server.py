@@ -392,14 +392,14 @@ class Daemon(Webhook):
         route (str): The route the daemon listens to.
         e.g. "/github/webhook"
         """
-        super.__init__(self)
+        super().__init__(self)
         self.operator = operator
 
 
 class SlackDaemon(Daemon):
     def __init__(self, operator: Operator):
         route = "/slack/events"
-        super.__init__(self, operator, route)
+        super().__init__(operator, route)
         self.operator = operator
         # TODO state management
 
@@ -437,6 +437,6 @@ class SlackDaemon(Daemon):
         )
 
 
-hooks = [gh_daemon := AOGitHubDaemon()]
+hooks = [gh_daemon := AOGitHubDaemon(), slack_daemon := SlackDaemon(Executive())]
 for hook in hooks:
     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
