@@ -401,6 +401,7 @@ class SlackDaemon(Daemon):
         route = "/slack/events"
         super.__init__(self, operator, route)
         self.operator = operator
+        # TODO state management
 
     async def webhook_handler(self, request: Request):
         """
@@ -413,12 +414,27 @@ class SlackDaemon(Daemon):
 
         elif json_data.get("type") == "event_callack":
             event = json_data.get("event")
-            if event.get('type') == 'message' and event.get('subtype') == 'thread_broadcast':
-                
-    def chat(self, channel: str):
+            if event.get('type') == 'message' and 'subtype' not in event:
+                self.chat(channel='C07DQNQ7L0K', message='foo')
+
+    def chat(self, channel: str, message: str):
         """
         Posts a message to a slack channel.
         """
+        chat_endpoint = 'https://slack.com/api/chat.postMessage'
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': f'Bearer {os.getenv("SLACK_BOT_TOKEN")}',
+        }
+
+        RestApiTool.post(
+            url=chat_endpoint,
+            headers=headers,
+            json={
+                'channel': channel,
+                'text': message,
+            },
+        )
 
 
 hooks = [gh_daemon := AOGitHubDaemon()]
