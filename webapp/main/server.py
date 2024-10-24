@@ -603,7 +603,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                                 </h1>
                                 <h1 class="header small left">{ exec_name if is_executive else dev_name }</h1>
                             </hgroup>
-                            <pre class="message">{ replace_html_entities(response) }</pre>
+                            <p class="message">{ replace_html_entities(response) }</p>
                         </li>
                     </ol>
                     """,
