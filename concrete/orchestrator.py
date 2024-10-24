@@ -279,7 +279,7 @@ class DAGProject(StatefulMixin):
         self,
         options: dict = {},
     ) -> None:
-        self.edges: dict[DAGNode, list[tuple[DAGNode, str]]] = defaultdict(list)
+        self.edges: dict[DAGNode, list[tuple[DAGNode, str, Callable]]] = defaultdict(list)
         self.options = options
 
         self.nodes: set[DAGNode] = set()
@@ -289,7 +289,7 @@ class DAGProject(StatefulMixin):
         child: "DAGNode",
         parent: "DAGNode",
         res_name: str,
-        res_mutation: Callable = lambda x: x,
+        res_transformation: Callable = lambda x: x,
     ) -> None:
         """
         child: Downstream node
@@ -301,7 +301,7 @@ class DAGProject(StatefulMixin):
         if child not in self.nodes or parent not in self.nodes:
             raise ValueError("Nodes must be added before adding edges")
 
-        self.edges[parent].append((child, res_name, res_mutation))
+        self.edges[parent].append((child, res_name, res_transformation))
 
     def add_node(self, node: "DAGNode") -> None:
         self.nodes.add(node)
@@ -322,8 +322,8 @@ class DAGProject(StatefulMixin):
 
             yield (operator_name, res)
 
-            for child, res_name, res_mutation in self.edges[ready_node]:
-                child.update(res_mutation(res), res_name)
+            for child, res_name, res_transformation in self.edges[ready_node]:
+                child.update(res_transformation(res), res_name)
                 node_dep_count[child] -= 1
                 if node_dep_count[child] == 0:
                     no_dep_nodes.add(child)
@@ -382,11 +382,11 @@ class DAGNode:
 
         self.task_str = task
         self.dynamic_kwargs: dict[str, Any] = {}
-        self.static_kwargs = static_kwargs
+        self.static_kwargs = static_kwargs  # TODO probably want to manage this in the project
         self.options = options  # Could also throw this into static_kwargs
 
-    def update(self, parent_res, res_name) -> None:
-        self.dynamic_kwargs[res_name] = parent_res
+    def update(self, dyn_kwarg_value, dyn_kwarg_name) -> None:
+        self.dynamic_kwargs[dyn_kwarg_name] = dyn_kwarg_value
 
     async def execute(self, options: dict = {}) -> Any:
         kwargs = self.static_kwargs | self.dynamic_kwargs
@@ -394,7 +394,6 @@ class DAGNode:
         res = self.bound_task(**kwargs, options=self.options | options)
         if options.get('run_async'):
             res = res.get().message
-            print('run_async')
 
         return type(self.operator).__name__, res
 
