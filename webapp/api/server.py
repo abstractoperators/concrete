@@ -10,7 +10,9 @@ from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from concrete.db import crud
-from concrete.db.orm import SessionLocal
+from concrete.db.orm import (
+    SessionLocal,  # TODO Stop using SessionLocal in favor of Session context manager
+)
 from concrete.db.orm.models import (
     Client,
     ClientCreate,
