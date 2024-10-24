@@ -335,12 +335,8 @@ class DAGNode:
         self.dynamic_kwargs[res_name] = parent_res
 
     async def execute(self) -> Any:
-        print(f'{self.static_kwargs=}')
-        print(f'{self.dynamic_kwargs=}')
         kwargs = self.static_kwargs | self.dynamic_kwargs
-        print(f'{kwargs=}')
         res = self.bound_task(**kwargs)
-        print(f'{res=}')
         return type(self.operator).__name__, res
 
     def __str__(self):
