@@ -8,7 +8,7 @@ from uuid import UUID
 
 import jwt
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,10 +17,9 @@ from concrete.clients import CLIClient, OpenAIClient
 from concrete.db import crud
 from concrete.db.orm import Session
 from concrete.models.messages import NodeUUID
-from concrete.operators import Executive
+from concrete.operators import Executive, Operator
 from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
 
-from concrete.operators import Operator
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -387,19 +386,40 @@ class Daemon(Webhook):
     """
     Represents a Daemon. Daemons ~ Stance of an Operator
     """
-    def __init__(self, operator: Operator, listens_to: str):
+
+    def __init__(self, operator: Operator, route: str):
         """
-        listens_to (str): The route the daemon listens to.
+        route (str): The route the daemon listens to.
         e.g. "/github/webhook"
         """
         super.__init__(self)
         self.operator = operator
-    
 
-    
-    
-class SlackDaemon(Webhook):
-    
+
+class SlackDaemon(Daemon):
+    def __init__(self, operator: Operator):
+        route = "/slack/events"
+        super.__init__(self, operator, route)
+        self.operator = operator
+
+    async def webhook_handler(self, request: Request):
+        """
+        Listens to slack events posted to the /slack/events route.
+        """
+        json_data = await request.json()
+        if json_data.get('type') == 'url_verification':
+            challenge = json_data.get('challenge')
+            return Response(content=challenge, media_type='text/plain')
+
+        elif json_data.get("type") == "event_callack":
+            event = json_data.get("event")
+            if event.get('type') == 'message' and event.get('subtype') == 'thread_broadcast':
+                
+    def chat(self, channel: str):
+        """
+        Posts a message to a slack channel.
+        """
+
 
 hooks = [gh_daemon := AOGitHubDaemon()]
 for hook in hooks:
