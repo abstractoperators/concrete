@@ -281,30 +281,29 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
         self.edges: dict[DAGNode, list[(DAGNode, str)]] = defaultdict(list)
         # parent, (child, child_dep_name) result_name is required for child kwarg
 
-    def add_edge(self, child: "DAGNode", parent: "DAGNode", res_name: str) -> None:
+    def add_edge(
+        self, child: "DAGNode", parent: "DAGNode", res_name: str, res_mutation: Callable = lambda x: x
+    ) -> None:
         if child not in self.nodes or parent not in self.nodes:
             raise ValueError("Nodes must be added before adding edges")
 
-        self.edges[parent].append((child, res_name))
+        self.edges[parent].append((child, res_name, res_mutation))
+        self.nodes[child] += 1
 
     def add_node(self, node: "DAGNode") -> None:
         self.nodes[node] = 0
 
     async def execute(self) -> AsyncGenerator[tuple[str, str], None]:
-        # Find all nodes with no deps
-        ready_nodes = set(self.nodes.keys())
-        for edge in self.edges.values():
-            for child, _ in edge:
-                ready_nodes.discard(child)
+        ready_nodes = set([node for node, deps in self.nodes.items() if deps == 0])
 
         while ready_nodes:
             ready_node = ready_nodes.pop()
-            operator_name, res = ready_node.execute()
+            operator_name, res = await ready_node.execute()
             yield (operator_name, res)
 
-            # Update children
-            for child, res_name in self.edges[ready_node]:
-                child.update(res, res_name)
+            for child, res_name, res_mutation in self.edges[ready_node]:
+                child.update(res_mutation(res), res_name)
+                self.nodes[child] -= 1
                 if self.nodes[child] == 0:
                     ready_nodes.add(child)
 
@@ -317,7 +316,7 @@ class DAGNode:
     A DAGNode is a configured Operator + str returning callable
     """
 
-    def __init__(self, task: str, operator: Operator, task_kwargs: dict[str, Any] = {}) -> None:
+    def __init__(self, task: str, operator: Operator, static_kwargs: dict[str, Any] = {}) -> None:
         """
         task: Name of method on Operator (e.g. 'chat')
         operator: Operator instance
@@ -329,18 +328,20 @@ class DAGNode:
         self.operator: Operator = operator
 
         self.task_str = task
-        self.dep_kwargs: dict[str, Any] = {}
-        self.task_kwargs = task_kwargs
+        self.dynamic_kwargs: dict[str, Any] = {}
+        self.static_kwargs = static_kwargs
 
     def update(self, parent_res, res_name) -> None:
-        self.task_kwargs[res_name] = parent_res
+        self.dynamic_kwargs[res_name] = parent_res
 
-    def execute(self) -> Any:
-        kwargs = self.task_kwargs | self.dep_kwargs
-        print(f'kwargs: {kwargs}')
+    async def execute(self) -> Any:
+        print(f'{self.static_kwargs=}')
+        print(f'{self.dynamic_kwargs=}')
+        kwargs = self.static_kwargs | self.dynamic_kwargs
+        print(f'{kwargs=}')
         res = self.bound_task(**kwargs)
-
+        print(f'{res=}')
         return type(self.operator).__name__, res
 
     def __str__(self):
-        return f"{type(self.operator).__name__}.{self.task_str}(**{self.task_kwargs})"
+        return f"{type(self.operator).__name__}.{self.task_str}(**{self.static_kwargs})"
