@@ -275,24 +275,28 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
     Manages DAGNode executions and dependencies.
     """
 
-    def __init__(self, nodes: list["DAGNode"]) -> None:
-        self.nodes: dict[DAGNode, int]  # node, deps_remaining
-        self.edges: dict[DAGNode, (DAGNode, str)] = (
-            {}
-        )  # parent, (child, parent_result_name) result_name is required for child kwarg
-        self.ready_nodes: set[DAGNode] = set()
+    def __init__(self) -> None:
+        self.nodes: dict[DAGNode, int] = {}  # node, deps_remaining
+        self.edges: dict[DAGNode, (DAGNode, str)] = {}
+        # parent, (child, child_dep_name) result_name is required for child kwarg
 
     def add_edge(self, child: "DAGNode", parent: "DAGNode", res_name: str) -> None:
         if child not in self.nodes or parent not in self.nodes:
             raise ValueError("Nodes must be added before adding edges")
-        self.edges[child] = (parent, res_name)
+        self.edges[parent] = (child, res_name)
 
     def add_node(self, node: "DAGNode") -> None:
         self.nodes[node] = 0
 
     def execute(self) -> AsyncGenerator[tuple[str, str], None]:
+        # Find all nodes with no deps
+        self.ready_nodes = set(self.nodes.keys())
+        for child, _ in self.edges.values():
+            self.ready_nodes.discard(child)
+        print(self.ready_nodes)
         while self.ready_nodes:
             ready_node = self.ready_nodes.pop()
+            print(ready_node)
             res = ready_node.execute()
 
             # Update children
@@ -300,6 +304,8 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
                 child.update(res, res_name)
                 if self.nodes[child] == 0:
                     self.ready_nodes.add(child)
+
+            print(res)
 
     def _is_dag(self):
         pass
@@ -310,25 +316,25 @@ class DAGNode:
     A DAGNode is a configured Operator + str returning callable
     """
 
-    def __init__(self, task: str, operator: Operator, returns: str) -> None:
+    def __init__(self, task: str, operator: Operator, task_kwargs: dict[str, Any] = {}) -> None:
         """
         task: Name of method on Operator (e.g. 'chat')
         operator: Operator instance
-        returns: Name of the returned value of the task
         """
         try:
             self.bound_task = getattr(operator, task)
         except AttributeError:
             raise ValueError(f"{operator} does not have a method {task}")
 
-        self.task_kwargs = dict[str, Any]
-        self.operator = operator
+        self.dep_kwargs: dict[str, Any] = {}
+        self.task_kwargs = task_kwargs
+        self.operator: Operator = operator
 
-    def update(self, parent_res, res_name):
+    def update(self, parent_res, res_name) -> None:
         self.task_kwargs[res_name] = parent_res
-        return self.is_ready()
 
     def execute(self) -> Any:
-        res = self.bound_task(**self.task_kwargs)
+        print((self.task_kwargs | self.dep_kwargs))
+        res = self.bound_task(**(self.task_kwargs | self.dep_kwargs))
 
         return self.operator.__name__, res
