@@ -279,7 +279,7 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
         self,
         options: dict = {},
     ) -> None:
-        self.edges: dict[DAGNode, list[(DAGNode, str)]] = defaultdict(list)
+        self.edges: dict[DAGNode, list[tuple[DAGNode, str]]] = defaultdict(list)
         self.options = options
 
         self.nodes: set[DAGNode] = set()
@@ -307,6 +307,8 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
         self.nodes.add(node)
 
     async def execute(self) -> AsyncGenerator[tuple[str, str], None]:
+        if not self.is_dag:
+            raise ValueError("Graph is not a DAG")
         node_dep_count = {node: 0 for node in self.nodes}
         for edges in self.edges.values():
             for child, _, _ in edges:
@@ -326,8 +328,34 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
                 if node_dep_count[child] == 0:
                     no_dep_nodes.add(child)
 
-    def _is_dag(self):
-        pass
+    @property
+    def is_dag(self):
+        # AI generated
+        visited = set()
+        rec_stack = set()
+
+        def dfs(node: DAGNode) -> bool:
+            if node not in visited:
+                visited.add(node)
+                rec_stack.add(node)
+
+                for child, _, _ in self.edges.get(node, []):
+                    if child not in visited:
+                        if not dfs(child):
+                            return False
+                    elif child in rec_stack:
+                        return False
+
+                rec_stack.remove(node)
+
+            return True
+
+        for node in self.nodes:
+            if node not in visited:
+                if not dfs(node):
+                    return False
+
+        return True
 
 
 class DAGNode:
