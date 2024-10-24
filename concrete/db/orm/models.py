@@ -13,9 +13,9 @@ from concrete.tools import tool_name_to_class
 
 from ...models.messages import Message as ConcreteMessage
 from ...models.messages import TextMessage
-from ..orm.setup import SQLALCHEMY_DATABASE_URL, engine
 from ...state import ProjectStatus
 from ...tools import MetaTool
+from ..orm.setup import SQLALCHEMY_DATABASE_URL, engine
 
 
 class Base(SQLModel):
