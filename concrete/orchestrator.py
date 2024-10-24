@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from collections.abc import AsyncGenerator
 from functools import partial
 from textwrap import dedent
@@ -277,34 +278,35 @@ class DAGOrchestrator(Orchestrator, StatefulMixin):
 
     def __init__(self) -> None:
         self.nodes: dict[DAGNode, int] = {}  # node, deps_remaining
-        self.edges: dict[DAGNode, (DAGNode, str)] = {}
+        self.edges: dict[DAGNode, list[(DAGNode, str)]] = defaultdict(list)
         # parent, (child, child_dep_name) result_name is required for child kwarg
 
     def add_edge(self, child: "DAGNode", parent: "DAGNode", res_name: str) -> None:
         if child not in self.nodes or parent not in self.nodes:
             raise ValueError("Nodes must be added before adding edges")
-        self.edges[parent] = (child, res_name)
+
+        self.edges[parent].append((child, res_name))
 
     def add_node(self, node: "DAGNode") -> None:
         self.nodes[node] = 0
 
-    def execute(self) -> AsyncGenerator[tuple[str, str], None]:
+    async def execute(self) -> AsyncGenerator[tuple[str, str], None]:
         # Find all nodes with no deps
-        self.ready_nodes = set(self.nodes.keys())
-        for child, _ in self.edges.values():
-            self.ready_nodes.discard(child)
+        ready_nodes = set(self.nodes.keys())
+        for edge in self.edges.values():
+            for child, _ in edge:
+                ready_nodes.discard(child)
 
-        while self.ready_nodes:
-            ready_node = self.ready_nodes.pop()
+        while ready_nodes:
+            ready_node = ready_nodes.pop()
             operator_name, res = ready_node.execute()
+            yield (operator_name, res)
 
             # Update children
             for child, res_name in self.edges[ready_node]:
                 child.update(res, res_name)
                 if self.nodes[child] == 0:
-                    self.ready_nodes.add(child)
-
-            print(res)
+                    ready_nodes.add(child)
 
     def _is_dag(self):
         pass
@@ -324,19 +326,21 @@ class DAGNode:
             self.bound_task = getattr(operator, task)
         except AttributeError:
             raise ValueError(f"{operator} does not have a method {task}")
-
-        self.dep_kwargs: dict[str, Any] = {}
-        self.task_kwargs = task_kwargs
         self.operator: Operator = operator
 
-    def __str__(self):
-        return f"{type(self.operator).__name__}.{self.bound_task.__name__}(task_kwargs={self.task_kwargs})"
+        self.task_str = task
+        self.dep_kwargs: dict[str, Any] = {}
+        self.task_kwargs = task_kwargs
 
     def update(self, parent_res, res_name) -> None:
         self.task_kwargs[res_name] = parent_res
 
     def execute(self) -> Any:
-        print((self.task_kwargs | self.dep_kwargs))
-        res = self.bound_task(**(self.task_kwargs | self.dep_kwargs))
+        kwargs = self.task_kwargs | self.dep_kwargs
+        print(f'kwargs: {kwargs}')
+        res = self.bound_task(**kwargs)
 
         return type(self.operator).__name__, res
+
+    def __str__(self):
+        return f"{type(self.operator).__name__}.{self.task_str}(**{self.task_kwargs})"
