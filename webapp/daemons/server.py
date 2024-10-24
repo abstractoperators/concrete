@@ -401,7 +401,12 @@ class SlackDaemon(Daemon):
         route = "/slack/events"
         super().__init__(operator, route)
         self.operator = operator
+
         # TODO state management
+        self.operator.instructions = (
+            "You are a slack chat bot. Respond to the latest user message. Your name is Jaime Daemon"
+        )
+        self.past_messages = []  # Ordered list of interactions
 
     async def webhook_handler(self, request: Request):
         """
@@ -415,8 +420,24 @@ class SlackDaemon(Daemon):
         elif json_data.get("type") == "event_callback":
             event = json_data.get("event")
             if event.get('type') == 'app_mention':
-                to_respond = self.chat(event.get('text'))
-                self.post_message(channel=event.get('channel'), message=to_respond)
+                text: str = event.get('text').strip()
+                text = text.replace('<@U07N8UE0NCV>', '').strip()
+                print(text)
+                if text == 'CLEAR':
+                    self.post_message(channel=event.get('channel'), message='Cleared chat history')
+                    self.past_messages = []
+                else:
+                    self.past_messages.append(text)
+                    history = ''
+                    for i, message in enumerate(self.past_messages):
+                        if i % 2 == 0:
+                            history += f'{event.get("user")}: {message}\n'
+                        else:
+                            history += f'Slack Chat Daemon: {message}\n'
+
+                    response = self.chat(history)
+                    self.past_messages.append(response)
+                    self.post_message(channel=event.get('channel'), message=response)
 
     def chat(self, message: str) -> str:
         """
@@ -444,6 +465,6 @@ class SlackDaemon(Daemon):
         )
 
 
-hooks = [gh_daemon := AOGitHubDaemon(), slack_daemon := SlackDaemon(Executive())]
+hooks = [gh_daemon := AOGitHubDaemon(), slack_daemon := SlackDaemon(Operator())]
 for hook in hooks:
     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
