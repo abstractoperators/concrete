@@ -373,6 +373,8 @@ class DAGNode:
         """
         task: Name of method on Operator (e.g. 'chat')
         operator: Operator instance
+        default_task_kwargs: Default kwargs for the Operator method.
+        options: Maps to OperatorOptions. Can also be set in default_task_kwargs as {'options': {...}}
         """
         try:
             self.bound_task = getattr(operator, task)
@@ -389,6 +391,9 @@ class DAGNode:
         self.dynamic_kwargs[dyn_kwarg_name] = dyn_kwarg_value
 
     async def execute(self, options: dict = {}) -> Any:
+        """
+        options: Optional options ~ OperatorOptions supplementary to instance options
+        """
         kwargs = self.default_task_kwargs | self.dynamic_kwargs
         options = self.options | options
         res = self.bound_task(**kwargs, options=self.options | options)
