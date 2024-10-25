@@ -1,12 +1,9 @@
 import json
-from collections import defaultdict
 from collections.abc import AsyncGenerator
 from textwrap import dedent
-from typing import Any, Callable
-from uuid import UUID, uuid1, uuid4
+from uuid import uuid1
 
-from concrete import prompts
-from concrete.clients import Client_con, OpenAIClient
+from concrete.clients import Client_con
 from concrete.models.messages import (
     PlannedComponents,
     ProjectDirectory,
@@ -15,7 +12,7 @@ from concrete.models.messages import (
     TextMessage,
     Tool,
 )
-from concrete.operators import Developer, Executive, Operator
+from concrete.operators import Developer, Executive
 from concrete.orchestrators import Orchestrator
 from concrete.state import ProjectStatus, State, StatefulMixin
 from concrete.tools import AwsTool, invoke_tool
