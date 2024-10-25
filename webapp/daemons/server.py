@@ -65,19 +65,24 @@ class InstallationToken:
     Represents an Installation Access Token for GitHub App authentication.
     """
 
-    def __init__(self, jwt_token: JwtToken, installation_id: str = ""):
+    def __init__(self, jwt_token: JwtToken, installation_id: str | None = None):
         self._token: str = ""  # nosec
-        self._expiry: float = 0
+        self.expiry_offset = 3600
+        self.exp = None
+        self._generated_at = 0
         self.jwt_token = jwt_token
-        self.installation_id: str = ""
+        self.installation_id = installation_id
 
     def _is_expired(self):
-        return not self._expiry or self._expiry < time.time()
+        return self.exp is None or time.time() >= self.exp
 
     def _generate_installation_token(self):
         """
         installation_id (str): GitHub App installation ID. Can be found in webhook payload, or from GitHub API.
         """
+        if not self.installation_id:
+            raise HTTPException(status_code=500, detail="Installation ID is not set")
+
         headers = {
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {self.jwt_token.token}",
@@ -85,9 +90,8 @@ class InstallationToken:
         }
         url = f'https://api.github.com/app/installations/{self.installation_id}/access_tokens'
 
-        self._expiry = int(time.time() + 3600)
-        token = RestApiTool.post(url=url, headers=headers).get('token', '')
-        self._token = token
+        self.exp = int(time.time() + self.expiry_offset)
+        self._token = RestApiTool.post(url=url, headers=headers).get('token', '')
 
     @property
     def token(self) -> str:
