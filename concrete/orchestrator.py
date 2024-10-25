@@ -367,7 +367,7 @@ class DAGNode:
         self,
         task: str,
         operator: Operator,
-        static_kwargs: dict[str, Any] = {},
+        default_task_kwargs: dict[str, Any] = {},
         options: dict[str, Any] = {},
     ) -> None:
         """
@@ -382,14 +382,14 @@ class DAGNode:
 
         self.task_str = task
         self.dynamic_kwargs: dict[str, Any] = {}
-        self.static_kwargs = static_kwargs  # TODO probably want to manage this in the project
-        self.options = options  # Could also throw this into static_kwargs
+        self.default_task_kwargs = default_task_kwargs  # TODO probably want to manage this in the project
+        self.options = options  # Could also throw this into default_task_kwargs
 
     def update(self, dyn_kwarg_value, dyn_kwarg_name) -> None:
         self.dynamic_kwargs[dyn_kwarg_name] = dyn_kwarg_value
 
     async def execute(self, options: dict = {}) -> Any:
-        kwargs = self.static_kwargs | self.dynamic_kwargs
+        kwargs = self.default_task_kwargs | self.dynamic_kwargs
         options = self.options | options
         res = self.bound_task(**kwargs, options=self.options | options)
         if options.get('run_async'):
@@ -398,4 +398,4 @@ class DAGNode:
         return type(self.operator).__name__, res
 
     def __str__(self):
-        return f"{type(self.operator).__name__}.{self.task_str}(**{self.static_kwargs})"
+        return f"{type(self.operator).__name__}.{self.task_str}(**{self.default_task_kwargs})"
