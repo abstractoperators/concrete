@@ -20,7 +20,7 @@ What we'll be making is in fact a simpler version of what's in `concrete.main`, 
 ## Create an Orchestrator
 
 ```python hl_lines="1 4"
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 
 
 so = SoftwareOrchestrator()
@@ -34,7 +34,7 @@ It comes pre-equipped with two operators: one executive, and one developer.
 ## Create a Project
 
 ```python hl_lines="5-7"
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 
 
 so = SoftwareOrchestrator()
@@ -51,7 +51,7 @@ A **Software Project** asks the executive to create a plan from the given prompt
 ## Run the Project
 
 ```python hl_lines="9-11"
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 
 
 so = SoftwareOrchestrator()

@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 
-from . import orchestrator
+from . import orchestrators
 from .clients import CLIClient
 from .tools import AwsTool, Container
 
@@ -76,7 +76,7 @@ args = parser.parse_args()
 
 async def main():
     if args.mode == "prompt":
-        so = orchestrator.SoftwareOrchestrator()
+        so = orchestrators.SoftwareOrchestrator()
         async for operator, response in so.process_new_project(
             args.prompt, deploy=args.deploy, run_async=args.run_async
         ):

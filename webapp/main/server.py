@@ -32,7 +32,7 @@ from concrete.db.orm.models import (
     ToolCreate,
 )
 from concrete.models.messages import ProjectDirectory
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from webapp.common import (
     ConnectionManager,
