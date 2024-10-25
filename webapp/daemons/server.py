@@ -25,9 +25,9 @@ templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/ping", response_class=HTMLResponse)
+async def ping():
+    return "pong"
 
 
 load_dotenv('.env.daemons', override=True)
@@ -46,25 +46,51 @@ class Webhook(ABC):
         pass
 
 
+class Daemon(Webhook):
+    """
+    Represents a Daemon. Daemons ~ Stance of an Operator
+    """
+
+    def __init__(self, operator: Operator, route: str):
+        """
+        route (str): The route the daemon listens to.
+        e.g. "/github/webhook"
+        """
+        super().__init__(route)
+        self.operator = operator
+
+
 class JwtToken:
     """
-    Represents a JWT token for GitHub App authentication.
+    Represents a JWT token.
     Manages token expiry and generation.
     """
 
-    def __init__(self):
-        self._token: str = ""  # nosec
-        self._expiry: float = 0
-        self.PRIVATE_KEY_PATH: str = os.environ.get("GH_PRIVATE_KEY_PATH")
-        try:
-            with open(self.PRIVATE_KEY_PATH, 'rb') as pem_file:
-                self.signing_key = pem_file.read()
-        except FileNotFoundError:
-            raise HTTPException(status_code=500, detail="Failed to read private key")
+    def __init__(
+        self,
+        key_name: str,
+        alg: str = "SHA256",
+        expiry_offset: int = 600,
+        iss: str | None = None,
+        aud: str | None = None,
+        nbf: int | None = None,
+        additional_headers: dict = {},
+    ):
+        """
+        additional_headers (dict): Headers additional to {typ: 'JWT', alg: alg}
+        """
+        self.iat = None
+        self.alg = alg
+        self.expiry_offset = expiry_offset
+        self.iss = iss
+        self.aud = aud
+        self.nbf = nbf
+        self.additional_headers = additional_headers
+        self.key_value = os.getenv(key_name)
+        if not self.key_value:
+            raise HTTPException(status_code=500, detail=f"{key_name} is not set")
 
-        self.GH_APP_CLIENT_ID = os.environ.get("GH_CLIENT_ID")
-        if not self.GH_APP_CLIENT_ID:
-            raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
+        self._token: str | None = None
 
     @property
     def token(self):
@@ -73,21 +99,21 @@ class JwtToken:
         return self._token
 
     def _is_expired(self):
-        return not self._expiry or self._expiry < time.time()
+        return not self.iat or self.iat + self.expiry < time.time()
 
     def _generate_jwt(self):
-        iat = int(time.time())
-        exp = iat + 600
+        self.iat = time.time()
         payload = {
-            'iat': iat,
-            'exp': exp,
-            'iss': self.GH_APP_CLIENT_ID,
+            'exp': self.iat + self.expiry_offset,
+            'iat': self.iat,
+            'iss': self.iss,
+            'alg': self.alg,
+            'aud': self.aud,
+            'nbf': self.nbf,
         }
-        self._token = jwt.encode(payload, self.signing_key, algorithm='RS256')
-        self._expiry = exp
+        payload = {k: v for k, v in payload.items() if v is not None}
 
-    def get_jwt(self) -> tuple[str, int]:
-        return self.token
+        self._token = jwt.encode(payload, self.key_value, algorithm=self.alg, headers=self.additional_headers)
 
 
 class InstallationToken:
@@ -380,20 +406,6 @@ class AOGitHubDaemon(Webhook):
         ).text
 
         return suggested_documentation, documentation_path
-
-
-class Daemon(Webhook):
-    """
-    Represents a Daemon. Daemons ~ Stance of an Operator
-    """
-
-    def __init__(self, operator: Operator, route: str):
-        """
-        route (str): The route the daemon listens to.
-        e.g. "/github/webhook"
-        """
-        super().__init__(route)
-        self.operator = operator
 
 
 class SlackDaemon(Daemon):
