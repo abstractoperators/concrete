@@ -15,18 +15,13 @@ helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
 
 # Requires rabbitmq and celery worker to be running
-helloworld_celery: celery
+helloworld-celery: celery
 	sleep 10
 	$(ORCHESTRATE) "Create a simple hello world program" --run-async
 	
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."
 
-# Requires dind-builder to be running
-# Need to manually delete created resources in AWS.
-# Created resources will be in ECR, ECS (tasks definitions and services), LB listener rules.
-deploysimpleflask:
-	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
 # ----------------------- Build commands -----------------------
 build-api:
@@ -94,9 +89,8 @@ run-postgres:
 		sleep 1; \
 	done
 	$(POETRY) alembic upgrade head
+
 # ----------------------- AWS Commands -----------------------
-# TODO: Use hyphens instead of underscores
-# https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
 # Need to set your aws config for default profile + credentials
 aws-ecr-login:
