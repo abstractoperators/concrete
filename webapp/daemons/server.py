@@ -30,7 +30,7 @@ async def ping():
     return "pong"
 
 
-load_dotenv('.env.daemons', override=True)
+load_dotenv('.env', override=True)
 
 
 class Webhook(ABC):
@@ -103,19 +103,26 @@ class InstallationToken:
         self.installation_id = installation_id
 
 
-class AOGitHubDaemon(Webhook):
+class GitHubDaemon(Daemon):
     """
     Represents a GitHub PR Daemon.
     Daemon can act on many installations, orgs/repos/branches.
-    TODO: AOGitHubDaemon -> GitHubDaemon. Should be installable on any repository, and not hardcoded to abop.
     """
 
-    def __init__(self):
-        super().__init__("/github/webhook")
-        self.installation_token: InstallationToken = InstallationToken(JwtToken())
+    def __init__(self, org='abstractoperators', repo='concrete', operator: Operator = Operator()):
+        super().__init__(operator=operator, route="/github/webhook")
+
+        # Generate Installation (Access) Token
+        gh_client_id = os.getenv('GH_CLIENT_ID')
+        if not gh_client_id:
+            raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
+        jwt_token: JwtToken = JwtToken(key_name='GH_PRIVATE_KEY', iss=gh_client_id)
+        self.installation_token: InstallationToken = InstallationToken(jwt_token)
+
+        self.org = org
+        self.repo = repo
+
         self.open_revisions: dict[str, str] = {}  # {source branch: revision branch}
-        self.org = 'abstractoperators'
-        self.repo = 'concrete'
 
     @staticmethod
     def _verify_signature(payload_body, signature_header):
@@ -425,6 +432,6 @@ class SlackDaemon(Daemon):
         )
 
 
-hooks = [gh_daemon := AOGitHubDaemon(), slack_daemon := SlackDaemon(Operator())]
+hooks = [gh_daemon := GitHubDaemon(), slack_daemon := SlackDaemon(Operator())]
 for hook in hooks:
     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
