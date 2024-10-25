@@ -27,3 +27,10 @@ class State:
             "target": None,  # The object/recipient agent that is on the receiving end
             "completed": False,
         }
+
+
+class StatefulMixin:
+    def update(self, **kwargs):
+        self.state.data.update(kwargs)
+        if kwargs.get("status") == ProjectStatus.FINISHED:
+            self.state.data["completed"] = True

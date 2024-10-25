@@ -16,15 +16,8 @@ from concrete.models.messages import (
     Tool,
 )
 from concrete.operators import Developer, Executive, Operator
-from concrete.state import ProjectStatus, State
+from concrete.state import ProjectStatus, State, StatefulMixin
 from concrete.tools import AwsTool, invoke_tool
-
-
-class StatefulMixin:
-    def update(self, **kwargs):
-        self.state.data.update(kwargs)
-        if kwargs.get("status") == ProjectStatus.FINISHED:
-            self.state.data["completed"] = True
 
 
 class SoftwareProject(StatefulMixin):
