@@ -1,5 +1,5 @@
-Last Updated: 2024-10-25 UTC
-Lines Changed: 2
+Last Updated: 2024-10-25 20:50:10 UTC
+Lines Changed: +3, -2
 
 # Database Tools
 
@@ -66,6 +66,7 @@ DB_DATABASE=local_db
 ```
 
 Start the postgres server using
+
 ```shell
 make run-postgres
 ```

@@ -5,10 +5,8 @@ import sys
 
 
 def get_lines_changed(file_path):
-    cmd = ['git', 'diff', '--cached', '--numstat', file_path]
-
-    result = subprocess.run(  # nosec B603, B404
-        cmd,
+    result = subprocess.run(  # nosec B603, B404, B607
+        ['git', 'diff', '--cached', '--numstat', file_path],
         check=True,
         capture_output=True,
         text=True,
@@ -16,8 +14,8 @@ def get_lines_changed(file_path):
 
     if result.stdout:
         added, removed, _ = result.stdout.strip().split('\t')
-        return int(added) + int(removed)
-    return 0
+        return f'+{added}, -{removed}'
+    return ""
 
 
 def update_last_edited(file_paths):
@@ -27,7 +25,7 @@ def update_last_edited(file_paths):
 
     for file_path in file_paths:
         lines_changed = get_lines_changed(file_path)
-        if lines_changed > 0:
+        if lines_changed != "":
             lines_changed_str = f'Lines Changed: {lines_changed}'
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
@@ -48,3 +46,5 @@ def update_last_edited(file_paths):
 
 if __name__ == "__main__":
     update_last_edited(sys.argv[1:])
+    subprocess.run(['git', 'add', '-u'], check=True)  # nosec B603 B607
+    # footgun https://stackoverflow.com/questions/58398995/black-as-pre-commit-hook-always-fails-my-commits

@@ -34,8 +34,7 @@ repos:
     hooks:
       - id: update-last-edited
         name: Update Last Edited Timestamp
-        entry: poetry run python scripts/update_last_edited.py; git add -u # footgun
-        # https://stackoverflow.com/questions/58398995/black-as-pre-commit-hook-always-fails-my-commits
+        entry: poetry run python scripts/update_last_edited.py
         language: python
         types: [markdown]
         stages: [commit]
