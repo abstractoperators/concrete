@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
-    <title>Operator</title>
+    <title>Operator: {{ operator.name }}</title>
     <link href="{{ dyn_url_for(request, 'static', path='/css/abop.css') }}" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="{{ dyn_url_for(request, 'static', path='/abstractoperators_favicon.jpg') }}">
 
@@ -30,9 +30,30 @@
     {{ header(request=request) }}
     <!-- figure out if extensions apply here -->
     {% from "back_button.html" import back_button with context %}
-    {{ back_button(dyn_url_for(request, 'get_orchestrator', orchestrator_id=orchestrator_id)) }}
+    {{ back_button(dyn_url_for(request, 'get_orchestrator', orchestrator_id=operator.orchestrator_id)) }}
     <main class="main panel">
-        You've reached an operator!
+        <hgroup>
+            <h1 class="header">{{ operator.name }}</h1>
+            <h2 class="header xsmall">{{ operator.title }}</h2>
+        </hgroup>
+        <div class="list row">
+            <div>
+                <h2 class="header small">Instructions</h2>
+                <p>{{ operator.instructions }}</p>
+            </div>
+            <div>
+                <h2 class="header small">Tools</h2>
+                <ul class="operator-card-list">
+                    {% for tool in operator.tools %}
+                        <li class="operator-card">
+                            <h3 class="header xsmall">
+                                {{ tool.name }}
+                            </h3>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </main>
     <!-- figure out extensions -->
     {% from "footer.html" import footer %}

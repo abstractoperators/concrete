@@ -1,4 +1,4 @@
-## Tools
+# Tools
 `Tools` allow an operator to interact with the real world or internet.
 
 Some tools we have supported are:  
@@ -52,7 +52,7 @@ class Arithmetic(metaclass=MetaTool):
 operator.chat("Use your provided tools to calculate the sum of 945 and 624", options={'tools': [Arithmetic]})
 ```
 
-### How Tools Work
+## How Tools Work
 When you pass Tools to an Operator, AO converts the tool into a string representation. This string representation is given to the Operator in its chat completion prompt. The Operator uses its discretion to decide which (if any) tool to use, and returns a syntactically correct Tool call.
 
 An example trace of `Arithmetic.__str__` looks something like

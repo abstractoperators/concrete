@@ -10,18 +10,27 @@ from sqlmodel import create_engine
 from concrete.clients import CLIClient
 
 load_dotenv(override=True)
-DB_PORT = os.environ.get("DB_PORT")
-db_port = int(DB_PORT) if DB_PORT else None
-SQLALCHEMY_DATABASE_URL = URL.create(
-    drivername=os.environ.get("DB_DRIVER", "sqlite"),
-    username=os.environ.get("DB_USERNAME", None),
-    password=os.environ.get("DB_PASSWORD", None),
-    host=os.environ.get("DB_HOST", None),
-    port=db_port,
-    database=os.environ.get("DB_DATABASE", "sql_app.db"),
-)
+if (
+    (drivername := os.environ.get("DB_DRIVER")) is None
+    or (username := os.environ.get("DB_USERNAME")) is None
+    or (password := os.environ.get("DB_PASSWORD")) is None
+    or (host := os.environ.get("DB_HOST")) is None
+    or (db_port := int(os.environ.get("DB_PORT", "0"))) == 0
+    or (database := os.environ.get("DB_DATABASE")) is None
+):
+    CLIClient.emit("Missing environment variables for database connection. Defaulting to SQLite.")
+    SQLALCHEMY_DATABASE_URL = URL.create(drivername="sqlite", database="sql_app.db")
+else:
+    SQLALCHEMY_DATABASE_URL = URL.create(
+        drivername=drivername,
+        username=username,
+        password=password,
+        host=host,
+        port=db_port,
+        database=database,
+    )
+    CLIClient.emit(f'Database environment variables found. ORM URL configured as: {SQLALCHEMY_DATABASE_URL}')
 
-CLIClient.emit(f'ORM URL configured as: {SQLALCHEMY_DATABASE_URL}')
 
 if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
     connect_args = {"check_same_thread": False}
