@@ -1,4 +1,4 @@
 #!/bin/sh
 
-echo $DB_DRIVER
+echo $DB_DRIVE
 alembic upgrade head
