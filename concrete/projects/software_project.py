@@ -16,6 +16,7 @@ from concrete.models.messages import (
     Tool,
 )
 from concrete.operators import Developer, Executive, Operator
+from concrete.orchestrators import Orchestrator
 from concrete.state import ProjectStatus, State, StatefulMixin
 from concrete.tools import AwsTool, invoke_tool
 
