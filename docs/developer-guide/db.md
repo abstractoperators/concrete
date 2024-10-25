@@ -106,7 +106,7 @@ This will alter the database schema.
 You can also use relative migration numbers, e.g. `alembic upgrade +1`, or `alembic downgrade -2`.
 Similarly, you can use `alembic downgrade partial_migration_number`.
 
-> By default, `make run-postgres` applies all migrations to the database, initializing it with the latest schema. 
+> By default, `make run-postgres` applies all migrations to the database, initializing it with the latest schema.
 
 ### Manual Script Adjustments
 
