@@ -6,7 +6,6 @@ import time
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-import jwt
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
@@ -19,6 +18,7 @@ from concrete.db.orm import Session
 from concrete.models.messages import NodeUUID
 from concrete.operators import Executive, Operator
 from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
+from concrete.utils import JwtToken
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -58,62 +58,6 @@ class Daemon(Webhook):
         """
         super().__init__(route)
         self.operator = operator
-
-
-class JwtToken:
-    """
-    Represents a JWT token.
-    Manages token expiry and generation.
-    """
-
-    def __init__(
-        self,
-        key_name: str,
-        alg: str = "SHA256",
-        expiry_offset: int = 600,
-        iss: str | None = None,
-        aud: str | None = None,
-        nbf: int | None = None,
-        additional_headers: dict = {},
-    ):
-        """
-        additional_headers (dict): Headers additional to {typ: 'JWT', alg: alg}
-        """
-        self.iat = None
-        self.alg = alg
-        self.expiry_offset = expiry_offset
-        self.iss = iss
-        self.aud = aud
-        self.nbf = nbf
-        self.additional_headers = additional_headers
-        self.key_value = os.getenv(key_name)
-        if not self.key_value:
-            raise HTTPException(status_code=500, detail=f"{key_name} is not set")
-
-        self._token: str | None = None
-
-    @property
-    def token(self):
-        if not self._token or self._is_expired():
-            self._generate_jwt()
-        return self._token
-
-    def _is_expired(self):
-        return not self.iat or self.iat + self.expiry < time.time()
-
-    def _generate_jwt(self):
-        self.iat = time.time()
-        payload = {
-            'exp': self.iat + self.expiry_offset,
-            'iat': self.iat,
-            'iss': self.iss,
-            'alg': self.alg,
-            'aud': self.aud,
-            'nbf': self.nbf,
-        }
-        payload = {k: v for k, v in payload.items() if v is not None}
-
-        self._token = jwt.encode(payload, self.key_value, algorithm=self.alg, headers=self.additional_headers)
 
 
 class InstallationToken:
