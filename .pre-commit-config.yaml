@@ -38,3 +38,4 @@ repos:
         language: python
         types: [markdown]
         stages: [commit]
+        pass_filenames: false

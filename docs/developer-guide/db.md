@@ -1,3 +1,5 @@
+Last Updated: 2024-10-25 UTC
+Lines Changed: 2
 # Database Tools
 
 ## [SQLModel](https://sqlmodel.tiangolo.com)
@@ -20,7 +22,7 @@ class my_table(Base, table=True):
 ```
 
 ## DB Operations
-Use `concrete.db.orm.Session` to get a session context manager. 
+Use `concrete.db.orm.Session` to get a session context manager.
 Use this session to perform DB operations.
 Best practice is to use one session per one transaction.
 By default, sessions will not flush or commit.
