@@ -36,7 +36,7 @@ def get_lines_changed(file_path):
 def update_last_edited(file_paths):
     last_updated_pattern = re.compile(r'^Last Updated:.*$', re.MULTILINE)
     lines_changed_pattern = re.compile(r'^Lines Changed:.*$', re.MULTILINE)
-    date_str = f'Last Updated: {datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d UTC")}'
+    date_str = f'Last Updated: {datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")}'
 
     for file_path in file_paths:
         lines_changed = get_lines_changed(file_path)
