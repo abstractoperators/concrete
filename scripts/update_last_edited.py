@@ -2,22 +2,9 @@ import datetime
 import re
 import subprocess  # nosec B404
 import sys
-from pathlib import Path
-
-
-def is_safe_filepath(file_path: str) -> bool:
-    """Validate that the file path is safe to use."""
-    path = Path(file_path).resolve()
-    if not path.is_file():
-        return False
-    cmd = ['git', 'ls-files', '--error-unmatch', str(path)]
-    subprocess.run(cmd, check=True, capture_output=True)  # nosec B603, B404
-    return True
 
 
 def get_lines_changed(file_path):
-    if not is_safe_filepath(file_path):
-        return 0
     cmd = ['git', 'diff', '--cached', '--numstat', file_path]
 
     result = subprocess.run(  # nosec B603, B404
