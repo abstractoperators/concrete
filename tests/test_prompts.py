@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 import pytest
 
-from concrete import orchestrator
+from concrete.orchestrators import Orchestrator
 from concrete.utils import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
@@ -44,7 +44,8 @@ def test_simple_prompts_string_comp(test_name, prompt, expected):
     prompt (str): Initial prompt for the project.
     expected (str): Expected output.
     """
-    actual = orchestrator.main(prompt)
+    # TODO Fix this and have it actually run
+    actual = Orchestrator.main(prompt)
 
     # # For developing tester.
     # actual = dedent(
