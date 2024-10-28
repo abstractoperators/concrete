@@ -77,19 +77,6 @@ class AbstractOperatorMetaclass(type):
         cls.OperatorRegistry[clsname] = new_class
         return new_class
 
-    @classmethod
-    def add_middlewares(cls, middlewares: list[any]):
-        """
-        Remake Operators using the middlewares
-        """
-        if cls.processed_middleware:
-            return
-
-        cls.middlewares = middlewares
-        AbstractOperatorMetaclass.baked = True
-
-        # TODO: Time travel and process anything that's already landed in AbstractOperatorMetaclass.OperatorRegistry
-
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
 class AbstractOperator(metaclass=AbstractOperatorMetaclass):

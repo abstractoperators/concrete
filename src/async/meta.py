@@ -1,4 +1,9 @@
-class AsyncMetaclass(type):
+from collections.abc import Callable
+
+from src.concrete.abstract import AbstractOperatorMetaclass
+
+
+class AsyncOperatorMetaclass(type):
     """
     This metaclass automatically creates a '_delay' version for each method in the class, allowing these methods to be executed asynchronously using Celery workers.
     """  # noqa E501
@@ -49,6 +54,16 @@ class AsyncMetaclass(type):
             attrs[attr]._delay = _delay_factory(attrs[attr])
 
         return super().__new__(cls, clsname, bases, attrs)
+
+
+# If async meta is imported, then this will occur?
+# What happens if you try to import meta before Operators classes are defined
+# Shouldn't be possible because async depends on core?
+# Could turn this into a function that's called in core __init__?
+AbstractOperatorMetaclass.OperatorRegistry = {
+    operator_name: type(operator_name, bases=tuple(operator, AsyncOperatorMetaclass), dict={})
+    for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items()
+}
 
 
 class DatabaseMetaclass(type):
