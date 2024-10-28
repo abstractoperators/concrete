@@ -4,7 +4,6 @@ from functools import wraps
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from celery.result import AsyncResult
 from openai.types.chat import ChatCompletion
 
 from .celery import app
@@ -61,7 +60,11 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
 
 
 class AbstractOperatorMetaclass(type):
-    OperatorRegistry = dict[str, any]
+    OperatorRegistry = dict[str, any]  # Metaclass class variable (shared amongst all instances)
+    # 1. Middlewares can't be instantiated before Core due to circular import
+    #    a. middlewares = [] will not be populated upon concrete operator class definition
+    # 2. Middlewares should be responsible for patching Operators; Operators should not be responsible for consuming middlewares.
+
     middlewares = []
     processed_middleware = False
 
