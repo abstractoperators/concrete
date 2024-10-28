@@ -60,64 +60,36 @@ def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientMode
     return ConcreteChatCompletion(**res)
 
 
-class MetaAbstractOperator(type):
-    """
-    This metaclass automatically creates a '_delay' version for each method in the class, allowing these methods to be executed asynchronously using Celery workers.
+class AbstractOperatorMetaclass(type):
+    OperatorRegistry = dict[str, any]
+    middlewares = []
+    processed_middleware = False
 
-    Classes that use this metaclass can call the asynchronous variant of a method like `some_instance.some_method.delay()`.
+    def __new__(cls, clsname, *args, **kwargs):
+        new_class = super().__new__(clsname, *args, **kwargs)
 
-    Note that .delay() returns a Celery AsyncResult object, which can be retrieved using .get() to get a ConcreteChatCompletion object.
-    """  # noqa E501
+        for mw in cls.middlewares:
+            mw(new_class)
 
-    def __new__(cls, clsname, bases, attrs):
-        # identify methods and add delay functionality
-        def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult]:
+        cls.OperatorRegistry[clsname] = new_class
+        return new_class
 
-            def _delay(
-                self: "AbstractOperator",
-                *args,
-                options: OperatorOptions,
-                **kwargs,
-            ) -> AsyncResult:
-                # TODO Make generic to support other delayable methods
-                # Pop extra kwargs and set defaults
-                operation = Operation(
-                    client_name=self.llm_client,
-                    function_name=self.llm_client_function,
-                    arg_dict={
-                        "messages": [
-                            {"role": "system", "content": options.instructions},
-                            {"role": "user", "content": string_func(self, *args, **kwargs)},
-                        ],
-                        "message_format": OpenAIClient.model_to_schema(options.response_format),
-                    },
-                )
-                # TODO unhardcode client conversion
-                client_models = {
-                    name: OpenAIClientModel(
-                        model=client.model,
-                        temperature=client.default_temperature,
-                    )
-                    for name, client in (self.clients).items()
-                }
-                operation_result = abstract_operation.delay(
-                    operation=operation, clients=client_models
-                )  # (celery.result.AsyncResult) - need to .get()
-                return operation_result
+    @classmethod
+    def add_middlewares(cls, middlewares: list[any]):
+        """
+        Remake Operators using the middlewares
+        """
+        if cls.processed_middleware:
+            return
 
-            return _delay
+        cls.middlewares = middlewares
+        AbstractOperatorMetaclass.baked = True
 
-        for attr in attrs:
-            if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(attrs[attr]):
-                continue
-
-            attrs[attr]._delay = _delay_factory(attrs[attr])
-
-        return super().__new__(cls, clsname, bases, attrs)
+        # TODO: Time travel and process anything that's already landed in AbstractOperatorMetaclass.OperatorRegistry
 
 
 # TODO mypy: figure out return types and signatures for class methods between this, the metaclass, and child classes
-class AbstractOperator(metaclass=MetaAbstractOperator):
+class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
     # TODO replace OpenAIClient with GenericClient
     def __init__(

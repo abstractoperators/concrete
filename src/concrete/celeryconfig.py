@@ -11,3 +11,4 @@ task_routes = {
     "operators.developer.*": {"queue": "developers"},
     "operators.executive.*": {"queue": "executives"},
 }
+# TODO: Route agnostic. Should be able to scale horizontally or vertically

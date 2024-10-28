@@ -29,6 +29,7 @@ class ConcreteModel(PydanticModel):
         return json.dumps(model_dict, indent=4)
 
 
+# TODO: Remove this as a dependency
 class KombuMixin(PydanticModel):
     """
     Represents a Mixin to allow serialization and deserialization of subclasses

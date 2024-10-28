@@ -67,6 +67,7 @@ class OpenAIClient(Client):
             print(f"Rate limit error: {e}")
             raise e  # retry decorator
 
+    # TODO: Rename to structure output api or similar
     @staticmethod
     def model_to_schema(model: type[PydanticModel]) -> dict[str, str | dict]:
         """
