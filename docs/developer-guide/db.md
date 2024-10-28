@@ -1,3 +1,6 @@
+Last Updated: 2024-10-25 20:50:10 UTC
+Lines Changed: +3, -2
+
 # Database Tools
 
 ## [SQLModel](https://sqlmodel.tiangolo.com)
@@ -20,7 +23,7 @@ class my_table(Base, table=True):
 ```
 
 ## DB Operations
-Use `concrete.db.orm.Session` to get a session context manager. 
+Use `concrete.db.orm.Session` to get a session context manager.
 Use this session to perform DB operations.
 Best practice is to use one session per one transaction.
 By default, sessions will not flush or commit.
@@ -63,6 +66,7 @@ DB_DATABASE=local_db
 ```
 
 Start the postgres server using
+
 ```shell
 make run-postgres
 ```
@@ -104,7 +108,7 @@ This will alter the database schema.
 You can also use relative migration numbers, e.g. `alembic upgrade +1`, or `alembic downgrade -2`.
 Similarly, you can use `alembic downgrade partial_migration_number`.
 
-> By default, `make run-postgres` applies all migrations to the database, initializing it with the latest schema. 
+> By default, `make run-postgres` applies all migrations to the database, initializing it with the latest schema.
 
 ### Manual Script Adjustments
 
