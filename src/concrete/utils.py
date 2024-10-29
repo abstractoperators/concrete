@@ -115,17 +115,18 @@ def verify_jwt(jwt_token: str, access_token: str) -> dict[str, str]:
     return payload
 
 
-def map_python_type_to_json_type(self, py_type) -> str:
+def map_python_type_to_json_type(py_type) -> str:
     """
     Maps Python types to JSON schema types.
     """
     type_map = {
-        int: "integer",
-        float: "number",
         str: "string",
+        float: "number",
         bool: "boolean",
-        list: "array",
+        int: "integer",
         dict: "object",
+        list: "array",
+        # TODO AnyOf and Enum
     }
     if py_type in type_map:
         return type_map[py_type]

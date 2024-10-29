@@ -58,49 +58,43 @@ class Message(ConcreteModel):
     @classmethod
     def as_response_format(cls) -> dict:
         # Required for https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
-        properties = cls.json_properties()
         res = {
             'type': 'json_schema',
             'json_schema': {
                 'name': cls.__name__,
                 'description': cls.__doc__,  # Defaults to None
-                'strict': True,  # Required
-                'schema': {
-                    "type": "object",
-                    'properties': properties,
-                    "additionalProperties": False,
-                    "required": list(properties.keys()),  # All fields must be required
-                },
+                'schema': cls.json_schema(),
             },
         }
         return res
 
     @classmethod
-    def json_properties(cls) -> dict:
+    def json_schema(cls) -> dict:
         """
         Returns a json schema
         https://stackoverflow.com/questions/9058305/getting-attributes-of-a-class
         """
         attributes = fields(cls)
         properties = {}
-        subschemas = {}
 
         # Check to see if an attribute if a subclass of Message.
-        for attribute_name, attribute in attributes:
-            if isinstance(attribute, Field):
-                # Mark an attribute as a field if you want to include it in the json schema
-                if issubclass(attribute.type, Message):
-                    subschemas[attribute_name] = attribute.type.as_response_format()
-
-                else:
-                    properties[attribute_name] = {
-                        "type": map_python_type_to_json_type(attribute.type),
-                        "description": attribute.metadata.get("description", ""),
-                    }
+        for attribute in attributes:
+            if issubclass(attribute.type, Message):
+                properties[attribute.name] = attribute.type.json_schema()
+            else:
+                properties[attribute.name] = {
+                    "type": map_python_type_to_json_type(attribute.type),
+                    "description": attribute.metadata.get("description", ""),
+                }
+            # TODO: Add support for obj[Message].
+            # e.g. texts: list[Text] ...
 
         return {
+            "type": "object",
             'properties': properties,
-            '$subschemas': subschemas,
+            "required": [attribute.name for attribute in attributes],
+            'additionalProperties': False,
+            'strict': True,
         }
 
     def __repr__(self):
