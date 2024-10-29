@@ -8,16 +8,12 @@ from openai.types.chat import ChatCompletion
 
 from .celery import app
 from .clients import CLIClient, OpenAIClient
-
-# from .db import crud
-# from .db.orm import Session
-# from .db.orm.models import MessageCreate, OperatorOptions
-# from .models.clients import ConcreteChatCompletion, OpenAIClientModel
 from .models.messages import Message, Tool
 from .tools import MetaTool
 from .tools import invoke_tool as invoke_tool_func
 
-# TODO replace OpenAIClientModel with GenericClientModel
+# from .db.orm.models import MessageCreate, OperatorOptions
+# from .models.clients import ConcreteChatCompletion, OpenAIClientModel
 
 
 class AbstractOperatorMetaclass(type):
@@ -93,20 +89,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             raise Exception("Operator refused to answer question")
 
         answer = response.content
-        # answer = response.parsed
-
-        # if self.store_messages:
-        #     with Session() as session:
-        #         crud.create_message(
-        #             session,
-        #             MessageCreate(
-        #                 type=response_format.__name__,
-        #                 content=repr(answer),
-        #                 prompt=self.starting_prompt,
-        #                 project_id=self.project_id,
-        #                 operator_id=self.operator_id,
-        #             ),
-        #         )
 
         return answer
 

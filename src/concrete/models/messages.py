@@ -14,11 +14,9 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
-import inspect
-import io
 import json
-import zipfile
 from dataclasses import Field, dataclass, field, fields
+from typing import get_origin
 
 from ..utils import map_python_type_to_json_type
 from .base import ConcreteModel
@@ -77,17 +75,22 @@ class Message(ConcreteModel):
         attributes = fields(cls)
         properties = {}
 
-        # Check to see if an attribute if a subclass of Message.
         for attribute in attributes:
             if issubclass(attribute.type, Message):
                 properties[attribute.name] = attribute.type.json_schema()
             else:
+                origin_type = get_origin(attribute.type) or attribute.type  # list[int] -> list, list -> list
                 properties[attribute.name] = {
-                    "type": map_python_type_to_json_type(attribute.type),
+                    "type": map_python_type_to_json_type(origin_type),
                     "description": attribute.metadata.get("description", ""),
                 }
+
+                if properties[attribute.name]["type"] == "array":
+                    # Add items schema
+                    properties[attribute.name]["items"] = {}
             # TODO: Add support for obj[Message].
             # e.g. texts: list[Text] ...
+            # ATM, it's kind of meaningless to just have a list[]
 
         return {
             "type": "object",
@@ -110,17 +113,9 @@ class TextMessage:
 
 @dataclass
 class Tool:
-    pass
-
-
-@dataclass
-class NodeSummary:
-    pass
-
-
-@dataclass
-class ChildNodeSummary:
-    pass
+    tool_name: str
+    tool_method: str
+    # tool_parameters: list[Param]
 
 
 @dataclass
@@ -150,6 +145,16 @@ class Param:
 
 @dataclass
 class NodeUUID:
+    pass
+
+
+@dataclass
+class NodeSummary:
+    pass
+
+
+@dataclass
+class ChildNodeSummary:
     pass
 
 
