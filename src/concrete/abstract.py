@@ -20,52 +20,6 @@ from .tools import invoke_tool as invoke_tool_func
 # TODO replace OpenAIClientModel with GenericClientModel
 
 
-# TODO: Make abstract_operation a true generic function that can do things besides chat completions
-# @app.task
-# def abstract_operation(operation: Operation) -> Any:
-# """
-# Represents an operation?
-
-
-@app.task(serializer='pickle')
-def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
-    """
-    An operation that's able to execute arbitrary methods on operators/agents
-
-    operation: Operation
-      Reference to a function to call. e.g.
-        (
-          'openai',
-          'complete',
-          {
-            'messages': [{'role': 'user', 'content': 'pass butter'}],
-            'message_format': {
-              'type': 'json_schema',
-              'json_schema': {
-                'name': TextMessage.__name__,
-                'schema': TextMessage.model_json_schema(),
-              },
-              'strict': True,
-            }
-          }
-        )
-    """
-
-    client = OpenAIClient(**clients[operation.client_name].model_dump())
-    # func = e.g. OpenAIClient.complete
-    func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
-    # res = e.g. OpenAIClient.complete(
-    #   messages=[{"role": "system", ...}, {"role": "user", ...}]
-    #   message_format=response_format
-    # )
-    res = func(**operation.arg_dict).model_dump()
-
-    message_format_name = cast(dict, operation.arg_dict["message_format"])["json_schema"]["name"]
-    res["message_format_name"] = message_format_name
-
-    return ConcreteChatCompletion(**res)
-
-
 class AbstractOperatorMetaclass(type):
     OperatorRegistry = dict[str, any]  # Metaclass class variable (shared amongst all instances)
     # 1. Middlewares can't be instantiated before Core due to circular import

@@ -20,11 +20,12 @@ Optional is not allowed with OpenAI Structured Outputs. All fields must be requi
 """
 
 import io
+import json
 import zipfile
 
 from pydantic import Field
 
-from .base import ConcreteModel, KombuMixin
+from .base import ConcreteModel
 
 # Tracks all message types created as a sub class of Message
 # Keys are not type sensitive
@@ -47,6 +48,19 @@ class Message(ConcreteModel):
             raise ValueError(f"Unknown response type: {name}")
         return message_type
 
+    def __str__(self):
+        """
+        Required for message passing to LMs
+        """
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+    # TODO: Requires a .schema() method for OpenAI Structured Outputs
+
+    def __repr__(self):
+        # Consider moving this to db - don't need a __repr__ unless you're saving it to a db?
+        # Consider whether
+        pass
+
 
 class Param(Message):
     name: str = Field(description="Name of the parameter")
@@ -60,12 +74,12 @@ class Tool(Message):
 
 
 # N.B. KombuMixin must be added to each leaf child node class due to serializer registration
-class ProjectFile(Message, KombuMixin):
+class ProjectFile(Message):
     file_name: str = Field(description="A file path relative to root")
     file_contents: str = Field(description="The contents of the file")
 
 
-class ProjectDirectory(Message, KombuMixin):
+class ProjectDirectory(Message):
     project_name: str = Field(description="Name of the project directory")
     files: list[ProjectFile] = Field(
         description="A list of files in the project directory. Each list item represents a file"
@@ -80,30 +94,30 @@ class ProjectDirectory(Message, KombuMixin):
         return zip_buffer
 
 
-class TextMessage(Message, KombuMixin):
+class TextMessage(Message):
     text: str = Field(description="Text")
 
 
-class Summary(Message, KombuMixin):
+class Summary(Message):
     summary: list[str] = Field(
         description="A list of component summaries. Each list item represents an unbroken summary"
     )
 
 
-class PlannedComponents(Message, KombuMixin):
+class PlannedComponents(Message):
     components: list[str] = Field(description="List of planned components")
 
 
-class ChildNodeSummary(Message, KombuMixin):
+class ChildNodeSummary(Message):
     node_name: str = Field(description="Name of the node")
     summary: str = Field(description="Summary of the node")
 
 
-class NodeSummary(Message, KombuMixin):
+class NodeSummary(Message):
     node_name: str = Field(description="Name of the node")
     overall_summary: str = Field(description="Summary of the node")
     children_summaries: list[ChildNodeSummary] = Field(description="Brief description of each child node")
 
 
-class NodeUUID(Message, KombuMixin):
+class NodeUUID(Message):
     node_uuid: str = Field(description="UUID of the node")
