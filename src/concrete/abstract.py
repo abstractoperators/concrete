@@ -77,6 +77,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             {"role": "system", "content": instructions},
             {"role": "user", "content": query},
         ]
+        print(messages)
         response = (
             self.clients["openai"]
             .complete(
@@ -91,20 +92,21 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
-        answer = response.parsed
+        answer = response.content
+        # answer = response.parsed
 
-        if self.store_messages:
-            with Session() as session:
-                crud.create_message(
-                    session,
-                    MessageCreate(
-                        type=response_format.__name__,
-                        content=repr(answer),
-                        prompt=self.starting_prompt,
-                        project_id=self.project_id,
-                        operator_id=self.operator_id,
-                    ),
-                )
+        # if self.store_messages:
+        #     with Session() as session:
+        #         crud.create_message(
+        #             session,
+        #             MessageCreate(
+        #                 type=response_format.__name__,
+        #                 content=repr(answer),
+        #                 prompt=self.starting_prompt,
+        #                 project_id=self.project_id,
+        #                 operator_id=self.operator_id,
+        #             ),
+        #         )
 
         return answer
 
@@ -118,7 +120,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         @wraps(question_producer)
         def _send_and_await_reply(
             *args,
-            options: OperatorOptions,
             **kwargs,
         ):
             """
@@ -132,8 +133,12 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 tools (list[concrete.models.MetaTool]): list of tools available for the operator
             """
             # Pop extra kwargs and set defaults
+            options = self._options | kwargs.pop('options', {})
+
             tools_addendum = ""
-            if tools := (options.tools if options.tools else (self.tools if options.use_tools else [])):
+            if tools := (
+                options.get('tools') if options.get('tools') else (self.tools if options.get('use_tools') else [])
+            ):
                 # LLMs don't really know what should go in what field even if output struct
                 # is guaranteed
                 tools_addendum = """Here are your available tools. If invoking a tool will help you answer the question, fill in the exact values for tool_name, tool_method, and tool_parameters. Leave these fields empty if no tool is needed."""  # noqa
@@ -147,19 +152,21 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
             # Only add a tools field to message format if there are tools
             if tools:
+                response_format = options.get('response_format')
                 response_format = type(
-                    f'{options.response_format.__name__}WithTools',
-                    (options.response_format, Tool),
+                    f'{response_format.__name__}WithTools',
+                    (response_format, Tool),
                     {},
                 )
             else:
-                response_format = options.response_format
+                response_format = options.get('response_format')
 
             # Process the finalized query
+            instructions = options.get('instructions')
             answer = self._qna(
                 query,
                 response_format=response_format,
-                instructions=options.instructions,
+                instructions=instructions,
             )
 
             # TODO Reconsider where this occurs.
@@ -209,17 +216,17 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             return attr
 
         def wrapped_func(*args, **kwargs):
-            options = OperatorOptions(**(self._options | kwargs.pop("options", {})))
+            options = self._options | kwargs.pop('options', {})
 
-            result = attr(*args, options=options.model_dump(), **kwargs)
+            result = attr(*args, options=self._options, **kwargs)
             if not isinstance(result, str):
                 return result
 
             llm_func = self.qna(attr)
-            if options.run_async:
-                # TODO: Converts args into kwargs for this function
-                # Return an async job if requested
-                return llm_func._delay(self, *args, options=options, **kwargs)
+            # if options.run_async:
+            #     # TODO: Converts args into kwargs for this function
+            #     # Return an async job if requested
+            #     return llm_func._delay(self, *args, options=options, **kwargs)
 
             return llm_func(*args, options=options, **kwargs)
 

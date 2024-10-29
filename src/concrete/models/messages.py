@@ -103,42 +103,52 @@ class Message(ConcreteModel):
         pass
 
 
+@dataclass
 class TextMessage:
-    pass
+    text: str = field()
 
 
+@dataclass
 class Tool:
     pass
 
 
+@dataclass
 class NodeSummary:
     pass
 
 
+@dataclass
 class ChildNodeSummary:
     pass
 
 
+@dataclass
 class PlannedComponents:
     pass
 
 
+@dataclass
 class Summary:
     pass
 
 
+@dataclass
 class ProjectDirectory:
     pass
 
 
+@dataclass
 class ProjectFile:
     pass
 
 
+@dataclass
 class Param:
     pass
 
 
+@dataclass
 class NodeUUID:
     pass
 
