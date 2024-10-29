@@ -5,7 +5,14 @@ from celery.result import AsyncResult
 from concrete.abstract import AbstractOperator, AbstractOperatorMetaclass
 from concrete.clients import Client
 from concrete.db.orm.models import OperatorOptions
-from concrete.models.operations import Operation
+
+
+# TODO: Make this a dataclass (needs serialization?)
+# TODO: Make this a generic operation
+class Operation(ConcreteModel):
+    client_name: str = Field(description="Name of LLM Client")
+    function_name: str = Field(description="Name of function to call on LLM Client")
+    arg_dict: dict[str, dict | list | str] = Field(description="Parameters to pass to function")
 
 
 # TODO: Make abstract_operation a true generic function that can do things besides chat completions

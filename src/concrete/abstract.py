@@ -13,7 +13,6 @@ from .db.orm import Session
 from .db.orm.models import MessageCreate, OperatorOptions
 from .models.clients import ConcreteChatCompletion, OpenAIClientModel
 from .models.messages import Message, Tool
-from .models.operations import Operation
 from .tools import MetaTool
 from .tools import invoke_tool as invoke_tool_func
 
