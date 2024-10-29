@@ -20,7 +20,14 @@ from .tools import invoke_tool as invoke_tool_func
 # TODO replace OpenAIClientModel with GenericClientModel
 
 
-@app.task
+# TODO: Make abstract_operation a true generic function that can do things besides chat completions
+# @app.task
+# def abstract_operation(operation: Operation) -> Any:
+# """
+# Represents an operation?
+
+
+@app.task(serializer='pickle')
 def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
     """
     An operation that's able to execute arbitrary methods on operators/agents

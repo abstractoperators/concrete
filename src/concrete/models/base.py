@@ -1,9 +1,11 @@
 import json
+from dataclasses import dataclass
 
 from kombu.utils.json import register_type
 from pydantic import BaseModel as PydanticModel
 
 
+# TODO: Replace PydanticModel with dataclass
 class ConcreteModel(PydanticModel):
     def __str__(self):
         # Remove tools from output if empty to improve prompt chaining quality.
@@ -29,17 +31,29 @@ class ConcreteModel(PydanticModel):
         return json.dumps(model_dict, indent=4)
 
 
-# TODO: Remove this as a dependency
-class KombuMixin(PydanticModel):
-    """
-    Represents a Mixin to allow serialization and deserialization of subclasses
-    """
+@dataclass
+class ConcreteModel2:
+    def __repr__(self):
+        pass
 
-    def __init_subclass__(cls, **kwargs):
-        register_type(
-            cls,
-            cls.__name__,
-            lambda model: model.model_dump_json(),
-            lambda model_json: cls.model_validate_json(model_json),
-        )
-        return super().__init_subclass__(**kwargs)
+        # JSON Dump
+
+    def __str__(self):
+        pass
+        # Formatted JSON dump
+
+
+# # TODO: Remove this as a dependency
+# class KombuMixin(PydanticModel):
+#     """
+#     Represents a Mixin to allow serialization and deserialization of subclasses
+#     """
+
+#     def __init_subclass__(cls, **kwargs):
+#         register_type(
+#             cls,
+#             cls.__name__,
+#             lambda model: model.model_dump_json(),
+#             lambda model_json: cls.model_validate_json(model_json),
+#         )
+#         return super().__init_subclass__(**kwargs)
