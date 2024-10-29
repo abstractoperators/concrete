@@ -3,16 +3,16 @@ import json
 from openai.types.chat import ChatCompletion
 from pydantic import Field
 
-from .base import ConcreteModel, KombuMixin
+from .base import ConcreteModel
 from .messages import Message
 
 
-class OpenAIClientModel(ConcreteModel, KombuMixin):
+class OpenAIClientModel(ConcreteModel):
     model: str = Field(default="gpt-4o-mini", description="Name of LLM Model")
     temperature: float = Field(default=0, description="Temperature of LLM Model")
 
 
-class ConcreteChatCompletion(ChatCompletion, KombuMixin):
+class ConcreteChatCompletion(ChatCompletion):
     message_format_name: str = Field(description="Response format to parse completion into")
 
     # Nice-to-have: dynamic dereferencing of attrs fetched on ConcreteChatCompletion through __getattribute__

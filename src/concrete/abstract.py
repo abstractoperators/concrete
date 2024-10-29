@@ -20,21 +20,18 @@ from .tools import invoke_tool as invoke_tool_func
 
 
 class AbstractOperatorMetaclass(type):
-    OperatorRegistry = dict[str, any]  # Metaclass class variable (shared amongst all instances)
-    # 1. Middlewares can't be instantiated before Core due to circular import
-    #    a. middlewares = [] will not be populated upon concrete operator class definition
-    # 2. Middlewares should be responsible for patching Operators; Operators should not be responsible for consuming middlewares.
+    OperatorRegistry: dict[str, any] = {}
 
-    middlewares = []
-    processed_middleware = False
+    def __new__(
+        cls,
+        clsname,
+        bases,
+        classdict,
+    ):
+        new_class = super().__new__(cls, clsname, bases, classdict)
 
-    def __new__(cls, clsname, *args, **kwargs):
-        new_class = super().__new__(clsname, *args, **kwargs)
+        AbstractOperatorMetaclass.OperatorRegistry.update({clsname: new_class})
 
-        for mw in cls.middlewares:
-            mw(new_class)
-
-        cls.OperatorRegistry[clsname] = new_class
         return new_class
 
 

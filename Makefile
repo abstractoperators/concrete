@@ -1,6 +1,7 @@
 POETRY := poetry run
 PYTHON := $(POETRY) python
-ORCHESTRATE := $(PYTHON) -m concrete prompt
+ORCHESTRATE := PYTHONPATH=src $(PYTHON) -m concrete prompt
+
 
 # Setup
 install:

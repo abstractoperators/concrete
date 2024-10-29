@@ -3,7 +3,7 @@ from collections.abc import Callable
 from celery.result import AsyncResult
 
 from concrete.abstract import AbstractOperator, AbstractOperatorMetaclass
-from concrete.clients import Client
+from concrete.clients import Client  # noqa
 from concrete.db.orm.models import OperatorOptions
 
 
@@ -16,10 +16,6 @@ class Operation(ConcreteModel):
 
 
 # TODO: Make abstract_operation a true generic function that can do things besides chat completions
-# @app.task
-# def abstract_operation(operation: Operation) -> Any:
-# """
-# Represents an operation?
 # TODO Separate clients
 @app.task(serializer='pickle')
 def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
