@@ -58,10 +58,11 @@ class OpenAIClient(Client):
         }
 
         try:
-            # Pydantic Model
             if isinstance(message_format, type(Message)):
+                # Turn Message into a json_schema
+                # https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
+
                 return self.client.beta.chat.completions.parse(**request_params)
-            # JSON Schema
             return self.client.chat.completions.create(**request_params)
         except RateLimitError as e:
             print(f"Rate limit error: {e}")

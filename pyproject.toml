@@ -4,7 +4,7 @@ version = "0.1.11"
 description = "AI Agent Orchestration Platform"
 authors = ["Abstract Operators <hello@abstractoperators.ai>"]
 readme = "README.md"
-packages = [{ include = "concrete" }]
+packages = [{ include = "src/concrete" }]
 
 
 [tool.poetry.dependencies]

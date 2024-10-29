@@ -15,13 +15,14 @@ import requests
 from dotenv import dotenv_values
 from requests import Response
 
-from concrete.clients import OpenAIClient
+from .clients import CLIClient, HTTPClient, OpenAIClient
 
-from .clients import CLIClient, HTTPClient
-from .db import crud
-from .db.orm import Session, models
+# from .db import crud
+# from .db.orm import Session, models
 from .models.base import ConcreteModel
 from .models.messages import ChildNodeSummary, NodeSummary, Tool
+
+# from .models.messages import ChildNodeSummary, NodeSummary, Tool
 
 TOOLS_REGISTRY: dict[str, "MetaTool"] = {}
 

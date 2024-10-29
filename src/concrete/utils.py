@@ -113,3 +113,21 @@ def verify_jwt(jwt_token: str, access_token: str) -> dict[str, str]:
     assert payload['iss'] in {'https://accounts.google.com', 'accounts.google.com'}
     assert payload['aud'] == os.environ['GOOGLE_OAUTH_CLIENT_ID']
     return payload
+
+
+def map_python_type_to_json_type(self, py_type) -> str:
+    """
+    Maps Python types to JSON schema types.
+    """
+    type_map = {
+        int: "integer",
+        float: "number",
+        str: "string",
+        bool: "boolean",
+        list: "array",
+        dict: "object",
+    }
+    if py_type in type_map:
+        return type_map[py_type]
+    else:
+        raise ValueError(f"Unexpected Python type: {py_type}")

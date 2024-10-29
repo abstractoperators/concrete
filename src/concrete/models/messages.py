@@ -1,30 +1,26 @@
 """
-OpenAI's Structured Outputs integrates directly into Pydantic models using Pydantic's BaseModel class.
-Inheriting from this baseclass allows for consistently formatted responses.
-Use OpenAI().beta.chat.completions.parse() to generate responses conforming to defined class.
-
-Example:
-    class MyClass(BaseModel):
-        field1: str
-        field2: int
-
-    response = self.client.beta.chat.completions.parse(messages=messages, temperature=self.OPENAI_TEMPERATURE, **kwargs)
-    message = response.choices[0].message
-    message_formatted: MyClass = message.parsed
-# Allowed primitives
 https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
 The following types are supported for Structured Outputs:
 String, Number, Boolean, Integer, Object, Array, Enum, anyOf
+Use OpenAI().beta.chat.completions.parse() to generate responses conforming to defined class.
 
-Optional is not allowed with OpenAI Structured Outputs. All fields must be required.
+Example:
+    class Fruit(Message):
+        name: str = field(metadata={'description': 'Name of the fruit'})
+        
+    response = self.client.beta.chat.completions.parse(messages=messages, temperature=self.OPENAI_TEMPERATURE, response_format=Fruit.as_response_format()) # noqa
+    
+    message = response.choices[0].message
+    message_formatted: MyClass = message.parsed
 """
 
+import inspect
 import io
 import json
 import zipfile
+from dataclasses import Field, dataclass, field, fields
 
-from pydantic import Field
-
+from ..utils import map_python_type_to_json_type
 from .base import ConcreteModel
 
 # Tracks all message types created as a sub class of Message
@@ -32,7 +28,12 @@ from .base import ConcreteModel
 MESSAGE_REGISTRY = {}
 
 
+@dataclass
 class Message(ConcreteModel):
+    """
+    Wrapper for OpenAI Structured Outputs
+    """
+
     @classmethod
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -54,7 +55,53 @@ class Message(ConcreteModel):
         """
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
-    # TODO: Requires a .schema() method for OpenAI Structured Outputs
+    @classmethod
+    def as_response_format(cls) -> dict:
+        # Required for https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
+        properties = cls.json_properties()
+        res = {
+            'type': 'json_schema',
+            'json_schema': {
+                'name': cls.__name__,
+                'description': cls.__doc__,  # Defaults to None
+                'strict': True,  # Required
+                'schema': {
+                    "type": "object",
+                    'properties': properties,
+                    "additionalProperties": False,
+                    "required": list(properties.keys()),  # All fields must be required
+                },
+            },
+        }
+        return res
+
+    @classmethod
+    def json_properties(cls) -> dict:
+        """
+        Returns a json schema
+        https://stackoverflow.com/questions/9058305/getting-attributes-of-a-class
+        """
+        attributes = fields(cls)
+        properties = {}
+        subschemas = {}
+
+        # Check to see if an attribute if a subclass of Message.
+        for attribute_name, attribute in attributes:
+            if isinstance(attribute, Field):
+                # Mark an attribute as a field if you want to include it in the json schema
+                if issubclass(attribute.type, Message):
+                    subschemas[attribute_name] = attribute.type.as_response_format()
+
+                else:
+                    properties[attribute_name] = {
+                        "type": map_python_type_to_json_type(attribute.type),
+                        "description": attribute.metadata.get("description", ""),
+                    }
+
+        return {
+            'properties': properties,
+            '$subschemas': subschemas,
+        }
 
     def __repr__(self):
         # Consider moving this to db - don't need a __repr__ unless you're saving it to a db?
@@ -62,61 +109,101 @@ class Message(ConcreteModel):
         pass
 
 
-class Param(Message):
-    name: str = Field(description="Name of the parameter")
-    value: str = Field(description="Value of the parameter")
+class TextMessage:
+    pass
 
 
-class Tool(Message):
-    tool_name: str = Field(description="Name of the tool")
-    tool_method: str = Field(description="Command to call the tool")
-    tool_parameters: list[Param] = Field(description="List of parameters for the tool")
+class Tool:
+    pass
 
 
-class ProjectFile(Message):
-    file_name: str = Field(description="A file path relative to root")
-    file_contents: str = Field(description="The contents of the file")
+class NodeSummary:
+    pass
 
 
-class ProjectDirectory(Message):
-    project_name: str = Field(description="Name of the project directory")
-    files: list[ProjectFile] = Field(
-        description="A list of files in the project directory. Each list item represents a file"
-    )
-
-    def to_zip(self) -> io.BytesIO:
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            for project_file in self.files:
-                zip_file.writestr(project_file.file_name, project_file.file_contents)
-        zip_buffer.seek(0)
-        return zip_buffer
+class ChildNodeSummary:
+    pass
 
 
-class TextMessage(Message):
-    text: str = Field(description="Text")
+class PlannedComponents:
+    pass
 
 
-class Summary(Message):
-    summary: list[str] = Field(
-        description="A list of component summaries. Each list item represents an unbroken summary"
-    )
+class Summary:
+    pass
 
 
-class PlannedComponents(Message):
-    components: list[str] = Field(description="List of planned components")
+class ProjectDirectory:
+    pass
 
 
-class ChildNodeSummary(Message):
-    node_name: str = Field(description="Name of the node")
-    summary: str = Field(description="Summary of the node")
+class ProjectFile:
+    pass
 
 
-class NodeSummary(Message):
-    node_name: str = Field(description="Name of the node")
-    overall_summary: str = Field(description="Summary of the node")
-    children_summaries: list[ChildNodeSummary] = Field(description="Brief description of each child node")
+class Param:
+    pass
 
 
-class NodeUUID(Message):
-    node_uuid: str = Field(description="UUID of the node")
+class NodeUUID:
+    pass
+
+
+# class Param(Message):
+#     name: str = Field(description="Name of the parameter")
+#     value: str = Field(description="Value of the parameter")
+
+
+# class Tool(Message):
+#     tool_name: str = Field(description="Name of the tool")
+#     tool_method: str = Field(description="Command to call the tool")
+#     tool_parameters: list[Param] = Field(description="List of parameters for the tool")
+
+
+# class ProjectFile(Message):
+#     file_name: str = Field(description="A file path relative to root")
+#     file_contents: str = Field(description="The contents of the file")
+
+
+# class ProjectDirectory(Message):
+#     project_name: str = Field(description="Name of the project directory")
+#     files: list[ProjectFile] = Field(
+#         description="A list of files in the project directory. Each list item represents a file"
+#     )
+
+#     def to_zip(self) -> io.BytesIO:
+#         zip_buffer = io.BytesIO()
+#         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+#             for project_file in self.files:
+#                 zip_file.writestr(project_file.file_name, project_file.file_contents)
+#         zip_buffer.seek(0)
+#         return zip_buffer
+
+
+# class TextMessage(Message):
+#     text: str = Field(description="Text")
+
+
+# class Summary(Message):
+#     summary: list[str] = Field(
+#         description="A list of component summaries. Each list item represents an unbroken summary"
+#     )
+
+
+# class PlannedComponents(Message):
+#     components: list[str] = Field(description="List of planned components")
+
+
+# class ChildNodeSummary(Message):
+#     node_name: str = Field(description="Name of the node")
+#     summary: str = Field(description="Summary of the node")
+
+
+# class NodeSummary(Message):
+#     node_name: str = Field(description="Name of the node")
+#     overall_summary: str = Field(description="Summary of the node")
+#     children_summaries: list[ChildNodeSummary] = Field(description="Brief description of each child node")
+
+
+# class NodeUUID(Message):
+#     node_uuid: str = Field(description="UUID of the node")
