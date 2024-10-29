@@ -101,12 +101,12 @@ class Message(ConcreteModel):
                 case t if t is bool:
                     return {'type': 'boolean'}
                 case t if issubclass(t, Message):
-                    pass
-                    # call their properties() method
-                    # message_properties = O
-                    return {'type': 'object', 'properties': 'FOO'}
-                    # TODO: call their json_schema method
-
+                    return {
+                        'type': 'object',
+                        'properties': t.properties(),
+                        'required': [field_.name for field_ in fields(t)],
+                        'additionalProperties': False,
+                    }
             # Recursive Cases
             origin = get_origin(type_)
             # TODO: Handle AnyOf, Enum, Dict
@@ -118,6 +118,8 @@ class Message(ConcreteModel):
         for field_ in fields(cls):
             field_type = field_.type
             properties[field_.name] = type_to_property(field_type)
+
+        return properties
 
 
 @dataclass
