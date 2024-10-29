@@ -16,7 +16,7 @@ Example:
 
 import json
 from dataclasses import Field, dataclass, field, fields
-from typing import get_origin
+from typing import Any, Dict, List, Union, get_args, get_origin
 
 from ..utils import map_python_type_to_json_type
 from .base import ConcreteModel
@@ -53,57 +53,71 @@ class Message(ConcreteModel):
         """
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
-    @classmethod
-    def as_response_format(cls) -> dict:
-        # Required for https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
-        res = {
-            'type': 'json_schema',
-            'json_schema': {
-                'name': cls.__name__,
-                'description': cls.__doc__,  # Defaults to None
-                'schema': cls.json_schema(),
-            },
-        }
-        return res
-
-    @classmethod
-    def json_schema(cls) -> dict:
-        """
-        Returns a json schema
-        https://stackoverflow.com/questions/9058305/getting-attributes-of-a-class
-        """
-        attributes = fields(cls)
-        properties = {}
-
-        for attribute in attributes:
-            if issubclass(attribute.type, Message):
-                properties[attribute.name] = attribute.type.json_schema()
-            else:
-                origin_type = get_origin(attribute.type) or attribute.type  # list[int] -> list, list -> list
-                properties[attribute.name] = {
-                    "type": map_python_type_to_json_type(origin_type),
-                    "description": attribute.metadata.get("description", ""),
-                }
-
-                if properties[attribute.name]["type"] == "array":
-                    # Add items schema
-                    properties[attribute.name]["items"] = {}
-            # TODO: Add support for obj[Message].
-            # e.g. texts: list[Text] ...
-            # ATM, it's kind of meaningless to just have a list[]
-
-        return {
-            "type": "object",
-            'properties': properties,
-            "required": [attribute.name for attribute in attributes],
-            'additionalProperties': False,
-            'strict': True,
-        }
-
     def __repr__(self):
         # Consider moving this to db - don't need a __repr__ unless you're saving it to a db?
         # Consider whether
         pass
+
+    @classmethod
+    def as_response_format(cls) -> dict:
+        """
+        Converts the dataclass into a JSON schema dictionary compatible with OpenAI's structured outputs.
+        """
+        return {
+            'type': 'json_schema',
+            'json_schema': {
+                'name': cls.__name__,
+                'description': cls.__doc__,
+                'strict': True,
+                'schema': {
+                    'type': 'object',
+                    'properties': cls.properties(),
+                    'required': [field_.name for field_ in fields(cls)],
+                    'additionalProperties': False,
+                },
+            },
+        }
+
+    @classmethod
+    def properties(cls) -> dict:
+        """
+        Returns dict properties
+        """
+
+        def type_to_property(type_) -> dict:
+            # Converts a field into a field_name: {type: field_type... optional[items, properties]}
+            # Fields can have complex types like list[dict[str, str]], which need to be handled recursively
+            # Additionally, the field can be another Message model.
+            # Base Case: Primitive one-to-one mappings
+
+            # Base Cases:
+            match type_:  # Does python pattern matching even hash anything. Is this just a glorifiied if else?
+                case t if t is str:
+                    return {'type': 'string'}
+                case t if t is int:
+                    return {'type': 'integer'}
+                case t if t is float:
+                    return {'type': 'number'}
+                case t if t is bool:
+                    return {'type': 'boolean'}
+                case t if issubclass(t, Message):
+                    pass
+                    # call their properties() method
+                    # message_properties = O
+                    return {'type': 'object', 'properties': 'FOO'}
+                    # TODO: call their json_schema method
+
+            # Recursive Cases
+            origin = get_origin(type_)
+            # TODO: Handle AnyOf, Enum, Dict
+            if origin is list:
+                item_type = get_args(type_)[0]
+                return {'type': 'array', 'items': type_to_property(item_type)}
+
+        properties = {}
+        for field_ in fields(cls):
+            field_type = field_.type
+            properties[field_.name] = type_to_property(field_type)
 
 
 @dataclass
