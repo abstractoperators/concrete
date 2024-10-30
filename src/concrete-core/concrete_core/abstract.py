@@ -8,7 +8,6 @@ from uuid import UUID, uuid4
 
 from openai.types.chat import ChatCompletion
 
-from .celery import app
 from .clients import CLIClient, OpenAIClient
 from .models.messages import Message, Tool
 from .tools import MetaTool

@@ -1,6 +1,8 @@
 import argparse
 import asyncio
 
+import concrete_async  # noqa
+
 from . import orchestrator
 from .clients import CLIClient
 from .tools import AwsTool, Container

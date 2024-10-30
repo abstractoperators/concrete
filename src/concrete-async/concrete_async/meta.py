@@ -8,7 +8,7 @@ from concrete_core.models.base import ConcreteModel
 
 from .celery import app
 
-print(AbstractOperatorMetaclass.OperatorRegistry)
+print("Importing meta.py")
 
 
 # TODO: Make this a dataclass (needs serialization?)
@@ -53,6 +53,9 @@ def abstract_operation(operation: Operation, caller: Any) -> Any:
 
     return ConcreteChatCompletion(**res)
 
+
+for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items():
+    print(operator_name)
 
 # class AsyncOperatorMetaclass(type):
 #     """

@@ -5,7 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
 dependencies = [
-    "concrete-core"
+    "concrete-core",
+    "celery"
 ]
 
 [tool.uv.sources]

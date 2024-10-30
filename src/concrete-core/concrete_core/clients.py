@@ -7,14 +7,15 @@ from openai import OpenAI, RateLimitError
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel as PydanticModel
 from requests.adapters import HTTPAdapter, Retry
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_random_exponential,
-)
 
 from .models.messages import Message, TextMessage
+
+# from tenacity import (
+#     retry,
+#     retry_if_exception_type,
+#     stop_after_attempt,
+#     wait_random_exponential,
+# )
 
 
 class Client:
@@ -35,12 +36,12 @@ class OpenAIClient(Client):
         self.default_temperature = temperature if temperature is not None else float(os.getenv("OPENAI_TEMPERATURE", 0))
         self.model = model or "gpt-4o-mini"
 
-    @retry(
-        wait=wait_random_exponential(min=1, max=60),
-        stop=stop_after_attempt(6),
-        retry=retry_if_exception_type(RateLimitError),
-        reraise=True,
-    )
+    # @retry(
+    #     wait=wait_random_exponential(min=1, max=60),
+    #     stop=stop_after_attempt(6),
+    #     retry=retry_if_exception_type(RateLimitError),
+    #     reraise=True,
+    # )
     def complete(
         self,
         messages: list[dict[str, str]],
