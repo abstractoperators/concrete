@@ -45,20 +45,39 @@ def abstract_operation(operation: Operation, caller: Any) -> Any:
     return ConcreteChatCompletion(**res)
 
 
-class FooOperator:
-    def __init__(self, *args, **kwargs):
-        print("FooOperator")
-        super().__init__(*args, **kwargs)
+# TODO Generic to operation
+def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult]:
+    def _delay(
+        self: AbstractOperator,
+        *args,
+        options: dict,
+        **kwargs,
+    ) -> AsyncResult:
+        operation = Operation(
+            client_name=self.llm_client,
+            function_name=self.llm_client_function,
+            arg_dict={
+                "messages": [
+                    {"role": "system", "content": options["instructions"]},
+                    {"role": "user", "content": string_func(self, *args, **kwargs)},
+                ],
+                "message_format": options["response_format"],
+            },
+        )
+        operation_result = abstract_operation.delay(operation=operation, caller=self)
+        return operation_result
+
+    return _delay
 
 
 for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items():
-    # Modify operator to print out the operator name upon instantiation
-    AbstractOperatorMetaclass.OperatorRegistry[operator_name] = type(
-        operator_name,
-        (operator, FooOperator),
-        dict={},
-    )
+    # Modify callables on operator to have a _delay version.
+    original_attrs = operator.__dict__.copy()
+    for attr in original_attrs:
+        if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(getattr(operator, attr)):
+            continue
 
+        setattr(operator, f"{attr}_delay", _delay_factory(getattr(operator, attr)))
 
 # class AsyncOperatorMetaclass(type):
 #     """

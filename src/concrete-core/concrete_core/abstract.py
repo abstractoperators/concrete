@@ -6,8 +6,6 @@ from functools import wraps
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from openai.types.chat import ChatCompletion
-
 from .clients import CLIClient, OpenAIClient
 from .models.messages import Message, Tool
 from .tools import MetaTool
