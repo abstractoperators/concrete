@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from celery.result import AsyncResult
 from concrete_core.abstract import AbstractOperator, AbstractOperatorMetaclass
@@ -28,37 +29,24 @@ class Operation(ConcreteModel):
 # # TODO: Make abstract_operation a true generic function that can do things besides chat completions
 # # TODO Separate clients
 @app.task(serializer='pickle')
-def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
+# def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
+def abstract_operation(operation: Operation, caller: Any) -> Any:
     """
     An operation that's able to execute arbitrary methods on operators/agents
-
-    operation: Operation
-      Reference to a function to call. e.g.
-        (
-          'openai',
-          'complete',
-          {
-            'messages': [{'role': 'user', 'content': 'pass butter'}],
-            'message_format': {
-              'type': 'json_schema',
-              'json_schema': {
-                'name': TextMessage.__name__,
-                'schema': TextMessage.model_json_schema(),
-              },
-              'strict': True,
-            }
-          }
-        )
     """
 
-    client = OpenAIClient(**clients[operation.client_name].model_dump())
+    func: Callable[..., Any] = getattr(caller, operation.function_name)
+
+    # client = OpenAIClient(**clients[operation.client_name].model_dump())
     # func = e.g. OpenAIClient.complete
-    func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
+    # func: Callable[..., ChatCompletion] = getattr(client, operation.function_name)
     # res = e.g. OpenAIClient.complete(
     #   messages=[{"role": "system", ...}, {"role": "user", ...}]
     #   message_format=response_format
     # )
+
     res = func(**operation.arg_dict).model_dump()
+    return res
 
     message_format_name = cast(dict, operation.arg_dict["message_format"])["json_schema"]["name"]
     res["message_format_name"] = message_format_name
