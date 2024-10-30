@@ -90,6 +90,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             raise Exception("Operator refused to answer question")
 
         answer = response.content
+        # TODO: This solution doesn't load nested dataclasses as their dataclass type, but as a dict
         return response_format(**json.loads(answer))
 
     def qna(self, question_producer: Callable[..., str]) -> Callable:
@@ -155,7 +156,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             # This will be blocking, and the intermediate tool call will not be returned.
             # It also makes it difficult to do a manual invocation of the tool.
             # However, it aligns with goals of wanting Operators to be able to use tools
-            if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method and answer.tool_parameters:
+            if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
                 resp = self.invoke_tool(cast(Tool, answer))
                 if resp is not None and hasattr(resp, '__str__'):
                     # Update the query to include the tool call results.
