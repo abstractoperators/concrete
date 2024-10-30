@@ -11,8 +11,6 @@ from .celery import app
 print("Importing meta.py")
 
 
-# TODO: Make this a dataclass (needs serialization?)
-# TODO: Make this a generic operation
 @dataclass
 class Operation(ConcreteModel):
     client_name: str
@@ -20,14 +18,7 @@ class Operation(ConcreteModel):
     arg_dict: dict[str, dict | list | str]
 
 
-# class Operation(ConcreteModel):
-#     client_name: str = Field(description="Name of LLM Client")
-#     function_name: str = Field(description="Name of function to call on LLM Client")
-#     arg_dict: dict[str, dict | list | str] = Field(description="Parameters to pass to function")
-
-
-# # TODO: Make abstract_operation a true generic function that can do things besides chat completions
-# # TODO Separate clients
+# Reconsider pickle for json + enforce basic types
 @app.task(serializer='pickle')
 # def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
 def abstract_operation(operation: Operation, caller: Any) -> Any:
@@ -54,8 +45,20 @@ def abstract_operation(operation: Operation, caller: Any) -> Any:
     return ConcreteChatCompletion(**res)
 
 
+class FooOperator:
+    def __init__(self, *args, **kwargs):
+        print("FooOperator")
+        super().__init__(*args, **kwargs)
+
+
 for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items():
-    print(operator_name)
+    # Modify operator to print out the operator name upon instantiation
+    AbstractOperatorMetaclass.OperatorRegistry[operator_name] = type(
+        operator_name,
+        (operator, FooOperator),
+        dict={},
+    )
+
 
 # class AsyncOperatorMetaclass(type):
 #     """
