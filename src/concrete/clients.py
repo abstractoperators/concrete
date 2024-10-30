@@ -65,7 +65,7 @@ class OpenAIClient(Client):
                 return self.client.beta.chat.completions.parse(**request_params)
             return self.client.chat.completions.create(**request_params)
         except RateLimitError as e:
-            print(f"Rate limit error: {e}")
+            CLIClient.emit(f"Rate limit error: {e}")
             raise e  # retry decorator
 
     # TODO: Rename to structure output api or similar

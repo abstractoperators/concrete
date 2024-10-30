@@ -1,6 +1,7 @@
 import json
 from abc import abstractmethod
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
 from typing import Any, cast
 from uuid import UUID, uuid4
@@ -74,8 +75,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             {"role": "system", "content": instructions},
             {"role": "user", "content": query},
         ]
-        print(messages)
-        print(response_format)
         response = (
             self.clients["openai"]
             .complete(
@@ -116,14 +115,12 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 tools (list[concrete.models.MetaTool]): list of tools available for the operator
             """
             # Pop extra kwargs and set defaults
-            options = self._options | kwargs.pop('options', {})
+            options: dict = self._options | kwargs.pop('options', {})
 
             tools_addendum = ""
             if tools := (
                 options.get('tools') if options.get('tools') else (self.tools if options.get('use_tools') else [])
             ):
-                # LLMs don't really know what should go in what field even if output struct
-                # is guaranteed
                 tools_addendum = """Here are your available tools. If invoking a tool will help you answer the question, fill in the exact values for tool_name, tool_method, and tool_parameters. Leave these fields empty if no tool is needed."""  # noqa
 
                 for tool in tools:
@@ -136,16 +133,17 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             # Only add a tools field to message format if there are tools
             if tools:
                 response_format = options.get('response_format')
-                response_format = type(
-                    f'{response_format.__name__}WithTools',
-                    (response_format, Tool),
-                    {},
+                response_format = dataclass(
+                    type(
+                        f'{response_format.__name__}WithTools',
+                        (response_format, Tool),
+                        {},
+                    )
                 )
             else:
                 response_format = options.get('response_format')
 
             # Process the finalized query
-            print(type(response_format))
             instructions = options.get('instructions')
             answer = self._qna(
                 query,

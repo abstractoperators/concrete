@@ -128,10 +128,16 @@ class TextMessage(Message):
 
 
 @dataclass
+class Param(Message):
+    name: str = field(metadata={'description': 'Name of the parameter'})
+    value: str = field(metadata={'description': 'Value of the parameter'})
+
+
+@dataclass
 class Tool(Message):
-    tool_name: str
-    tool_method: str
-    # tool_parameters: list[Param]
+    tool_name: str = field(metadata={'description': 'Name of the tool'})
+    tool_method: str = field(metadata={'description': 'Command to call the tool'})
+    tool_parameters: list[Param] = field(metadata={'description': 'List of parameters for the tool'})
 
 
 @dataclass
