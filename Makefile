@@ -1,6 +1,6 @@
-POETRY := poetry run
-PYTHON := $(POETRY) python
-ORCHESTRATE := PYTHONPATH=src $(PYTHON) -m concrete prompt
+UV := uv run
+PYTHON := $(UV) python
+ORCHESTRATE := PYTHONPATH=src/concrete-core $(PYTHON) -m concrete_core prompt
 
 
 # Setup
