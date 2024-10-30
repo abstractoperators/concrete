@@ -21,13 +21,8 @@ description = "AI Agent Orchestration Platform"
 readme = "README.md"
 
 
+
 [tool.uv]
-tooluse = [
-    "boto3==1.35.3",
-    "chardet==5.2.0",
-    "matplotlib==3.9.2",
-    "networkx==3.3",
-]
 dev-dependencies = [
     "jupyterlab==4.2.5",
     "black==24.4.2",
@@ -38,27 +33,26 @@ dev-dependencies = [
     "mypy==1.11.2",
     "alembic==1.13.2",
 ]
-webapp = [
-    "gunicorn==22.0.0",
-    "uvicorn==0.30.4",
-    "fastapi==0.111.1",
-    "google-auth==2.35.0",
-    "google-auth-oauthlib==1.2.1",
-    "google-api-python-client==2.147.0",
-    "itsdangerous==2.2.0",
-    "pyjwt==2.9.0",
-    "cryptography==43.0.1",
-]
-docs = [
-    "mkdocs-material==9.5.34",
-]
-daemons = [
-    "pyjwt==2.9.0",
-    "cryptography==43.0.1",
-]
-test = [
-    "pytest==8.3.2",
-]
+
+[tool.uv.workspace]
+members = ["src/concrete-core", "src/concrete-async"]
+# tooluse = [
+#     "boto3==1.35.3",
+#     "chardet==5.2.0",
+#     "itsdangerous==2.2.0",
+#     "pyjwt==2.9.0",
+#     "cryptography==43.0.1",
+# ]
+# docs = [
+#     "mkdocs-material==9.5.34",
+# ]
+# daemons = [
+#     "pyjwt==2.9.0",
+#     "cryptography==43.0.1",
+# ]
+# test = [
+#     "pytest==8.3.2",
+# ]
 
 [tool.pdm.build]
 includes = ["src/concrete"]

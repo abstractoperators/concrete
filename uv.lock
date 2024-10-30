@@ -5,6 +5,13 @@ resolution-markers = [
     "python_full_version >= '3.13'",
 ]
 
+[manifest]
+members = [
+    "concrete-async",
+    "concrete-core",
+    "concrete-operators",
+]
+
 [[package]]
 name = "alembic"
 version = "1.13.2"
@@ -443,6 +450,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/e9/a8/fb783cb0abe2b5fde
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/75/49e5bfe642f71f272236b5b2d2691cf915a7283cc0ceda56357b61daa538/comm-0.2.2-py3-none-any.whl", hash = "sha256:e6fb86cb70ff661ee8c9c14e7d36d6de3b4066f1441be4063df9c5009f0a64d3", size = 7180 },
 ]
+
+[[package]]
+name = "concrete-async"
+version = "0.1.0"
+source = { virtual = "src/concrete-async" }
+
+[[package]]
+name = "concrete-core"
+version = "0.0.1"
+source = { virtual = "src/concrete-core" }
 
 [[package]]
 name = "concrete-operators"

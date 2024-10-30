@@ -1,0 +1,7 @@
+[project]
+name = "concrete-core"
+version = "0.0.1"
+description = "AI Agent Orchestration"
+readme = "README.md"
+requires-python = ">=3.11.9, <4.0.0"
+dependencies = []
