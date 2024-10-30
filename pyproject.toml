@@ -1,24 +1,3 @@
-[project]
-authors = [
-    {name = "Abstract Operators", email = "hello@abstractoperators.ai"},
-]
-requires-python = "<4.0.0,>=3.11.9"
-dependencies = [
-    "python-dotenv==1.0.1",
-    "openai==1.40.5",
-    "astroid==3.2.3",
-    "astor==0.8.1",
-    "celery==5.4.0",
-    "sqlalchemy==2.0.34",
-    "sqlmodel==0.0.22",
-    "tenacity==9.0.0",
-    "requests==2.32.3",
-    "psycopg[binary]==3.2.3",
-]
-name = "concrete-operators"
-version = "0.1.11"
-description = "AI Agent Orchestration Platform"
-readme = "README.md"
 
 
 
@@ -36,6 +15,21 @@ dev-dependencies = [
 
 [tool.uv.workspace]
 members = ["src/concrete-core", "src/concrete-async"]
+
+[tool.uv.sources]
+concrete_core = { workspace = true }
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.bandit]
+exclude_dirs = ["tests", "path/to/file"]
+tests = ["B201", "B301"]
+skips = ["B101", "B601"]
+
+
 # tooluse = [
 #     "boto3==1.35.3",
 #     "chardet==5.2.0",
@@ -53,15 +47,3 @@ members = ["src/concrete-core", "src/concrete-async"]
 # test = [
 #     "pytest==8.3.2",
 # ]
-
-[tool.pdm.build]
-includes = ["src/concrete"]
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
-
-[tool.bandit]
-exclude_dirs = ["tests", "path/to/file"]
-tests = ["B201", "B301"]
-skips = ["B101", "B601"]
-

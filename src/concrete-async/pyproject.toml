@@ -4,7 +4,13 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
-dependencies = []
+dependencies = [
+    "concrete-core"
+]
 
 [tool.uv.sources]
-concrete-core = {workspace = true}
+concrete-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

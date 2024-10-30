@@ -9,7 +9,16 @@ resolution-markers = [
 members = [
     "concrete-async",
     "concrete-core",
-    "concrete-operators",
+]
+requirements = [
+    { name = "alembic", specifier = "==1.13.2" },
+    { name = "bandit", specifier = "==1.7.9" },
+    { name = "black", specifier = "==24.4.2" },
+    { name = "flake8", specifier = "==7.1.0" },
+    { name = "isort", specifier = "==5.13.2" },
+    { name = "jupyterlab", specifier = "==4.2.5" },
+    { name = "mypy", specifier = "==1.11.2" },
+    { name = "pre-commit", specifier = "==3.7.1" },
 ]
 
 [[package]]
@@ -454,17 +463,18 @@ wheels = [
 [[package]]
 name = "concrete-async"
 version = "0.1.0"
-source = { virtual = "src/concrete-async" }
+source = { editable = "src/concrete-async" }
+dependencies = [
+    { name = "concrete-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "concrete-core", editable = "src/concrete-core" }]
 
 [[package]]
 name = "concrete-core"
 version = "0.0.1"
-source = { virtual = "src/concrete-core" }
-
-[[package]]
-name = "concrete-operators"
-version = "0.1.11"
-source = { editable = "." }
+source = { editable = "src/concrete-core" }
 dependencies = [
     { name = "astor" },
     { name = "astroid" },
@@ -476,18 +486,6 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "sqlmodel" },
     { name = "tenacity" },
-]
-
-[package.dependency-groups]
-dev = [
-    { name = "alembic" },
-    { name = "bandit" },
-    { name = "black" },
-    { name = "flake8" },
-    { name = "isort" },
-    { name = "jupyterlab" },
-    { name = "mypy" },
-    { name = "pre-commit" },
 ]
 
 [package.metadata]
@@ -502,18 +500,6 @@ requires-dist = [
     { name = "sqlalchemy", specifier = "==2.0.34" },
     { name = "sqlmodel", specifier = "==0.0.22" },
     { name = "tenacity", specifier = "==9.0.0" },
-]
-
-[package.metadata.dependency-groups]
-dev = [
-    { name = "alembic", specifier = "==1.13.2" },
-    { name = "bandit", specifier = "==1.7.9" },
-    { name = "black", specifier = "==24.4.2" },
-    { name = "flake8", specifier = "==7.1.0" },
-    { name = "isort", specifier = "==5.13.2" },
-    { name = "jupyterlab", specifier = "==4.2.5" },
-    { name = "mypy", specifier = "==1.11.2" },
-    { name = "pre-commit", specifier = "==3.7.1" },
 ]
 
 [[package]]
