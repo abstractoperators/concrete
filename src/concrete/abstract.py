@@ -1,3 +1,4 @@
+import json
 from abc import abstractmethod
 from collections.abc import Callable
 from functools import wraps
@@ -61,7 +62,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     def _qna(
         self,
         query: str,
-        response_format: type[Message],
+        response_format: Message,
         instructions: str | None = None,
     ) -> Message:
         """
@@ -74,11 +75,12 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             {"role": "user", "content": query},
         ]
         print(messages)
+        print(response_format)
         response = (
             self.clients["openai"]
             .complete(
                 messages=messages,
-                message_format=response_format,
+                message_format=response_format.as_response_format(),
             )
             .choices[0]
             .message
@@ -89,8 +91,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             raise Exception("Operator refused to answer question")
 
         answer = response.content
-
-        return answer
+        return response_format(**json.loads(answer))
 
     def qna(self, question_producer: Callable[..., str]) -> Callable:
         """
@@ -144,6 +145,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 response_format = options.get('response_format')
 
             # Process the finalized query
+            print(type(response_format))
             instructions = options.get('instructions')
             answer = self._qna(
                 query,

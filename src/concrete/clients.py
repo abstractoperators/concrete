@@ -53,7 +53,7 @@ class OpenAIClient(Client):
             "messages": messages,
             "model": self.model,
             "temperature": temperature if temperature is not None else self.default_temperature,
-            "response_format": message_format.as_response_format(),
+            "response_format": message_format,
             **kwargs,
         }
 
