@@ -123,35 +123,41 @@ class Message(ConcreteModel):
 
 
 @dataclass
-class TextMessage:
+class TextMessage(Message):
     text: str = field()
 
 
 @dataclass
-class Tool:
+class Tool(Message):
     tool_name: str
     tool_method: str
     # tool_parameters: list[Param]
 
 
 @dataclass
-class PlannedComponents:
-    pass
+class PlannedComponents(Message):
+    components: list[str]
 
 
 @dataclass
-class Summary:
-    pass
+class Summary(Message):
+    summary: list[str] = field(
+        metadata={'description': 'A list of component summaries. Each list item represents an unbroken summary'}
+    )
 
 
 @dataclass
-class ProjectDirectory:
-    pass
+class ProjectFile(Message):
+    file_name: str = field(metadata={'description': 'A file path relative to root'})
+    file_contents: str = field(metadata={'description': 'The contents of the file'})
 
 
 @dataclass
-class ProjectFile:
-    pass
+class ProjectDirectory(Message):
+    project_name: str = field(metadata={'description': 'Name of the project directory'})
+    files: list[ProjectFile] = field(
+        metadata={'description': 'A list of files in the project directory. Each list item represents a file'}
+    )
 
 
 @dataclass
