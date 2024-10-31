@@ -135,7 +135,7 @@ rabbitmq:
 # TODO autoreload celery
 celery: rabbitmq
 	rm logs/celery.log || true
-	celery -A concrete worker --loglevel=INFO -f logs/celery.log &
+	celery -A src.concrete-async.concrete_async worker --loglevel=INFO -f logs/celery.log &
 
 # Run locally
 local-docs:
