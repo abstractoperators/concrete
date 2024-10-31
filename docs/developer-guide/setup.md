@@ -13,116 +13,104 @@ git clone https://github.com/abstractoperators/concrete.git
 git clone git@github.com:abstractoperators/concrete.git
 ```
 
-## [Python](https://www.python.org)
+## [uv](https://docs.astral.sh/uv/getting-started/)
 
-### [Pyenv](https://github.com/pyenv/pyenv)
+Concrete uses uv for dependency management and environment isolation.
 
-Pyenv allows you to manage multiple versions of Python on your computer.
-It can configure a default Python version globally or on a directory basis.
+### Installation
+> We recommend the official [installation instructions](https://docs.astral.sh/uv/getting-started/installation/)
 
-> We recommend following the official instructions on the Pyenv Github repository for
-[Installation](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation),
-completing the entire block before skipping to [Python Version](#python-version).
-
-Alternatively, you can follow our abridged instructions here:
+Abbreviated installation:
 
 ```shell
-curl https://pyenv.run | bash  # to install Pyenv
-```
-
-For **bash**:
-
-```shell
-echo -e 'export PYENV_ROOT="$HOME/.pyenv"\nexport PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-echo -e 'eval "$(pyenv init --path)"\n eval "$(pyenv init -)"' >> ~/.bashrc  # to set up environment variables
-```
-
-For **zsh**:
-
-```shell
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
-echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
-echo 'eval "$(pyenv init -)"' >> ~/.zshrc
-```
-
-And finally for both:
-
-```shell
-exec "$SHELL"  # restarts the terminal shell process
+curl -LsSf https://astral.sh/uv/install.sh | sh 
 ```
 
 ### Python Version
-After you've installed Pyenv, we can install the required version of Python:
+
+uv handles Python versions for you. 
+
+Install a specific python version using `uv install python 3.11`
+
+Pin that version using `uv pin python 3.11`
+
+### Projects
+
+Initialize a project in your working directory using
 
 ```shell
-pyenv install 3.11  # install latest Python 3.11.
-
-pyenv global 3.11
-
-# Alternatively, to set in a particular directory where the projects will be built
-# cd /Users/personmcpersonsonson/git/concreteproject
-# pyenv local 3.11
+uv init
 ```
 
-> `concrete` requires a minimum of Python 3.11.9 to be installed.
+uv creates a `.venv` and `uv.lock` file in the root of your project the first time you run a project command (`uv run`, `uv sync`, `uv lock` ...)
 
-## [Poetry](https://python-poetry.org)
+Projects may define a `[build-system]`.
+The presence of a build-system determines whether the project will be installed in the project's virtual environment. If it is not present, only its dependencies will be installed.
 
-Concrete uses poetry for dependency management and environment isolation.
+To build a project, use `uv build`
 
-> Again, we recommend following the official
-[installation instructions](https://python-poetry.org/docs/#installing-with-the-official-installer).
+#### `pyproject.toml`
 
-Otherwise, run the following:
+`pyproject.toml` contains metadata about your project.
+You can edit this file manually, or use commands like `uv add` to manage the project from the terminal.
 
-```shell
-curl -sSL https://install.python-poetry.org | python3 -
+```toml
+
+[project]
+name = "hello-world"
+version = "0.1.0"
+description = "Add your description here"
 ```
 
-By default, poetry as a command should be accessible.
-If not, you'll need to manually add it to your path.
+#### Manage Dependencies
 
-For example, on MacOS systems:
+To add a dependency, run `uv add <package-name>[==x.y.z]`. It is NOT recommended to manually add the environment manually (e.g. `uv pip install <package>`)
 
-```shell
-# bash
-echo -e 'export PATH="~/Library/Application Support/pypoetry/venv/bin/poetry:$PATH"' >> ~/.bashrc
+To remove a dependency, run `uv remove <package-name>`.
 
-# zsh
-echo -e 'export PATH="~/Library/Application Support/pypoetry/venv/bin/poetry:$PATH"' >> ~/.zshrc
+To run a command in your virtual environment, use `uv run <command>`. Alternatively, you activate the virtual environment.
+
+Sync your environment with your specified requirements using `uv sync`
+
+#### `uv.lock`
+
+Unlike `pyproject.toml`, the lockfile contains exact resolved versions that are installed in your project environment. It's created and updated during invocations using the project environment (`uv sync` and `uv run`). You may also explicitly update it using `uv lock`.
+
+`uv.lock` should NOT be manually edited.
+
+> You can export `uv.lock` to a `requirements.txt` with `uv export --format requirements-txt`.
+
+#### Workspaces
+
+Workspaces are a collection of one or more packages. They organize large codebases by splitting them into multiple packages with common dependencies.
+
+Each package in a workspace defines its own `pyproject.toml`, but the workspace shares a single lockfile, ensuring consistent dependencies across all packages.
+
+Create a workspace by adding a `[tool.uv.workspace]` to your root `pyproject.toml`. The root is also a member of the workspace.
+
+```toml
+[tool.uv.workspace]
+members = ["package1", "package2"] # Required
+exclude = ["package3"] # Optional
 ```
 
-For Linux/Unix:
+Directories included by the members glob must contain a `pyproject.toml`
 
-```shell
-# bash
-echo -e 'export PATH="~/.local/share/pypoetry/venv/bin/poetry"' >> ~/.bashrc
+`uv lock` operates on the entire workspace, while `uv run` and `uv sync` can be run on individual packages using the `--package` argument.
 
-# zsh
-echo -e 'export PATH="~/.local/share/pypoetry/venv/bin/poetry"' >> ~/.zshrc
+Dependencies on workspace members are specified via `[tool.uv.sources]`. 
+
+```toml
+[project]
+...
+dependencies = ['bird-feeder'] # Indicate that the project depends on the bird-feeder package
+
+[tool.uv.sources]
+bird-feeder = { workspace = true} # Indicates that bird-feeder can be found in the workspace.
+# tqdm = { git = "https://github.com/tqdm/tqdm" }
 ```
 
-In addition to package and dependency management, we use Poetry to augment the developer git workflow.
-The following command will install the correct dependencies to run `concrete` locally as well as the precommit packages to pass our PR validations.
-In the root folder of the repository:
-
-```shell
-make install
-```
-
-If you find yourself needing to run the pre-commit manually, use the following:
-
-```shell
-poetry run pre-commit run --all-files
-```
-
-and to skip pre-commit hooks for whatever reason, use
-
-```shell
-git commit -m "Pass butter" --no-verify
-```
-
-## Environment Variables
+## [Environment Variables]
 
 We recommend you store all of the relevant environment variables into a `.env` file
 located in the root directory of `concrete`.
@@ -142,7 +130,7 @@ ENV=PRODUCTION
 # for production
 ```
 
-### [OpenAI](https://openai.com/index/openai-api/)
+## [OpenAI](https://openai.com/index/openai-api/)
 
 By default, operators rely on OpenAI ChatGPT 4 models to process queries. OpenAI requires a key to access its API:
 
