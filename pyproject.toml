@@ -8,6 +8,8 @@ dev-dependencies = [
     "pre-commit==3.7.1",
     "mypy==1.11.2",
     "alembic==1.13.2",
+    "concrete-core",
+    "concrete-async",
 ]
 
 [tool.uv.workspace]
@@ -15,6 +17,7 @@ members = ["src/concrete-core", "src/concrete-async"]
 
 [tool.uv.sources]
 concrete_core = { workspace = true }
+concrete_async = { workspace = true }
 
 
 [build-system]

@@ -1,7 +1,12 @@
 import argparse
 import asyncio
 
-import concrete_async  # noqa
+from .clients import CLIClient
+
+try:
+    import concrete_async  # noqa
+except ImportError:
+    CLIClient.emit("concrete_async not found")
 
 from . import orchestrator
 from .clients import CLIClient
