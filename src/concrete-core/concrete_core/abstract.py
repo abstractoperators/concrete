@@ -26,6 +26,7 @@ class AbstractOperatorMetaclass(type):
     ):
         new_class = super().__new__(cls, clsname, bases, classdict)
 
+        print(f"Registering {clsname} in OperatorRegistry")
         AbstractOperatorMetaclass.OperatorRegistry.update({clsname: new_class})
 
         return new_class
@@ -203,10 +204,9 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 return result
 
             llm_func = self.qna(attr)
-            # if options.run_async:
-            #     # TODO: Converts args into kwargs for this function
-            #     # Return an async job if requested
-            #     return llm_func._delay(self, *args, options=options, **kwargs)
+            if options['run_async']:
+                print("Running async")
+                return llm_func._delay(self, *args, options=options, **kwargs)
 
             return llm_func(*args, options=options, **kwargs)
 

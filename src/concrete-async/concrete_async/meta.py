@@ -71,13 +71,11 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
 
 
 for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items():
-    # Modify callables on operator to have a _delay version.
-    original_attrs = operator.__dict__.copy()
-    for attr in original_attrs:
-        if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(getattr(operator, attr)):
+    for attr, method in operator.__dict__.items():
+        if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(method):
             continue
-
-        setattr(operator, f"{attr}_delay", _delay_factory(getattr(operator, attr)))
+        print(f'Setting delay for {operator_name}.{attr}')
+        setattr(method, "_delay", _delay_factory(method))
 
 # class AsyncOperatorMetaclass(type):
 #     """
