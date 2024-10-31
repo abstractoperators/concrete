@@ -56,7 +56,7 @@ class Message(ConcreteModel):
     def __repr__(self):
         # Consider moving this to db - don't need a __repr__ unless you're saving it to a db?
         # Consider whether
-        pass
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
     @classmethod
     def as_response_format(cls) -> dict:

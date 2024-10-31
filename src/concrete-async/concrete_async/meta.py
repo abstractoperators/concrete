@@ -1,3 +1,5 @@
+import json
+import pickle
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -5,10 +7,10 @@ from typing import Any
 from celery.result import AsyncResult
 from concrete_core.abstract import AbstractOperator, AbstractOperatorMetaclass
 from concrete_core.models.base import ConcreteModel
+from concrete_core.models.messages import MESSAGE_REGISTRY
+from kombu.utils.json import register_type
 
 from .celery import app
-
-print("Importing meta.py")
 
 
 @dataclass
@@ -19,8 +21,8 @@ class Operation(ConcreteModel):
 
 
 # Reconsider pickle for json + enforce basic types
-@app.task(serializer='pickle')
 # def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
+@app.task
 def abstract_operation(operation: Operation, caller: Any) -> Any:
     """
     An operation that's able to execute arbitrary methods on operators/agents
@@ -45,7 +47,6 @@ def abstract_operation(operation: Operation, caller: Any) -> Any:
     return ConcreteChatCompletion(**res)
 
 
-# TODO Generic to operation
 def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult]:
     def _delay(
         self: AbstractOperator,
@@ -76,3 +77,29 @@ for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items(
             continue
         print(f'Setting delay for {operator_name}.{attr}')
         setattr(method, "_delay", _delay_factory(method))
+
+    register_type(
+        operator,
+        operator.__name__,
+        lambda model: model.__repr__(),
+        lambda model_json: operator(**json.loads(model_json)),
+    )
+
+for message_name, message in MESSAGE_REGISTRY.items():
+    register_type(  # Register the message type for Kombu serialization
+        message,
+        message.__name__,
+        lambda model: model.__repr__(),
+        lambda model_json: message(**json.loads(model_json)),
+    )  # Should reconsider adding Pydantic back.
+
+
+register_type(
+    Operation,
+    Operation.__name__,
+    lambda model: model.__repr__(),
+    lambda model_json: Operation(**json.loads(model_json)),
+)
+
+# Doing it with python standard library: Loading/Packing into a dataclass is going to lose type information.
+#
