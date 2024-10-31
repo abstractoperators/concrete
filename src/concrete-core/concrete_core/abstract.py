@@ -3,6 +3,7 @@ from abc import abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
+from inspect import isclass
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -10,9 +11,6 @@ from .clients import CLIClient, OpenAIClient
 from .models.messages import Message, TextMessage, Tool
 from .tools import MetaTool
 from .tools import invoke_tool as invoke_tool_func
-
-# from .db.orm.models import MessageCreate, OperatorOptions
-# from .models.clients import ConcreteChatCompletion, OpenAIClientModel
 
 
 class AbstractOperatorMetaclass(type):
@@ -45,6 +43,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         starting_prompt: str | None = None,
         store_messages: bool = False,
         response_format: Message = TextMessage,
+        run_async: bool = False,
     ):
         """
         store_messages (bool): Whether or not to save the messages in db
@@ -54,6 +53,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.llm_client_function = "complete"
         self.tools = tools
         self.response_format = response_format
+        print(self.response_format)
 
         self.operator_id = operator_id
         self.project_id = project_id
@@ -190,11 +190,13 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     # still allow properties to be overridden after instantiation
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
-        if name.startswith("__") or name in {"qna", "_qna", "invoke_tool"} or not callable(attr):
+        if name.startswith("__") or name in {"qna", "_qna", "invoke_tool"} or not callable(attr) or isclass(attr):
             return attr
 
         def wrapped_func(*args, **kwargs):
-            options = self._options | kwargs.pop('options', {})
+            self_options = self._options
+            kwargs_options = kwargs.pop('options', {})
+            options = self_options | kwargs_options
 
             result = attr(*args, options=self._options, **kwargs)
             if not isinstance(result, str):
@@ -202,6 +204,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
             llm_func = self.qna(attr)
             if options.get('run_async'):
+                print(options)
                 print("Running async")
                 return llm_func._delay(self, *args, options=options, **kwargs)
 
@@ -211,7 +214,10 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
     @property
     def _options(self) -> dict[str, Any]:
-        return {'instructions': self.instructions, 'response_format': self.response_format}
+        return {
+            'instructions': self.instructions,
+            'response_format': self.response_format,
+        }
 
     def chat(self, message: str, options: dict[str, Any] = {}) -> str:
         """

@@ -1,3 +1,6 @@
 # TODO: Replace PydanticModel with dataclass
-class ConcreteModel:
+from pydantic import BaseModel
+
+
+class ConcreteModel(BaseModel):
     pass

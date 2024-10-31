@@ -8,20 +8,36 @@ from concrete_core.abstract import AbstractOperator, AbstractOperatorMetaclass
 from concrete_core.models.base import ConcreteModel
 from concrete_core.models.messages import MESSAGE_REGISTRY
 from kombu.utils.json import register_type
+from pydantic import BaseModel
 
 from .celery import app
 
 
-@dataclass
-class Operation(ConcreteModel):
+class KombuMixin(BaseModel):
+    """
+    Represents a Mixin to allow serialization and deserialization of subclasses
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        register_type(
+            cls,
+            cls.__name__,
+            lambda model: model.model_dump_json(),
+            lambda model_json: cls.model_validate_json(model_json),
+        )
+        return super().__init_subclass__(**kwargs)
+
+
+# @dataclass
+class Operation(ConcreteModel, KombuMixin):
     client_name: str
     function_name: str
-    arg_dict: dict[str, dict | list | str]
+    arg_dict: dict[str, Any]
 
 
 # def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
 # Why are we even using this? What's the difference between adding a _delay that calls abstract_operation vs. decorating tasks directly?
-@app.task(name='concrete_async.meta.abstract_operation')
+@app.task
 def abstract_operation(operation: Operation, caller: Any) -> Any:
     """
     An operation that's able to execute arbitrary methods on operators/agents
@@ -41,6 +57,18 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
         options: dict,
         **kwargs,
     ) -> AsyncResult:
+        print(f'{self.llm_client=}')
+        print(f'{self.llm_client_function=}')
+        print(string_func(self, *args, **kwargs))
+        print(options["response_format"])
+        arg_dict = {
+            "messages": [
+                {"role": "system", "content": options["instructions"]},
+                {"role": "user", "content": string_func(self, *args, **kwargs)},
+            ],
+            "message_format": options["response_format"],
+        }
+        print(f'{arg_dict=}')
         operation = Operation(
             client_name=self.llm_client,
             function_name=self.llm_client_function,
@@ -65,31 +93,6 @@ for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items(
         print(f'Setting delay for {operator_name}.{attr}')
         setattr(method, "_delay", _delay_factory(method))
 
-    setattr(operator, "model_dump", lambda self: self.__dict__)
-    setattr(operator, "model_load", lambda self, model_dict: operator(**model_dict))
-
-    register_type(
-        operator,
-        operator.__name__,
-        lambda model: model.__repr__(),
-        lambda model_json: operator(**json.loads(model_json)),
-    )
 
 for message_name, message in MESSAGE_REGISTRY.items():
-    setattr(message, "model_dump", lambda self: self.__dict__)
-    setattr(message, "model_load", lambda self, model_dict: message(**model_dict))
-
-    register_type(  # Register the message type for Kombu serialization
-        message,
-        message.__name__,
-        lambda model: model.model_dump(),
-        lambda model_json: message.model_load(json.loads(model_json)),
-    )  # Should reconsider adding Pydantic back.
-
-
-register_type(
-    Operation,
-    Operation.__name__,
-    lambda model: model.__repr__(),
-    lambda model_json: Operation(**json.loads(model_json)),
-)
+    message = type(message_name, (KombuMixin, message), {})
