@@ -7,7 +7,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 from .clients import CLIClient, OpenAIClient
-from .models.messages import Message, Tool
+from .models.messages import Message, TextMessage, Tool
 from .tools import MetaTool
 from .tools import invoke_tool as invoke_tool_func
 
@@ -44,6 +44,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         project_id: UUID = uuid4(),  # TODO: Don't set a default
         starting_prompt: str | None = None,
         store_messages: bool = False,
+        response_format: Message = TextMessage,
     ):
         """
         store_messages (bool): Whether or not to save the messages in db
@@ -52,6 +53,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.llm_client = "openai"
         self.llm_client_function = "complete"
         self.tools = tools
+        self.response_format = response_format
 
         self.operator_id = operator_id
         self.project_id = project_id
@@ -68,7 +70,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         "Question and Answer", given a query, return an answer.
         Basically just a wrapper for OpenAI's chat completion API.
         """
-        instructions = cast(str, instructions or self.instructions)
         messages = [
             {"role": "system", "content": instructions},
             {"role": "user", "content": query},
@@ -113,13 +114,14 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 instructions (str): override system prompt
                 tools (list[concrete.models.MetaTool]): list of tools available for the operator
             """
-            # Pop extra kwargs and set defaults
-            options: dict = self._options | kwargs.pop('options', {})
+            options: dict = kwargs.pop('options', {}) | {}
+
+            tools = options.get('tools') if options.get('tools') else (self.tools if options.get('use_tools') else [])
+            response_format = options.get('response_format') or self.response_format
+            instructions = options.get('instructions') or self.instructions
 
             tools_addendum = ""
-            if tools := (
-                options.get('tools') if options.get('tools') else (self.tools if options.get('use_tools') else [])
-            ):
+            if tools:
                 tools_addendum = """Here are your available tools. If invoking a tool will help you answer the question, fill in the exact values for tool_name, tool_method, and tool_parameters. Leave these fields empty if no tool is needed."""  # noqa
 
                 for tool in tools:
@@ -129,9 +131,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             query = question_producer(*args, **kwargs)
             query += tools_addendum
 
-            # Only add a tools field to message format if there are tools
             if tools:
-                response_format = options.get('response_format')
                 response_format = dataclass(
                     type(
                         f'{response_format.__name__}WithTools',
@@ -139,11 +139,8 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                         {},
                     )
                 )
-            else:
-                response_format = options.get('response_format')
 
             # Process the finalized query
-            instructions = options.get('instructions')
             answer = self._qna(
                 query,
                 response_format=response_format,
@@ -204,7 +201,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 return result
 
             llm_func = self.qna(attr)
-            if options['run_async']:
+            if options.get('run_async'):
                 print("Running async")
                 return llm_func._delay(self, *args, options=options, **kwargs)
 
@@ -214,7 +211,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
     @property
     def _options(self) -> dict[str, Any]:
-        return {'instructions': self.instructions}
+        return {'instructions': self.instructions, 'response_format': self.response_format}
 
     def chat(self, message: str, options: dict[str, Any] = {}) -> str:
         """

@@ -464,7 +464,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "celery" },
+    { name = "celery", specifier = ">5" },
     { name = "concrete-core", editable = "src/concrete-core" },
 ]
 

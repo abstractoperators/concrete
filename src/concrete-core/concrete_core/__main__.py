@@ -1,16 +1,17 @@
 import argparse
 import asyncio
 
-from .clients import CLIClient
+from concrete_core import orchestrator
+from concrete_core.clients import CLIClient
+from concrete_core.tools import AwsTool, Container
 
 try:
     import concrete_async  # noqa
+
+    CLIClient.emit("concrete_async applied")
 except ImportError:
     CLIClient.emit("concrete_async not found")
 
-from . import orchestrator
-from .clients import CLIClient
-from .tools import AwsTool, Container
 
 parser = argparse.ArgumentParser(description="Concrete CLI")
 subparsers = parser.add_subparsers(dest="mode")
