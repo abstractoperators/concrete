@@ -24,7 +24,6 @@ class AbstractOperatorMetaclass(type):
     ):
         new_class = super().__new__(cls, clsname, bases, classdict)
 
-        print(f"Registering {clsname} in OperatorRegistry")
         AbstractOperatorMetaclass.OperatorRegistry.update({clsname: new_class})
 
         return new_class
@@ -42,7 +41,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         project_id: UUID = uuid4(),  # TODO: Don't set a default
         starting_prompt: str | None = None,
         store_messages: bool = False,
-        response_format: Message = TextMessage,
+        response_format: type[Message] = TextMessage,
         run_async: bool = False,
     ):
         """
@@ -53,7 +52,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.llm_client_function = "complete"
         self.tools = tools
         self.response_format = response_format
-        print(self.response_format)
 
         self.operator_id = operator_id
         self.project_id = project_id
@@ -63,7 +61,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     def _qna(
         self,
         query: str,
-        response_format: Message,
+        response_format: type[Message],
         instructions: str | None = None,
     ) -> Message:
         """
@@ -74,11 +72,12 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             {"role": "system", "content": instructions},
             {"role": "user", "content": query},
         ]
+
         response = (
             self.clients["openai"]
             .complete(
                 messages=messages,
-                message_format=response_format.as_response_format(),
+                message_format=response_format,
             )
             .choices[0]
             .message
@@ -87,6 +86,9 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         if response.refusal:
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
+        print('hiiiiiiii')
+        print(response_format)
+        print(response_format.__pydantic_fields_set__)
 
         answer = response.content
         # TODO: This solution doesn't load nested dataclasses as their dataclass type, but as a dict
@@ -204,8 +206,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
             llm_func = self.qna(attr)
             if options.get('run_async'):
-                print(options)
-                print("Running async")
                 return llm_func._delay(self, *args, options=options, **kwargs)
 
             return llm_func(*args, options=options, **kwargs)

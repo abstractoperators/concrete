@@ -1,0 +1,18 @@
+from typing import Any, Callable
+
+import concrete_core
+
+from .celery import app
+from .models import KombuMixin, Operation
+
+
+@app.task(name='concrete_async.tasks.abstract_operation')
+def abstract_operation(operation: Operation, clients: dict[KombuMixin]) -> Any:
+    """
+    An operation that's able to execute arbitrary methods on operators/agents
+    """
+    client = concrete_core.clients.OpenAIClient(**clients[operation.client_name].model_dump())
+    func: Callable[..., Any] = getattr(client, operation.function_name)
+
+    res = func(**operation.arg_dict).model_dump()
+    return res
