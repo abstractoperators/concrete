@@ -3,14 +3,13 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
+from concrete.clients import CLIClient
+from concrete.tools import tool_name_to_class
 from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
-
-from concrete.clients import CLIClient
-from concrete.tools import tool_name_to_class
 
 from ...models.messages import Message as ConcreteMessage
 from ...models.messages import TextMessage

@@ -9,6 +9,7 @@ resolution-markers = [
 members = [
     "concrete-async",
     "concrete-core",
+    "concrete-db",
 ]
 requirements = [
     { name = "alembic", specifier = "==1.13.2" },
@@ -486,6 +487,11 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.9.2" },
     { name = "python-dotenv", specifier = "==1.0.1" },
 ]
+
+[[package]]
+name = "concrete-db"
+version = "0.1.0"
+source = { virtual = "src/concrete-db" }
 
 [[package]]
 name = "debugpy"

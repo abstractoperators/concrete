@@ -1,3 +1,7 @@
+Last Updated: 2024-11-01 15:28:58 UTC
+
+Lines Changed: +2, -2
+
 # Setup
 
 This guide will take you through environment setup in order to run the codebase locally and contribute to our project.
@@ -30,9 +34,9 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 uv handles Python versions for you. 
 
-Install a specific python version using `uv install python 3.11`
+Install a specific python version using `uv python install 3.11`
 
-Pin that version using `uv pin python 3.11`
+Pin that version using `uv python pin 3.11`
 
 ### Projects
 

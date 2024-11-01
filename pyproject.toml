@@ -13,7 +13,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async"]
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db"]
 
 [tool.uv.sources]
 concrete_core = { workspace = true }
