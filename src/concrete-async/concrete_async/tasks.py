@@ -7,7 +7,7 @@ from .models import ConcreteChatCompletion, KombuMixin, Operation
 
 
 @app.task(name='concrete_async.tasks.abstract_operation')
-def abstract_operation(operation: Operation, clients: dict[KombuMixin]) -> Any:
+def abstract_operation(operation: Operation, clients: dict[str, KombuMixin]) -> Any:
     """
     An operation that's able to execute arbitrary methods on operators/agents
     """

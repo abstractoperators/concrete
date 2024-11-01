@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import Any
 
 import concrete_core
 from celery.result import AsyncResult
@@ -30,22 +29,12 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
 
         clients = {}
         for name, client in self.clients.items():
-            print(client.model, client.default_temperature)
             client_model = concrete_core.models.clients.OpenAIClientModel(
                 model=client.model,
                 temperature=client.default_temperature,
             )
 
             clients[name] = client_model
-
-        print(f'{type(clients[self.llm_client])=}')
-        print(f'{clients[self.llm_client].model_dump_json()=}')
-
-        print(f'{type(operation)=}')
-        print(f'{operation.model_dump_json()=}')
-
-        print(f'{issubclass(type(clients[self.llm_client]), KombuMixin)=}')
-        print(f'{issubclass(type(operation), KombuMixin)=}')
 
         operation_result = abstract_operation.delay(operation=operation, clients=clients)
         return operation_result
