@@ -18,4 +18,4 @@ def abstract_operation(operation: Operation, clients: dict[KombuMixin]) -> Any:
     message_format_name = cast(dict, operation.arg_dict["message_format"])["json_schema"]["name"]
     res["message_format_name"] = message_format_name
 
-    return ConcreteChatCompletion(**res)
+    return ConcreteChatCompletion(**res).message
