@@ -1,7 +1,17 @@
 [project]
 name = "concrete-db"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI Agent Orchestration, Database Support"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
-dependencies = []
+dependencies = [
+    "concrete-core",
+    "sqlmodel>=0.0.22",
+]
+
+[tool.uv.sources]
+concrete-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
