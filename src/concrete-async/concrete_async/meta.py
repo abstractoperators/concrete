@@ -1,8 +1,7 @@
-import json
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
+import concrete_core
 from celery.result import AsyncResult
 from concrete_core.abstract import AbstractOperator, AbstractOperatorMetaclass
 from concrete_core.models.base import ConcreteModel
@@ -28,24 +27,20 @@ class KombuMixin(BaseModel):
         return super().__init_subclass__(**kwargs)
 
 
-# @dataclass
 class Operation(ConcreteModel, KombuMixin):
     client_name: str
     function_name: str
-    arg_dict: dict[str, Any]
+    arg_dict: dict[str, list | dict | str]
 
 
-# def abstract_operation(operation: Operation, clients: dict[str, OpenAIClientModel]) -> ConcreteChatCompletion:
-# Why are we even using this? What's the difference between adding a _delay that calls abstract_operation vs. decorating tasks directly?
-@app.task
-def abstract_operation(operation: Operation, caller: Any) -> Any:
+@app.task(name='concrete_async.meta.abstract_operation')
+def abstract_operation(operation: Operation, clients: dict[KombuMixin]) -> Any:
     """
     An operation that's able to execute arbitrary methods on operators/agents
     """
+    client = concrete_core.clients.OpenAIClient(**clients[operation.client_name].model_dump())
+    func: Callable[..., Any] = getattr(client, operation.function_name)
 
-    func: Callable[..., Any] = getattr(caller, operation.function_name)
-
-    print('func', func)
     res = func(**operation.arg_dict).model_dump()
     return res
 
@@ -57,30 +52,25 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
         options: dict,
         **kwargs,
     ) -> AsyncResult:
-        print(f'{self.llm_client=}')
-        print(f'{self.llm_client_function=}')
-        print(string_func(self, *args, **kwargs))
-        print(options["response_format"])
         arg_dict = {
             "messages": [
                 {"role": "system", "content": options["instructions"]},
                 {"role": "user", "content": string_func(self, *args, **kwargs)},
             ],
-            "message_format": options["response_format"],
+            "message_format": options["response_format"].as_response_format(),
         }
-        print(f'{arg_dict=}')
-        operation = Operation(
-            client_name=self.llm_client,
-            function_name=self.llm_client_function,
-            arg_dict={
-                "messages": [
-                    {"role": "system", "content": options["instructions"]},
-                    {"role": "user", "content": string_func(self, *args, **kwargs)},
-                ],
-                "message_format": options["response_format"],
-            },
-        )
-        operation_result = abstract_operation.delay(operation=operation, caller=self)
+        operation = Operation(client_name=self.llm_client, function_name=self.llm_client_function, arg_dict=arg_dict)
+
+        clients = {}
+        for name, client in self.clients.items():
+            client_model = concrete_core.models.clients.OpenAIClientModel(
+                model=client.model,
+                temperature=client.temperature,
+            )
+
+            clients[name] = client_model
+
+        operation_result = abstract_operation.delay(operation=operation, clients=clients)
         return operation_result
 
     return _delay
@@ -90,9 +80,19 @@ for operator_name, operator in AbstractOperatorMetaclass.OperatorRegistry.items(
     for attr, method in operator.__dict__.items():
         if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(method):
             continue
-        print(f'Setting delay for {operator_name}.{attr}')
         setattr(method, "_delay", _delay_factory(method))
 
 
 for message_name, message in MESSAGE_REGISTRY.items():
     message = type(message_name, (KombuMixin, message), {})
+
+
+original_model = concrete_core.models.clients.OpenAIClientModel
+
+concrete_core.models.clients.OpenAIClientModel = type(
+    original_model.__name__,
+    (KombuMixin, original_model),
+    {
+        '__module__': original_model.__module__,
+    },
+)
