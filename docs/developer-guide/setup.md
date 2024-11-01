@@ -1,6 +1,6 @@
-Last Updated: 2024-11-01 15:28:58 UTC
+Last Updated: 2024-11-01 15:33:10 UTC
 
-Lines Changed: +2, -2
+Lines Changed: +22, -0
 
 # Setup
 
@@ -112,6 +112,28 @@ dependencies = ['bird-feeder'] # Indicate that the project depends on the bird-f
 [tool.uv.sources]
 bird-feeder = { workspace = true} # Indicates that bird-feeder can be found in the workspace.
 # tqdm = { git = "https://github.com/tqdm/tqdm" }
+```
+
+#### Git Workflow
+
+In addition to package and dependency management, we use uv to augment the developer git workflow.
+The following command will install the correct dependencies to run `concrete` locally as well as the precommit packages to pass our PR validations.
+In the root folder of the repository:
+
+```shell
+make install
+```
+
+If you find yourself needing to run the pre-commit manually, use the following:
+
+```shell
+uv run pre-commit run --all-files
+```
+
+and to skip pre-commit hooks for whatever reason, use
+
+```shell
+git commit -m "Pass butter" --no-verify
 ```
 
 ## [Environment Variables]
