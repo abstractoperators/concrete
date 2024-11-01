@@ -86,9 +86,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         if response.refusal:
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
-        print('hiiiiiiii')
-        print(response_format)
-        print(response_format.__pydantic_fields_set__)
 
         answer = response.content
         # TODO: This solution doesn't load nested dataclasses as their dataclass type, but as a dict
