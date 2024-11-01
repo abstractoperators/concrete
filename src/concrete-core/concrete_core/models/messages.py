@@ -26,7 +26,6 @@ from .base import ConcreteModel
 MESSAGE_REGISTRY = {}
 
 
-@dataclass
 class Message(ConcreteModel):
     """
     Wrapper for OpenAI Structured Outputs
@@ -58,107 +57,100 @@ class Message(ConcreteModel):
         # Consider whether
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
-    @classmethod
-    def as_response_format(cls) -> dict:
-        """
-        Converts the dataclass into a JSON schema dictionary compatible with OpenAI's structured outputs.
-        """
-        return {
-            'type': 'json_schema',
-            'json_schema': {
-                'name': cls.__name__,
-                'description': cls.__doc__,
-                'strict': True,
-                'schema': {
-                    'type': 'object',
-                    'properties': cls.properties(),
-                    'required': [field_.name for field_ in fields(cls)],
-                    'additionalProperties': False,
-                },
-            },
-        }
+    # @classmethod
+    # def as_response_format(cls) -> dict:
+    #     """
+    #     Converts the dataclass into a JSON schema dictionary compatible with OpenAI's structured outputs.
+    #     """
+    #     return {
+    #         'type': 'json_schema',
+    #         'json_schema': {
+    #             'name': cls.__name__,
+    #             'description': cls.__doc__,
+    #             'strict': True,
+    #             'schema': {
+    #                 'type': 'object',
+    #                 'properties': cls.properties(),
+    #                 'required': [field_.name for field_ in fields(cls)],
+    #                 'additionalProperties': False,
+    #             },
+    #         },
+    #     }
 
-    @classmethod
-    def properties(cls) -> dict:
-        """
-        Returns dict properties
-        """
+    # @classmethod
+    # def properties(cls) -> dict:
+    #     """
+    #     Returns dict properties
+    #     """
 
-        def type_to_property(type_) -> dict:
-            # Converts a field into a field_name: {type: field_type... optional[items, properties]}
-            # Fields can have complex types like list[dict[str, str]], which need to be handled recursively
-            # Additionally, the field can be another Message model.
-            # Base Case: Primitive one-to-one mappings
+    #     def type_to_property(type_) -> dict:
+    #         # Converts a field into a field_name: {type: field_type... optional[items, properties]}
+    #         # Fields can have complex types like list[dict[str, str]], which need to be handled recursively
+    #         # Additionally, the field can be another Message model.
+    #         # Base Case: Primitive one-to-one mappings
 
-            # Base Cases:
-            match type_:  # Does python pattern matching even hash anything. Is this just a glorifiied if else?
-                case t if t is str:
-                    return {'type': 'string'}
-                case t if t is int:
-                    return {'type': 'integer'}
-                case t if t is float:
-                    return {'type': 'number'}
-                case t if t is bool:
-                    return {'type': 'boolean'}
-                case t if issubclass(t, Message):
-                    return {
-                        'type': 'object',
-                        'properties': t.properties(),
-                        'required': [field_.name for field_ in fields(t)],
-                        'additionalProperties': False,
-                    }
-            # Recursive Cases
-            origin = get_origin(type_)
-            # TODO: Handle AnyOf, Enum, Dict
-            if origin is list:
-                item_type = get_args(type_)[0]
-                return {'type': 'array', 'items': type_to_property(item_type)}
+    #         # Base Cases:
+    #         match type_:  # Does python pattern matching even hash anything. Is this just a glorifiied if else?
+    #             case t if t is str:
+    #                 return {'type': 'string'}
+    #             case t if t is int:
+    #                 return {'type': 'integer'}
+    #             case t if t is float:
+    #                 return {'type': 'number'}
+    #             case t if t is bool:
+    #                 return {'type': 'boolean'}
+    #             case t if issubclass(t, Message):
+    #                 return {
+    #                     'type': 'object',
+    #                     'properties': t.properties(),
+    #                     'required': [field_.name for field_ in fields(t)],
+    #                     'additionalProperties': False,
+    #                 }
+    #         # Recursive Cases
+    #         origin = get_origin(type_)
+    #         # TODO: Handle AnyOf, Enum, Dict
+    #         if origin is list:
+    #             item_type = get_args(type_)[0]
+    #             return {'type': 'array', 'items': type_to_property(item_type)}
 
-        properties = {}
-        for field_ in fields(cls):
-            field_type = field_.type
-            properties[field_.name] = type_to_property(field_type)
+    #     properties = {}
+    #     for field_ in fields(cls):
+    #         field_type = field_.type
+    #         properties[field_.name] = type_to_property(field_type)
 
-        return properties
+    #     return properties
 
 
-@dataclass
 class TextMessage(Message):
     text: str = field()
 
 
-@dataclass
 class Param(Message):
     name: str = field(metadata={'description': 'Name of the parameter'})
     value: str = field(metadata={'description': 'Value of the parameter'})
 
 
-@dataclass
 class Tool(Message):
     tool_name: str = field(metadata={'description': 'Name of the tool'})
     tool_method: str = field(metadata={'description': 'Command to call the tool'})
     tool_parameters: list[Param] = field(metadata={'description': 'List of parameters for the tool'})
 
 
-@dataclass
 class PlannedComponents(Message):
     components: list[str]
 
 
-@dataclass
 class Summary(Message):
     summary: list[str] = field(
         metadata={'description': 'A list of component summaries. Each list item represents an unbroken summary'}
     )
 
 
-@dataclass
 class ProjectFile(Message):
     file_name: str = field(metadata={'description': 'A file path relative to root'})
     file_contents: str = field(metadata={'description': 'The contents of the file'})
 
 
-@dataclass
 class ProjectDirectory(Message):
     project_name: str = field(metadata={'description': 'Name of the project directory'})
     files: list[ProjectFile] = field(
@@ -166,22 +158,14 @@ class ProjectDirectory(Message):
     )
 
 
-@dataclass
-class Param:
-    pass
-
-
-@dataclass
 class NodeUUID:
     pass
 
 
-@dataclass
 class NodeSummary:
     pass
 
 
-@dataclass
 class ChildNodeSummary:
     pass
 

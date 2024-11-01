@@ -41,7 +41,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         project_id: UUID = uuid4(),  # TODO: Don't set a default
         starting_prompt: str | None = None,
         store_messages: bool = False,
-        response_format: Message = TextMessage,
+        response_format: type[Message] = TextMessage,
         run_async: bool = False,
     ):
         """
@@ -61,7 +61,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     def _qna(
         self,
         query: str,
-        response_format: Message,
+        response_format: type[Message],
         instructions: str | None = None,
     ) -> Message:
         """
@@ -72,11 +72,12 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             {"role": "system", "content": instructions},
             {"role": "user", "content": query},
         ]
+
         response = (
             self.clients["openai"]
             .complete(
                 messages=messages,
-                message_format=response_format.as_response_format(),
+                message_format=response_format,
             )
             .choices[0]
             .message
@@ -85,6 +86,9 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         if response.refusal:
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
+        print('hiiiiiiii')
+        print(response_format)
+        print(response_format.__pydantic_fields_set__)
 
         answer = response.content
         # TODO: This solution doesn't load nested dataclasses as their dataclass type, but as a dict
