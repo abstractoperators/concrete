@@ -7,21 +7,10 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "concrete",
     "concrete-async",
     "concrete-core",
     "concrete-db",
-]
-requirements = [
-    { name = "alembic", specifier = "==1.13.2" },
-    { name = "bandit", specifier = "==1.7.9" },
-    { name = "black", specifier = "==24.4.2" },
-    { name = "concrete-async" },
-    { name = "concrete-core" },
-    { name = "flake8", specifier = "==7.1.0" },
-    { name = "isort", specifier = "==5.13.2" },
-    { name = "jupyterlab", specifier = "==4.2.5" },
-    { name = "mypy", specifier = "==1.11.2" },
-    { name = "pre-commit", specifier = "==3.7.1" },
 ]
 
 [[package]]
@@ -452,6 +441,47 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e9/a8/fb783cb0abe2b5fded9f55e5703015cdf1c9c85b3669087c538dd15a6a86/comm-0.2.2.tar.gz", hash = "sha256:3fd7a84065306e07bea1773df6eb8282de51ba82f77c72f9c85716ab11fe980e", size = 6210 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/75/49e5bfe642f71f272236b5b2d2691cf915a7283cc0ceda56357b61daa538/comm-0.2.2-py3-none-any.whl", hash = "sha256:e6fb86cb70ff661ee8c9c14e7d36d6de3b4066f1441be4063df9c5009f0a64d3", size = 7180 },
+]
+
+[[package]]
+name = "concrete"
+version = "0.0.0"
+source = { editable = "." }
+
+[package.optional-dependencies]
+db = [
+    { name = "psycopg" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "alembic" },
+    { name = "bandit" },
+    { name = "black" },
+    { name = "concrete-async" },
+    { name = "concrete-core" },
+    { name = "flake8" },
+    { name = "isort" },
+    { name = "jupyterlab" },
+    { name = "mypy" },
+    { name = "pre-commit" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "psycopg", marker = "extra == 'db'", specifier = ">=3.2.3" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "alembic", specifier = "==1.13.2" },
+    { name = "bandit", specifier = "==1.7.9" },
+    { name = "black", specifier = "==24.4.2" },
+    { name = "concrete-async", editable = "src/concrete-async" },
+    { name = "concrete-core", editable = "src/concrete-core" },
+    { name = "flake8", specifier = "==7.1.0" },
+    { name = "isort", specifier = "==5.13.2" },
+    { name = "jupyterlab", specifier = "==4.2.5" },
+    { name = "mypy", specifier = "==1.11.2" },
+    { name = "pre-commit", specifier = "==3.7.1" },
 ]
 
 [[package]]
@@ -1440,6 +1470,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/27/c2/d034856ac47e3b3cdfa9720d0e113902e615f4190d5d1bdb8df4b2015fb2/psutil-6.1.0-cp36-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d905186d647b16755a800e7263d43df08b790d709d575105d419f8b6ef65423a", size = 288804 },
     { url = "https://files.pythonhosted.org/packages/ea/55/5389ed243c878725feffc0d6a3bc5ef6764312b6fc7c081faaa2cfa7ef37/psutil-6.1.0-cp37-abi3-win32.whl", hash = "sha256:1ad45a1f5d0b608253b11508f80940985d1d0c8f6111b5cb637533a0e6ddc13e", size = 250386 },
     { url = "https://files.pythonhosted.org/packages/11/91/87fa6f060e649b1e1a7b19a4f5869709fbf750b7c8c262ee776ec32f3028/psutil-6.1.0-cp37-abi3-win_amd64.whl", hash = "sha256:a8fb3752b491d246034fa4d279ff076501588ce8cbcdbb62c32fd7a377d996be", size = 254228 },
+]
+
+[[package]]
+name = "psycopg"
+version = "3.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d1/ad/7ce016ae63e231575df0498d2395d15f005f05e32d3a2d439038e1bd0851/psycopg-3.2.3.tar.gz", hash = "sha256:a5764f67c27bec8bfac85764d23c534af2c27b893550377e37ce59c12aac47a2", size = 155550 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/21/534b8f5bd9734b7a2fcd3a16b1ee82ef6cad81a4796e95ebf4e0c6a24119/psycopg-3.2.3-py3-none-any.whl", hash = "sha256:644d3973fe26908c73d4be746074f6e5224b03c1101d302d9a53bf565ad64907", size = 197934 },
 ]
 
 [[package]]

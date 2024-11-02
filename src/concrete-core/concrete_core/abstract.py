@@ -47,7 +47,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         """
         store_messages (bool): Whether or not to save the messages in db
         """
-        self._clients = clients if clients is not None else {'openai': OpenAIClient()}
+        self._clients = clients or {'openai': OpenAIClient()}
         self.llm_client = "openai"
         self.llm_client_function = "complete"
         self.tools = tools
@@ -87,9 +87,29 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             CLIClient.emit(f"Operator refused to answer question: {query}")
             raise Exception("Operator refused to answer question")
 
-        answer = response.content
-        # TODO: This solution doesn't load nested dataclasses as their dataclass type, but as a dict
-        return response_format(**json.loads(answer))
+        answer = response.parsed
+
+        if self.store_messages:
+            try:
+                from concrete_db.crud import create_message
+                from concrete_db.orm import Session
+                from concrete_db.orm.models import MessageCreate
+            except ImportError as e:
+                raise ImportError("Concrete database extras `concrete[db] must be installed to store messages.") from e
+
+            with Session() as session:
+                create_message(
+                    session,
+                    MessageCreate(
+                        type=response_format.__name__,
+                        content=repr(answer),
+                        prompt=self.starting_prompt,
+                        project_id=self.project_id,
+                        operator_id=self.operator_id,
+                    ),
+                )
+
+        return answer
 
     def qna(self, question_producer: Callable[..., str]) -> Callable:
         """
@@ -115,7 +135,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             """
             options: dict = kwargs.pop('options', {}) | {}
 
-            tools = options.get('tools') if options.get('tools') else (self.tools if options.get('use_tools') else [])
+            tools = options.get('tools') or (self.tools if options.get('use_tools') else [])
             response_format = options.get('response_format') or self.response_format
             instructions = options.get('instructions') or self.instructions
 
@@ -131,12 +151,10 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             query += tools_addendum
 
             if tools:
-                response_format = dataclass(
-                    type(
-                        f'{response_format.__name__}WithTools',
-                        (response_format, Tool),
-                        {},
-                    )
+                response_format = type(
+                    f'{response_format.__name__}WithTools',
+                    (response_format, Tool),
+                    {},
                 )
 
             # Process the finalized query

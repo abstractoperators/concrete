@@ -133,14 +133,17 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     Provides a single entry point for common interactions with Operators
     """
 
-    def __init__(self):
+    def __init__(self, store_messages: bool = False):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
         self.clients = {
             "openai": OpenAIClient(),
         }
         self.update(status=ProjectStatus.READY)
-        self.operators = {'exec': Executive(self.clients), 'dev': Developer(self.clients)}
+        self.operators = {
+            'exec': Executive(self.clients, store_messages=store_messages),
+            'dev': Developer(self.clients, store_messages=store_messages),
+        }
 
     def add_operator(self, operator: Operator, title: str) -> None:
         self.operators[title] = operator
