@@ -1,6 +1,6 @@
 [project]
-name = "concrete_core"
-version = "0.0.1"
+name = "concrete-core"
+version = "0.0.0"
 description = "AI Agent Orchestration"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"

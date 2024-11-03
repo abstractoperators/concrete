@@ -1,6 +1,6 @@
 [project]
 name = "concrete-db"
-version = "0.1.0"
+version = "0.0.0"
 description = "AI Agent Orchestration, Database Support"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"

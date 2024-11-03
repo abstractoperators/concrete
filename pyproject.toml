@@ -1,10 +1,3 @@
-[project]
-name = "concrete"
-version = "0.0.0"
-description = "AI Agent Orchestration"
-readme = "README.md"
-requires-python = ">=3.11.9, <4.0.0"
-
 [tool.uv]
 dev-dependencies = [
     "jupyterlab==4.2.5",
@@ -17,15 +10,16 @@ dev-dependencies = [
     "alembic==1.13.2",
     "concrete-core",
     "concrete-async",
+    "concrete-db",
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db"]
+members = ["src/*"]
 
 [tool.uv.sources]
-concrete_core = { workspace = true }
-concrete_async = { workspace = true }
-concrete_db = { workspace = true }
+concrete-core = { workspace = true }
+concrete-async = { workspace = true }
+concrete-db = { workspace = true }
 
 
 [build-system]

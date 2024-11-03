@@ -1,6 +1,6 @@
 [project]
 name = "concrete-async"
-version = "0.0.1"
+version = "0.0.0"
 description = "AI Agent Orchestration, Asynchronous Support"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
