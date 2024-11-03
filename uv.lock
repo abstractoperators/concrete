@@ -479,6 +479,7 @@ dependencies = [
     { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -487,6 +488,7 @@ requires-dist = [
     { name = "openai", specifier = "==1.40.5" },
     { name = "pydantic", specifier = ">=2.9.2" },
     { name = "python-dotenv", specifier = "==1.0.1" },
+    { name = "requests", specifier = ">=2.32.3" },
 ]
 
 [[package]]

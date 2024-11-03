@@ -95,7 +95,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 from concrete_db.orm import Session
                 from concrete_db.orm.models import MessageCreate
             except ImportError as e:
-                raise ImportError("Concrete database extras `concrete[db] must be installed to store messages.") from e
+                raise ImportError("Concrete database package `concrete-db` must be installed to store messages.") from e
 
             with Session() as session:
                 create_message(

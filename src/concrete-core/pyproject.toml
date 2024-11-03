@@ -10,6 +10,7 @@ dependencies = [
     "openai==1.40.5",
     "astroid==3.2.3",
     "pydantic>=2.9.2",
+    "requests>=2.32.3",
 ]
 
 [build-system]
