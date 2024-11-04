@@ -9,7 +9,11 @@ install:
 
 # Run tests
 test:
-	$(PYTHON) -m pytest
+	$(UV) pytest
+
+# Lint
+lint:
+	$(UV) pre-commit run --all-files
 
 # Demo commands
 helloworld:
