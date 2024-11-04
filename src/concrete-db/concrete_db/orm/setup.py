@@ -14,7 +14,7 @@ if (
     or (username := os.environ.get("DB_USERNAME")) is None
     or (password := os.environ.get("DB_PASSWORD")) is None
     or (host := os.environ.get("DB_HOST")) is None
-    or (db_port := int(os.environ.get("DB_PORT", "0"))) == 0
+    or (db_port := int(os.environ.get("DB_PORT") or "0")) == 0
     or (database := os.environ.get("DB_DATABASE")) is None
 ):
     CLIClient.emit("Missing environment variables for database connection. Defaulting to SQLite.")

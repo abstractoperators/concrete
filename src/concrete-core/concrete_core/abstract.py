@@ -90,8 +90,10 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         if self.store_messages:
             try:
                 import concrete_db  # noqa
-            except ImportError as e:
-                raise ImportError("Concrete database package `concrete-db` must be installed to store messages.") from e
+            except ModuleNotFoundError as e:
+                raise ModuleNotFoundError(
+                    "Concrete database package `concrete-db` must be installed to store messages."
+                ) from e
 
         return answer
 
