@@ -1,4 +1,5 @@
 import os
+from abc import ABC, abstractmethod
 from typing import Any, Sequence, TypeVar
 
 import requests
@@ -22,10 +23,19 @@ class Client:
     pass
 
 
+class LMClient(ABC):
+    @abstractmethod
+    def complete(self, messages: list, *args, **kwargs):
+        """
+        Complete a chat message (message[-1]) with history messages[0:-1]
+        """
+        pass
+
+
 Client_con = TypeVar("Client_con", bound=Client, contravariant=True)
 
 
-class OpenAIClient(Client):
+class OpenAIClient(LMClient):
     """
     Thin wrapper around open AI client.
     """
