@@ -32,7 +32,7 @@ uv handles Python versions for you.
 
 Install a specific python version using `uv install python 3.11`
 
-Pin that version using `uv pin python 3.11`
+Pin that version using `uv python pin 3.11.10`
 
 ### Projects
 
@@ -112,7 +112,7 @@ bird-feeder = { workspace = true} # Indicates that bird-feeder can be found in t
 
 ### Publishing
 
-```
+```bash
 uv build --no-sources
 
 uv publish -t <api_token>
