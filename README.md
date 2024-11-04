@@ -3,6 +3,11 @@ Last Updated: 2024-10-25 22:03:16 UTC
 Lines Changed: +0, -1
 
 # Concrete
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=abstractoperators/concrete&type=Date)](https://star-history.com/#abstractoperators/concrete&Date)
+
 ## Installation
 ```python
 pip install concrete-operators
@@ -46,3 +51,4 @@ print(resp.text)
 ```
 
 It is important that arguments are keyword arguments. This returns a ConcreteChatCompletion object. message_format has been added to this object to allow for client-side validation into a message format via `ConcreteChatCompletion.message`.
+
