@@ -3,19 +3,17 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
+from concrete_core.clients import CLIClient
+from concrete_core.models.messages import Message as ConcreteMessage
+from concrete_core.models.messages import TextMessage
+from concrete_core.state import ProjectStatus
+from concrete_core.tools import MetaTool, tool_name_to_class
 from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
-from concrete.clients import CLIClient
-from concrete.tools import tool_name_to_class
-
-from ...models.messages import Message as ConcreteMessage
-from ...models.messages import TextMessage
-from ...state import ProjectStatus
-from ...tools import MetaTool
 from ..orm.setup import SQLALCHEMY_DATABASE_URL, engine
 
 
@@ -187,9 +185,9 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
     def to_obj(self):
         # TODO: Abide by orchestrator clients
-        from concrete.operators import Developer as PydanticDeveloper
-        from concrete.operators import Executive as PydanticExecutive
-        from concrete.operators import Operator as PydanticOperator
+        from concrete_core.operators import Developer as PydanticDeveloper
+        from concrete_core.operators import Executive as PydanticExecutive
+        from concrete_core.operators import Operator as PydanticOperator
 
         operator: PydanticOperator | PydanticDeveloper | PydanticExecutive
 
@@ -405,7 +403,7 @@ class Message(MessageBase, MetadataMixin, table=True):
     operator: Operator | None = Relationship()
 
     def to_obj(self):
-        from concrete.models.messages import MESSAGE_REGISTRY
+        from concrete_core.models.messages import MESSAGE_REGISTRY
 
         message_type = self.type
         message_content = self.content
@@ -578,7 +576,7 @@ class OperatorOptions(Base):
 
 if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
     # Creating all tables won't update schema if a table already exists.
-    import concrete.db.orm.models  # noqa
+    import concrete_db.orm.models  # noqa
 
     CLIClient.emit("Creating all sqlite tables")
     SQLModel.metadata.create_all(engine)
