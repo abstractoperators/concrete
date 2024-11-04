@@ -52,10 +52,10 @@ class OpenAIClient(LMClient):
     def complete(
         self,
         messages: list[dict[str, str]],
-        message_format: type[Message] | dict = TextMessage,
+        message_format: type[Message] = TextMessage,
         temperature: float | None = None,
         **kwargs,
-    ) -> ChatCompletion:
+    ) -> "ChatCompletion":
         from openai import RateLimitError
 
         request_params = {
