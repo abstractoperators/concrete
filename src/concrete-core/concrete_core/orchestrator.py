@@ -2,7 +2,7 @@ import json
 from collections import defaultdict
 from collections.abc import AsyncGenerator
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any, Callable, cast
 from uuid import UUID, uuid1, uuid4
 
 from . import prompts
@@ -140,7 +140,7 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
             "openai": OpenAIClient(),
         }
         self.update(status=ProjectStatus.READY)
-        self.operators = {
+        self.operators: dict[str, Operator] = {
             'exec': Executive(self.clients, store_messages=store_messages),
             'dev': Developer(self.clients, store_messages=store_messages),
         }
@@ -166,8 +166,8 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         if dev is not None and dev not in self.operators:
             raise ValueError(f"{dev} not found.")
 
-        exec_operator: Executive = self.operators[exec] if exec is not None else self.operators['exec']
-        dev_operator: Developer = self.operators[dev] if dev is not None else self.operators['dev']
+        exec_operator: Executive = cast(Executive, self.operators[exec] if exec is not None else self.operators['exec'])
+        dev_operator: Developer = cast(Developer, self.operators[dev] if dev is not None else self.operators['dev'])
 
         self.update(status=ProjectStatus.WORKING)
 

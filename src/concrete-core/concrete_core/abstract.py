@@ -1,7 +1,5 @@
-import json
 from abc import abstractmethod
 from collections.abc import Callable
-from dataclasses import dataclass
 from functools import wraps
 from inspect import isclass
 from typing import Any, cast
@@ -14,7 +12,7 @@ from .tools import invoke_tool as invoke_tool_func
 
 
 class AbstractOperatorMetaclass(type):
-    OperatorRegistry: dict[str, any] = {}
+    OperatorRegistry: dict[str, Any] = {}
 
     def __new__(
         cls,
@@ -91,23 +89,9 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
         if self.store_messages:
             try:
-                from concrete_db.crud import create_message
-                from concrete_db.orm import Session
-                from concrete_db.orm.models import MessageCreate
+                import concrete_db  # noqa
             except ImportError as e:
                 raise ImportError("Concrete database package `concrete-db` must be installed to store messages.") from e
-
-            with Session() as session:
-                create_message(
-                    session,
-                    MessageCreate(
-                        type=response_format.__name__,
-                        content=repr(answer),
-                        prompt=self.starting_prompt,
-                        project_id=self.project_id,
-                        operator_id=self.operator_id,
-                    ),
-                )
 
         return answer
 
