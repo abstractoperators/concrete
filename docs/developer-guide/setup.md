@@ -64,13 +64,13 @@ description = "Add your description here"
 
 #### Manage Dependencies
 
-To add a dependency, run `uv add <package-name>[==x.y.z]`. It is NOT recommended to manually add the environment manually (e.g. `uv pip install <package>`)
+To add a dependency, run `uv add <package-name>[==x.y.z]`. It is NOT recommended to manually add the environment manually (e.g. `uv pip install <package>`). To make it an optional dependency, use `uv add <package-name> --optional <optional-group>`.
 
 To remove a dependency, run `uv remove <package-name>`.
 
 To run a command in your virtual environment, use `uv run <command>`. Alternatively, you activate the virtual environment.
 
-Sync your environment with your specified requirements using `uv sync`
+Sync your environment with your specified requirements using `uv sync --extra <optional-group>`
 
 #### `uv.lock`
 
