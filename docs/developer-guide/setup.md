@@ -110,6 +110,15 @@ bird-feeder = { workspace = true} # Indicates that bird-feeder can be found in t
 # tqdm = { git = "https://github.com/tqdm/tqdm" }
 ```
 
+### Publishing
+
+```
+uv build --no-sources
+
+uv publish -t <api_token>
+# uv publish --publish-url https://test.pypi.org/legacy/ -t <api_token>
+```
+
 ## [Environment Variables]
 
 We recommend you store all of the relevant environment variables into a `.env` file
