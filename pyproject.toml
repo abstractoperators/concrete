@@ -11,6 +11,7 @@ dev-dependencies = [
     "concrete-core",
     "concrete-async",
     "concrete-db",
+    "pytest>=8.3.3",
 ]
 
 [tool.uv.workspace]
@@ -45,7 +46,4 @@ skips = ["B101", "B601"]
 # daemons = [
 #     "pyjwt==2.9.0",
 #     "cryptography==43.0.1",
-# ]
-# test = [
-#     "pytest==8.3.2",
 # ]
