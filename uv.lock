@@ -474,15 +474,19 @@ version = "0.0.1"
 source = { editable = "src/concrete-core" }
 dependencies = [
     { name = "astroid" },
-    { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+]
+
+[package.optional-dependencies]
+openai = [
+    { name = "openai" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "astroid", specifier = "==3.2.3" },
-    { name = "openai", specifier = "==1.40.5" },
+    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.40.5" },
     { name = "pydantic", specifier = ">=2.9.2" },
     { name = "python-dotenv", specifier = "==1.0.1" },
 ]
