@@ -1,22 +1,20 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Sequence, TypeVar
+from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 import requests
 import requests.adapters
-from openai import OpenAI, RateLimitError
-from openai.types.chat import ChatCompletion
+
+# from openai import OpenAI, RateLimitError
+# from openai.types.chat import ChatCompletion
 from pydantic import BaseModel as PydanticModel
 from requests.adapters import HTTPAdapter, Retry
 
 from .models.messages import Message, TextMessage
 
-# from tenacity import (
-#     retry,
-#     retry_if_exception_type,
-#     stop_after_attempt,
-#     wait_random_exponential,
-# )
+# https://stackoverflow.com/questions/61384752/how-to-type-hint-with-an-optional-import
+if TYPE_CHECKING:
+    from openai.types.chat import ChatCompletion
 
 
 class Client:
@@ -41,17 +39,16 @@ class OpenAIClient(LMClient):
     """
 
     def __init__(self, model: str | None = None, temperature: float | None = None):
+        try:
+            from openai import OpenAI  # noqa
+        except ImportError as e:
+            raise ImportError("OpenAI must be installed to use this client.") from e
+
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
         self.default_temperature = temperature if temperature is not None else float(os.getenv("OPENAI_TEMPERATURE", 0))
         self.model = model or "gpt-4o-mini"
 
-    # @retry(
-    #     wait=wait_random_exponential(min=1, max=60),
-    #     stop=stop_after_attempt(6),
-    #     retry=retry_if_exception_type(RateLimitError),
-    #     reraise=True,
-    # )
     def complete(
         self,
         messages: list[dict[str, str]],
@@ -59,6 +56,7 @@ class OpenAIClient(LMClient):
         temperature: float | None = None,
         **kwargs,
     ) -> ChatCompletion:
+        from openai import RateLimitError
 
         request_params = {
             "messages": messages,
