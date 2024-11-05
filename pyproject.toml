@@ -20,9 +20,9 @@ concrete_core = { workspace = true }
 concrete_async = { workspace = true }
 
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+# [build-system]
+# requires = ["hatchling"]
+# build-backend = "hatchling.build"
 
 [tool.bandit]
 exclude_dirs = ["tests", "path/to/file"]

@@ -32,7 +32,7 @@ uv handles Python versions for you.
 
 Install a specific python version using `uv install python 3.11`
 
-Pin that version using `uv python pin 3.11.10`
+Pin that version using `uv python pin 3.11.`
 
 ### Projects
 
