@@ -160,6 +160,24 @@ local-daemons:
 	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"
 
 
-# Build packages
-build-concrete-core:
+# Build Packages
+clear-dist:
+	rm -rf dist/*
+
+build-concrete-core: clear-dist
 	uv build --package concrete-core --no-sources --out-dir dist
+
+build-concrete-async: clear-dist
+	uv build --package concrete-async --no-sources --out-dir dist
+
+build-concrete-db: clear-dist
+	uv build --package concrete-db --no-sources --out-dir dist
+
+publish-concrete-core-test: build-concrete-core 
+	uv publish --project concrete-core --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
+
+publish-concrete-async-test: build-concrete-async
+	uv publish --project concrete-sync --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
+
+publish-concrete-db-test: build-concrete-db
+	uv publish --project concrete-db --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
