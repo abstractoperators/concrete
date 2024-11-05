@@ -1,13 +1,12 @@
 [project]
 name = "concrete-core"
-version = "0.0.0"
+version = "0.0.3"
 description = "AI Agent Orchestration"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
 
 dependencies = [
-    "python-dotenv==1.0.1",
-    "astroid==3.2.3",
+    "python-dotenv>=1.0.1",
     "pydantic>=2.9.2",
     "requests>=2.32.3",
 ]

@@ -68,7 +68,7 @@ class SoftwareProject(StatefulMixin):
             },
         )  # type: ignore
         if self.run_async:
-            planned_components_resp = planned_components_resp.get().message
+            planned_components_resp = planned_components_resp.get()
         components: list[str] = planned_components_resp.components
         yield Executive.__name__, str(planned_components_resp)
 
@@ -101,7 +101,7 @@ class SoftwareProject(StatefulMixin):
             },
         )
         if self.run_async:
-            files = files.get().message
+            files = files.get()
 
         if self.deploy:
             # TODO Use an actual DB instead of emulating one with a dictionary
@@ -225,9 +225,9 @@ async def communicative_dehallucination(
     run_async_kwarg = {"run_async": run_async}
     q_and_a = []
     for _ in range(max_iter):
-        question: TextMessage = developer.ask_question(context, options=run_async_kwarg).get().message
+        question: TextMessage = developer.ask_question(context, options=run_async_kwarg).get()
         if run_async:
-            question = question.get().message
+            question = question.get()
 
         if question == "No Question":
             break
@@ -236,7 +236,7 @@ async def communicative_dehallucination(
 
         answer: TextMessage = executive.answer_question(context, question, options=run_async_kwarg)  # type: ignore
         if run_async:
-            answer = answer.get().message
+            answer = answer.get()
         q_and_a.append((question, answer))
 
         yield Executive.__name__, answer.text
@@ -252,7 +252,7 @@ async def communicative_dehallucination(
         options=run_async_kwarg | {"response_format": ProjectFile},
     )
     if run_async:
-        implementation = implementation.get().message
+        implementation = implementation.get()
 
     yield Developer.__name__, str(implementation)
 
@@ -262,7 +262,7 @@ async def communicative_dehallucination(
         options=run_async_kwarg | {"response_format": Summary},
     )
     if run_async:
-        new_summary = new_summary.get().message
+        new_summary = new_summary.get()
     else:
         new_summary = new_summary.summary  # type: ignore
 

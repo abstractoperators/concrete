@@ -108,13 +108,12 @@ Dependencies on workspace members are specified via `[tool.uv.sources]`.
 [project]
 ...
 dependencies = ['bird-feeder'] # Indicate that the project depends on the bird-feeder package
-
+d
 [tool.uv.sources]
 bird-feeder = { workspace = true} # Indicates that bird-feeder can be found in the workspace.
 # tqdm = { git = "https://github.com/tqdm/tqdm" }
 ```
 
-<<<<<<< HEAD
 ### Publishing
 
 ```bash
@@ -122,7 +121,8 @@ uv build --no-sources
 
 uv publish -t <api_token>
 # uv publish --publish-url https://test.pypi.org/legacy/ -t <api_token>
-=======
+```
+
 #### Git Workflow
 
 In addition to package and dependency management, we use uv to augment the developer git workflow.
@@ -143,7 +143,6 @@ and to skip pre-commit hooks for whatever reason, use
 
 ```shell
 git commit -m "Pass butter" --no-verify
->>>>>>> 85f025c2469f7a24f4f3de5c3ed7246403f25807
 ```
 
 ## [Environment Variables]

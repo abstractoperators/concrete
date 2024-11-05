@@ -138,7 +138,7 @@ rabbitmq:
 # TODO autoreload celery
 celery: rabbitmq
 	rm logs/celery.log || true
-	celery -A src.concrete-async.concrete_async worker --loglevel=INFO -f logs/celery.log -E 
+	celery -A src.concrete-async.concrete_async worker --loglevel=INFO -E 
 
 # Run locally
 local-docs:
@@ -159,3 +159,7 @@ local-auth:
 local-daemons:
 	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"
 
+
+# Build packages
+build-concrete-core:
+	uv build --package concrete-core --no-sources --out-dir dist

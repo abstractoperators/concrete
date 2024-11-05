@@ -130,15 +130,6 @@ wheels = [
 ]
 
 [[package]]
-name = "astroid"
-version = "3.2.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/96/77/a503a7bc6246b53f54305bce8aae6c474b3d2291dae00bb1b0226cfe4096/astroid-3.2.3.tar.gz", hash = "sha256:7099b5a60985529d8d46858befa103b82d0d05a5a5e8b816b5303ed96075e1d9", size = 397217 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/98/318351f17c4c2f59b7d7fc8280fc95c0159357732a26cc6b33de0aeca44d/astroid-3.2.3-py3-none-any.whl", hash = "sha256:3eae9ea67c11c858cdd2c91337d2e816bd019ac897ca07d7b346ac10105fceb3", size = 276289 },
-]
-
-[[package]]
 name = "asttokens"
 version = "2.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -473,10 +464,9 @@ requires-dist = [
 
 [[package]]
 name = "concrete-core"
-version = "0.0.0"
+version = "0.0.3"
 source = { editable = "src/concrete-core" }
 dependencies = [
-    { name = "astroid" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -489,10 +479,9 @@ openai = [
 
 [package.metadata]
 requires-dist = [
-    { name = "astroid", specifier = "==3.2.3" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.40.5" },
     { name = "pydantic", specifier = ">=2.9.2" },
-    { name = "python-dotenv", specifier = "==1.0.1" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "requests", specifier = ">=2.32.3" },
 ]
 
