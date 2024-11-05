@@ -3,7 +3,6 @@ from textwrap import dedent
 from typing import List, Tuple
 
 import pytest
-
 from concrete_core import orchestrator
 
 # TODO: decide where utils go

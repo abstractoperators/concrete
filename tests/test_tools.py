@@ -2,10 +2,9 @@ import unittest
 from unittest.mock import Mock, patch
 
 import pytest
-from requests.exceptions import HTTPError
-
 from concrete_core.models import messages
 from concrete_core.tools import HTTPTool, invoke_tool
+from requests.exceptions import HTTPError
 
 
 def test_http_tool_process_response_ok():

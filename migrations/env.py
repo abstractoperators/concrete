@@ -3,15 +3,14 @@ from logging.config import fileConfig
 
 import dotenv
 from alembic import context
+from concrete_core.clients import CLIClient
 from sqlalchemy import URL, engine_from_config, pool
 from sqlmodel import SQLModel
-
-from concrete.clients import CLIClient
 
 dotenv.load_dotenv(override=True)
 
 
-from concrete.db.orm.models import *  # noqa: F401, F403, E402
+from concrete_db.orm.models import *  # noqa: F401, F403, E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

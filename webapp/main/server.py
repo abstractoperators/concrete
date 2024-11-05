@@ -5,6 +5,20 @@ from collections.abc import Callable
 from typing import Annotated, Any, TypeVar
 from uuid import UUID
 
+from concrete_core.clients import CLIClient
+from concrete_core.models.messages import ProjectDirectory
+from concrete_core.orchestrator import SoftwareOrchestrator
+from concrete_core.webutils import AuthMiddleware
+from concrete_db import crud
+from concrete_db.orm import Session
+from concrete_db.orm.models import (
+    Base,
+    MessageCreate,
+    OperatorCreate,
+    OrchestratorCreate,
+    ProjectCreate,
+    ToolCreate,
+)
 from dotenv import load_dotenv
 from fastapi import (
     FastAPI,
@@ -20,20 +34,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from concrete.clients import CLIClient
-from concrete.db import crud
-from concrete.db.orm import Session
-from concrete.db.orm.models import (
-    Base,
-    MessageCreate,
-    OperatorCreate,
-    OrchestratorCreate,
-    ProjectCreate,
-    ToolCreate,
-)
-from concrete.models.messages import ProjectDirectory
-from concrete.orchestrator import SoftwareOrchestrator
-from concrete.webutils import AuthMiddleware
 from webapp.common import (
     ConnectionManager,
     UserEmailDep,

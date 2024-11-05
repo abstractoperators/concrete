@@ -6,7 +6,7 @@ from typing import Any, Callable, cast
 from uuid import UUID, uuid1, uuid4
 
 from . import prompts
-from .clients import Client_con, OpenAIClient
+from .clients import LMClient_con, OpenAIClient
 from .models.messages import (
     PlannedComponents,
     ProjectDirectory,
@@ -38,7 +38,7 @@ class SoftwareProject(StatefulMixin):
         orchestrator: "Orchestrator",
         exec: Executive,
         dev: Developer,
-        clients: dict[str, Client_con],
+        clients: dict[str, LMClient_con],
         deploy: bool,
         run_async: bool,
     ):
