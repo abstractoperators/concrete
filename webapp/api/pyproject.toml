@@ -1,0 +1,19 @@
+# I don't  think we can remove the [project] section.
+[project]
+name = "uv"
+version = "0.1.0"
+requires-python = ">=3.11.9"
+dependencies = [
+    "concrete-core[openai]>=0.0.4",
+    'gunicorn>=23.0.0',
+    "uvicorn>=0.32.0",
+]
+
+[[tool.uv.index]]
+url = "https://test.pypi.org/simple/"
+default = true
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+
+

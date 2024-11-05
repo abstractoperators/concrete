@@ -62,7 +62,7 @@ build-alembic:
 # NOTE: Services inside docker requiring postgres need to have env variable DB_HOST=host.docker.internal
 # Launch postgres using env variable DB_HOST=localhost for alembic migrations
 # Then, change DB_HOST=host.docker.internal, and launch your dockerized service.
-run-webapp-api: build-webapp-api
+run-webapp-api: build-api 
 	docker compose -f docker/docker-compose.yml stop api
 	docker compose -f docker/docker-compose.yml up -d api
 
