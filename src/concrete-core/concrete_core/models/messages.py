@@ -15,16 +15,14 @@ Example:
 """
 
 import json
-from typing import Any, Dict, List, Union, get_args, get_origin
 
 from pydantic import Field
 
-from ..utils import map_python_type_to_json_type
 from .base import ConcreteModel
 
 # Tracks all message types created as a sub class of Message
 # Keys are not type sensitive
-MESSAGE_REGISTRY = {}
+MESSAGE_REGISTRY: dict[str, "Message"] = {}
 
 
 class Message(ConcreteModel):
@@ -71,7 +69,7 @@ class Param(Message):
 class Tool(Message):
     tool_name: str = Field(description='Name of the tool')
     tool_method: str = Field(description='Command to call the tool')
-    tool_parameters: List[Param] = Field(description='List of parameters for the tool')
+    tool_parameters: list[Param] = Field(description='List of parameters for the tool')
 
 
 class PlannedComponents(Message):

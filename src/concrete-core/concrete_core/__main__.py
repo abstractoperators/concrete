@@ -8,10 +8,9 @@ from concrete_core.tools import AwsTool, Container
 try:
     import concrete_async  # noqa
 
-    CLIClient.emit("concrete_async applied")
+    CLIClient.emit("concrete_async found and applied")
 except ImportError:
     CLIClient.emit("concrete_async not found")
-
 
 parser = argparse.ArgumentParser(description="Concrete CLI")
 subparsers = parser.add_subparsers(dest="mode")
