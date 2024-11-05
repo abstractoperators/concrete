@@ -1,6 +1,6 @@
-Last Updated: 2024-11-01 15:33:10 UTC
+Last Updated: 2024-11-05 17:54:59 UTC
 
-Lines Changed: +22, -0
+Lines Changed: +1, -2
 
 # Setup
 
@@ -106,9 +106,8 @@ Dependencies on workspace members are specified via `[tool.uv.sources]`.
 
 ```toml
 [project]
-...
 dependencies = ['bird-feeder'] # Indicate that the project depends on the bird-feeder package
-d
+
 [tool.uv.sources]
 bird-feeder = { workspace = true} # Indicates that bird-feeder can be found in the workspace.
 # tqdm = { git = "https://github.com/tqdm/tqdm" }
