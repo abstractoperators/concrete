@@ -30,7 +30,7 @@ class LMClient(ABC):
         pass
 
 
-Client_con = TypeVar("Client_con", bound=Client, contravariant=True)
+LMClient_con = TypeVar("LMClient_con", bound=LMClient, contravariant=True)
 
 
 class OpenAIClient(LMClient):

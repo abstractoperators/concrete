@@ -1,11 +1,11 @@
 import unittest
 from uuid import uuid4
 
-from concrete.db.orm.models import Message as SQLModelMessage
-from concrete.db.orm.models import Operator as SQLModelOperator
-from concrete.db.orm.models import Project
-from concrete.models.messages import TextMessage
-from concrete.operators import Developer, Executive
+from concrete_core.models.messages import TextMessage
+from concrete_core.operators import Developer, Executive
+from concrete_db.orm.models import Message as SQLModelMessage
+from concrete_db.orm.models import Operator as SQLModelOperator
+from concrete_db.orm.models import Project
 
 
 class TestSQLModels(unittest.TestCase):

@@ -21,6 +21,17 @@ import os
 import urllib
 
 import dotenv
+from concrete_core.utils import verify_jwt
+from concrete_core.webutils import AuthMiddleware
+from concrete_db.crud import (
+    create_authstate,
+    create_authtoken,
+    create_user,
+    get_authstate,
+    get_user,
+)
+from concrete_db.orm.models import AuthStateCreate, AuthTokenCreate, UserCreate
+from concrete_db.orm.setup import Session
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from google_auth_oauthlib.flow import Flow
@@ -28,18 +39,6 @@ from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-
-from concrete.db.crud import (
-    create_authstate,
-    create_authtoken,
-    create_user,
-    get_authstate,
-    get_user,
-)
-from concrete.db.orm.models import AuthStateCreate, AuthTokenCreate, UserCreate
-from concrete.db.orm.setup import Session
-from concrete.utils import verify_jwt
-from concrete.webutils import AuthMiddleware
 
 dotenv.load_dotenv(override=True)
 

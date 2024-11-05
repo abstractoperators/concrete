@@ -25,6 +25,11 @@ prompt_parser.add_argument(
     action="store_true",
     help="Use celery for processing. Otherwise, use plain.",
 )
+prompt_parser.add_argument(
+    "--store-messages",
+    action="store_true",
+    help="Store messages in a database. Otherwise, use plain.",
+)
 
 # AwsTool._deploy_service
 deploy_parser = subparsers.add_parser("deploy", help="Deploy image URIs to AWS")
@@ -84,9 +89,11 @@ args = parser.parse_args()
 
 async def main():
     if args.mode == "prompt":
-        so = orchestrator.SoftwareOrchestrator()
+        so = orchestrator.SoftwareOrchestrator(store_messages=args.store_messages)
         async for operator, response in so.process_new_project(
-            args.prompt, deploy=args.deploy, run_async=args.run_async
+            args.prompt,
+            deploy=args.deploy,
+            run_async=args.run_async,
         ):
             CLIClient.emit(f"[{operator}]:\n{response}\n")
 

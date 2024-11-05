@@ -5,12 +5,15 @@ ORCHESTRATE := PYTHONPATH=src/concrete-core $(PYTHON) -m concrete_core prompt
 
 # Setup
 install:
-	poetry install
-	$(POETRY) pre-commit install
+	$(UV) pre-commit install
 
 # Run tests
 test:
-	$(PYTHON) -m pytest
+	$(UV) pytest
+
+# Lint
+lint:
+	$(UV) pre-commit run --all-files
 
 # Demo commands
 helloworld:

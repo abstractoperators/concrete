@@ -14,7 +14,7 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
         options: dict,
         **kwargs,
     ) -> AsyncResult:
-        arg_dict = {
+        arg_dict: dict[str, list | dict] = {
             "messages": [
                 {"role": "system", "content": options["instructions"]},
                 {"role": "user", "content": string_func(self, *args, **kwargs)},

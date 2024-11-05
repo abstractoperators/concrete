@@ -3,9 +3,10 @@ from textwrap import dedent
 from typing import List, Tuple
 
 import pytest
+from concrete_core import orchestrator
 
-from concrete import orchestrator
-from concrete.utils import remove_comments
+# TODO: decide where utils go
+# from concrete_core.utils import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
     (
@@ -63,10 +64,10 @@ def test_simple_prompts_string_comp(test_name, prompt, expected):
     # )
 
     actual = dedent(strip_code_block(actual))
-    actual = remove_comments(actual)
+    # actual = remove_comments(actual)
 
     expected = dedent(strip_code_block(expected))
-    expected = remove_comments(expected)
+    # expected = remove_comments(expected)
 
     if actual != expected:
         actual = actual.split("\n")

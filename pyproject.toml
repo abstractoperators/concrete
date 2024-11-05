@@ -10,14 +10,17 @@ dev-dependencies = [
     "alembic==1.13.2",
     "concrete-core",
     "concrete-async",
+    "concrete-db",
+    "pytest>=8.3.3",
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async"]
+members = ["src/*"]
 
 [tool.uv.sources]
-concrete_core = { workspace = true }
-concrete_async = { workspace = true }
+concrete-core = { workspace = true }
+concrete-async = { workspace = true }
+concrete-db = { workspace = true }
 
 
 # [build-system]
@@ -43,7 +46,4 @@ skips = ["B101", "B601"]
 # daemons = [
 #     "pyjwt==2.9.0",
 #     "cryptography==43.0.1",
-# ]
-# test = [
-#     "pytest==8.3.2",
 # ]

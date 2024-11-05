@@ -1,13 +1,12 @@
 import os
 from contextlib import contextmanager
 
+from concrete_core.clients import CLIClient
 from dotenv import load_dotenv
 from sqlalchemy import URL
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session as SQLModelSession
 from sqlmodel import create_engine
-
-from concrete.clients import CLIClient
 
 load_dotenv(override=True)
 if (
@@ -15,7 +14,7 @@ if (
     or (username := os.environ.get("DB_USERNAME")) is None
     or (password := os.environ.get("DB_PASSWORD")) is None
     or (host := os.environ.get("DB_HOST")) is None
-    or (db_port := int(os.environ.get("DB_PORT", "0"))) == 0
+    or (db_port := int(os.environ.get("DB_PORT") or "0")) == 0
     or (database := os.environ.get("DB_DATABASE")) is None
 ):
     CLIClient.emit("Missing environment variables for database connection. Defaulting to SQLite.")

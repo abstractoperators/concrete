@@ -1,3 +1,7 @@
+Last Updated: 2024-11-01 15:33:10 UTC
+
+Lines Changed: +22, -0
+
 # Setup
 
 This guide will take you through environment setup in order to run the codebase locally and contribute to our project.
@@ -30,7 +34,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 uv handles Python versions for you. 
 
-Install a specific python version using `uv install python 3.11`
+Install a specific python version using `uv python install 3.11`
 
 Pin that version using `uv python pin 3.11.`
 
@@ -110,6 +114,7 @@ bird-feeder = { workspace = true} # Indicates that bird-feeder can be found in t
 # tqdm = { git = "https://github.com/tqdm/tqdm" }
 ```
 
+<<<<<<< HEAD
 ### Publishing
 
 ```bash
@@ -117,6 +122,28 @@ uv build --no-sources
 
 uv publish -t <api_token>
 # uv publish --publish-url https://test.pypi.org/legacy/ -t <api_token>
+=======
+#### Git Workflow
+
+In addition to package and dependency management, we use uv to augment the developer git workflow.
+The following command will install the correct dependencies to run `concrete` locally as well as the precommit packages to pass our PR validations.
+In the root folder of the repository:
+
+```shell
+make install
+```
+
+If you find yourself needing to run the pre-commit manually, use the following:
+
+```shell
+uv run pre-commit run --all-files
+```
+
+and to skip pre-commit hooks for whatever reason, use
+
+```shell
+git commit -m "Pass butter" --no-verify
+>>>>>>> 85f025c2469f7a24f4f3de5c3ed7246403f25807
 ```
 
 ## [Environment Variables]

@@ -962,7 +962,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Updates parent summary with child summary.
         """
-        from concrete.operators import Executive
+        from concrete_core.operators import Executive
 
         with Session() as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
@@ -1010,8 +1010,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Eventually, this should be able to summarize functions/classes in a file.
         """
         import chardet
-
-        from concrete.operators import Executive
+        from concrete_core.operators import Executive
 
         with Session() as db:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
@@ -1043,7 +1042,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Creates or overwrites a nodes summary using all of its children.
         """
-        from concrete.operators import Executive
+        from concrete_core.operators import Executive
 
         with Session() as db:
             parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
