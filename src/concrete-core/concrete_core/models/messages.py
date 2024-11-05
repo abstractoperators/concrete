@@ -15,8 +15,9 @@ Example:
 """
 
 import json
-from dataclasses import Field, dataclass, field, fields
 from typing import Any, Dict, List, Union, get_args, get_origin
+
+from pydantic import Field
 
 from ..utils import map_python_type_to_json_type
 from .base import ConcreteModel
@@ -57,174 +58,59 @@ class Message(ConcreteModel):
         # Consider whether
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
-    # @classmethod
-    # def as_response_format(cls) -> dict:
-    #     """
-    #     Converts the dataclass into a JSON schema dictionary compatible with OpenAI's structured outputs.
-    #     """
-    #     return {
-    #         'type': 'json_schema',
-    #         'json_schema': {
-    #             'name': cls.__name__,
-    #             'description': cls.__doc__,
-    #             'strict': True,
-    #             'schema': {
-    #                 'type': 'object',
-    #                 'properties': cls.properties(),
-    #                 'required': [field_.name for field_ in fields(cls)],
-    #                 'additionalProperties': False,
-    #             },
-    #         },
-    #     }
-
-    # @classmethod
-    # def properties(cls) -> dict:
-    #     """
-    #     Returns dict properties
-    #     """
-
-    #     def type_to_property(type_) -> dict:
-    #         # Converts a field into a field_name: {type: field_type... optional[items, properties]}
-    #         # Fields can have complex types like list[dict[str, str]], which need to be handled recursively
-    #         # Additionally, the field can be another Message model.
-    #         # Base Case: Primitive one-to-one mappings
-
-    #         # Base Cases:
-    #         match type_:  # Does python pattern matching even hash anything. Is this just a glorifiied if else?
-    #             case t if t is str:
-    #                 return {'type': 'string'}
-    #             case t if t is int:
-    #                 return {'type': 'integer'}
-    #             case t if t is float:
-    #                 return {'type': 'number'}
-    #             case t if t is bool:
-    #                 return {'type': 'boolean'}
-    #             case t if issubclass(t, Message):
-    #                 return {
-    #                     'type': 'object',
-    #                     'properties': t.properties(),
-    #                     'required': [field_.name for field_ in fields(t)],
-    #                     'additionalProperties': False,
-    #                 }
-    #         # Recursive Cases
-    #         origin = get_origin(type_)
-    #         # TODO: Handle AnyOf, Enum, Dict
-    #         if origin is list:
-    #             item_type = get_args(type_)[0]
-    #             return {'type': 'array', 'items': type_to_property(item_type)}
-
-    #     properties = {}
-    #     for field_ in fields(cls):
-    #         field_type = field_.type
-    #         properties[field_.name] = type_to_property(field_type)
-
-    #     return properties
-
 
 class TextMessage(Message):
-    text: str = field()
+    text: str = Field()
 
 
 class Param(Message):
-    name: str = field(metadata={'description': 'Name of the parameter'})
-    value: str = field(metadata={'description': 'Value of the parameter'})
+    name: str = Field(description='Name of the parameter')
+    value: str = Field(description="Value of the parameter")
 
 
 class Tool(Message):
-    tool_name: str = field(metadata={'description': 'Name of the tool'})
-    tool_method: str = field(metadata={'description': 'Command to call the tool'})
-    tool_parameters: list[Param] = field(metadata={'description': 'List of parameters for the tool'})
+    tool_name: str = Field(description='Name of the tool')
+    tool_method: str = Field(description='Command to call the tool')
+    tool_parameters: List[Param] = Field(description='List of parameters for the tool')
 
 
 class PlannedComponents(Message):
-    components: list[str]
+    components: list[str] = Field(description='List of planned components')
 
 
 class Summary(Message):
-    summary: list[str] = field(
-        metadata={'description': 'A list of component summaries. Each list item represents an unbroken summary'}
+    summary: list[str] = Field(
+        description='A list of component summaries. Each list item represents an unbroken summary'
     )
 
 
 class ProjectFile(Message):
-    file_name: str = field(metadata={'description': 'A file path relative to root'})
-    file_contents: str = field(metadata={'description': 'The contents of the file'})
+    file_name: str = Field(description='A file path relative to root')
+    file_contents: str = Field(description='The contents of the file')
 
 
 class ProjectDirectory(Message):
-    project_name: str = field(metadata={'description': 'Name of the project directory'})
-    files: list[ProjectFile] = field(
-        metadata={'description': 'A list of files in the project directory. Each list item represents a file'}
+    project_name: str = Field(description='Name of the project directory')
+    files: list[ProjectFile] = Field(
+        description='A list of files in the project directory. Each list item represents a file'
     )
 
 
-class NodeUUID:
-    pass
+class ChildNodeSummary(Message):
+    node_name: str = Field(description="Name of the node")
+    summary: str = Field(description="Summary of the node")
 
 
-class NodeSummary:
-    pass
+class NodeSummary(Message):
+    node_name: str = Field(description="Name of the node")
+    overall_summary: str = Field(description="Summary of the node")
+    children_summaries: list[ChildNodeSummary] = Field(description="Brief description of each child node")
 
 
-class ChildNodeSummary:
-    pass
+class NodeUUID(Message):
+    node_uuid: str = Field(description="UUID of the node")
 
 
-# class Param(Message):
-#     name: str = Field(description="Name of the parameter")
-#     value: str = Field(description="Value of the parameter")
-
-
-# class Tool(Message):
-#     tool_name: str = Field(description="Name of the tool")
-#     tool_method: str = Field(description="Command to call the tool")
-#     tool_parameters: list[Param] = Field(description="List of parameters for the tool")
-
-
-# class ProjectFile(Message):
-#     file_name: str = Field(description="A file path relative to root")
-#     file_contents: str = Field(description="The contents of the file")
-
-
-# class ProjectDirectory(Message):
-#     project_name: str = Field(description="Name of the project directory")
-#     files: list[ProjectFile] = Field(
-#         description="A list of files in the project directory. Each list item represents a file"
-#     )
-
-#     def to_zip(self) -> io.BytesIO:
-#         zip_buffer = io.BytesIO()
-#         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-#             for project_file in self.files:
-#                 zip_file.writestr(project_file.file_name, project_file.file_contents)
-#         zip_buffer.seek(0)
-#         return zip_buffer
-
-
-# class TextMessage(Message):
-#     text: str = Field(description="Text")
-
-
-# class Summary(Message):
-#     summary: list[str] = Field(
-#         description="A list of component summaries. Each list item represents an unbroken summary"
-#     )
-
-
-# class PlannedComponents(Message):
-#     components: list[str] = Field(description="List of planned components")
-
-
-# class ChildNodeSummary(Message):
-#     node_name: str = Field(description="Name of the node")
-#     summary: str = Field(description="Summary of the node")
-
-
-# class NodeSummary(Message):
-#     node_name: str = Field(description="Name of the node")
-#     overall_summary: str = Field(description="Summary of the node")
-#     children_summaries: list[ChildNodeSummary] = Field(description="Brief description of each child node")
-
-
-# class NodeUUID(Message):
-#     node_uuid: str = Field(description="UUID of the node")
+class Param(Message):
+    name: str = Field(description="Name of the parameter")
+    value: str = Field(description="Value of the parameter")
