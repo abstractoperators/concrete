@@ -5,10 +5,11 @@ from inspect import isclass
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from .clients import CLIClient, LMClient, OpenAIClient
-from .models.messages import Message, TextMessage, Tool
-from .tools import MetaTool
-from .tools import invoke_tool as invoke_tool_func
+from concrete.clients import CLIClient
+from concrete.clients.openai import OpenAIClient
+from concrete.models.messages import Message, TextMessage, Tool
+from concrete.tools import MetaTool
+from concrete.tools.utils import invoke_tool
 
 
 class AbstractOperatorMetaclass(type):
@@ -33,7 +34,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     # TODO replace OpenAIClient with GenericClient
     def __init__(
         self,
-        clients: dict[str, LMClient] | None = None,
+        clients: dict[str, OpenAIClient] | None = None,
         tools: list[MetaTool] | None = None,
         operator_id: UUID = uuid4(),  # TODO: Don't set a default
         project_id: UUID = uuid4(),  # TODO: Don't set a default
@@ -155,7 +156,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             # It also makes it difficult to do a manual invocation of the tool.
             # However, it aligns with goals of wanting Operators to be able to use tools
             if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
-                resp = self.invoke_tool(cast(Tool, answer))
+                resp = invoke_tool(cast(Tool, answer))
                 if resp is not None and hasattr(resp, '__str__'):
                     # Update the query to include the tool call results.
                     tool_preface = f'You called the tool: {answer.tool_name}.{answer.tool_method}\n'
@@ -193,7 +194,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     # still allow properties to be overridden after instantiation
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
-        if name.startswith("__") or name in {"qna", "_qna", "invoke_tool"} or not callable(attr) or isclass(attr):
+        if name.startswith("__") or name in {"qna", "_qna"} or not callable(attr) or isclass(attr):
             return attr
 
         def wrapped_func(*args, **kwargs):
@@ -225,12 +226,3 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         Chat with the operator with a direct message.
         """
         return message
-
-    def invoke_tool(self, tool: Tool):
-        """
-        Invokes a tool on a message.
-        Throws KeyError if the tool doesn't exist.
-        Throws AttributeError if the function on the tool doesn't exist.
-        Throws TypeError if the parameters are wrong.
-        """
-        return invoke_tool_func(tool)

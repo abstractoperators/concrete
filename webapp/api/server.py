@@ -4,7 +4,6 @@ from typing import Annotated
 from uuid import UUID
 
 import dotenv
-from concrete_core.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm import (
     SessionLocal,  # TODO Stop using SessionLocal in favor of Session context manager
@@ -24,6 +23,8 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
+
+from concrete.webutils import AuthMiddleware
 
 from .models import CommonReadParameters
 

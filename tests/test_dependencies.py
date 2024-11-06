@@ -2,7 +2,8 @@ import asyncio
 import sys
 
 import pytest
-from concrete_core.orchestrator import SoftwareOrchestrator
+
+from concrete.orchestrator import SoftwareOrchestrator
 
 
 class TestDependencies:
