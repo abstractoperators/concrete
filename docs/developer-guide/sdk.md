@@ -77,7 +77,7 @@ Operators are defined by their instructions property and string returning functi
 - Simple example on how to use the Operator class
 
 ```python
-from concrete_core.operators import Operator
+from concrete.operators import Operator
 
 operator = Operator()
 
@@ -99,8 +99,8 @@ print(custom_operator.chat_combative('Hello, how are you?'))
 - Example on how to use the options parameter
 
 ```python
-from concrete_core.operators import Operator
-from concrete_core.models.messages import ProjectDirectory
+from concrete.operators import Operator
+from concrete.models.messages import ProjectDirectory
 
 operator = Operator()
 operator.chat(
@@ -115,7 +115,7 @@ Messages are a format for structured outputs from OpenAI completions. Outputs ar
 Define your own message format by subclassing the Message class, and defining fields.
 
 ```python
-from concrete_core.models.messages import Message
+from concrete.models.messages import Message
 
 class CustomMessage(Message):
     field1: data_type = Field(..., description="Field 1 description")
@@ -139,8 +139,8 @@ metaclass from `MetaTool` to create a tool.
 
 
 ```python
-from concrete_core.tools import MetaTool
-from concrete_core.tools import invoke_tool
+from concrete.tools import MetaTool
+from concrete.tools import invoke_tool
 class Arithmetic(metaclass = MetaTool):
     @classmethod
     def sum(cls, x: int, y: int) -> int:

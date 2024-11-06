@@ -3,7 +3,7 @@
 ## Installation
 
 ```python
-pip install concrete-core
+pip install concrete
 ```
 
 ## Quickstart
