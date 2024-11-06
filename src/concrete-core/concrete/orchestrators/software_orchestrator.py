@@ -26,8 +26,8 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         }
         self.update(status=ProjectStatus.READY)
         self.operators = {
-            'exec': Executive(self.clients, store_messages=store_messages),
-            'dev': Developer(self.clients, store_messages=store_messages),
+            "exec": Executive(self.clients, store_messages=store_messages),
+            "dev": Developer(self.clients, store_messages=store_messages),
         }
 
     def add_operator(self, operator: Operator, title: str) -> None:
@@ -51,8 +51,11 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         if dev is not None and dev not in self.operators:
             raise ValueError(f"{dev} not found.")
 
-        exec_operator: Executive = cast(Executive, self.operators[exec] if exec is not None else self.operators['exec'])
-        dev_operator: Developer = cast(Developer, self.operators[dev] if dev is not None else self.operators['dev'])
+        exec_operator: Executive = cast(
+            Executive,
+            self.operators[exec] if exec is not None else self.operators["exec"],
+        )
+        dev_operator: Developer = cast(Developer, self.operators[dev] if dev is not None else self.operators["dev"])
 
         self.update(status=ProjectStatus.WORKING)
 

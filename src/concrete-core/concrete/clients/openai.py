@@ -36,7 +36,7 @@ class OpenAIClient(LMClient):
         request_params = {
             "messages": messages,
             "model": self.model,
-            "temperature": temperature if temperature is not None else self.default_temperature,
+            "temperature": (temperature if temperature is not None else self.default_temperature),
             "response_format": message_format,
             **kwargs,
         }

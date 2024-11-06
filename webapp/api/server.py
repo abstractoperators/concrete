@@ -29,14 +29,14 @@ from .models import CommonReadParameters
 
 dotenv.load_dotenv(override=True)
 
-UNAUTHENTICATED_PATHS = {'/ping', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+UNAUTHENTICATED_PATHS = {"/ping", "/docs", "/redoc", "/openapi.json", "/favicon.ico"}
 
 # Setup App with Middleware
 middleware = [
     Middleware(
         SessionMiddleware,
-        secret_key=os.environ['HTTP_SESSION_SECRET'],
-        domain=os.environ['HTTP_SESSION_DOMAIN'],
+        secret_key=os.environ["HTTP_SESSION_SECRET"],
+        domain=os.environ["HTTP_SESSION_DOMAIN"],
     ),
     Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
 ]

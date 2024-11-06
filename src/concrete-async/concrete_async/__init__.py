@@ -44,7 +44,10 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
     return _delay
 
 
-for operator_name, operator in concrete.abstract.AbstractOperatorMetaclass.OperatorRegistry.items():
+for (
+    operator_name,
+    operator,
+) in concrete.abstract.AbstractOperatorMetaclass.OperatorRegistry.items():
     for attr, method in operator.__dict__.items():
         if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(method):
             continue
@@ -55,7 +58,7 @@ for message_name, message in concrete.models.messages.MESSAGE_REGISTRY.items():
     new_class = type(
         message.__name__,
         (cast(type, KombuMixin), cast(Any, message)),
-        {'__module__': message.__module__},
+        {"__module__": message.__module__},
     )
     setattr(concrete.models.messages, message.__name__, new_class)
     concrete.models.messages.MESSAGE_REGISTRY[message_name] = cast(Message, new_class)
@@ -68,7 +71,7 @@ setattr(
     type(
         original_model.__name__,
         (KombuMixin, original_model),
-        {'__module__': original_model.__module__},
+        {"__module__": original_model.__module__},
     ),
 )
 

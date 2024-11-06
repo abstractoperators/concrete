@@ -13,8 +13,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     @classmethod
     def check_auth(cls, request: Request) -> dict[str, str] | None:
-        access_token = request.session.get('access_token')
-        id_token = request.session.get('id_token')
+        access_token = request.session.get("access_token")
+        id_token = request.session.get("id_token")
         if not access_token or not id_token:
             request.session.clear()
             return None
@@ -32,7 +32,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if user_data is None:
                 return JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={'detail': "Missing or invalid authentication credentials"},
+                    content={"detail": "Missing or invalid authentication credentials"},
                     headers={"WWW-Authenticate": "Bearer"},
                 )
         return await call_next(request)

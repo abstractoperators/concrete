@@ -192,9 +192,9 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
         operator: PydanticOperator | PydanticDeveloper | PydanticExecutive
 
-        if self.title == 'executive':
+        if self.title == "executive":
             operator = PydanticExecutive(store_messages=True)
-        elif self.title == 'developer':
+        elif self.title == "developer":
             operator = PydanticDeveloper(store_messages=True)
         else:
             # Otherwise just use a normal Operator
@@ -386,7 +386,10 @@ class MessageBase(Base):
         return self
 
     __table_args__ = (
-        CheckConstraint("(operator_id IS NULL) <> (user_id IS NULL)", name="The sender can only be one entity!"),
+        CheckConstraint(
+            "(operator_id IS NULL) <> (user_id IS NULL)",
+            name="The sender can only be one entity!",
+        ),
     )
 
 
@@ -510,7 +513,7 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
         sa_relationship_kwargs={"remote_side": "reponode.c.id"},
     )
 
-    __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
+    __table_args__ = (Index("ix_org_repo", "org", "repo"),)
 
 
 # endregion

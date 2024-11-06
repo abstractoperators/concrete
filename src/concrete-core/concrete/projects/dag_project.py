@@ -134,7 +134,7 @@ class DAGNode:
         kwargs = self.default_task_kwargs | self.dynamic_kwargs
         options = self.options | options
         res = self.bound_task(**kwargs, options=self.options | options)
-        if options.get('run_async'):
+        if options.get("run_async"):
             res = res.get().message
 
         return type(self.operator).__name__, res

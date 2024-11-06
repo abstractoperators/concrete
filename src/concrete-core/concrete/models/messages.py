@@ -67,30 +67,30 @@ class Param(Message):
 
 
 class Tool(Message):
-    tool_name: str = Field(description='Name of the tool')
-    tool_method: str = Field(description='Command to call the tool')
-    tool_parameters: list[Param] = Field(description='List of parameters for the tool')
+    tool_name: str = Field(description="Name of the tool")
+    tool_method: str = Field(description="Command to call the tool")
+    tool_parameters: list[Param] = Field(description="List of parameters for the tool")
 
 
 class PlannedComponents(Message):
-    components: list[str] = Field(description='List of planned components')
+    components: list[str] = Field(description="List of planned components")
 
 
 class Summary(Message):
     summary: list[str] = Field(
-        description='A list of component summaries. Each list item represents an unbroken summary'
+        description="A list of component summaries. Each list item represents an unbroken summary"
     )
 
 
 class ProjectFile(Message):
-    file_name: str = Field(description='A file path relative to root')
-    file_contents: str = Field(description='The contents of the file')
+    file_name: str = Field(description="A file path relative to root")
+    file_contents: str = Field(description="The contents of the file")
 
 
 class ProjectDirectory(Message):
-    project_name: str = Field(description='Name of the project directory')
+    project_name: str = Field(description="Name of the project directory")
     files: list[ProjectFile] = Field(
-        description='A list of files in the project directory. Each list item represents a file'
+        description="A list of files in the project directory. Each list item represents a file"
     )
 
 

@@ -22,7 +22,15 @@ class GithubTool(metaclass=MetaTool):
     }
 
     @classmethod
-    def create_pr(cls, org: str, repo: str, head: str, access_token: str, title: str, base: str = "main"):
+    def create_pr(
+        cls,
+        org: str,
+        repo: str,
+        head: str,
+        access_token: str,
+        title: str,
+        base: str = "main",
+    ):
         """
         Make a pull request on the target repo
 
@@ -38,9 +46,9 @@ class GithubTool(metaclass=MetaTool):
         url = f"https://api.github.com/repos/{org}/{repo}/pulls"
         json = {"title": f"[ABOP] {title}", "head": head, "base": base}
         headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {access_token}',
-            'X-GitHub-Api-Version': '2022-11-28',
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {access_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
         }
 
         try:
@@ -52,7 +60,14 @@ class GithubTool(metaclass=MetaTool):
                 CLIClient.emit("Failed to create PR: " + str(e))
 
     @classmethod
-    def create_branch(cls, org: str, repo: str, new_branch: str, access_token: str, base_branch: str = 'main'):
+    def create_branch(
+        cls,
+        org: str,
+        repo: str,
+        new_branch: str,
+        access_token: str,
+        base_branch: str = "main",
+    ):
         """
         Make a branch called new_branch from the latest commit on base_name
 
@@ -65,14 +80,14 @@ class GithubTool(metaclass=MetaTool):
                 https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#create-a-reference--fine-grained-access-tokens
         """
         headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {access_token}',
-            'X-GitHub-Api-Version': '2022-11-28',
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {access_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
         }
 
         # Get SHA of latest commit on base branch
         url = f"https://api.github.com/repos/{org}/{repo}/branches/{base_branch}"
-        base_sha = RestApiTool.get(url, headers=headers)['commit']['sha']
+        base_sha = RestApiTool.get(url, headers=headers)["commit"]["sha"]
 
         # Create new branch from base branch
         url = f"https://api.github.com/repos/{org}/{repo}/git/refs"
@@ -97,22 +112,29 @@ class GithubTool(metaclass=MetaTool):
             branch (str): Branch to delete
             access_token(str): Fine-grained token with at least 'Contents' repository write access.
         """
-        url = f'https://api.github.com/repos/{org}/{repo}/git/refs/heads/{branch}'
+        url = f"https://api.github.com/repos/{org}/{repo}/git/refs/heads/{branch}"
         headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {access_token}',
-            'X-GitHub-Api-Version': '2022-11-28',
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {access_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
         }
 
         resp = requests.delete(url, headers=headers, timeout=10)
         if resp.status_code == 204:
-            CLIClient.emit(f'{branch} deleted successfully.')
+            CLIClient.emit(f"{branch} deleted successfully.")
         else:
-            CLIClient.emit(f'Failed to delete {branch}.' + str(resp.json()))
+            CLIClient.emit(f"Failed to delete {branch}." + str(resp.json()))
 
     @classmethod
     def put_file(
-        cls, org: str, repo: str, branch: str, commit_message: str, path: str, file_contents: str, access_token: str
+        cls,
+        org: str,
+        repo: str,
+        branch: str,
+        commit_message: str,
+        path: str,
+        file_contents: str,
+        access_token: str,
     ):
         """
         Updates/Create a file on the target repo + commit.
@@ -126,29 +148,29 @@ class GithubTool(metaclass=MetaTool):
             access_token(str): Fine-grained token with at least 'Contents' repository write access.
         """
         headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {access_token}',
-            'X-GitHub-Api-Version': '2022-11-28',
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {access_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
         }
         # Get blob sha
-        url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
-        json = {'ref': branch}
+        url = f"https://api.github.com/repos/{org}/{repo}/contents/{path}"
+        json = {"ref": branch}
         resp = requests.get(url, headers=headers, params=json, timeout=10)
 
         # TODO switch to RestApiTool; Handle 404 better.
         if resp.status_code == 404:
             sha = None
         else:
-            sha = resp.json().get('sha')
+            sha = resp.json().get("sha")
 
-        url = f'https://api.github.com/repos/{org}/{repo}/contents/{path}'
+        url = f"https://api.github.com/repos/{org}/{repo}/contents/{path}"
         json = {
             "message": commit_message,
-            "content": base64.b64encode(file_contents.encode('utf-8')).decode('ascii'),
+            "content": base64.b64encode(file_contents.encode("utf-8")).decode("ascii"),
             "branch": branch,
         }
         if sha:
-            json['sha'] = sha
+            json["sha"] = sha
         RestApiTool.put(url, headers=headers, json=json)
 
     @classmethod
@@ -164,13 +186,13 @@ class GithubTool(metaclass=MetaTool):
             access_token(str): Fine-grained token with at least 'Contents' repository read access.
         """
         headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {access_token}',
-            'X-GitHub-Api-Version': '2022-11-28',
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {access_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
         }
 
-        url = f'https://api.github.com/repos/{org}/{repo}/compare/{base}...{head}'
-        diff_url = RestApiTool.get(url, headers=headers)['diff_url']
+        url = f"https://api.github.com/repos/{org}/{repo}/compare/{base}...{head}"
+        diff_url = RestApiTool.get(url, headers=headers)["diff_url"]
         diff = RestApiTool.get(diff_url)
         return diff
 
@@ -183,8 +205,8 @@ class GithubTool(metaclass=MetaTool):
         [([a/file_path, b/file_path], uncleaned_diff)]
         """
         diff = GithubTool.get_diff(org, repo, base, head, access_token)
-        files_with_diffs = diff.split('diff --git')[1:]  # Skip the first empty element
-        return [(file.split('\n', 1)[0].split(), file) for file in files_with_diffs]
+        files_with_diffs = diff.split("diff --git")[1:]  # Skip the first empty element
+        return [(file.split("\n", 1)[0].split(), file) for file in files_with_diffs]
 
     @classmethod
     def fetch_branch(cls, org: str, repo: str, branch: str, access_token: str) -> str:
@@ -192,12 +214,12 @@ class GithubTool(metaclass=MetaTool):
         Downloads contents of branches latest commit to dest_path.
         """
         headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {access_token}',
-            'X-GitHub-Api-Version': '2022-11-28',
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {access_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
         }
 
-        url = f'https://api.github.com/repos/{org}/{repo}/zipball/refs/heads/{branch}'
+        url = f"https://api.github.com/repos/{org}/{repo}/zipball/refs/heads/{branch}"
 
         dest_path = tempfile.mkdtemp(prefix="GithubTool-")
 
@@ -205,7 +227,7 @@ class GithubTool(metaclass=MetaTool):
 
         with zipfile.ZipFile(io.BytesIO(content)) as zip_ref:
             zip_ref.extractall(dest_path)
-            top_level_dir = zip_ref.namelist()[0].split('/')[0]
+            top_level_dir = zip_ref.namelist()[0].split("/")[0]
 
         # Full path to the extracted directory.
         full_path = os.path.join(dest_path, top_level_dir)

@@ -27,7 +27,7 @@ else:
         port=db_port,
         database=database,
     )
-    CLIClient.emit(f'Database environment variables found. ORM URL configured as: {SQLALCHEMY_DATABASE_URL}')
+    CLIClient.emit(f"Database environment variables found. ORM URL configured as: {SQLALCHEMY_DATABASE_URL}")
 
 
 if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":

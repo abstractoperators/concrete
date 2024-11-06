@@ -43,9 +43,12 @@ SQLALCHEMY_DATABASE_URL = URL.create(
     database=os.environ.get("DB_DATABASE", "sql_app.db"),
 )
 
-CLIClient.emit(f'Alembic connecting to database at {SQLALCHEMY_DATABASE_URL}')
+CLIClient.emit(f"Alembic connecting to database at {SQLALCHEMY_DATABASE_URL}")
 CLIClient.emit(f'Password starts with: {os.environ.get("DB_PASSWORD", "")[0]}')
-config.set_main_option('sqlalchemy.url', str(SQLALCHEMY_DATABASE_URL).replace('***', os.environ.get('DB_PASSWORD', "")))
+config.set_main_option(
+    "sqlalchemy.url",
+    str(SQLALCHEMY_DATABASE_URL).replace("***", os.environ.get("DB_PASSWORD", "")),
+)
 
 
 def run_migrations_offline() -> None:

@@ -105,7 +105,7 @@ def sidebar_create_operator(orchestrator_id: UUID, request: Request, user_id: UU
         f"/orchestrators/{orchestrator_id}/operators",
         "operator_form.html",
         request,
-        context={"orchestrator_id": orchestrator_id, 'tools': tool_names},
+        context={"orchestrator_id": orchestrator_id, "tools": tool_names},
         headers={"HX-Trigger": "getOperators"},
     )
 
@@ -139,14 +139,21 @@ def create_name_validation(name: str, db_getter: Callable[[], M | None], request
     )
 
 
-UNAUTHENTICATED_PATHS = {'/ping', '/login', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
+UNAUTHENTICATED_PATHS = {
+    "/ping",
+    "/login",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/favicon.ico",
+}
 
 # Setup App with Middleware
 middleware = [
     Middleware(
         SessionMiddleware,
-        secret_key=os.environ['HTTP_SESSION_SECRET'],
-        domain=os.environ['HTTP_SESSION_DOMAIN'],
+        secret_key=os.environ["HTTP_SESSION_SECRET"],
+        domain=os.environ["HTTP_SESSION_DOMAIN"],
     ),
     Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
 ]
@@ -164,23 +171,23 @@ templates = Jinja2Templates(
 def dyn_url_for(request: Request | WebSocket, name: str, **path_params: Any) -> str:
     url = request.url_for(name, **path_params)
     parsed = list(urllib.parse.urlparse(str(url)))
-    if os.environ.get("ENV") != 'DEV':
-        parsed[0] = 'https'  # Change the scheme to 'https' (Optional)
+    if os.environ.get("ENV") != "DEV":
+        parsed[0] = "https"  # Change the scheme to 'https' (Optional)
     return urllib.parse.urlunparse(parsed)
 
 
-templates.env.globals['dyn_url_for'] = dyn_url_for
+templates.env.globals["dyn_url_for"] = dyn_url_for
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
 manager = ConnectionManager()
 
 
-@app.get('/login')
+@app.get("/login")
 async def login(request: Request):
     # TODO: Replace this endpoint with html
     user_data = AuthMiddleware.check_auth(request)
     if user_data:
-        return JSONResponse({"Message": "Already logged in", "email": user_data['email']})
+        return JSONResponse({"Message": "Already logged in", "email": user_data["email"]})
     return JSONResponse({"login here": "https://auth.abop.ai/login"})
 
 
@@ -248,7 +255,7 @@ async def create_orchestrator(
     with Session() as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"Creating {orchestrator=}\n")
-        CLIClient.emit(f'Assigning tools: {tool_names=}\n')
+        CLIClient.emit(f"Assigning tools: {tool_names=}\n")
         for tool_name in tool_names:
             tool = crud.get_tool_by_name(session, user_id, tool_name)  # Verify that tool exists
             if tool is None:
@@ -340,7 +347,7 @@ async def create_operator(
             crud.assign_tool_to_operator(db=session, operator_id=operator.id, tool_id=tool.id)
 
         CLIClient.emit(f"Created {operator=}\n")
-        CLIClient.emit(f'With tools: {tool_names=}\n')
+        CLIClient.emit(f"With tools: {tool_names=}\n")
 
         return sidebar_create_operator(orchestrator_id, request, user_id)
 
@@ -363,7 +370,10 @@ async def create_operator_form(orchestrator_id: UUID, request: Request, user_id:
     return sidebar_create_operator(orchestrator_id, request, user_id)
 
 
-@app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}", response_class=HTMLResponse)
+@app.get(
+    "/orchestrators/{orchestrator_id}/operators/{operator_id}",
+    response_class=HTMLResponse,
+)
 async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Request):
     with Session() as session:
         operator = crud.get_operator(session, operator_id, orchestrator_id)
@@ -443,7 +453,10 @@ async def create_project_form(orchestrator_id: UUID, request: Request):
     return sidebar_create_project(orchestrator_id, request)
 
 
-@app.get("/orchestrators/{orchestrator_id}/projects/{project_id}", response_class=HTMLResponse)
+@app.get(
+    "/orchestrators/{orchestrator_id}/projects/{project_id}",
+    response_class=HTMLResponse,
+)
 async def get_project(orchestrator_id: UUID, project_id: UUID, request: Request):
     with Session() as session:
         project = crud.get_project(session, project_id, orchestrator_id)
@@ -466,7 +479,10 @@ async def delete_project(orchestrator_id: UUID, project_id: UUID):
         return HTMLResponse(content=f"Deleted project {project_id}", headers=headers)
 
 
-@app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/chat", response_class=HTMLResponse)
+@app.get(
+    "/orchestrators/{orchestrator_id}/projects/{project_id}/chat",
+    response_class=HTMLResponse,
+)
 async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Request):
     with Session() as session:
         chat = crud.get_messages(session, project_id)
@@ -476,7 +492,10 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
         if get_project_is_done(project_id):
             # TODO Remove after we support https redirection through route 53
             download_url = dyn_url_for(
-                request, "get_downloadable_completed_project", orchestrator_id=orchestrator_id, project_id=project_id
+                request,
+                "get_downloadable_completed_project",
+                orchestrator_id=orchestrator_id,
+                project_id=project_id,
             )
         else:
             download_url = None
@@ -496,7 +515,10 @@ def get_project_is_done(project_id: UUID) -> bool:
         return final_message is not None
 
 
-@app.get("/orchestrators/{orchestrator_id}/projects/{project_id}/download_finished", response_class=HTMLResponse)
+@app.get(
+    "/orchestrators/{orchestrator_id}/projects/{project_id}/download_finished",
+    response_class=HTMLResponse,
+)
 async def get_downloadable_completed_project(orchestrator_id, project_id: UUID) -> StreamingResponse:
     if not get_project_is_done(project_id):
         raise HTTPException(status_code=404, detail=f"Project {project_id} not completed yet!")
@@ -505,11 +527,12 @@ async def get_downloadable_completed_project(orchestrator_id, project_id: UUID) 
         final_message = crud.get_completed_project(session, project_id)
         if final_message is not None:
             pydantic_message = final_message.to_obj()
-        CLIClient.emit(f'{pydantic_message = }\n')
+        CLIClient.emit(f"{pydantic_message = }\n")
 
         if not isinstance(pydantic_message, ProjectDirectory):
             raise HTTPException(
-                status_code=500, detail=f"Expected ProjectDirectory, but got {pydantic_message.__class__.__name__}"
+                status_code=500,
+                detail=f"Expected ProjectDirectory, but got {pydantic_message.__class__.__name__}",
             )
         zip_buffer = pydantic_message.to_zip()
 
@@ -547,16 +570,25 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 if project is None:
                     raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
                 if project.executive_id is None or project.developer_id is None:
-                    raise HTTPException(status_code=404, detail=f"Operators undefined on project {project_id}")
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Operators undefined on project {project_id}",
+                    )
 
                 sqlmodel_executive = crud.get_operator(session, project.executive_id, orchestrator_id)
                 if sqlmodel_executive is None:
-                    raise HTTPException(status_code=404, detail=f"Developer {project.executive_id} not found")
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Developer {project.executive_id} not found",
+                    )
                 executive = sqlmodel_executive.to_obj()
                 executive.project_id = project.id
                 sqlmodel_developer = crud.get_operator(session, project.developer_id, orchestrator_id)
                 if sqlmodel_developer is None:
-                    raise HTTPException(status_code=404, detail=f"Developer {project.developer_id} not found")
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Developer {project.developer_id} not found",
+                    )
                 developer = sqlmodel_developer.to_obj()
                 developer.project_id = project.id
 
@@ -586,8 +618,8 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
 
             CLIClient.emit(prompt)
             so = SoftwareOrchestrator()
-            so.add_operator(executive, 'exec')
-            so.add_operator(developer, 'dev')
+            so.add_operator(executive, "exec")
+            so.add_operator(developer, "dev")
 
             so.update(ws=websocket, manager=manager)
             async for operator, response in so.process_new_project(prompt, project.id, run_async=False):
@@ -612,7 +644,10 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                 await asyncio.sleep(0)
 
             download_url = dyn_url_for(
-                websocket, "get_downloadable_completed_project", orchestrator_id=orchestrator_id, project_id=project_id
+                websocket,
+                "get_downloadable_completed_project",
+                orchestrator_id=orchestrator_id,
+                project_id=project_id,
             )
             link = templates.get_template("download_project.html").render(download_url=download_url)
             wrapped_link = f'<ol id="group_chat" hx-swap-oob="beforeend">{link}</ol>'

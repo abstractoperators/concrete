@@ -24,7 +24,12 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
     @classmethod
     def _parse_to_tree(
-        cls, org: str, repo: str, branch: str, dir_path: str, rel_gitignore_path: str | None = None
+        cls,
+        org: str,
+        repo: str,
+        branch: str,
+        dir_path: str,
+        rel_gitignore_path: str | None = None,
     ) -> UUID:
         """
         Converts a directory into an unpopulated knowledge graph.
@@ -44,10 +49,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             root_node = models.RepoNodeCreate(
                 org=org,
                 repo=repo,
-                partition_type='directory',
-                name=f'org/{repo}',
-                summary='',
-                children_summaries='',
+                partition_type="directory",
+                name=f"org/{repo}",
+                summary="",
+                children_summaries="",
                 abs_path=dir_path,
                 branch=branch,
             )
@@ -56,11 +61,11 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
                 to_split.put(root_node_id)
 
-            ignore_paths = ['.git', '.venv', '.github', 'poetry.lock', '*.pdf']
+            ignore_paths = [".git", ".venv", ".github", "poetry.lock", "*.pdf"]
             if rel_gitignore_path:
-                with open(os.path.join(dir_path, rel_gitignore_path), 'r') as f:
+                with open(os.path.join(dir_path, rel_gitignore_path), "r") as f:
                     gitignore = f.readlines()
-                    gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith('#')]
+                    gitignore = [path.strip() for path in gitignore if path.strip() and not path.startswith("#")]
                     ignore_paths.extend(gitignore)
 
             while len(to_split.queue) > 0:
@@ -85,7 +90,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 return []
 
         children: list[models.RepoNodeCreate] = []
-        if parent.partition_type == 'directory':
+        if parent.partition_type == "directory":
             files_and_directories = os.listdir(parent.abs_path)
             files_and_directories = [
                 f for f in files_and_directories if not KnowledgeGraphTool._should_ignore(f, ignore_paths)
@@ -93,22 +98,22 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             for file_or_dir in files_and_directories:
                 path = os.path.join(parent.abs_path, file_or_dir)
 
-                partition_type = 'directory' if os.path.isdir(path) else 'file'
-                CLIClient.emit(f'Creating {partition_type} {file_or_dir}')
+                partition_type = "directory" if os.path.isdir(path) else "file"
+                CLIClient.emit(f"Creating {partition_type} {file_or_dir}")
                 child = models.RepoNodeCreate(
                     org=parent.org,
                     repo=parent.repo,
                     partition_type=partition_type,
                     name=file_or_dir,
-                    summary='',
-                    children_summaries='',
+                    summary="",
+                    children_summaries="",
                     abs_path=path,
                     parent_id=parent.id,
                     branch=parent.branch,
                 )
                 children.append(child)
 
-        elif parent.partition_type == 'file':
+        elif parent.partition_type == "file":
             pass
             # Can possibly create child nodes for functions/classes in the file
 
@@ -126,15 +131,15 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Helper function for deciding whether a file/dir should be in the knowledge graph.
         """
         for pattern in ignore_patterns:
-            if pattern.endswith('/'):
+            if pattern.endswith("/"):
                 # Directory pattern
-                if fnmatch.fnmatch(name + '/', pattern):
-                    CLIClient.emit(f'Ignoring directory {name} due to pattern {pattern}')
+                if fnmatch.fnmatch(name + "/", pattern):
+                    CLIClient.emit(f"Ignoring directory {name} due to pattern {pattern}")
                     return True
             else:
                 # File pattern
                 if fnmatch.fnmatch(name, pattern):
-                    CLIClient.emit(f'Ignoring file {name} due to pattern {pattern}')
+                    CLIClient.emit(f"Ignoring file {name} due to pattern {pattern}")
                     return True
 
         return False
@@ -167,14 +172,14 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         def _hierarchy_pos(G, root, levels=None, width=1.0, height=1.0):
             # https://stackoverflow.com/questions/29586520/can-one-get-hierarchical-graphs-from-networkx-with-python-3/29597209#29597209
-            '''If there is a cycle that is reachable from root, then this will see infinite recursion.
+            """If there is a cycle that is reachable from root, then this will see infinite recursion.
             G: the graph
             root: the root node
             levels: a dictionary
                     key: level number (starting from 0)
                     value: number of nodes in this level
             width: horizontal space allocated for drawing
-            height: vertical space allocated for drawing'''
+            height: vertical space allocated for drawing"""
             TOTAL = "total"
             CURRENT = "current"
 
@@ -192,7 +197,10 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             def make_pos(pos, node=root, currentLevel=0, parent=None, vert_loc=0):
                 dx = 1 / levels[currentLevel][TOTAL]
                 left = dx / 2
-                pos[node] = ((left + dx * levels[currentLevel][CURRENT]) * width, vert_loc)
+                pos[node] = (
+                    (left + dx * levels[currentLevel][CURRENT]) * width,
+                    vert_loc,
+                )
                 levels[currentLevel][CURRENT] += 1
                 neighbors = G.neighbors(node)
                 for neighbor in neighbors:
@@ -220,14 +228,14 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             G,
             pos,
             with_labels=True,
-            node_color='lightblue',
+            node_color="lightblue",
             node_size=5000,
             arrows=True,
             font_size=6,
-            edge_color='gray',
+            edge_color="gray",
         )
 
-        plt.axis('off')
+        plt.axis("off")
         plt.show()
 
     @classmethod
@@ -252,9 +260,9 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 for node_id in node_ids.pop():
                     node = crud.get_repo_node(db=db, repo_node_id=node_id)
                     if node is not None:
-                        if node.partition_type == 'directory':
+                        if node.partition_type == "directory":
                             KnowledgeGraphTool._upsert_parent_summary_from_children(node_id)
-                        elif node.partition_type == 'file':
+                        elif node.partition_type == "file":
                             KnowledgeGraphTool._upsert_leaf_summary(node_id)
 
     @classmethod
@@ -293,7 +301,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             child_summary = child.summary
             child_abs_path = child.abs_path
 
-        exec = Executive(clients={'openai': OpenAIClient()})
+        exec = Executive(clients={"openai": OpenAIClient()})
         node_summary: NodeSummary = exec.update_parent_summary(
             parent_summary=parent_summary,
             child_summary=child_summary,
@@ -306,14 +314,15 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
             if parent is not None:
                 parent_overall_summary = node_summary.overall_summary
-                parent_children_summaries = '\n'.join(
+                parent_children_summaries = "\n".join(
                     [
-                        f'{child_summary.node_name}: {child_summary.summary}'
+                        f"{child_summary.node_name}: {child_summary.summary}"
                         for child_summary in node_summary.children_summaries
                     ]
                 )
                 parent_node_update = models.RepoNodeUpdate(
-                    summary=parent_overall_summary, children_summaries=parent_children_summaries
+                    summary=parent_overall_summary,
+                    children_summaries=parent_children_summaries,
                 )
                 crud.update_repo_node(db=db, repo_node_id=parent_id, repo_node_update=parent_node_update)
 
@@ -329,24 +338,26 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         with Session() as db:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
-            if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == 'file':
+            if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == "file":
                 path = leaf_node.abs_path
 
-        with open(path, 'rb') as file:
+        with open(path, "rb") as file:
             raw_data = file.read()
         result = chardet.detect(raw_data)
-        encoding = result['encoding']
+        encoding = result["encoding"]
 
         try:
             if encoding is None:
-                encoding = 'utf-8'
+                encoding = "utf-8"
             contents = raw_data.decode(encoding)
         except UnicodeDecodeError:
-            contents = raw_data.decode('utf-8', errors='replace')
+            contents = raw_data.decode("utf-8", errors="replace")
 
         exec = Executive(clients={"openai": OpenAIClient()})
         child_node_summary = exec.summarize_file(
-            contents=contents, file_name=path, options={'message_format': ChildNodeSummary}
+            contents=contents,
+            file_name=path,
+            options={"message_format": ChildNodeSummary},
         )
         repo_node_create = models.RepoNodeUpdate(summary=child_node_summary.summary)
         with Session() as db:
@@ -371,15 +382,15 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             for child_id in children_ids:
                 child = crud.get_repo_node(db=db, repo_node_id=child_id)
                 if child is not None:
-                    children_summaries.append(f'{child.abs_path}: {child.summary}')
+                    children_summaries.append(f"{child.abs_path}: {child.summary}")
 
         exec = Executive({"openai": OpenAIClient()})
         node_summary = exec.summarize_from_children(
-            children_summaries, parent_name, options={'message_format': NodeSummary}
+            children_summaries, parent_name, options={"message_format": NodeSummary}
         )
         overall_summary = node_summary.overall_summary
-        parent_children_summaries = '\n'.join(
-            [f'{child_summary.node_name}: {child_summary.summary}' for child_summary in node_summary.children_summaries]
+        parent_children_summaries = "\n".join(
+            [f"{child_summary.node_name}: {child_summary.summary}" for child_summary in node_summary.children_summaries]
         )
         parent_node_update = models.RepoNodeUpdate(
             summary=overall_summary, children_summaries=parent_children_summaries
@@ -396,7 +407,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         with Session() as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
-                return ('', '')
+                return ("", "")
             return (node.summary, node.children_summaries)
 
     @classmethod
@@ -431,7 +442,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         with Session() as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
-                return ''
+                return ""
             return node.abs_path
 
     @classmethod
