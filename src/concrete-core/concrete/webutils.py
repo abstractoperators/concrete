@@ -1,6 +1,6 @@
 from typing import cast
 
-from concrete_core.utils import verify_jwt
+from concrete.utils import verify_jwt
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware

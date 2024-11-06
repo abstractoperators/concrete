@@ -3,11 +3,11 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
-from concrete_core.clients import CLIClient
-from concrete_core.models.messages import Message as ConcreteMessage
-from concrete_core.models.messages import TextMessage
-from concrete_core.state import ProjectStatus
-from concrete_core.tools import MetaTool, tool_name_to_class
+from concrete.clients import CLIClient
+from concrete.models.messages import Message as ConcreteMessage
+from concrete.models.messages import TextMessage
+from concrete.state import ProjectStatus
+from concrete.tools import MetaTool, tool_name_to_class
 from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlalchemy.schema import Index
@@ -185,9 +185,9 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
     def to_obj(self):
         # TODO: Abide by orchestrator clients
-        from concrete_core.operators import Developer as PydanticDeveloper
-        from concrete_core.operators import Executive as PydanticExecutive
-        from concrete_core.operators import Operator as PydanticOperator
+        from concrete.operators import Developer as PydanticDeveloper
+        from concrete.operators import Executive as PydanticExecutive
+        from concrete.operators import Operator as PydanticOperator
 
         operator: PydanticOperator | PydanticDeveloper | PydanticExecutive
 
@@ -403,7 +403,7 @@ class Message(MessageBase, MetadataMixin, table=True):
     operator: Operator | None = Relationship()
 
     def to_obj(self):
-        from concrete_core.models.messages import MESSAGE_REGISTRY
+        from concrete.models.messages import MESSAGE_REGISTRY
 
         message_type = self.type
         message_content = self.content

@@ -3,7 +3,7 @@ from logging.config import fileConfig
 
 import dotenv
 from alembic import context
-from concrete_core.clients import CLIClient
+from concrete.clients import CLIClient
 from sqlalchemy import URL, engine_from_config, pool
 from sqlmodel import SQLModel
 

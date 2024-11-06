@@ -5,10 +5,10 @@ from collections.abc import Callable
 from typing import Annotated, Any, TypeVar
 from uuid import UUID
 
-from concrete_core.clients import CLIClient
-from concrete_core.models.messages import ProjectDirectory
-from concrete_core.orchestrator import SoftwareOrchestrator
-from concrete_core.webutils import AuthMiddleware
+from concrete.clients import CLIClient
+from concrete.models.messages import ProjectDirectory
+from concrete.orchestrators import SoftwareOrchestrator
+from concrete.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm import Session
 from concrete_db.orm.models import (

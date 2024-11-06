@@ -1,7 +1,7 @@
 import os
 from contextlib import contextmanager
 
-from concrete_core.clients import CLIClient
+from concrete.clients import CLIClient
 from dotenv import load_dotenv
 from sqlalchemy import URL
 from sqlalchemy.orm import sessionmaker

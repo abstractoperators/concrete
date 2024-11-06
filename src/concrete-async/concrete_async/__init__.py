@@ -1,7 +1,8 @@
 from collections.abc import Callable
 
-import concrete_core
 from celery.result import AsyncResult
+
+import concrete
 
 from .models import KombuMixin, Operation
 from .tasks import abstract_operation
@@ -9,7 +10,7 @@ from .tasks import abstract_operation
 
 def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult]:
     def _delay(
-        self: concrete_core.abstract.AbstractOperator,
+        self: concrete.abstract.AbstractOperator,
         *args,
         options: dict,
         **kwargs,
@@ -19,7 +20,7 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
                 {"role": "system", "content": options["instructions"]},
                 {"role": "user", "content": string_func(self, *args, **kwargs)},
             ],
-            "message_format": concrete_core.clients.OpenAIClient.model_to_schema(options["response_format"]),
+            "message_format": concrete.clients.OpenAIClient.model_to_schema(options["response_format"]),
         }
         operation = Operation(
             client_name=self.llm_client,
@@ -29,7 +30,7 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
 
         clients = {}
         for name, client in self.clients.items():
-            client_model = concrete_core.models.clients.OpenAIClientModel(
+            client_model = concrete.models.clients.OpenAIClientModel(
                 model=client.model,
                 temperature=client.default_temperature,
             )
@@ -42,26 +43,26 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
     return _delay
 
 
-for operator_name, operator in concrete_core.abstract.AbstractOperatorMetaclass.OperatorRegistry.items():
+for operator_name, operator in concrete.abstract.AbstractOperatorMetaclass.OperatorRegistry.items():
     for attr, method in operator.__dict__.items():
         if attr.startswith("__") or attr in {"_qna", "qna"} or not callable(method):
             continue
         setattr(method, "_delay", _delay_factory(method))
 
 
-for message_name, message in concrete_core.models.messages.MESSAGE_REGISTRY.items():
+for message_name, message in concrete.models.messages.MESSAGE_REGISTRY.items():
     new_class = type(
         message.__name__,
         (KombuMixin, message),
         {'__module__': message.__module__},
     )
-    setattr(concrete_core.models.messages, message.__name__, new_class)
-    concrete_core.models.messages.MESSAGE_REGISTRY[message_name] = new_class
+    setattr(concrete.models.messages, message.__name__, new_class)
+    concrete.models.messages.MESSAGE_REGISTRY[message_name] = new_class
 
-original_model = concrete_core.models.clients.OpenAIClientModel
+original_model = concrete.models.clients.OpenAIClientModel
 
 setattr(
-    concrete_core.models.clients,
+    concrete.models.clients,
     original_model.__name__,
     type(
         original_model.__name__,

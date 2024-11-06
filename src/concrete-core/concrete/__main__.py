@@ -1,9 +1,10 @@
 import argparse
 import asyncio
 
-from concrete_core import orchestrator
-from concrete_core.clients import CLIClient
-from concrete_core.tools import AwsTool, Container
+from concrete.clients import CLIClient
+from concrete.tools import AwsTool, Container
+
+from concrete import orchestrators
 
 try:
     import concrete_async  # noqa
@@ -88,7 +89,7 @@ args = parser.parse_args()
 
 async def main():
     if args.mode == "prompt":
-        so = orchestrator.SoftwareOrchestrator(store_messages=args.store_messages)
+        so = orchestrators.SoftwareOrchestrator(store_messages=args.store_messages)
         async for operator, response in so.process_new_project(
             args.prompt,
             deploy=args.deploy,

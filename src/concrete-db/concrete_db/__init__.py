@@ -1,8 +1,8 @@
 from collections.abc import Callable
 from functools import wraps
 
-from concrete_core.abstract import AbstractOperator
-from concrete_core.models.messages import Message
+from concrete.abstract import AbstractOperator
+from concrete.models.messages import Message
 
 from .crud import create_message
 from .orm import Session

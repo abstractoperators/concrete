@@ -7,10 +7,10 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 import jwt
-from concrete_core.clients import CLIClient, OpenAIClient
-from concrete_core.models.messages import NodeUUID
-from concrete_core.operators import Executive
-from concrete_core.tools import GithubTool, KnowledgeGraphTool, RestApiTool
+from concrete.clients import CLIClient, OpenAIClient
+from concrete.models.messages import NodeUUID
+from concrete.operators import Executive
+from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
 from concrete_db import crud
 from concrete_db.orm import Session
 from dotenv import load_dotenv

@@ -3,7 +3,7 @@ from textwrap import dedent
 from typing import List, Tuple
 
 import pytest
-from concrete_core import orchestrator
+from concrete.orchestrators import Orchestrator
 
 # TODO: decide where utils go
 # from concrete_core.utils import remove_comments
@@ -45,7 +45,8 @@ def test_simple_prompts_string_comp(test_name, prompt, expected):
     prompt (str): Initial prompt for the project.
     expected (str): Expected output.
     """
-    actual = orchestrator.main(prompt)
+    # TODO Fix this and have it actually run
+    actual = Orchestrator.main(prompt)
 
     # # For developing tester.
     # actual = dedent(

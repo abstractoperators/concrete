@@ -8,7 +8,6 @@ import time
 import zipfile
 from datetime import datetime, timezone
 from queue import Queue
-from typing import Dict, Optional
 from uuid import UUID
 
 import requests
@@ -21,8 +20,6 @@ from .clients import CLIClient, HTTPClient, OpenAIClient
 # from .db.orm import Session, models
 from .models.base import ConcreteModel
 from .models.messages import ChildNodeSummary, NodeSummary, Tool
-
-# from .models.messages import ChildNodeSummary, NodeSummary, Tool
 
 TOOLS_REGISTRY: dict[str, "MetaTool"] = {}
 
@@ -143,7 +140,7 @@ class HTTPTool(metaclass=MetaTool):
 
 class RestApiTool(HTTPTool):
     @classmethod
-    def _process_response(cls, resp: Response, url: Optional[str] = None) -> bytes:
+    def _process_response(cls, resp: Response, url: str | None = None) -> bytes:
         if not resp.ok:
             CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
@@ -168,7 +165,7 @@ class Container(ConcreteModel):
 
 class AwsTool(metaclass=MetaTool):
     SHARED_VOLUME = "/shared"
-    results: Dict[str, Dict] = {}  # Emulates a DB for retrieving project directory objects by key.
+    results: dict[str, dict] = {}  # Emulates a DB for retrieving project directory objects by key.
     DIND_BUILDER_HOST = "localhost"
     DIND_BUILDER_PORT = 5002
 
@@ -202,7 +199,7 @@ class AwsTool(metaclass=MetaTool):
         memory: int = 512,
         subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
         security_groups: list[str] = ["sg-0463bb6000a464f50"],
-        task_name: Optional[str] = None,
+        task_name: str | None = None,
     ):
         """
         Defines a task definition, and runs it.
@@ -962,7 +959,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Updates parent summary with child summary.
         """
-        from concrete_core.operators import Executive
+        from concrete.operators import Executive
 
         with Session() as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
@@ -1010,7 +1007,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Eventually, this should be able to summarize functions/classes in a file.
         """
         import chardet
-        from concrete_core.operators import Executive
+        from concrete.operators import Executive
 
         with Session() as db:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
@@ -1042,7 +1039,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Creates or overwrites a nodes summary using all of its children.
         """
-        from concrete_core.operators import Executive
+        from concrete.operators import Executive
 
         with Session() as db:
             parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)

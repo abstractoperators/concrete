@@ -21,8 +21,8 @@ import os
 import urllib
 
 import dotenv
-from concrete_core.utils import verify_jwt
-from concrete_core.webutils import AuthMiddleware
+from concrete.utils import verify_jwt
+from concrete.webutils import AuthMiddleware
 from concrete_db.crud import (
     create_authstate,
     create_authtoken,

@@ -1,0 +1,13 @@
+[project]
+name = "api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.9, <4.0.0"
+dependencies = [
+    "concrete-db",
+    "fastapi>=0.115.4",
+]
+
+[tool.uv.sources]
+concrete-db = { workspace = true }
