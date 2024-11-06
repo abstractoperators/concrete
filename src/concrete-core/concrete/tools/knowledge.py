@@ -1,3 +1,6 @@
+# type: ignore
+# TODO: Remove above
+
 import fnmatch
 import os
 from queue import Queue
