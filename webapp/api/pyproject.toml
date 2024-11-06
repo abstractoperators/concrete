@@ -1,13 +1,12 @@
 [project]
-name = "api"
+name = "uv"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.11.9, <4.0.0"
+requires-python = ">=3.11.9"
 dependencies = [
+    "concrete-core[openai,auth,google-auth,requests]",
     "concrete-db",
-    "fastapi[standard]>=0.115.4",
+    'gunicorn>=23.0.0',
+    "uvicorn>=0.32.0",
+    'fastapi',
 ]
 
-[tool.uv.sources]
-concrete-db = { workspace = true }

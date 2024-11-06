@@ -8,7 +8,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
 
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v1
@@ -43,13 +43,19 @@ jobs:
                 python-version: "3.11.9"
 
             - name: Checkout code
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
 
             - name: Configure AWS Credentials for ECS
               uses: aws-actions/configure-aws-credentials@v4
               with:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
+
+            - uses: astral-sh/setup-uv@v3
+              with: 
+                version: "0.4.27"
+            - name: Install concrete
+              run: uv sync --all-extras --dev
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
               env:
@@ -58,9 +64,6 @@ jobs:
                   DB_HOST: ${{secrets.DB_HOST}}
                   HTTP_SESSION_SECRET: ${{ secrets.HTTP_SESSION_SECRET }}
               run: |
-                  curl -sSL https://install.python-poetry.org | python3 -
-                  poetry --version
-                  poetry install
                   touch .env
                   echo OPENAI_TEMPERATURE=0 > .env
                   echo OPENAI_API_KEY=$OPENAI_API_KEY >> .env 
@@ -74,7 +77,7 @@ jobs:
                   echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
                   echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                   echo HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET >> .env
-                  poetry run python -m concrete deploy \
+                  uv run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest \
                     --container-name api-staging \
                     --container-port 80 \
@@ -84,9 +87,6 @@ jobs:
                     --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46 \
                     --health-check-path /ping
 
-# https://github.com/actions/deploy-pages/issues/329 -
-# https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
-# The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).
 permissions:
   id-token: write 
   contents: read
