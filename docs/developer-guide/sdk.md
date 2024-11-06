@@ -7,12 +7,12 @@ Abstract Operators are the base building block of Operators. They handle a lot o
 ### Methods
 
 #### `__init__`
-    
+
 - clients (dict[str, LMClient]): A dictionary of LM clients available to the operator. The key is the enumerated name of the client (e.g. `'openai'`), and the value is the client wrapper object `LMClient`.
 
-- tools (list[MetaTool]): A list of of Tools available to the operator. These tools are made available when `options['use_tools'] = True`. Similarly, `options['tools'] = [tool1, ...]` overrides the default list of tools. 
+- tools (list[MetaTool]): A list of of Tools available to the operator. These tools are made available when `options['use_tools'] = True`. Similarly, `options['tools'] = [tool1, ...]` overrides the default list of tools.
 
-- operator_id (uuid): A unique identifier for the operator. This is used to save messages and other data. 
+- operator_id (uuid): A unique identifier for the operator. This is used to save messages and other data.
 
 - project_id (uuid): A unique identifier for the project. This is used to save messages and other data.
 
@@ -22,7 +22,7 @@ Abstract Operators are the base building block of Operators. They handle a lot o
 
 - response_format (type[Message]): The response format of the operator. Message is a wrapper class for Pydantic Models which are used for OpenAI Structured Outputs.
 
-- run_async (bool): Whether to run qna calls asynchronously via Celery. Only works when the package `concrete-celery` is installed and imported in the application. Also requires that a `celery` application is started. 
+- run_async (bool): Whether to run qna calls asynchronously via Celery. Only works when the package `concrete-celery` is installed and imported in the application. Also requires that a `celery` application is started.
 
 #### `_qna`
 
@@ -66,17 +66,46 @@ Returns default system instructions for the operator
 
 Returns default options on the operator
 
-- 
 ## Operators
 
+Operators are defined by their instructions property and string returning functions.
 
-Operators are defined by instructions and string returning functions.
+### Examples
 
-```
-from concrete-core.operators import Operator
+- Simple example on how to use the Operator class
+
+```python
+from concrete_core.operators import Operator
 
 operator = Operator()
+
+print(operator.instructions)
+print(operator.chat('Hello, how are you?'))
+
+class CustomOperator(Operator):
+    instructions = "This is a set of custom instructions"
+
+    def chat_combative(self, message: str, options: dict = {}) -> str:
+        return f'Respond combatively to "{message}"'
+
+
+custom_operator = CustomOperator()
+print(custom_operator.instructions)
+print(custom_operator.chat_combative('Hello, how are you?'))
 ```
+
+- Example on how to use the options parameter
+
+```python
+from concrete_core.operators import Operator
+from concrete_core.models.messages import ProjectDirectory
+
+operator = Operator()
+operator.chat(
+    "Could you make a directory for a helloworld python project?", options={'response_format': ProjectDirectory}
+)
+```
+
 # Tools
 
 Last Updated: 2024-11-06 15:55:36 UTC
