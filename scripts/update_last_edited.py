@@ -34,12 +34,12 @@ def update_last_edited(file_paths):
             if lines_changed_pattern.search(content):
                 content = lines_changed_pattern.sub(lines_changed_str, content)
             else:
-                content = lines_changed_str + '\n\n' + content
+                content = lines_changed_str + '\n' + content
 
             if last_updated_pattern.search(content):
                 new_content = last_updated_pattern.sub(date_str, content)
             else:
-                new_content = date_str + '\n\n' + content
+                new_content = date_str + '\n' + content
 
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(new_content)

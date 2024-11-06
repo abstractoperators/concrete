@@ -3,10 +3,11 @@ from textwrap import dedent
 from typing import List, Tuple
 
 import pytest
-from concrete_core import orchestrator
+
+from concrete import orchestrator
 
 # TODO: decide where utils go
-# from concrete_core.utils import remove_comments
+# from concrete.utils import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
     (
