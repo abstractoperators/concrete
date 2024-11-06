@@ -1,7 +1,7 @@
 import unittest
 
-from concrete_core.abstract import AbstractOperator
-from concrete_core.operators import Operator
+from concrete.abstract import AbstractOperator
+from concrete.operators import Operator
 
 
 def get_all_subclasses(cls):

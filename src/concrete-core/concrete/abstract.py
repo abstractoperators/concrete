@@ -5,10 +5,11 @@ from inspect import isclass
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from .clients import CLIClient, OpenAIClient
-from .models.messages import Message, TextMessage, Tool
-from .tools import MetaTool
-from .tools import invoke_tool as invoke_tool_func
+from concrete.clients import CLIClient
+from concrete.clients.openai import OpenAIClient
+from concrete.models.messages import Message, TextMessage, Tool
+from concrete.tools import MetaTool
+from concrete.tools import invoke_tool as invoke_tool_func
 
 
 class AbstractOperatorMetaclass(type):
