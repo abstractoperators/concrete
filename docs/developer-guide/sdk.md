@@ -106,7 +106,26 @@ operator.chat(
 )
 ```
 
+# Messages
+
+Messages are a format for structured outputs from OpenAI completions. Outputs are validated against the Message format, guaranteeing the syntax.
+
+Define your own message format by subclassing the Message class, and defining fields.
+
+```python
+from concrete_core.models.messages import Message
+
+class CustomMessage(Message):
+    field1: data_type = Field(..., description="Field 1 description")
+    field2: data_type = Field(..., description="Field 2 description")
+```
+
 # Tools
+
+Tools represent an Operators 
+
+
+
 
 Last Updated: 2024-11-06 15:55:36 UTC
 
