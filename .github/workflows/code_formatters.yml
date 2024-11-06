@@ -9,24 +9,24 @@ jobs:
       # SETUP
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.27"
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.9"
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          virtualenvs-path: .venv
-          installer-parallel: true
-      - name: Install dependencies
-        run: poetry install --no-interaction --no-root
-
-      # TOOLS
+          python-version-file: "pyproject.toml"
+      
+      - name: Install the project
+        run: uv sync --all-extras --dev 
+        
       - name: mypy
         run: |
-          poetry run python -m mypy -p concrete
+          uv run python -m mypy -p concrete
+
       - name: flake8
         uses: py-actions/flake8@v2
         with:
@@ -34,14 +34,17 @@ jobs:
           ignore: "W293"
           path: "concrete"
           exclude: "migrations"
+
       - name: black
         uses: psf/black@stable
         with:
           options: "--check --verbose --skip-string-normalization --line-length=120"
+
       - name: isort
         uses: isort/isort-action@v1 
         with:
           configuration: "--check-only --diff --profile black"
+
       - name: bandit
         uses: mdegis/bandit-action@v1.0
         with:
