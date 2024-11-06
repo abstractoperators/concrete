@@ -27,7 +27,7 @@ def test_http_tool_process_response_not_ok():
         HTTPTool._process_response(mock_response, '')
 
 
-@patch('concrete.tools.HTTPClient')
+@patch('concrete.tools.http.HTTPClient')
 def test_http_tool_request(mock_http_client):
     mock_response = Mock()
     mock_response.ok = True
@@ -59,7 +59,7 @@ def test_http_tool_request(mock_http_client):
 
 
 class TestInvokeTool(unittest.TestCase):
-    @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
+    @patch('concrete.tools.utils.TOOLS_REGISTRY', new_callable=dict)
     def test_invoke_tool_success(self, mock_tools_registry):
         self.mock_tool = Mock()
         self.mock_tool.mock_function = Mock(return_value='example result')
@@ -83,7 +83,7 @@ class TestInvokeTool(unittest.TestCase):
             )
             invoke_tool(tool)
 
-    @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
+    @patch('concrete.tools.utils.TOOLS_REGISTRY', new_callable=dict)
     def test_invoke_tool_attributeerror(self, mock_tools_registry):
         self.mock_tool = Mock(spec=[])
         mock_tools_registry['mock_tool'] = self.mock_tool
@@ -95,7 +95,7 @@ class TestInvokeTool(unittest.TestCase):
         with self.assertRaises(AttributeError):
             invoke_tool(tool)
 
-    @patch('concrete.tools.TOOLS_REGISTRY', new_callable=dict)
+    @patch('concrete.tools.utils.TOOLS_REGISTRY', new_callable=dict)
     def test_invoke_tool_typeerror(self, mock_tools_registry):
         self.mock_tool = Mock()
         self.mock_tool.mock_function = Mock(return_value='example result')
