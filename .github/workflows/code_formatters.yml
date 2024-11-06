@@ -58,6 +58,8 @@ jobs:
         with:
           max-line-length: "120"
           ignore: "W293"
+          exclude: ".venv/**,migrations"
+          
 
   mypy:
     runs-on: ubuntu-latest
