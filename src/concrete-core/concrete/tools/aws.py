@@ -7,11 +7,10 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from dotenv import dotenv_values
-
 from concrete.clients import CLIClient
 from concrete.models.base import ConcreteModel
 from concrete.tools import MetaTool
+from dotenv import dotenv_values
 
 
 class Container(ConcreteModel):

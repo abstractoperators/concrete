@@ -1,13 +1,11 @@
-# TODO: put middleware back in after webutils and utils fixed
-# import os
+import os
 from collections.abc import Callable, Sequence
 from typing import Annotated
 from uuid import UUID
 
 import dotenv
 from concrete.projects import PROJECTS, DAGNode, Project
-
-# from concrete.webutils import AuthMiddleware
+from concrete.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm import Session
 from concrete_db.orm.models import (
@@ -22,31 +20,29 @@ from concrete_db.orm.models import (
     OrchestratorUpdate,
 )
 from fastapi import Depends, FastAPI, HTTPException
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from concrete import operators
 
 from .models import CommonReadParameters
-
-# from starlette.middleware import Middleware
-# from starlette.middleware.sessions import SessionMiddleware
-
 
 dotenv.load_dotenv(override=True)
 
 UNAUTHENTICATED_PATHS = {'/ping', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
-# middleware = [
-# Middleware(
-#     SessionMiddleware,
-#     secret_key=os.environ['HTTP_SESSION_SECRET'],
-#     domain=os.environ['HTTP_SESSION_DOMAIN'],
-# ),
-# Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
-# ]
+middleware = [
+    Middleware(
+        SessionMiddleware,
+        secret_key=os.environ['HTTP_SESSION_SECRET'],
+        domain=os.environ['HTTP_SESSION_DOMAIN'],
+    ),
+    Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
+]
 
 
-app = FastAPI(title="Concrete API")  # , middleware=middleware)
+app = FastAPI(title="Concrete API", middleware=middleware)
 
 # Database Setup
 """
