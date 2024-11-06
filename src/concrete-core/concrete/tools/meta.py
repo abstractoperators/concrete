@@ -1,6 +1,6 @@
 import inspect
 
-from concrete.tools import TOOLS_REGISTRY
+TOOLS_REGISTRY: dict[str, "MetaTool"] = {}
 
 
 class MetaTool(type):
