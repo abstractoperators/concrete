@@ -19,7 +19,9 @@ from concrete.clients import CLIClient
 from concrete.clients.openai import OpenAIClient
 from concrete.models.messages import NodeUUID
 from concrete.operators import Executive
-from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
+from concrete.tools.github import GithubTool
+from concrete.tools.http import RestApiTool
+from concrete.tools.knowledge import KnowledgeGraphTool
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")

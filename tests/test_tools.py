@@ -5,7 +5,8 @@ import pytest
 from requests.exceptions import HTTPError
 
 from concrete.models import messages
-from concrete.tools import HTTPTool, invoke_tool
+from concrete.tools import invoke_tool
+from concrete.tools.http import HTTPTool
 
 
 def test_http_tool_process_response_ok():

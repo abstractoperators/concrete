@@ -17,7 +17,8 @@ from concrete.models.messages import (
 )
 from concrete.operators import Developer, Executive, Operator
 from concrete.state import ProjectStatus, State
-from concrete.tools import AwsTool, invoke_tool
+from concrete.tools.aws import AwsTool
+from concrete.tools.utils import invoke_tool
 
 
 class StatefulMixin:

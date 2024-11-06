@@ -12,11 +12,12 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = ["openai>=1.40.0"]
-http-client = ["requests"]
+requests = ["requests"]
 auth = [
     "pyjwt",
     "cryptography",
     "itsdangerous",  # session middleware
+    "fastapi"
 ]
 google-auth = [
     "google-auth",
