@@ -6,30 +6,17 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      # SETUP
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v3
         with:
           version: "0.4.27"
       
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version-file: "pyproject.toml"
       
-      - name: Install the project
-        run: uv sync --all-extras --dev --locked 
-
-      # - name: flake8
-      #   uses: py-actions/flake8@v2
-      #   with:
-      #     max-line-length: "120"
-      #     ignore: "W293"
-      #     path: "src"
-      #     exclude: "migrations"
+      - run: uv sync --all-extras --dev --locked 
 
       - name: black
         uses: psf/black@stable
@@ -54,21 +41,17 @@ jobs:
   flake8:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v3
         with:
           version: "0.4.27"
       
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version-file: "pyproject.toml"
       
-      - name: Install the project
-        run: uv sync --all-extras --dev --locked 
+      - run: uv sync --all-extras --dev --locked 
 
       - name: flake8
         uses: py-actions/flake8@v2
