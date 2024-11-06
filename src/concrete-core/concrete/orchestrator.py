@@ -5,9 +5,9 @@ from textwrap import dedent
 from typing import Any, Callable, cast
 from uuid import UUID, uuid1, uuid4
 
-from . import prompts
-from .clients import LMClient_con, OpenAIClient
-from .models.messages import (
+from concrete import prompts
+from concrete.clients.openai import LMClient_con, OpenAIClient
+from concrete.models.messages import (
     PlannedComponents,
     ProjectDirectory,
     ProjectFile,
@@ -15,9 +15,10 @@ from .models.messages import (
     TextMessage,
     Tool,
 )
-from .operators import Developer, Executive, Operator
-from .state import ProjectStatus, State
-from .tools import AwsTool, invoke_tool
+from concrete.operators import Developer, Executive, Operator
+from concrete.state import ProjectStatus, State
+from concrete.tools.aws import AwsTool
+from concrete.tools.utils import invoke_tool
 
 
 class StatefulMixin:

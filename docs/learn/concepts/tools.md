@@ -1,3 +1,5 @@
+Last Updated: 2024-11-06 20:48:44 UTC
+Lines Changed: +3, -0
 # Tools
 `Tools` allow an operator to interact with the real world or internet.
 
@@ -25,6 +27,7 @@ Tools should have syntax documented in their docstrings so the operator knows ho
 
 ```python
 from concrete.tools import MetaTool
+
 class Arithmetic(metaclass=MetaTool):
     @classmethod
     def add(cls, x: int, y: int) -> int:

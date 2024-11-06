@@ -1,6 +1,6 @@
-Last Updated: 2024-11-05 17:54:59 UTC
+Last Updated: 2024-11-06 18:49:07 UTC
 
-Lines Changed: +1, -2
+Lines Changed: +3, -3
 
 # Setup
 
@@ -148,7 +148,7 @@ git commit -m "Pass butter" --no-verify
 
 We recommend you store all of the relevant environment variables into a `.env` file
 located in the root directory of `concrete`.
-A full `.env` developer example can be found [in our repository](https://github.com/abstractoperators/concrete/blob/02cc58605f5b0b507434985ef2bd3ed7bb7e3881/.env.example).
+A full `.env` developer example can be found [in our repository](https://github.com/abstractoperators/concrete/blob/main/.env.example).
 
 Be sure to set the `ENV` variable as necessary:
 

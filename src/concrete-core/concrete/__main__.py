@@ -1,21 +1,14 @@
 import argparse
 import asyncio
 
-from concrete_core import orchestrator
-from concrete_core.clients import CLIClient
-from concrete_core.tools import AwsTool, Container
-
-try:
-    import concrete_async  # noqa
-
-    CLIClient.emit("concrete_async found and applied")
-except ImportError:
-    CLIClient.emit("concrete_async not found")
+from concrete import operators, orchestrator
+from concrete.clients import CLIClient
+from concrete.tools.aws import AwsTool, Container
 
 parser = argparse.ArgumentParser(description="Concrete CLI")
 subparsers = parser.add_subparsers(dest="mode")
 
-# Concrete Prompts
+# region Concrete Prompts
 prompt_parser = subparsers.add_parser("prompt", help="Generate a response for the provided prompt")
 prompt_parser.add_argument("prompt", type=str, help="The prompt to generate a response for")
 prompt_parser.add_argument("--deploy", action="store_true", help="Deploy the project to AWS")
@@ -29,8 +22,19 @@ prompt_parser.add_argument(
     action="store_true",
     help="Store messages in a database. Otherwise, use plain.",
 )
+# endregion
 
-# AwsTool._deploy_service
+# region chat
+prompt_parser = subparsers.add_parser("chat", help="Quick chat interface")
+prompt_parser.add_argument("chat", type=str, help="The prompt to generate a response for")
+prompt_parser.add_argument(
+    "--store-messages",
+    action="store_true",
+    help="Store messages in a database. Otherwise, use plain.",
+)
+# endregion
+
+# region AwsTool._deploy_service
 deploy_parser = subparsers.add_parser("deploy", help="Deploy image URIs to AWS")
 deploy_parser.add_argument("--task", action='store_true', help="Run the task as a standalone that runs and exits")
 deploy_parser.add_argument(
@@ -85,6 +89,8 @@ deploy_parser.add_argument("--health-check-path", type=str, required=False, help
 
 args = parser.parse_args()
 
+# endregion
+
 
 async def main():
     if args.mode == "prompt":
@@ -95,6 +101,9 @@ async def main():
             run_async=args.run_async,
         ):
             CLIClient.emit(f"[{operator}]:\n{response}\n")
+    if args.mode == "chat":
+        operator = operators.Operator(store_messages=args.store_messages)
+        CLIClient.emit(operator.chat(args.chat).text)
 
     elif args.mode == "deploy":
         CLIClient.emit("Starting deployment to AWS...")

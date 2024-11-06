@@ -1,5 +1,6 @@
 from celery import Celery
-from concrete_core.models import clients  # noqa
+
+from concrete.models import clients  # noqa
 
 from . import celeryconfig
 

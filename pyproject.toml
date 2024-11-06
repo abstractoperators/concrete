@@ -30,18 +30,3 @@ exclude_dirs = ["tests", "path/to/file"]
 tests = ["B201", "B301"]
 skips = ["B101", "B601"]
 
-
-# tooluse = [
-#     "boto3==1.35.3",
-#     "chardet==5.2.0",
-#     "itsdangerous==2.2.0",
-#     "pyjwt==2.9.0",
-#     "cryptography==43.0.1",
-# ]
-# docs = [
-#     "mkdocs-material==9.5.34",
-# ]
-# daemons = [
-#     "pyjwt==2.9.0",
-#     "cryptography==43.0.1",
-# ]
