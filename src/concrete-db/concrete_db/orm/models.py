@@ -7,14 +7,15 @@ from concrete.clients import CLIClient
 from concrete.models.messages import Message as ConcreteMessage
 from concrete.models.messages import TextMessage
 from concrete.state import ProjectStatus
-from concrete.tools import MetaTool, tool_name_to_class
+from concrete.tools import MetaTool
+from concrete.tools.utils import tool_name_to_class
 from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
-from ..orm.setup import SQLALCHEMY_DATABASE_URL, engine
+from .setup import SQLALCHEMY_DATABASE_URL, engine
 
 
 class Base(SQLModel):

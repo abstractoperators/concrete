@@ -6,7 +6,7 @@ import pytest
 from concrete.orchestrators import Orchestrator
 
 # TODO: decide where utils go
-# from concrete_core.utils import remove_comments
+# from concrete.utils import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
     (

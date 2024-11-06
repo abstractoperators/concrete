@@ -2,6 +2,7 @@ from collections.abc import Callable
 from functools import wraps
 
 from concrete.abstract import AbstractOperator
+from concrete.clients import CLIClient
 from concrete.models.messages import Message
 
 from .crud import create_message
@@ -36,3 +37,5 @@ def _qnawrapper(_qna: Callable) -> Callable:
 
 
 AbstractOperator._qna = _qnawrapper(AbstractOperator._qna)  # type: ignore[assignment]
+
+CLIClient.emit("concrete-db initialized")

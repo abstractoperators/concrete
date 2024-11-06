@@ -1,7 +1,8 @@
 from collections.abc import AsyncGenerator
+from typing import cast
 from uuid import UUID, uuid1, uuid4
 
-from concrete.clients import OpenAIClient
+from concrete.clients.openai import OpenAIClient
 from concrete.operators import Developer, Executive, Operator
 from concrete.projects import SoftwareProject
 from concrete.state import ProjectStatus, State, StatefulMixin
@@ -17,14 +18,17 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
     Provides a single entry point for common interactions with Operators
     """
 
-    def __init__(self):
+    def __init__(self, store_messages: bool = False):
         self.state = State(self, orchestrator=self)
         self.uuid = uuid1()
         self.clients = {
             "openai": OpenAIClient(),
         }
         self.update(status=ProjectStatus.READY)
-        self.operators = {'exec': Executive(self.clients), 'dev': Developer(self.clients)}
+        self.operators = {
+            'exec': Executive(self.clients, store_messages=store_messages),
+            'dev': Developer(self.clients, store_messages=store_messages),
+        }
 
     def add_operator(self, operator: Operator, title: str) -> None:
         self.operators[title] = operator
@@ -47,8 +51,8 @@ class SoftwareOrchestrator(Orchestrator, StatefulMixin):
         if dev is not None and dev not in self.operators:
             raise ValueError(f"{dev} not found.")
 
-        exec_operator: Executive = self.operators[exec] if exec is not None else self.operators['exec']
-        dev_operator: Developer = self.operators[dev] if dev is not None else self.operators['dev']
+        exec_operator: Executive = cast(Executive, self.operators[exec] if exec is not None else self.operators['exec'])
+        dev_operator: Developer = cast(Developer, self.operators[dev] if dev is not None else self.operators['dev'])
 
         self.update(status=ProjectStatus.WORKING)
 

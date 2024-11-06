@@ -1,11 +1,12 @@
 from collections.abc import Callable
+from typing import Any, cast
 
 from celery.result import AsyncResult
+from concrete.clients import CLIClient, model_to_schema
+from concrete.tasks import abstract_operation
 
 import concrete
-
-from .models import KombuMixin, Operation
-from .tasks import abstract_operation
+from concrete.models import KombuMixin, Message, Operation
 
 
 def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult]:
@@ -20,7 +21,7 @@ def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult
                 {"role": "system", "content": options["instructions"]},
                 {"role": "user", "content": string_func(self, *args, **kwargs)},
             ],
-            "message_format": concrete.clients.OpenAIClient.model_to_schema(options["response_format"]),
+            "message_format": model_to_schema(options["response_format"]),
         }
         operation = Operation(
             client_name=self.llm_client,
@@ -53,11 +54,11 @@ for operator_name, operator in concrete.abstract.AbstractOperatorMetaclass.Opera
 for message_name, message in concrete.models.messages.MESSAGE_REGISTRY.items():
     new_class = type(
         message.__name__,
-        (KombuMixin, message),
+        (cast(type, KombuMixin), cast(Any, message)),
         {'__module__': message.__module__},
     )
     setattr(concrete.models.messages, message.__name__, new_class)
-    concrete.models.messages.MESSAGE_REGISTRY[message_name] = new_class
+    concrete.models.messages.MESSAGE_REGISTRY[message_name] = cast(Message, new_class)
 
 original_model = concrete.models.clients.OpenAIClientModel
 
@@ -70,3 +71,5 @@ setattr(
         {'__module__': original_model.__module__},
     ),
 )
+
+CLIClient.emit("concrete-async initialized")

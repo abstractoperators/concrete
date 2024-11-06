@@ -7,10 +7,13 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 import jwt
-from concrete.clients import CLIClient, OpenAIClient
+from concrete.clients import CLIClient
+from concrete.clients.openai import OpenAIClient
 from concrete.models.messages import NodeUUID
 from concrete.operators import Executive
-from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
+from concrete.tools.github import GithubTool
+from concrete.tools.http import RestApiTool
+from concrete.tools.knowledge import KnowledgeGraphTool
 from concrete_db import crud
 from concrete_db.orm import Session
 from dotenv import load_dotenv
@@ -41,7 +44,7 @@ class Webhook(ABC):
         self.route = route
 
     @abstractmethod
-    async def webhook_handler(self, request: Request):
+    async def webhook_handler(self, request: Request, background_tasks: BackgroundTasks):
         pass
 
 
@@ -236,14 +239,14 @@ class AOGitHubDaemon(Webhook):
             CLIClient.emit("Root node file path: " + root_path)
 
         CLIClient.emit("Finding changed files in source branch/PR")
-        changed_files = GithubTool.get_changed_files(
+        raw_changed_files = GithubTool.get_changed_files(
             org=self.org,
             repo=self.repo,
             base=source_target,
             head=source_branch,
             access_token=self.installation_token.token,
         )
-        changed_files = [file[2:] for (_, file), _ in changed_files]
+        changed_files = [file[2:] for (_, file), _ in raw_changed_files]
 
         for changed_file in changed_files:
             full_path_to_file_to_document = os.path.join(root_path, changed_file)
@@ -327,7 +330,7 @@ class AOGitHubDaemon(Webhook):
         
         Think about which child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to.
         If you do not believe any children are appropriate, respond with NA.""",  # noqa
-            message_format=NodeUUID,
+            options={'response_format': NodeUUID},
         ).node_uuid
 
         if next_node_id == 'NA':

@@ -2,7 +2,7 @@ import argparse
 import asyncio
 
 from concrete.clients import CLIClient
-from concrete.tools import AwsTool, Container
+from concrete.tools.aws import AwsTool, Container
 
 from concrete import orchestrators
 
