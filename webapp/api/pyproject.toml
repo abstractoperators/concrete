@@ -5,9 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
 dependencies = [
+    "concrete-core[openai,auth,google-auth,requests]",
     "concrete-db",
     "fastapi[standard]>=0.115.4",
+    "gunicorn>=23.0.0",
 ]
 
 [tool.uv.sources]
+concrete-core = { workspace = true }
 concrete-db = { workspace = true }
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
