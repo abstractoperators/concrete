@@ -7,7 +7,7 @@ from uuid import UUID
 
 from concrete.clients import CLIClient
 from concrete.models.messages import ProjectDirectory
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm import Session
