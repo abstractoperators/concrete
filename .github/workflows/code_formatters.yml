@@ -28,7 +28,7 @@ jobs:
         with:
           max-line-length: "120"
           ignore: "W293"
-          path: "concrete"
+          path: "src"
           exclude: "migrations"
 
       - name: black
