@@ -48,6 +48,8 @@ String returning function for chat completions with no template messages.
 
 #### `invoke_tool`
 
+Helper method for invoking tools. 
+
 #### `__getattribute__`
 
 Handles redirection of string returning functions on Operators to the `_qna` function. Also handles calling `_delay` on asynchronous calls.
@@ -120,11 +122,35 @@ class CustomMessage(Message):
     field2: data_type = Field(..., description="Field 2 description")
 ```
 
+Messages can be used in Operators by passing the `response_format` option to string returning functions. By default, the `TextMessage` format is used.
+
+
 # Tools
 
-Tools represent an Operators 
+Tools represent an Operators ability to interact with external services and the world. Tools can be invoked by hand, or automatically by the Operator via their `invoke_tool` method.
+
+## `MetaTool`
+
+`MetaTool` provides a string representation of the tool. It uses type hints and documentation strings to create a human-readable representation of the tool.
+
+metaclass from `MetaTool` to create a tool.
+
+## Examples
 
 
+```python
+from concrete_core.tools import MetaTool
+from concrete_core.tools import invoke_tool
+class Arithmetic(metaclass = MetaTool):
+    @classmethod
+    def sum(cls, x: int, y: int) -> int:
+        """
+        Returns the sum of two numbers
+        """
+        return x + y
+
+print(Arithmetic)
+```
 
 
 Last Updated: 2024-11-06 15:55:36 UTC
