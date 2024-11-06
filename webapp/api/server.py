@@ -20,12 +20,11 @@ from concrete_db.orm.models import (
     OrchestratorUpdate,
 )
 from fastapi import Depends, FastAPI, HTTPException
+from pydantic import BaseModel
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from concrete import operators
-
-from .models import CommonReadParameters
 
 dotenv.load_dotenv(override=True)
 
@@ -50,6 +49,11 @@ If the db already exists and the sql models are the same, then behavior is as ex
 If the db already exists but the sql models differ, then migrations will need to be run for DB interaction
 to function as expected.
 """
+
+
+class CommonReadParameters(BaseModel):
+    skip: int
+    limit: int
 
 
 def get_common_read_params(skip: int = 0, limit: int = 100) -> CommonReadParameters:
