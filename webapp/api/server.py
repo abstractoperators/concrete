@@ -1,10 +1,13 @@
-import os
+# TODO: put middleware back in after webutils and utils fixed
+# import os
 from collections.abc import Callable, Sequence
 from typing import Annotated
 from uuid import UUID
 
 import dotenv
-from concrete.webutils import AuthMiddleware
+from concrete.projects import PROJECTS, DAGNode, Project
+
+# from concrete.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm import Session
 from concrete_db.orm.models import (
@@ -19,27 +22,31 @@ from concrete_db.orm.models import (
     OrchestratorUpdate,
 )
 from fastapi import Depends, FastAPI, HTTPException
-from starlette.middleware import Middleware
-from starlette.middleware.sessions import SessionMiddleware
+
+from concrete import operators
 
 from .models import CommonReadParameters
+
+# from starlette.middleware import Middleware
+# from starlette.middleware.sessions import SessionMiddleware
+
 
 dotenv.load_dotenv(override=True)
 
 UNAUTHENTICATED_PATHS = {'/ping', '/docs', '/redoc', '/openapi.json', '/favicon.ico'}
 
 # Setup App with Middleware
-middleware = [
-    Middleware(
-        SessionMiddleware,
-        secret_key=os.environ['HTTP_SESSION_SECRET'],
-        domain=os.environ['HTTP_SESSION_DOMAIN'],
-    ),
-    Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
-]
+# middleware = [
+# Middleware(
+#     SessionMiddleware,
+#     secret_key=os.environ['HTTP_SESSION_SECRET'],
+#     domain=os.environ['HTTP_SESSION_DOMAIN'],
+# ),
+# Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
+# ]
 
 
-app = FastAPI(title="Concrete API", middleware=middleware)
+app = FastAPI(title="Concrete API")  # , middleware=middleware)
 
 # Database Setup
 """
@@ -57,8 +64,8 @@ CommonReadDep = Annotated[CommonReadParameters, Depends(get_common_read_params)]
 
 
 # Object Lookup Exceptions
-def object_not_found(object_name: str) -> Callable[[UUID], HTTPException]:
-    def create_exception(object_uid: UUID):
+def object_not_found(object_name: str) -> Callable[[UUID | str], HTTPException]:
+    def create_exception(object_uid: UUID | str):
         return HTTPException(status_code=404, detail=f"{object_name} {object_uid} not found")
 
     return create_exception
@@ -68,6 +75,7 @@ orchestrator_not_found = object_not_found("Orchestrator")
 operator_not_found = object_not_found("Operator")
 client_not_found = object_not_found("Client")
 software_project_not_found = object_not_found("SoftwareProject")
+project_not_found = object_not_found("Project")
 user_not_found = object_not_found("User")
 
 
@@ -245,6 +253,56 @@ def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> 
 
 
 # ===Project and Operator Building=== #
+# TODO: add persistence
 
-# @app.post("/build/project")
-# def init_project(name: str) -> Projec
+
+@app.post("/build/project")
+def init_project(name: str):
+    """
+    Initiate a directed-acyclic-graph (DAG) project locally.
+    Projects must be unique in name.
+    Projects are started completely empty.
+    Projects contain an orchestration of operators, represented by an internal DAG.
+    Projects can be expanded by adding nodes and edges
+    via the endpoints for `expand_project_with_method` and `expand_project_with_connection`, respectively.
+    A project node contains an operator task, while a project edge connects tasks to one another.
+    Eventually, the project can be run using the endpoint for `run_project`.
+
+    name: The name of the project to be initialized.
+    """
+    if name in PROJECTS:
+        raise HTTPException(status_code=400, detail="{name} already exists as a Project!")
+    PROJECTS[name] = Project()
+    return PROJECTS[name]
+
+
+@app.post("/build/project/{project_name}/node")
+def expand_project_with_method(project_name: str, operator_name: str, task: str):
+    """
+    Expand a project by adding an operator task as a node in its DAG.
+
+    project_name: The name of the project to be expanded.
+    operator_name: The name of the operator whose task we'd like to use.
+    task: The name of the operator's task to add as a node.
+    """
+    if project_name not in PROJECTS:
+        raise project_not_found(project_name)
+    project = PROJECTS[project_name]
+    node = DAGNode(task, getattr(operators, operator_name))
+    project.add_node(node)
+    return project
+
+
+@app.post("/build/project/{project_name}/edge")
+def expand_project_with_connection(project_name: str, parent_name: str, child_name: str):
+    """
+    WIP.
+    Expand a project by connecting two tasks together.
+    The output from the parent task will be fed into the child task.
+
+    project_name: The name of the project to be expanded.
+    parent_name: The name of the parent task in the connection.
+    child_name: The name of the child task in the connection.
+    """
+    if project_name not in PROJECTS:
+        raise project_not_found(project_name)

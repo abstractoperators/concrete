@@ -61,6 +61,11 @@ class TextMessage(Message):
     text: str = Field()
 
 
+class Param(Message):
+    name: str = Field(description="Name of the parameter")
+    value: str = Field(description="Value of the parameter")
+
+
 class Tool(Message):
     tool_name: str = Field(description='Name of the tool')
     tool_method: str = Field(description='Command to call the tool')
@@ -102,8 +107,3 @@ class NodeSummary(Message):
 
 class NodeUUID(Message):
     node_uuid: str = Field(description="UUID of the node")
-
-
-class Param(Message):
-    name: str = Field(description="Name of the parameter")
-    value: str = Field(description="Value of the parameter")

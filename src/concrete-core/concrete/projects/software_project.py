@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator
 from textwrap import dedent
 from uuid import uuid1
 
-from concrete.clients import Client_con
+from concrete.clients import LMClient_con
 from concrete.models.messages import (
     PlannedComponents,
     ProjectDirectory,
@@ -29,7 +29,7 @@ class SoftwareProject(StatefulMixin):
         orchestrator: "Orchestrator",
         exec: Executive,
         dev: Developer,
-        clients: dict[str, Client_con],
+        clients: dict[str, LMClient_con],
         deploy: bool,
         run_async: bool,
     ):
