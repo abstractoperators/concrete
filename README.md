@@ -2,7 +2,7 @@
 
 ## Installation
 ```python
-pip install "concrete-core[openai]"
+pip install "concrete[openai]"
 ```
 
 ## Quickstart
