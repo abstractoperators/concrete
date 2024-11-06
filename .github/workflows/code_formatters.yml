@@ -21,11 +21,7 @@ jobs:
           python-version-file: "pyproject.toml"
       
       - name: Install the project
-        run: uv sync --all-extras --dev 
-        
-      - name: mypy
-        run: |
-          uv run python -m mypy src/concrete-core
+        run: uv sync --all-extras --dev --locked 
 
       - name: flake8
         uses: py-actions/flake8@v2
@@ -55,3 +51,28 @@ jobs:
           exit_zero: true  # force success. comments on pr when issues exist
           skips: B101,B601
 
+  mypy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./src/concrete-core",
+            "./src/concrete-async",
+            "./src/concrete-db",
+          ] 
+      
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.27"
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+      - run: uv sync --all-extras --dev --locked
+      
+      - name: Run task
+        run: |
+          uv run python -m mypy ${{ matrix.package }} 
