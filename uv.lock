@@ -493,11 +493,11 @@ google-auth = [
     { name = "google-auth" },
     { name = "google-auth-oauthlib" },
 ]
-http-client = [
-    { name = "requests" },
-]
 openai = [
     { name = "openai" },
+]
+requests = [
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -511,7 +511,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyjwt", marker = "extra == 'auth'" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "requests", marker = "extra == 'http-client'" },
+    { name = "requests", marker = "extra == 'requests'" },
 ]
 
 [[package]]

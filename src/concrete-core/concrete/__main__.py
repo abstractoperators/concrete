@@ -3,7 +3,7 @@ import asyncio
 
 from concrete import operators, orchestrator
 from concrete.clients import CLIClient
-from concrete.tools import AwsTool, Container
+from concrete.tools.aws import AwsTool, Container
 
 parser = argparse.ArgumentParser(description="Concrete CLI")
 subparsers = parser.add_subparsers(dest="mode")

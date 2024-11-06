@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
+from concrete_db.orm.setup import SQLALCHEMY_DATABASE_URL, engine
 from pydantic import ConfigDict, ValidationError, model_validator
 from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlalchemy.schema import Index
@@ -13,9 +14,8 @@ from concrete.clients import CLIClient
 from concrete.models.messages import Message as ConcreteMessage
 from concrete.models.messages import TextMessage
 from concrete.state import ProjectStatus
-from concrete.tools import MetaTool, tool_name_to_class
-
-from ..orm.setup import SQLALCHEMY_DATABASE_URL, engine
+from concrete.tools import MetaTool
+from concrete.tools.utils import tool_name_to_class
 
 
 class Base(SQLModel):
