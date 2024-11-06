@@ -5,7 +5,7 @@ from inspect import isclass
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from .clients import CLIClient, OpenAIClient
+from .clients import CLIClient, LMClient, OpenAIClient
 from .models.messages import Message, TextMessage, Tool
 from .tools import MetaTool
 from .tools import invoke_tool as invoke_tool_func
@@ -33,7 +33,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     # TODO replace OpenAIClient with GenericClient
     def __init__(
         self,
-        clients: dict[str, OpenAIClient] | None = None,
+        clients: dict[str, LMClient] | None = None,
         tools: list[MetaTool] | None = None,
         operator_id: UUID = uuid4(),  # TODO: Don't set a default
         project_id: UUID = uuid4(),  # TODO: Don't set a default
