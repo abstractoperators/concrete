@@ -13,7 +13,7 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = [
-    "openai>=1.40.5",
+    "openai>=1.40.0",
 ]
 
 [build-system]
