@@ -1,3 +1,1 @@
-from meta import MetaTool
-
-TOOLS_REGISTRY: dict[str, "MetaTool"] = {}
+from .meta import TOOLS_REGISTRY, MetaTool  # noqa
