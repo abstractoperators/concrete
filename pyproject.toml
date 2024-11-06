@@ -12,6 +12,7 @@ dev-dependencies = [
     "pytest==8.3.3",
     "ipykernel==6.29.5",
     "pip",
+    "boto3",
     "boto3-stubs[ecs]",
     "concrete-core",
     "concrete-async",

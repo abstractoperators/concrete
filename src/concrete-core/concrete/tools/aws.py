@@ -78,7 +78,7 @@ class AwsTool(metaclass=MetaTool):
             networkMode="awsvpc",
             requiresCompatibilities=["FARGATE"],
             containerDefinitions=[
-                {
+                {  # type: ignore
                     "name": container.container_name,
                     "image": container.image_uri,
                     "portMappings": [{"containerPort": container.container_port}],
@@ -260,7 +260,7 @@ class AwsTool(metaclass=MetaTool):
             networkMode="awsvpc",
             requiresCompatibilities=["FARGATE"],
             containerDefinitions=[
-                {
+                {  # type: ignore
                     "name": container.container_name,
                     "image": container.image_uri,
                     "portMappings": [{"containerPort": container.container_port}],
@@ -316,7 +316,7 @@ class AwsTool(metaclass=MetaTool):
                 },
                 loadBalancers=[
                     {
-                        "targetGroupArn": target_group_arn,
+                        "targetGroupArn": target_group_arn,  # type: ignore
                         "containerName": service_name,
                         "containerPort": containers[0].container_port,
                     }
