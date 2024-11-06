@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from concrete.clients import CLIClient
 from dotenv import load_dotenv
 from sqlalchemy import URL
-from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session as SQLModelSession
 from sqlmodel import create_engine
 
@@ -37,7 +36,6 @@ else:
     connect_args = {}
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @contextmanager
