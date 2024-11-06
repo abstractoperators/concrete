@@ -17,6 +17,7 @@ auth = [
     "pyjwt",
     "cryptography",
     "itsdangerous",  # session middleware
+    "fastapi"
 ]
 google-auth = [
     "google-auth",
