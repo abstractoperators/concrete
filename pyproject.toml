@@ -26,6 +26,7 @@ members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "webapp
 concrete-core = { workspace = true }
 concrete-async = { workspace = true }
 concrete-db = { workspace = true }
+api = { workspace = true }
 
 
 [tool.bandit]
