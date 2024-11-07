@@ -1,5 +1,5 @@
 import os
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 try:
     from openai import OpenAI  # noqa
@@ -11,8 +11,6 @@ from concrete.models.messages import Message, TextMessage
 
 if TYPE_CHECKING:
     from openai.types.chat import ChatCompletion
-
-LMClient_con = TypeVar("LMClient_con", bound=LMClient, contravariant=True)
 
 
 class OpenAIClient(LMClient):
@@ -38,7 +36,7 @@ class OpenAIClient(LMClient):
         request_params = {
             "messages": messages,
             "model": self.model,
-            "temperature": temperature if temperature is not None else self.default_temperature,
+            "temperature": (temperature if temperature is not None else self.default_temperature),
             "response_format": message_format,
             **kwargs,
         }

@@ -23,7 +23,7 @@ class MetaTool(type):
                 for param_name, param in signature.parameters.items():
                     param_str = param_name
                     if param.annotation != inspect.Parameter.empty:
-                        if hasattr(param.annotation, '__name__'):
+                        if hasattr(param.annotation, "__name__"):
                             param_str += f": {param.annotation.__name__}"
                         else:
                             # Handle Union types
@@ -34,7 +34,7 @@ class MetaTool(type):
 
                 return_str = ""
                 if signature.return_annotation != inspect.Signature.empty:
-                    if hasattr(signature.return_annotation, '__name__'):
+                    if hasattr(signature.return_annotation, "__name__"):
                         return_str = f" -> {signature.return_annotation.__name__}"
                     else:
                         # Handle Union types

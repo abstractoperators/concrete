@@ -1,3 +1,7 @@
+Last Updated: 2024-11-06 19:06:23 UTC
+
+Lines Changed: +7, -3
+
 # Hello World
 
 Let's go ahead and make our "Hello World" equivalent for `concrete`.
@@ -20,7 +24,7 @@ What we'll be making is in fact a simpler version of what's in `concrete.main`, 
 ## Create an Orchestrator
 
 ```python hl_lines="1 4"
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 
 
 so = SoftwareOrchestrator()
@@ -34,7 +38,7 @@ It comes pre-equipped with two operators: one executive, and one developer.
 ## Create a Project
 
 ```python hl_lines="5-7"
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 
 
 so = SoftwareOrchestrator()
@@ -51,7 +55,7 @@ A **Software Project** asks the executive to create a plan from the given prompt
 ## Run the Project
 
 ```python hl_lines="9-11"
-from concrete.orchestrator import SoftwareOrchestrator
+from concrete.orchestrators import SoftwareOrchestrator
 
 
 so = SoftwareOrchestrator()

@@ -30,19 +30,19 @@ class HTTPTool(metaclass=MetaTool):
 
     @classmethod
     def get(cls, url: str, **kwargs) -> Response:
-        return cls.request('GET', url, **kwargs)
+        return cls.request("GET", url, **kwargs)
 
     @classmethod
     def post(cls, url: str, **kwargs) -> Response:
-        return cls.request('POST', url, **kwargs)
+        return cls.request("POST", url, **kwargs)
 
     @classmethod
     def put(cls, url: str, **kwargs) -> Response:
-        return cls.request('PUT', url, **kwargs)
+        return cls.request("PUT", url, **kwargs)
 
     @classmethod
     def delete(cls, url: str, **kwargs) -> Response:
-        return cls.request('DELETE', url, **kwargs)
+        return cls.request("DELETE", url, **kwargs)
 
 
 class RestApiTool(HTTPTool):
@@ -51,9 +51,9 @@ class RestApiTool(HTTPTool):
         if not resp.ok:
             CLIClient.emit(f"Failed request to {url}: {resp.status_code} {resp}")
             resp.raise_for_status()
-        content_type = resp.headers.get('content-type', '')
-        if 'application/json' in content_type:
+        content_type = resp.headers.get("content-type", "")
+        if "application/json" in content_type:
             return resp.json()
-        if 'text' in content_type:
+        if "text" in content_type:
             return resp.text
         return resp.content
