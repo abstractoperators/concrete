@@ -36,6 +36,7 @@ extra_css:
   - stylesheets/extra.css
 nav:
   - Concrete: index.md
+  - Installation: installation.md
   - Learn:
       - learn/index.md
       - learn/hello-world.md
@@ -52,7 +53,7 @@ nav:
       - Deployments:
           - developer-guide/deployments/local.md
   - SDK Guide:
-      - sdk-reference/installation.md
+      - sdk-reference/index.md
       - sdk-reference/operators.md
       - sdk-reference/messages.md
       - sdk-reference/tools.md

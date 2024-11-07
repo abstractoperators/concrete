@@ -1,5 +1,3 @@
-Last Updated: 2024-11-07 16:47:45 UTC
-Lines Changed: +1, -1
 # Welcome to Concrete Docs
 
 Concrete is an AI agent orchestration platform.
@@ -14,4 +12,7 @@ Concrete is an AI agent orchestration platform.
 
 ## [Developer Guide](developer-guide/index.md)
 
-## [SDK Reference](sdk-reference/installation.md)
+## [SDK Reference](sdk-reference/index.md)
+
+Last Updated: 2024-11-07 19:05:37 UTC
+Lines Changed: +4, -3

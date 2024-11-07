@@ -1,13 +1,12 @@
-Last Updated: 2024-11-07 16:47:45 UTC
-Lines Changed: +21, -0
-
 # Installation
+
+## SDK Installation
 
 ```bash
 pip install concrete[openai]
 ```
 
-## Extras
+### Extras
 
 openai is an extra package that includes the OpenAI API client.
 
@@ -17,7 +16,14 @@ Other extras include:
 - auth
 - google-auth
 
-## Sidecar packages
+### Sidecar packages
 
 - `concrete-db`: For saving messages
 - `concrete-async`: For asynchronous workers
+
+## Installation from source
+
+[Developer Installation](developer-guide/setup.md)
+
+Last Updated: 2024-11-07 19:05:37 UTC
+Lines Changed: +29, -0

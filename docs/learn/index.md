@@ -1,9 +1,7 @@
+Last Updated: 2024-11-07 19:05:37 UTC
+Lines Changed: +1, -5
 # Learn
 
 This section will teach you how to make the most of `concrete`.
 
-Before anything, let's go ahead and install `concrete`:
-
-```shell
-pip install concrete
-```
+TODO: Examples go in here.
