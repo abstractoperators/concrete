@@ -50,7 +50,7 @@ build-daemons:
 	docker compose -f docker/docker-compose.yml build daemons
 
 build-docs:
-	$(UV) mkdocs build --config-file config/mkdocs.yml
+	$(UV) mkdocs build --config-file docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
 build-main:
@@ -82,7 +82,7 @@ run-daemons:
 	docker compose -f docker/docker-compose.yml stop daemons
 	docker compose -f docker/docker-compose.yml up -d daemons
 
-run-docs:
+run-docs: build-docs
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
 
