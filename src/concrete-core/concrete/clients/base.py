@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Sequence
+from typing import Any, Sequence, TypeVar
 
 from pydantic import BaseModel as PydanticModel
 
@@ -16,6 +16,9 @@ class LMClient(ABC):
         Complete a chat message (message[-1]) with history messages[0:-1]
         """
         pass
+
+
+LMClient_con = TypeVar("LMClient_con", bound=LMClient, contravariant=True)
 
 
 class CLIClient(Client):

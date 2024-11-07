@@ -7,11 +7,10 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from dotenv import dotenv_values
-
 from concrete.clients import CLIClient
 from concrete.models.base import ConcreteModel
 from concrete.tools import MetaTool
+from dotenv import dotenv_values
 
 
 class Container(ConcreteModel):
@@ -92,7 +91,7 @@ class AwsTool(metaclass=MetaTool):
                         },
                     },
                     "environment": [
-                        {'name': k, 'value': v} for k, v in dotenv_values(container.container_env_file).items()
+                        {"name": k, "value": v} for k, v in dotenv_values(container.container_env_file).items()
                     ],
                 }
                 for container in containers
@@ -148,32 +147,32 @@ class AwsTool(metaclass=MetaTool):
         """
         import boto3
 
-        elbv2_client = boto3.client('elbv2')
+        elbv2_client = boto3.client("elbv2")
         target_group_arn = None
         if listener_rule is None:
-            listener_rule_field = 'host-header'
-            listener_rule_value = f'{target_group_name}.abop.ai'
+            listener_rule_field = "host-header"
+            listener_rule_value = f"{target_group_name}.abop.ai"
         else:
-            if listener_rule.get('field') and listener_rule.get('value'):
-                listener_rule_field = str(listener_rule.get('field'))
-                listener_rule_value = str(listener_rule.get('value'))
+            if listener_rule.get("field") and listener_rule.get("value"):
+                listener_rule_field = str(listener_rule.get("field"))
+                listener_rule_value = str(listener_rule.get("value"))
             else:
-                raise ValueError('listener_rule must contain both field and value keys.')
+                raise ValueError("listener_rule must contain both field and value keys.")
 
-        arn_prefix = listener_arn.split(':listener')[0]
+        arn_prefix = listener_arn.split(":listener")[0]
         # Replace rule for target group if it already exists
-        existing_rules = elbv2_client.describe_rules(ListenerArn=listener_arn)['Rules']
+        existing_rules = elbv2_client.describe_rules(ListenerArn=listener_arn)["Rules"]
         target_group_arn = None
         for rule in existing_rules:
-            if rule['Actions'][0]['Type'] == 'forward' and rule["Actions"][0]["TargetGroupArn"].startswith(
+            if rule["Actions"][0]["Type"] == "forward" and rule["Actions"][0]["TargetGroupArn"].startswith(
                 arn_prefix + f":targetgroup/{target_group_name}"
             ):
-                elbv2_client.delete_rule(RuleArn=rule['RuleArn'])
+                elbv2_client.delete_rule(RuleArn=rule["RuleArn"])
 
         if target_group_arn is None:
             target_group_arn = elbv2_client.create_target_group(
                 Name=target_group_name,
-                Protocol='HTTP',
+                Protocol="HTTP",
                 Port=port,
                 VpcId=vpc,
                 TargetType="ip",
@@ -274,7 +273,7 @@ class AwsTool(metaclass=MetaTool):
                         },
                     },
                     "environment": [
-                        {'name': k, 'value': v} for k, v in dotenv_values(container.container_env_file).items()
+                        {"name": k, "value": v} for k, v in dotenv_values(container.container_env_file).items()
                     ],
                 }
                 for container in containers

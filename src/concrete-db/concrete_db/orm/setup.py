@@ -1,13 +1,11 @@
 import os
 from contextlib import contextmanager
 
+from concrete.clients import CLIClient
 from dotenv import load_dotenv
 from sqlalchemy import URL
-from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session as SQLModelSession
 from sqlmodel import create_engine
-
-from concrete.clients import CLIClient
 
 load_dotenv(override=True)
 if (
@@ -29,7 +27,7 @@ else:
         port=db_port,
         database=database,
     )
-    CLIClient.emit(f'Database environment variables found. ORM URL configured as: {SQLALCHEMY_DATABASE_URL}')
+    CLIClient.emit(f"Database environment variables found. ORM URL configured as: {SQLALCHEMY_DATABASE_URL}")
 
 
 if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
@@ -38,7 +36,6 @@ else:
     connect_args = {}
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @contextmanager

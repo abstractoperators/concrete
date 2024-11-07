@@ -1,6 +1,6 @@
 UV := uv run
 PYTHON := $(UV) python
-ORCHESTRATE := PYTHONPATH=src/concrete-core $(PYTHON) -m concrete_core prompt
+ORCHESTRATE := PYTHONPATH=src/concrete-core $(PYTHON) -m concrete prompt
 
 
 # Setup
@@ -50,7 +50,7 @@ build-daemons:
 	docker compose -f docker/docker-compose.yml build daemons
 
 build-docs:
-	$(POETRY) mkdocs build --config-file config/mkdocs.yml
+	$(UV) mkdocs build --config-file config/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
 build-main:
@@ -62,7 +62,7 @@ build-alembic:
 # NOTE: Services inside docker requiring postgres need to have env variable DB_HOST=host.docker.internal
 # Launch postgres using env variable DB_HOST=localhost for alembic migrations
 # Then, change DB_HOST=host.docker.internal, and launch your dockerized service.
-run-webapp-api: build-webapp-api
+run-webapp-api: build-api 
 	docker compose -f docker/docker-compose.yml stop api
 	docker compose -f docker/docker-compose.yml up -d api
 
@@ -98,10 +98,8 @@ run-postgres:
 		echo "Waiting for postgres..."; \
 		sleep 1; \
 	done
-	$(POETRY) alembic upgrade head
+	$(UV) alembic upgrade head
 # ----------------------- AWS Commands -----------------------
-# TODO: Use hyphens instead of underscores
-# https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
 # Need to set your aws config for default profile + credentials
 aws-ecr-login:
@@ -146,18 +144,18 @@ local-docs:
 	mkdocs serve --config-file config/mkdocs.yml
 
 local-api:
-	$(POETRY) fastapi dev webapp/api/server.py --port 8001
+	$(UV) fastapi dev webapp/api/server.py --port 8001
 
 local-main:
-	$(POETRY) fastapi dev webapp/main/server.py
+	$(UV) fastapi dev webapp/main/server.py
 
 local-auth:
-	$(POETRY) fastapi dev webapp/auth/server.py --port 8002
+	$(UV) fastapi dev webapp/auth/server.py --port 8002
 
 # Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
 # I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
 local-daemons:
-	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(POETRY) fastapi dev server.py"
+	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(UV) fastapi dev server.py"
 
 
 # Build Packages

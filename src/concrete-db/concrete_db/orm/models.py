@@ -3,19 +3,19 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
-from concrete_db.orm.setup import SQLALCHEMY_DATABASE_URL, engine
-from pydantic import ConfigDict, ValidationError, model_validator
-from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
-from sqlalchemy.schema import Index
-from sqlalchemy.sql import func
-from sqlmodel import Field, Relationship, SQLModel
-
 from concrete.clients import CLIClient
 from concrete.models.messages import Message as ConcreteMessage
 from concrete.models.messages import TextMessage
 from concrete.state import ProjectStatus
 from concrete.tools import MetaTool
 from concrete.tools.utils import tool_name_to_class
+from pydantic import ConfigDict, ValidationError, model_validator
+from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
+from sqlalchemy.schema import Index
+from sqlalchemy.sql import func
+from sqlmodel import Field, Relationship, SQLModel
+
+from .setup import SQLALCHEMY_DATABASE_URL, engine
 
 
 class Base(SQLModel):
@@ -192,9 +192,9 @@ class Operator(OperatorBase, MetadataMixin, table=True):
 
         operator: PydanticOperator | PydanticDeveloper | PydanticExecutive
 
-        if self.title == 'executive':
+        if self.title == "executive":
             operator = PydanticExecutive(store_messages=True)
-        elif self.title == 'developer':
+        elif self.title == "developer":
             operator = PydanticDeveloper(store_messages=True)
         else:
             # Otherwise just use a normal Operator
@@ -386,7 +386,10 @@ class MessageBase(Base):
         return self
 
     __table_args__ = (
-        CheckConstraint("(operator_id IS NULL) <> (user_id IS NULL)", name="The sender can only be one entity!"),
+        CheckConstraint(
+            "(operator_id IS NULL) <> (user_id IS NULL)",
+            name="The sender can only be one entity!",
+        ),
     )
 
 
@@ -510,7 +513,7 @@ class RepoNode(RepoNodeBase, MetadataMixin, table=True):
         sa_relationship_kwargs={"remote_side": "reponode.c.id"},
     )
 
-    __table_args__ = (Index('ix_org_repo', 'org', 'repo'),)
+    __table_args__ = (Index("ix_org_repo", "org", "repo"),)
 
 
 # endregion

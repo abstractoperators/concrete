@@ -46,7 +46,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         """
         store_messages (bool): Whether or not to save the messages in db
         """
-        self._clients = clients or {'openai': OpenAIClient()}
+        self._clients = clients or {"openai": OpenAIClient()}
         self.llm_client = "openai"
         self.llm_client_function = "complete"
         self.tools = tools
@@ -120,11 +120,11 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 instructions (str): override system prompt
                 tools (list[concrete.models.MetaTool]): list of tools available for the operator
             """
-            options: dict = kwargs.pop('options', {}) | {}
+            options: dict = kwargs.pop("options", {}) | {}
 
-            tools = options.get('tools') or (self.tools if options.get('use_tools') else [])
-            response_format = options.get('response_format') or self.response_format
-            instructions = options.get('instructions') or self.instructions
+            tools = options.get("tools") or (self.tools if options.get("use_tools") else [])
+            response_format = options.get("response_format") or self.response_format
+            instructions = options.get("instructions") or self.instructions
 
             tools_addendum = ""
             if tools:
@@ -139,7 +139,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
             if tools:
                 response_format = type(
-                    f'{response_format.__name__}WithTools',
+                    f"{response_format.__name__}WithTools",
                     (response_format, Tool),
                     {},
                 )
@@ -157,12 +157,12 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             # However, it aligns with goals of wanting Operators to be able to use tools
             if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
                 resp = invoke_tool(cast(Tool, answer))
-                if resp is not None and hasattr(resp, '__str__'):
+                if resp is not None and hasattr(resp, "__str__"):
                     # Update the query to include the tool call results.
-                    tool_preface = f'You called the tool: {answer.tool_name}.{answer.tool_method}\n'
-                    tool_preface += f'with the following parameters: {answer.tool_parameters}\n'
-                    tool_preface += f'The tool returned: {str(resp)}\n'
-                    tool_preface += 'Use these results to answer the following query:\n'
+                    tool_preface = f"You called the tool: {answer.tool_name}.{answer.tool_method}\n"
+                    tool_preface += f"with the following parameters: {answer.tool_parameters}\n"
+                    tool_preface += f"The tool returned: {str(resp)}\n"
+                    tool_preface += "Use these results to answer the following query:\n"
                     query = tool_preface + question_producer(*args, **kwargs)
                     answer = self._qna(
                         query,
@@ -199,7 +199,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
         def wrapped_func(*args, **kwargs):
             self_options = self._options
-            kwargs_options = kwargs.pop('options', {})
+            kwargs_options = kwargs.pop("options", {})
             options = self_options | kwargs_options
 
             result = attr(*args, options=self._options, **kwargs)
@@ -207,7 +207,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 return result
 
             llm_func = self.qna(attr)
-            if options.get('run_async'):
+            if options.get("run_async"):
                 return llm_func._delay(self, *args, options=options, **kwargs)
 
             return llm_func(*args, options=options, **kwargs)
@@ -217,8 +217,8 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
     @property
     def _options(self) -> dict[str, Any]:
         return {
-            'instructions': self.instructions,
-            'response_format': self.response_format,
+            "instructions": self.instructions,
+            "response_format": self.response_format,
         }
 
     def chat(self, message: str, options: dict[str, Any] = {}) -> str:
