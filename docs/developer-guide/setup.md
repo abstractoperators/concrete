@@ -1,6 +1,3 @@
-Last Updated: 2024-11-06 18:49:07 UTC
-
-Lines Changed: +3, -3
 
 # Setup
 
@@ -171,3 +168,7 @@ By default, operators rely on OpenAI ChatGPT 4 models to process queries. OpenAI
 ```shell
 OPENAI_API_KEY=<your api key here>
 ```
+
+Last Updated: 2024-11-07 20:31:48 UTC
+
+Lines Changed: +4, -3
