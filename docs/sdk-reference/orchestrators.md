@@ -14,7 +14,7 @@ Orchestrators are a set of configured Operators and a resource manager. They pro
 
 ## `process_new_project`
 
-Processes a software project.
+Creates and processes a new software project.
 
 - starting_prompt (str): The starting prompt for the project
 - project_id (uuid): Optional project ID for database integration.
@@ -24,5 +24,5 @@ Processes a software project.
 Returns an AsyncGenerator of the project's messages.
 
 #
-Last Updated: 2024-11-07 20:42:06 UTC
-Lines Changed: +2, -0
+Last Updated: 2024-11-07 21:07:13 UTC
+Lines Changed: +1, -1
