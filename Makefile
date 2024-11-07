@@ -142,7 +142,7 @@ celery: rabbitmq
 
 # Run locally
 local-docs:
-	poetry run mkdocs build --config-file config/mkdocs.yml
+	$(UV) mkdocs build --config-file config/mkdocs.yml
 	mkdocs serve --config-file config/mkdocs.yml
 
 local-api:
