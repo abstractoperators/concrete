@@ -3,6 +3,7 @@ on:
     push:
         branches:
             - main
+            - michael/sdk_docs
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -25,31 +26,27 @@ jobs:
               with:
                   mask-password: "true"
 
-            - name: Setup Python for poetry
-              uses: actions/setup-python@v5
-              with:
-                python-version: "3.11.9"
+            - uses: astral-sh/setup-uv@v3
+              with: 
+                version: "0.4.27"
 
-            - name: Install Poetry
-              run: |
-                  curl -sSL https://install.python-poetry.org | python3 -
-                  poetry --version
-                  poetry install --only docs --no-cache --no-ansi
+            - run: uv sync --all-extras --dev
 
-            - name: Build the images
-              run: |
-                  make build-docs
+            - name: Build the docs image
+              run: make build-docs
 
             - name: Push to ECR
-              run: |
-                  make aws-ecr-push-docs
+              run: make aws-ecr-push-docs
     deploy:
         needs: build
         runs-on: ubuntu-latest
 
         steps:
-            - name: Setup Python for poetry
-              uses: actions/setup-python@v5
+            - uses: astral-sh/setup-uv@v3
+              with: 
+                version: "0.4.27"
+
+            - uses: actions/setup-python@v5
               with:
                 python-version: "3.11.9"
 
@@ -64,10 +61,7 @@ jobs:
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
               run: |
-                  curl -sSL https://install.python-poetry.org | python3 -
-                  poetry --version
-                  poetry install
-                  poetry run python -m concrete deploy \
+                  uv run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest \
                     --container-name docs-staging \
                     --container-port 80 \
@@ -77,9 +71,6 @@ jobs:
                     --subnets subnet-0644cadc735c6b557 \
                     --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46
 
-# https://github.com/actions/deploy-pages/issues/329 -
-# https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
-# The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).
 permissions:
   id-token: write 
   contents: read

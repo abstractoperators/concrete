@@ -5,13 +5,11 @@ jobs:
     deploy:
         runs-on: ubuntu-latest
         steps:
-            - name: Setup Python for poetry
-              uses: actions/setup-python@v5
+            - uses: actions/setup-python@v5
               with:
                 python-version: "3.11.9"
 
-            - name: Checkout code
-              uses: actions/checkout@v2
+            - uses: actions/checkout@v2
 
             - name: Configure AWS Credentials for ECS
               uses: aws-actions/configure-aws-credentials@v4
@@ -21,19 +19,13 @@ jobs:
 
             - name: Deploy to ECS staging using AwsTool._deploy_service
               run: |
-                  curl -sSL https://install.python-poetry.org | python3 -
-                  poetry --version
-                  poetry install
-                  poetry run python -m concrete deploy \
+                  uv run python -m concrete deploy \
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest \
                     --container-name docs \
                     --container-port 80 \
                     --container-env-file "" \
                     --service-name docs 
 
-# https://github.com/actions/deploy-pages/issues/329 -
-# https://github.com/github/docs/issues/32320 - Explains why id-token write is needed
-# The id-token: write permission provides a workflow the ability to interact with external services that use OpenID Connect (OIDC).
 permissions:
   id-token: write 
   contents: read

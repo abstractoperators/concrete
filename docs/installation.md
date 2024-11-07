@@ -3,7 +3,7 @@
 ## SDK Installation
 
 ```bash
-pip install concrete[openai]
+pip install concrete-core[openai]
 ```
 
 ### Extras
