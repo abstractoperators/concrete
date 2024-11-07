@@ -1,12 +1,13 @@
-# Welcome to the Abstract Operator SDK Reference
+Last Updated: 2024-11-07 16:47:45 UTC
+Lines Changed: +21, -0
 
-## Installation
+# Installation
 
 ```bash
 pip install concrete[openai]
 ```
 
-### Extras
+## Extras
 
 openai is an extra package that includes the OpenAI API client.
 
@@ -16,7 +17,7 @@ Other extras include:
 - auth
 - google-auth
 
-### Sidecar packages
+## Sidecar packages
 
 - `concrete-db`: For saving messages
 - `concrete-async`: For asynchronous workers
