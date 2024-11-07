@@ -49,7 +49,7 @@ nav:
   - Developer Guide:
       - developer-guide/index.md
       - developer-guide/setup.md
-      - developer-guide/db.md
+      - developer-guide/database.md
       - Deployments:
           - developer-guide/deployments/local.md
   - SDK Guide:
