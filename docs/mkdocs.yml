@@ -57,6 +57,9 @@ nav:
       - sdk-reference/operators.md
       - sdk-reference/messages.md
       - sdk-reference/tools.md
+      - sdk-reference/database.md
+      - sdk-reference/orchestrators.md
+      - sdk-reference/projects.md
 
 markdown_extensions:
   - pymdownx.highlight:
