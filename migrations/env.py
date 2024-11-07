@@ -3,15 +3,14 @@ from logging.config import fileConfig
 
 import dotenv
 from alembic import context
+from concrete.clients import CLIClient
 from sqlalchemy import URL, engine_from_config, pool
 from sqlmodel import SQLModel
-
-from concrete.clients import CLIClient
 
 dotenv.load_dotenv(override=True)
 
 
-from concrete.db.orm.models import *  # noqa: F401, F403, E402
+from concrete_db.orm.models import *  # noqa: F401, F403, E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -44,9 +43,12 @@ SQLALCHEMY_DATABASE_URL = URL.create(
     database=os.environ.get("DB_DATABASE", "sql_app.db"),
 )
 
-CLIClient.emit(f'Alembic connecting to database at {SQLALCHEMY_DATABASE_URL}')
+CLIClient.emit(f"Alembic connecting to database at {SQLALCHEMY_DATABASE_URL}")
 CLIClient.emit(f'Password starts with: {os.environ.get("DB_PASSWORD", "")[0]}')
-config.set_main_option('sqlalchemy.url', str(SQLALCHEMY_DATABASE_URL).replace('***', os.environ.get('DB_PASSWORD', "")))
+config.set_main_option(
+    "sqlalchemy.url",
+    str(SQLALCHEMY_DATABASE_URL).replace("***", os.environ.get("DB_PASSWORD", "")),
+)
 
 
 def run_migrations_offline() -> None:

@@ -1,74 +1,36 @@
-[tool.poetry]
-name = "concrete-operators"
-version = "0.1.11"
-description = "AI Agent Orchestration Platform"
-authors = ["Abstract Operators <hello@abstractoperators.ai>"]
-readme = "README.md"
-packages = [{ include = "concrete" }]
 
+[tool.uv]
+dev-dependencies = [
+    "jupyterlab==4.2.5",
+    "black==24.4.2",
+    "flake8==7.1.0",
+    "isort==5.13.2",
+    "bandit==1.7.9",
+    "pre-commit==3.7.1",
+    "mypy==1.11.2",
+    "alembic==1.13.2",
+    "pytest==8.3.3",
+    "ipykernel==6.29.5",
+    "pip",
+    "boto3",
+    "boto3-stubs[ecs]",
+    "concrete-core",
+    "concrete-async",
+    "concrete-db",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11.9"
-python-dotenv = "==1.0.1"
-openai = "==1.40.5"
-astroid = "==3.2.3"
-astor = "==0.8.1"
-celery = "==5.4.0"
-sqlalchemy = "==2.0.34"
-sqlmodel = "==0.0.22"
-tenacity = "==9.0.0"
-requests = "==2.32.3"
-psycopg = {extras = ["binary"], version = "==3.2.3"}
+[tool.uv.workspace]
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "webapp/api"] # Can't do src/* because of eggs and misc auto-generated files
 
-
-[tool.poetry.group.tooluse.dependencies]
-boto3 = "==1.35.3"
-chardet = "==5.2.0"
-matplotlib = "==3.9.2"
-networkx = "==3.3"
-
-
-[tool.poetry.group.dev.dependencies]
-jupyterlab = "==4.2.5"
-black = "==24.4.2"
-flake8 = "==7.1.0"
-isort = "==5.13.2"
-bandit = "==1.7.9"
-pre-commit = "==3.7.1"
-mypy = "==1.11.2"
-alembic = "==1.13.2"
-
-
-[tool.poetry.group.webapp.dependencies]
-gunicorn = "==22.0.0"
-uvicorn = "==0.30.4"
-fastapi = "==0.111.1"
-google-auth = "==2.35.0"
-google-auth-oauthlib = "==1.2.1"
-google-api-python-client = "==2.147.0"
-itsdangerous = "==2.2.0"  # session middleware
-pyjwt = "==2.9.0"
-cryptography = "==43.0.1"  # for pyjwt
-
-
-[tool.poetry.group.docs.dependencies]
-mkdocs-material = "==9.5.34"
-
-
-[tool.poetry.group.daemons.dependencies]
-pyjwt = "2.9.0"
-cryptography = "==43.0.1"
-
-[tool.poetry.group.test.dependencies]
-pytest = "==8.3.2"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv.sources]
+concrete-core = { workspace = true }
+concrete-async = { workspace = true }
+concrete-db = { workspace = true }
+api = { workspace = true }
 
 
 [tool.bandit]
 exclude_dirs = ["tests", "path/to/file"]
 tests = ["B201", "B301"]
 skips = ["B101", "B601"]
+
