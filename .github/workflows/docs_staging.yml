@@ -1,10 +1,9 @@
 name: Deploy Docs to Staging
-run-name: Deploy Docs to Staging }
+run-name: Deploy Docs to Staging
 on:
     push:
         branches:
             - main
-            - michael/sdk_docs
 jobs:
     build:
         runs-on: ubuntu-latest
