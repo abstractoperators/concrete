@@ -3,14 +3,13 @@ name = "api"
 version = "0.1.0"
 requires-python = ">=3.11.9"
 dependencies = [
-    "concrete-core[openai,auth,google-auth,requests]",
-    "concrete-core[openai,auth,google-auth,requests]",
-    "concrete-db",
-    'gunicorn>=23.0.0',
-    "uvicorn>=0.32.0",
-    'fastapi',
+    "concrete-core[openai,auth,google-auth,requests]>=0.0.4",
+    "concrete-db>=0.0.1",
+    "webapp>=0.1.0",
 ]
 
+[tool.uv.sources]
+webapp = { workspace = true }
 
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
