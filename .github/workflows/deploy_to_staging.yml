@@ -22,9 +22,12 @@ jobs:
             - uses: actions/setup-python@v5
               with: 
                 python-version-file: 'pyproject.toml'
+        
+            - uses: astral-sh/setup-uv@v3
+              with:
+                version: "0.4.27"
 
-            - name: Setup environment
-              run: uv sync --all-extras --dev
+            - run: uv sync --all-extras --dev
             
             - name: Cache venv
               uses: actions/cache@v4
@@ -32,3 +35,54 @@ jobs:
                 path: .venv
                 key: venv-${{runner.os}}-${{hashFiles('uv.lock')}}
                 restore-keys: venv-${{runner.os}}-
+    
+    build: 
+        name: Build the images
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                image:
+                    - api
+                    - main
+                    - homepage
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-python@v5
+              with:
+                python-version-file: 'pyproject.toml'
+
+            - name: Restore venv
+              uses: actions/cache@v4
+              with:
+                path: .venv
+                key: venv-${{runner.os}}-${{hashFiles('uv.lock')}}
+                restore-keys: venv-${{runner.os}}-
+           
+            # In case the cache is not restored, we need to install the dependencies
+            - uses: astral-sh/setup-uv@v3
+              with:
+                version: "0.4.27"
+                enable-cache: true
+            
+            - run: uv sync --all-extras --dev --locked
+            
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+                aws-region: us-east-1
+            
+            - name: Login to ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+              with:
+                mask-password: "true"
+            
+            - name: Build the images
+              run: |
+                touch .env
+                make build-${{ matrix.image }}
+            
+            
+        

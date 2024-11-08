@@ -34,27 +34,28 @@ deploysimpleflask:
 	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
 # ----------------------- Build commands -----------------------
-build-api:
-	docker compose -f docker/docker-compose.yml build api
+build-app:
+	docker compose -f docker/docker-compose.yml build $(APP)
 
-build-webapp-homepage:
-	docker compose -f docker/docker-compose.yml build webapp-homepage
+# build-api:
+# 	docker compose -f docker/docker-compose.yml build api
 
-build-auth:
-	docker compose -f docker/docker-compose.yml build auth
+# build-homepage:
+# 	docker compose -f docker/docker-compose.yml build webapp-homepage
 
-build-dind-builder:
-	docker compose -f docker/docker-compose.yml build dind-builder
+# build-auth:
+# 	docker compose -f docker/docker-compose.yml build auth
 
-build-daemons:
-	docker compose -f docker/docker-compose.yml build daemons
+
+# build-daemons:
+# 	docker compose -f docker/docker-compose.yml build daemons
 
 build-docs:
 	$(UV) mkdocs build --config-file config/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
-build-main:
-	docker compose -f docker/docker-compose.yml build main
+# build-main:
+# 	docker compose -f docker/docker-compose.yml build main
 
 build-alembic:
 	docker compose -f docker/docker-compose.yml build alembic
