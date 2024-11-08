@@ -44,18 +44,8 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                include: # Specify all env vars here
-                    - image: api
-                      env_vars: |
-                        OPENAI_TEMPERATURE=0
-                        OPENAI_API_KEY=$OPENAI_API_KEY
-                    - image: main
-                      env_vars: |
-                        DB_PASSWORD=$DB_PASSWORD
-                        DB_HOST=$DB_HOST
-                    - image: homepage
-                      env_vars: |
-                        HTTP_SESSION_SECRET=$HTTP_SESSION_SECRET
+                image: ['api', 'main', 'homepage', 'auth']
+
         steps:
             - uses: actions/checkout@v4
 
@@ -95,10 +85,67 @@ jobs:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
                   aws-region: us-east-1
             
-            - name: Set up .env file
+            - name: Set up .env file for api
+              if: matrix.image == 'api' 
               run: |
                 touch .env
-                echo ${{ matrix.env_vars }}>>.env
+                echo OPENAI_API_KEY=${{ secrets.DEMO_OPENAI_API_KEY }} > .env
+                echo OPENAI_TEMPERATURE=0 >> .env
+                echo DB_DRIVER=postgresql+psycopg >> .env 
+                echo DB_USERNAME=postgres >> .env
+                echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+                echo DB_PORT=5432 >> .env
+                echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+                echo DB_DATABASE=postgres >> .env
+
+                echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+
+            - name: Set up .env file for main
+              if: matrix.image == 'main'
+              run: |
+                touch .env
+                echo OPENAI_TEMPERATURE=0 > .env
+                echo OPENAI_API_KEY=${{ secrets.DEMO_OPENAI_API_KEY }} >> .env
+                echo DB_DRIVER=postgresql+psycopg >> .env
+                echo DB_USERNAME=postgres >> .env
+                echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+                echo DB_PORT=5432 >> .env
+                echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+                echo DB_DATABASE=postgres >> .env
+
+                echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+
+            - name: Set up .env file for homepage
+              if: matrix.image == 'homepage'
+              run: |
+                touch .env
+            
+            - name: Set up .env file for auth
+              if: matrix.image == 'auth'
+              run: |
+                touch .env
+                echo OPENAI_TEMPERATURE=0 > .env
+                echo OPENAI_API_KEY=${{ secrets.DEMO_OPENAI_API_KEY }} >> .env
+                echo DB_DRIVER=postgresql+psycopg >> .env
+                echo DB_USERNAME=postgres >> .env
+                echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+                echo DB_PORT=5432 >> .env
+                echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+                echo DB_DATABASE=postgres >> .env
+
+                echo HTTP_CORS_ORIGINS=*.abop.ai >> .env
+                echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+                echo SAAS_AUTH_REDIRECT=https://app-staging.abop.ai >> .env
+
+                echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                echo GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }} >> .env
+                echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
+                echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
 
             - name: Deploy to ECS
               run: |
