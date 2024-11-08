@@ -1,4 +1,5 @@
 name: Deploy Webapps to Staging
+run-name: Deploy Webapps to Staging
 on:
 #   workflow_dispatch:
 #     inputs:
@@ -48,6 +49,8 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            - uses: docker/setup-buildx-action@v3
+
             - uses: actions/setup-python@v5
               with:
                 python-version-file: 'pyproject.toml'
@@ -59,7 +62,6 @@ jobs:
                 key: venv-${{runner.os}}-${{hashFiles('uv.lock')}}
                 restore-keys: venv-${{runner.os}}-
            
-            # In case the cache is not restored, we need to install the dependencies
             - uses: astral-sh/setup-uv@v3
               with:
                 version: "0.4.27"
@@ -67,22 +69,31 @@ jobs:
             
             - run: uv sync --all-extras --dev --locked
             
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
-                aws-region: us-east-1
             
-            - name: Login to ECR
-              id: login-ecr
+            - uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+                  aws-region: us-east-1
+            # - name: Configure AWS Credentials
+            #   uses: aws-actions/configure-aws-credentials@v4
+            #   with:
+            #     role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+            #     aws-region: us-east-1
+            - id: login-ecr
               uses: aws-actions/amazon-ecr-login@v2
               with:
-                mask-password: "true"
+                  mask-password: "true" 
+            # - name: Login to ECR
+            #   id: login-ecr
+            #   uses: aws-actions/amazon-ecr-login@v2
+            #   with:
+            #     mask-password: "true"
             
             - name: Build the images
               run: |
                 touch .env
                 make build-${{ matrix.image }}
+              continue-on-error: true
             
             
         
