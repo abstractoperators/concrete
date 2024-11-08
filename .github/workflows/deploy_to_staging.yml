@@ -13,33 +13,9 @@ on:
 
 
 jobs:
-    setup-venv:
-        name: Cache venv
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@v4
-
-            - uses: actions/setup-python@v5
-              with: 
-                python-version-file: 'pyproject.toml'
-        
-            - uses: astral-sh/setup-uv@v3
-              with:
-                version: "0.4.27"
-
-            - run: uv sync --all-extras --dev
-            
-            - name: Cache venv
-              uses: actions/cache@v4
-              with:
-                path: .venv
-                key: venv-${{runner.os}}-${{hashFiles('uv.lock')}}
-                restore-keys: venv-${{runner.os}}-
-    
     build-and-deploy: 
         name: Builds and Deploy to Staging
         runs-on: ubuntu-latest
-        needs: setup-venv
         environment: staging
         strategy:
             fail-fast: false
@@ -65,13 +41,6 @@ jobs:
               with:
                 python-version-file: 'pyproject.toml'
 
-            - name: Restore venv
-              uses: actions/cache@v4
-              with:
-                path: .venv
-                key: venv-${{runner.os}}-${{hashFiles('uv.lock')}}
-                restore-keys: venv-${{runner.os}}-
-           
             - name: Build the images
               run: |
                 touch .env 
@@ -154,8 +123,8 @@ jobs:
             - name: Deploy to ECS
               run: |
                 uv run python -m concrete deploy \
-                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/homepage:latest \
-                    --container-name homepage-staging \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/${{ matrix.image }}:latest \
+                    --container-name ${{ matrix.image }}-staging \
                     --container-port 80 \
                     --container-env-file .env \
                     --security-groups sg-01af4e696bd2679c3 \
