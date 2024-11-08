@@ -85,4 +85,7 @@ jobs:
                 touch .env
                 make build-${{ matrix.image }}
             
-        
+
+permissions:
+  id-token: write 
+  contents: read 
