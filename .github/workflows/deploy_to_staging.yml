@@ -51,24 +51,6 @@ jobs:
             - uses: actions/checkout@v4
 
             - uses: docker/setup-buildx-action@v3
-
-            - uses: actions/setup-python@v5
-              with:
-                python-version-file: 'pyproject.toml'
-
-            # - name: Restore venv
-            #   uses: actions/cache@v4
-            #   with:
-            #     path: .venv
-            #     key: venv-${{runner.os}}-${{hashFiles('uv.lock')}}
-            #     restore-keys: venv-${{runner.os}}-
-           
-            - uses: astral-sh/setup-uv@v3
-              with:
-                version: "0.4.27"
-                enable-cache: true
-            
-            - run: uv sync --all-extras --dev --locked
             
             - uses: aws-actions/configure-aws-credentials@v4
               with:
@@ -79,6 +61,24 @@ jobs:
               uses: aws-actions/amazon-ecr-login@v2
               with:
                   mask-password: "true" 
+
+            # - uses: actions/setup-python@v5
+            #   with:
+            #     python-version-file: 'pyproject.toml'
+
+            # - name: Restore venv
+            #   uses: actions/cache@v4
+            #   with:
+            #     path: .venv
+            #     key: venv-${{runner.os}}-${{hashFiles('uv.lock')}}
+            #     restore-keys: venv-${{runner.os}}-
+           
+            # - uses: astral-sh/setup-uv@v3
+            #   with:
+            #     version: "0.4.27"
+            #     enable-cache: true
+            
+            # - run: uv sync --all-extras --dev --locked
             
             - name: Build the images
               run: |
