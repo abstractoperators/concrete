@@ -1,3 +1,5 @@
+Last Updated: 2024-11-07 16:47:45 UTC
+Lines Changed: +109, -0
 # Operators
 
 ## Abstract Operators
@@ -107,52 +109,3 @@ operator.chat(
     "Could you make a directory for a helloworld python project?", options={'response_format': ProjectDirectory}
 )
 ```
-
-# Messages
-
-Messages are a format for structured outputs from OpenAI completions. Outputs are validated against the Message format, guaranteeing the syntax.
-
-Define your own message format by subclassing the Message class, and defining fields.
-
-```python
-from concrete.models.messages import Message
-
-class CustomMessage(Message):
-    field1: data_type = Field(..., description="Field 1 description")
-    field2: data_type = Field(..., description="Field 2 description")
-```
-
-Messages can be used in Operators by passing the `response_format` option to string returning functions. By default, the `TextMessage` format is used.
-
-
-# Tools
-
-Tools represent an Operators ability to interact with external services and the world. Tools can be invoked by hand, or automatically by the Operator via their `invoke_tool` method.
-
-## `MetaTool`
-
-`MetaTool` provides a string representation of the tool. It uses type hints and documentation strings to create a human-readable representation of the tool.
-
-metaclass from `MetaTool` to create a tool.
-
-## Examples
-
-
-```python
-from concrete.tools import MetaTool
-from concrete.tools import invoke_tool
-class Arithmetic(metaclass = MetaTool):
-    @classmethod
-    def sum(cls, x: int, y: int) -> int:
-        """
-        Returns the sum of two numbers
-        """
-        return x + y
-
-print(Arithmetic)
-```
-
-
-Last Updated: 2024-11-06 15:55:36 UTC
-
-Lines Changed: +37, -0

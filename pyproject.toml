@@ -20,13 +20,14 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "webapp/api"] # Can't do src/* because of eggs and misc auto-generated files
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "webapp/api", "docs"] # Can't do src/* because of eggs and misc auto-generated files
 
 [tool.uv.sources]
 concrete-core = { workspace = true }
 concrete-async = { workspace = true }
 concrete-db = { workspace = true }
 api = { workspace = true }
+docs = { workspace = true }
 
 
 [tool.bandit]
