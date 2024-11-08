@@ -60,7 +60,7 @@ build-docs:
 build-alembic:
 	docker compose -f docker/docker-compose.yml build alembic
 # ----------------------- Run commands -----------------------
-run-webapp: build-app APP=$(APP)
+run-webapp: build-app
 	docker compose -f docker/docker-compose.yml stop $(APP)
 	docker compose -f docker/docker-compose.yml up -d $(APP)
 

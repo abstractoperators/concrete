@@ -15,7 +15,7 @@ services:
       ports:
         - "8000:80"
 
-  webapp-homepage:
+  homepage:
     image: webapp-homepage
     build:
       context: ../
