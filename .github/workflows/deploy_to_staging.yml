@@ -86,9 +86,9 @@ jobs:
                 make build-app APP=${{ matrix.image }}
                 
             - name: Push to ECR
-              run: make aws-ecr-push-app APP=${{ matrix.image }}
+              run: make aws-ecr-push APP=${{ matrix.image }}
             
-
+    
 permissions:
   id-token: write 
   contents: read 
