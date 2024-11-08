@@ -12,7 +12,6 @@ COPY .env .
 
 # App specifics
 COPY webapp/homepage ./webapp/homepage
-COPY webapp/pyproject.toml ./webapp/
 WORKDIR /app/webapp/homepage
 RUN uv sync
 RUN chmod +x ./scripts/start.sh

@@ -11,5 +11,3 @@ dependencies = [
     "uvicorn>=0.32.0",
 ]
 
-[tool.uv.sources]
-webapp = { workspace = true }
