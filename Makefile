@@ -60,36 +60,34 @@ build-docs:
 build-alembic:
 	docker compose -f docker/docker-compose.yml build alembic
 # ----------------------- Run commands -----------------------
-# NOTE: Services inside docker requiring postgres need to have env variable DB_HOST=host.docker.internal
-# Launch postgres using env variable DB_HOST=localhost for alembic migrations
-# Then, change DB_HOST=host.docker.internal, and launch your dockerized service.
-run-webapp-api: build-api 
-	docker compose -f docker/docker-compose.yml stop api
-	docker compose -f docker/docker-compose.yml up -d api
+run-webapp: build-app APP=$(APP)
+	docker compose -f docker/docker-compose.yml stop $(APP)
+	docker compose -f docker/docker-compose.yml up -d $(APP)
 
-run-webapp-homepage: build-webapp-homepage
-	docker compose -f docker/docker-compose.yml stop webapp-homepage
-	docker compose -f docker/docker-compose.yml up -d webapp-homepage
+# run-webapp-api: build-api 
+# 	docker compose -f docker/docker-compose.yml stop api
+# 	docker compose -f docker/docker-compose.yml up -d api
 
-run-webapp-auth: build-auth
-	docker compose -f docker/docker-compose.yml stop auth
-	docker compose -f docker/docker-compose.yml up -d auth
+# run-webapp-homepage: build-webapp-homepage
+# 	docker compose -f docker/docker-compose.yml stop webapp-homepage
+# 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
 
-run-dind-builder:
-	docker compose -f docker/docker-compose.yml stop dind-builder
-	docker compose -f docker/docker-compose.yml up -d dind-builder
+# run-webapp-auth: build-auth
+# 	docker compose -f docker/docker-compose.yml stop auth
+# 	docker compose -f docker/docker-compose.yml up -d auth
 
-run-daemons:
-	docker compose -f docker/docker-compose.yml stop daemons
-	docker compose -f docker/docker-compose.yml up -d daemons
+
+# run-daemons:
+# 	docker compose -f docker/docker-compose.yml stop daemons
+# 	docker compose -f docker/docker-compose.yml up -d daemons
 
 run-docs:
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
 
-run-main: build-main
-	docker compose -f docker/docker-compose.yml stop main
-	docker compose -f docker/docker-compose.yml up -d main
+# run-main: build-main
+# 	docker compose -f docker/docker-compose.yml stop main
+# 	docker compose -f docker/docker-compose.yml up -d main
 
 run-postgres:
 	docker compose -f docker/docker-compose.yml down postgres
@@ -106,25 +104,28 @@ run-postgres:
 aws-ecr-login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
 
-# Build before pushing to registry
-aws-ecr-push-api: aws-ecr-login
-	docker tag api:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
-aws-ecr-push-auth: aws-ecr-login
-	docker tag auth:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
-aws-ecr-push-homepage: aws-ecr-login
-	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
+aws-ecr-push: aws-ecr-login
+	docker tag $(APP):latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
+# TODO: Rename the images on AWS to match api/homepage/auth/daemons/main/alembic
+# aws-ecr-push-api: aws-ecr-login
+# 	docker tag api:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
+# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
+# aws-ecr-push-auth: aws-ecr-login
+# 	docker tag auth:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
+# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
+# aws-ecr-push-homepage: aws-ecr-login
+# 	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
+# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 aws-ecr-push-docs: aws-ecr-login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 aws-ecr-push-daemons: aws-ecr-login
 	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
-aws-ecr-push-main: aws-ecr-login
-	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
+# aws-ecr-push-main: aws-ecr-login
+# 	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
+# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
 aws-ecr-push-alembic: aws-ecr-login
 	docker tag alembic:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
