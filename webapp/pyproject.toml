@@ -10,9 +10,3 @@ dependencies = [
     "fastapi>=0.115.4",
 ]
 
-[tool.uv.workspace]
-members = ["api", "homepage"]
-
-[tool.uv.sources]
-api = { workspace = true }
-homepage = { workspace = true }

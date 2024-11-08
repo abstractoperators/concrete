@@ -11,7 +11,6 @@ dev-dependencies = [
     "alembic==1.13.2",
     "pytest==8.3.3",
     "ipykernel==6.29.5",
-    "pip",
     "boto3",
     "boto3-stubs[ecs]",
     "concrete-core",
@@ -20,16 +19,16 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp"] 
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage"] 
 
 [tool.uv.sources]
 concrete-core = { workspace = true }
 concrete-async = { workspace = true }
 concrete-db = { workspace = true }
 docs = { workspace = true }
-webapp = { workspace = true }
-# api = { workspace = true }
-# homepage = { workspace = true }
+homepage = { workspace = true }
+api = { workspace = true }
+auth = { workspace = true }
 
 
 [tool.bandit]
