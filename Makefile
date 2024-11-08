@@ -37,15 +37,6 @@ deploysimpleflask:
 build-app:
 	docker compose -f docker/docker-compose.yml build $(APP)
 
-# build-api:
-# 	docker compose -f docker/docker-compose.yml build api
-
-# build-homepage:
-# 	docker compose -f docker/docker-compose.yml build webapp-homepage
-
-# build-auth:
-# 	docker compose -f docker/docker-compose.yml build auth
-
 
 # build-daemons:
 # 	docker compose -f docker/docker-compose.yml build daemons
@@ -54,8 +45,6 @@ build-docs:
 	$(UV) mkdocs build --config-file docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
 
-# build-main:
-# 	docker compose -f docker/docker-compose.yml build main
 
 build-alembic:
 	docker compose -f docker/docker-compose.yml build alembic
@@ -64,30 +53,9 @@ run-webapp: build-app
 	docker compose -f docker/docker-compose.yml stop $(APP)
 	docker compose -f docker/docker-compose.yml up -d $(APP)
 
-# run-webapp-api: build-api 
-# 	docker compose -f docker/docker-compose.yml stop api
-# 	docker compose -f docker/docker-compose.yml up -d api
-
-# run-webapp-homepage: build-webapp-homepage
-# 	docker compose -f docker/docker-compose.yml stop webapp-homepage
-# 	docker compose -f docker/docker-compose.yml up -d webapp-homepage
-
-# run-webapp-auth: build-auth
-# 	docker compose -f docker/docker-compose.yml stop auth
-# 	docker compose -f docker/docker-compose.yml up -d auth
-
-
-# run-daemons:
-# 	docker compose -f docker/docker-compose.yml stop daemons
-# 	docker compose -f docker/docker-compose.yml up -d daemons
-
 run-docs: build-docs
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
-
-# run-main: build-main
-# 	docker compose -f docker/docker-compose.yml stop main
-# 	docker compose -f docker/docker-compose.yml up -d main
 
 run-postgres:
 	docker compose -f docker/docker-compose.yml down postgres
