@@ -2,8 +2,9 @@
 
 This section will teach you how to make the most of `concrete`.
 
-Before anything, let's go ahead and install `concrete`:
+## [Hello World](hello-world.md)
 
-```shell
-pip install concrete
-```
+## [Concepts](concepts/index.md)
+
+Lines Changed: +6, -2
+Last Updated: 2024-11-07 20:42:06 UTC

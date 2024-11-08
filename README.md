@@ -13,5 +13,5 @@ export OPENAI_API_KEY=<your-api-key-here>
 python -m concrete-core prompt "Create a simple program that says 'Hello, World!'"
 ```
 
-Last Updated: 2024-11-06 21:48:39 UTC
-Lines Changed: +4, -9
+Last Updated: 2024-11-07 15:43:43 UTC
+Lines Changed: +1, -1
