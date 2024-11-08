@@ -14,7 +14,7 @@ on:
 
 jobs:
     setup-venv:
-        name: Setup venv for future builds/deployments
+        name: Cache venv
         runs-on: ubuntu-24.04
         steps:
             - uses: actions/checkout@v4
@@ -146,6 +146,10 @@ jobs:
                 echo GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }} >> .env
                 echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
                 echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
+
+            - uses: astral-sh/setup-uv@v3
+              with: 
+                version: "0.4.27"
 
             - name: Deploy to ECS
               run: |
