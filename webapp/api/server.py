@@ -1,6 +1,6 @@
 import os
 from collections.abc import Callable, Sequence
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 import dotenv
@@ -257,7 +257,7 @@ def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> 
 
 
 @app.post("/build/project")
-def init_project(name: str):
+def initialize_project(name: str) -> str:
     """
     Initiate a directed-acyclic-graph (DAG) project locally.
     Projects must be unique in name.
@@ -273,36 +273,56 @@ def init_project(name: str):
     if name in PROJECTS:
         raise HTTPException(status_code=400, detail="{name} already exists as a Project!")
     PROJECTS[name] = Project()
-    return PROJECTS[name]
+    return name
 
 
-@app.post("/build/project/{project_name}/node")
-def expand_project_with_method(project_name: str, operator_name: str, task: str):
+@app.post("/build/project/{project}/task")
+def expand_project_with_task(
+    project: str, operator: str, boost: str = "chat", task: str = "", default_task_kwargs: dict[str, Any] = {}
+) -> str:
     """
     Expand a project by adding an operator task as a node in its DAG.
 
-    project_name: The name of the project to be expanded.
-    operator_name: The name of the operator whose task we'd like to use.
-    task: The name of the operator's task to add as a node.
+    project: The name of the project to be expanded.
+    operator: The name of the operator whose task we'd like to use.
+    boost: The name of the operator's prompt boost to add as a node.
+    task: The name of the task this node represents.
+    default_task_kwargs: Any default arguments to pass to the task.
     """
-    if project_name not in PROJECTS:
-        raise project_not_found(project_name)
-    project = PROJECTS[project_name]
-    node = DAGNode(task, getattr(operators, operator_name))
-    project.add_node(node)
-    return project
+    if project not in PROJECTS:
+        raise project_not_found(project)
+    project_obj = PROJECTS[project]
+    node = DAGNode(task, boost, getattr(operators, operator)(), default_task_kwargs)
+    return project_obj.add_node(task, node).name
 
 
-@app.post("/build/project/{project_name}/edge")
-def expand_project_with_connection(project_name: str, parent_name: str, child_name: str):
+@app.post("/build/project/{project}/edge")
+def expand_project_with_connection(project: str, parent: str, child: str, input_to_child: str) -> tuple[str, str, str]:
     """
-    WIP.
     Expand a project by connecting two tasks together.
     The output from the parent task will be fed into the child task.
 
-    project_name: The name of the project to be expanded.
-    parent_name: The name of the parent task in the connection.
-    child_name: The name of the child task in the connection.
+    project: The name of the project to be expanded.
+    parent: The name of the parent task in the connection.
+    child: The name of the child task in the connection.
+    input_to_child: The name of the input to the child (equivalently, the output from the parent)
     """
-    if project_name not in PROJECTS:
-        raise project_not_found(project_name)
+    if project not in PROJECTS:
+        raise project_not_found(project)
+    project_obj = PROJECTS[project]
+    return project_obj.add_edge(parent, child, input_to_child)
+
+
+@app.post("/build/project/{project}/run")
+async def run_project(project: str):
+    """
+    Run a project from its sources to its sinks.
+
+    project: The name of the project to be run.
+    """
+    if project not in PROJECTS:
+        raise project_not_found(project)
+    project_obj = PROJECTS[project]
+    async for operator, response in project_obj.execute():
+        print(operator)
+        print(response)
