@@ -19,7 +19,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage"] 
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth"] 
 
 [tool.uv.sources]
 concrete-core = { workspace = true }

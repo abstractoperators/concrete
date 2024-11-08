@@ -1,12 +1,7 @@
 [project]
-name = "webapp"
+name = "auth"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
-dependencies = [
-    "gunicorn>=23.0.0",
-    "uvicorn>=0.32.0",
-    "fastapi>=0.115.4",
-]
-
+dependencies = []
