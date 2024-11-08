@@ -13,23 +13,24 @@ members = [
     "concrete-db",
     "docs",
     "homepage",
+    "main",
 ]
 requirements = [
-    { name = "alembic", specifier = "==1.13.2" },
-    { name = "bandit", specifier = "==1.7.9" },
-    { name = "black", specifier = "==24.4.2" },
+    { name = "alembic" },
+    { name = "bandit" },
+    { name = "black" },
     { name = "boto3" },
     { name = "boto3-stubs", extras = ["ecs"] },
     { name = "concrete-async" },
     { name = "concrete-core" },
     { name = "concrete-db" },
-    { name = "flake8", specifier = "==7.1.0" },
-    { name = "ipykernel", specifier = "==6.29.5" },
-    { name = "isort", specifier = "==5.13.2" },
-    { name = "jupyterlab", specifier = "==4.2.5" },
-    { name = "mypy", specifier = "==1.11.2" },
-    { name = "pre-commit", specifier = "==3.7.1" },
-    { name = "pytest", specifier = "==8.3.3" },
+    { name = "flake8" },
+    { name = "ipykernel" },
+    { name = "isort" },
+    { name = "jupyterlab" },
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
 ]
 
 [[package]]
@@ -170,6 +171,7 @@ name = "auth"
 version = "0.1.0"
 source = { virtual = "webapp/auth" }
 dependencies = [
+    { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
     { name = "fastapi" },
     { name = "gunicorn" },
     { name = "uvicorn" },
@@ -177,6 +179,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "concrete-core", extras = ["openai", "requests", "auth", "google-auth"], editable = "src/concrete-core" },
     { name = "fastapi", specifier = ">=0.115.4" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "uvicorn", specifier = ">=0.32.0" },
@@ -1399,6 +1402,25 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/38/4d/b93fcb353d279839cc35d0012bee805ed0cf61c07587916bfc35dbfddaf1/kombu-5.4.2.tar.gz", hash = "sha256:eef572dd2fd9fc614b37580e3caeafdd5af46c1eff31e7fba89138cdb406f2cf", size = 442858 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/87/ec/7811a3cf9fdfee3ee88e54d08fcbc3fabe7c1b6e4059826c59d7b795651c/kombu-5.4.2-py3-none-any.whl", hash = "sha256:14212f5ccf022fc0a70453bb025a1dcc32782a588c49ea866884047d66e14763", size = 201349 },
+]
+
+[[package]]
+name = "main"
+version = "0.1.0"
+source = { virtual = "webapp/main" }
+dependencies = [
+    { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
+    { name = "fastapi" },
+    { name = "gunicorn" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concrete-core", extras = ["auth", "requests", "openai", "google-auth"], editable = "src/concrete-core" },
+    { name = "fastapi", specifier = ">=0.115.4" },
+    { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "uvicorn", specifier = ">=0.32.0" },
 ]
 
 [[package]]
