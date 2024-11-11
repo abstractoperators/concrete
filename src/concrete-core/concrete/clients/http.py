@@ -12,9 +12,9 @@ class HTTPClient(Client, requests.Session):
     Set up requests.session to access
     """
 
-    def __new__(*args, **kwargs):
+    def __new__(cls, *args, **kwargs):
 
-        return super().__new__(*args, **kwargs)
+        return super().__new__(cls, *args, **kwargs)
 
     def __init__(self):
         # Setup retry logic for restful web http requests
