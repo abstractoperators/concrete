@@ -69,6 +69,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             httpclient = HTTPClient()
             payload = {
                 'description': self.instructions,
+                'name': str(self.operator_id),
                 "llm_config": {
                     'model': self._clients[self.llm_client].model,
                     'model_endpoint_type': self.llm_client,
@@ -91,11 +92,13 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 },
             }
             if not httpclient.get(base_letta_url + f'/v1/agents/{operator_id}/').ok:
-                resp = httpclient.post(base_letta_url + '/v1/agents/', json=payload)
-                print(resp.text)
+                resp = httpclient.post(base_letta_url + '/v1/agents/', json=payload).json()
+                letta_agent_id = resp['id']
             else:
-                resp = httpclient.patch(base_letta_url + f'/v1/agents/{operator_id}/', json=payload)
-                print(resp.text)
+                resp = httpclient.patch(base_letta_url + f'/v1/agents/{operator_id}/', json=payload).json()
+                letta_agent_id = resp['id']
+
+            self.letta_agent_id = letta_agent_id
 
     def _qna(
         self,
@@ -119,7 +122,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 messages=messages,
                 message_format=response_format,
                 letta=self.letta,
-                operator_id=operator_id,
+                letta_agent_id=self.letta_agent_id,
             )
             .choices[0]
             .message

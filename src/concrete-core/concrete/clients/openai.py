@@ -38,14 +38,14 @@ class OpenAIClient(LMClient):
     ) -> "ChatCompletion":
         from openai import RateLimitError
 
-        if kwargs.pop('letta') and (operator_id := kwargs.pop('operator_id')):
+        if kwargs.pop('letta') and (letta_agent_id := kwargs.pop('letta_agent_id')):
             # TODO: Use their SDK? - unsure.
             try:
                 from .http import HTTPClient
 
                 httpclient = HTTPClient()
                 base_url = "http://localhost:8283"
-                endpoint = f"/v1/agents/{operator_id}/messages"
+                endpoint = f"/v1/agents/{letta_agent_id}/messages"
 
                 for message in messages:
                     message['text'] = message.pop('content')
