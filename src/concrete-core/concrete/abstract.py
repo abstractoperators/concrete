@@ -73,15 +73,24 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 "llm_config": {
                     'model': self._clients[self.llm_client].model,
                     'model_endpoint_type': self.llm_client,
+                    'model_endpoint': 'https://api.openai.com/v1',
                     'context_window': 4000,
                 },
                 "memory": {
                     "memory": {
-                        'fookey': {
-                            'value': 'N/A',
+                        'human': {
+                            'value': 'I know nothing about the human.',
                             'name': 'N/A',
                             'label': 'human',
-                        }
+                        },
+                        'persona': {
+                            'value': (
+                                'The following is a blank state starter persona.'
+                                'I need to expand this to develop my own personality.'
+                            ),
+                            'name': 'N/A',
+                            'label': 'persona',
+                        },
                     },  # They have a TODO to allow default None
                 },
                 "embedding_config": {

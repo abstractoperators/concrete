@@ -101,6 +101,9 @@ run-postgres:
 	$(UV) alembic upgrade head
 
 run-letta:
+	@if [ "$(DELETE_PGDATA)" = "true" ]; then \
+		sudo rm -rf ./config/letta/.persist/pgdata; \
+	fi
 	docker compose -f docker/docker-compose.letta.yml --project-directory ./ down -v
 	docker compose -f docker/docker-compose.letta.yml --project-directory ./ up -d
 # ----------------------- AWS Commands -----------------------
