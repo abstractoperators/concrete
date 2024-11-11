@@ -99,6 +99,10 @@ run-postgres:
 		sleep 1; \
 	done
 	$(UV) alembic upgrade head
+
+run-letta:
+	docker compose -f docker/docker-compose.letta.yml --project-directory ./ down -v
+	docker compose -f docker/docker-compose.letta.yml --project-directory ./ up -d
 # ----------------------- AWS Commands -----------------------
 
 # Need to set your aws config for default profile + credentials

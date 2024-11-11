@@ -600,6 +600,9 @@ requires-dist = [
     { name = "requests", marker = "extra == 'requests'" },
 ]
 
+[package.metadata.dependency-groups]
+letta = [{ name = "letta" }]
+
 [[package]]
 name = "concrete-db"
 version = "0.0.0"
