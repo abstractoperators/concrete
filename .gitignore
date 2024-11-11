@@ -189,3 +189,5 @@ shared/
 .site/
 
 .vsls.json
+
+**/pgdata/
