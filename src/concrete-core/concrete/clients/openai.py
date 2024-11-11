@@ -6,6 +6,11 @@ try:
 except ImportError as e:
     raise ImportError("Install openai to use OpenAIClient.") from e
 
+try:
+    import requests
+except ImportError as e:
+    raise ImportError("Install requests to use letta with OpenAIClient") from e
+
 from concrete.clients import CLIClient, LMClient
 from concrete.models.messages import Message, TextMessage
 
@@ -33,21 +38,52 @@ class OpenAIClient(LMClient):
     ) -> "ChatCompletion":
         from openai import RateLimitError
 
-        request_params = {
-            "messages": messages,
-            "model": self.model,
-            "temperature": (temperature if temperature is not None else self.default_temperature),
-            "response_format": message_format,
-            **kwargs,
-        }
+        if kwargs.pop('letta') and (operator_id := kwargs.pop('operator_id')):
+            # TODO: Use their SDK? - unsure.
+            try:
+                from .http import HTTPClient
 
-        try:
-            if isinstance(message_format, type(Message)):
-                # Turn Message into a json_schema
-                # https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
+                httpclient = HTTPClient()
+                base_url = "http://localhost:8283"
+                endpoint = f"/v1/agents/{operator_id}/messages"
 
-                return self.client.beta.chat.completions.parse(**request_params)
-            return self.client.chat.completions.create(**request_params)
-        except RateLimitError as e:
-            CLIClient.emit(f"Rate limit error: {e}")
-            raise e  # retry decorator
+                for message in messages:
+                    message['text'] = message.pop('content')
+
+                payload = {
+                    "messages": messages,
+                }
+
+                response = httpclient.post(base_url + endpoint, json=payload)
+                # Cast to Text Message object
+
+                text = response.json()
+                import json
+
+                print(messages)
+                print(json.dumps(text, indent=2))
+                return TextMessage(text=text)
+            except requests.ConnectionError as e:
+                raise requests.ConnectionError(
+                    f"Could not connect to {base_url}{endpoint}. Is the letta server running?"
+                ) from e
+
+        else:
+            request_params = {
+                "messages": messages,
+                "model": self.model,
+                "temperature": (temperature if temperature is not None else self.default_temperature),
+                "response_format": message_format,
+                **kwargs,
+            }
+
+            try:
+                if isinstance(message_format, type(Message)):
+                    # Turn Message into a json_schema
+                    # https://platform.openai.com/docs/guides/structured-outputs/supported-schemas
+
+                    return self.client.beta.chat.completions.parse(**request_params)
+                return self.client.chat.completions.create(**request_params)
+            except RateLimitError as e:
+                CLIClient.emit(f"Rate limit error: {e}")
+                raise e  # retry decorator
