@@ -1,3 +1,4 @@
+import os
 from abc import abstractmethod
 from collections.abc import Callable
 from functools import wraps
@@ -42,6 +43,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         store_messages: bool = False,
         response_format: type[Message] = TextMessage,
         run_async: bool = False,
+        letta: bool = False,
     ):
         """
         store_messages (bool): Whether or not to save the messages in db
@@ -56,12 +58,51 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.project_id = project_id
         self.starting_prompt = starting_prompt
         self.store_messages = store_messages
+        # self.run_async = run_async
+        self.letta = letta
+
+        if self.letta:
+            # Create agent in letta if DNE
+            from .clients.http import HTTPClient
+
+            base_letta_url = os.getenv("LETTA_URL", "http://localhost:8283")
+            httpclient = HTTPClient()
+            payload = {
+                'description': self.instructions,
+                "llm_config": {
+                    'model': self._clients[self.llm_client].model,
+                    'model_endpoint_type': self.llm_client,
+                    'context_window': 4000,
+                },
+                "memory": {
+                    "memory": {
+                        'fookey': {
+                            'value': 'N/A',
+                            'name': 'N/A',
+                            'label': 'human',
+                        }
+                    },  # They have a TODO to allow default None
+                },
+                "embedding_config": {
+                    'embedding_endpoint_type': 'openai',
+                    'embedding_endpoint': 'https://api.openai.com/v1',
+                    'embedding_model': 'text-embedding-ada-002',
+                    'embedding_dim': 1536,
+                },
+            }
+            if not httpclient.get(base_letta_url + f'/v1/agents/{operator_id}/').ok:
+                resp = httpclient.post(base_letta_url + '/v1/agents/', json=payload)
+                print(resp.text)
+            else:
+                resp = httpclient.patch(base_letta_url + f'/v1/agents/{operator_id}/', json=payload)
+                print(resp.text)
 
     def _qna(
         self,
         query: str,
         response_format: type[Message],
         instructions: str | None = None,
+        operator_id: UUID | None = None,
     ) -> Message:
         """
         "Question and Answer", given a query, return an answer.
@@ -77,6 +118,8 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             .complete(
                 messages=messages,
                 message_format=response_format,
+                letta=self.letta,
+                operator_id=operator_id,
             )
             .choices[0]
             .message
@@ -149,6 +192,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 query,
                 response_format=response_format,
                 instructions=instructions,
+                operator_id=self.operator_id,
             )
 
             # TODO Reconsider where this occurs.
@@ -168,6 +212,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                         query,
                         response_format=options.response_format,
                         instructions=options.instructions,
+                        operator_id=self.operator_id,
                     )
 
             return answer
@@ -219,6 +264,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         return {
             "instructions": self.instructions,
             "response_format": self.response_format,
+            "letta": self.letta,
         }
 
     def chat(self, message: str, options: dict[str, Any] = {}) -> str:
