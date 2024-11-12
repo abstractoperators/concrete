@@ -166,8 +166,8 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                     query = tool_preface + question_producer(*args, **kwargs)
                     answer = self._qna(
                         query,
-                        response_format=options.response_format,
-                        instructions=options.instructions,
+                        response_format=response_format,
+                        instructions=instructions,
                     )
 
             return answer
