@@ -42,6 +42,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         store_messages: bool = False,
         response_format: type[Message] = TextMessage,
         run_async: bool = False,
+        use_tools: bool = False,
     ):
         """
         store_messages (bool): Whether or not to save the messages in db
@@ -56,6 +57,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.project_id = project_id
         self.starting_prompt = starting_prompt
         self.store_messages = store_messages
+        self.use_tools = use_tools
 
     def _qna(
         self,
@@ -223,7 +225,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
     @property
     def _options(self) -> dict[str, Any]:
-        return {"instructions": self.instructions, "response_format": self.response_format, "use_tools": True}
+        return {"instructions": self.instructions, "response_format": self.response_format, "use_tools": False}
 
     def chat(self, message: str, options: dict[str, Any] = {}) -> str:
         """
