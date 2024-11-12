@@ -18,7 +18,7 @@ def invoke_tool(tool: Tool):
     Throws TypeError if the parameters are wrong.
     """
     tool_name = tool.tool_name
-    tool_function = (c for c in tool.tool_method if c.isalnum())
+    tool_function = "".join([c for c in tool.tool_method if c.isalnum()])
     tool_parameters = tool.tool_parameters
     kwargs = {param.name: param.value for param in tool_parameters}
     CLIClient.emit(f"Invoking {tool_name}.{tool_function} with {kwargs}")
