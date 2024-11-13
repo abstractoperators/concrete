@@ -42,6 +42,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         store_messages: bool = False,
         response_format: type[Message] = TextMessage,
         run_async: bool = False,
+        use_tools: bool = False,
     ):
         """
         store_messages (bool): Whether or not to save the messages in db
@@ -56,6 +57,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.project_id = project_id
         self.starting_prompt = starting_prompt
         self.store_messages = store_messages
+        self.use_tools = use_tools
 
     def _qna(
         self,
@@ -155,21 +157,28 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             # This will be blocking, and the intermediate tool call will not be returned.
             # It also makes it difficult to do a manual invocation of the tool.
             # However, it aligns with goals of wanting Operators to be able to use tools
-            if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
-                resp = invoke_tool(cast(Tool, answer))
-                if resp is not None and hasattr(resp, "__str__"):
-                    # Update the query to include the tool call results.
-                    tool_preface = f"You called the tool: {answer.tool_name}.{answer.tool_method}\n"
-                    tool_preface += f"with the following parameters: {answer.tool_parameters}\n"
-                    tool_preface += f"The tool returned: {str(resp)}\n"
-                    tool_preface += "Use these results to answer the following query:\n"
-                    query = tool_preface + question_producer(*args, **kwargs)
-                    answer = self._qna(
-                        query,
-                        response_format=options.response_format,
-                        instructions=options.instructions,
-                    )
-
+            retry_ct = 0  # try thrice
+            while retry_ct < 3:
+                try:
+                    if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
+                        resp = invoke_tool(cast(Tool, answer))
+                        if resp is not None and hasattr(resp, "__str__"):
+                            # Update the query to include the tool call results.
+                            tool_preface = f"You called the tool: {answer.tool_name}.{answer.tool_method}\n"
+                            tool_preface += f"with the following parameters: {answer.tool_parameters}\n"
+                            tool_preface += f"The tool returned: {str(resp)}\n"
+                            tool_preface += "Use these results to answer the following query:\n"
+                            query = tool_preface + question_producer(*args, **kwargs)
+                            answer = self._qna(
+                                query,
+                                response_format=response_format,
+                                instructions=instructions,
+                            )
+                    break
+                except AttributeError:
+                    retry_ct += 1
+            if retry_ct == 3:
+                CLIClient.emit("Could not invoke tool, returning attempted tool call request")
             return answer
 
         return _send_and_await_reply
@@ -216,10 +225,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
     @property
     def _options(self) -> dict[str, Any]:
-        return {
-            "instructions": self.instructions,
-            "response_format": self.response_format,
-        }
+        return {"instructions": self.instructions, "response_format": self.response_format, "use_tools": False}
 
     def chat(self, message: str, options: dict[str, Any] = {}) -> str:
         """
