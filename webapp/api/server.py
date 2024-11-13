@@ -4,7 +4,7 @@ from typing import Annotated, Any
 from uuid import UUID
 
 import dotenv
-from concrete.projects import PROJECTS, DAGNode, Project
+from concrete.projects import DAGNode, Project
 from concrete.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm import Session
@@ -12,6 +12,7 @@ from concrete_db.orm.models import (
     Client,
     ClientCreate,
     ClientUpdate,
+    DagProjectCreate,
     Operator,
     OperatorCreate,
     OperatorUpdate,
@@ -257,7 +258,7 @@ def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> 
 
 
 @app.post("/build/project")
-def initialize_project(name: str) -> str:
+def initialize_project(dag_project_create: DagProjectCreate) -> str:
     """
     Initiate a directed-acyclic-graph (DAG) project locally.
     Projects must be unique in name.
@@ -270,10 +271,14 @@ def initialize_project(name: str) -> str:
 
     name: The name of the project to be initialized.
     """
-    if name in PROJECTS:
-        raise HTTPException(status_code=400, detail="{name} already exists as a Project!")
-    PROJECTS[name] = Project()
-    return name
+    name = dag_project_create.name
+    with Session() as session:
+        db_project = crud.get_dag_project_by_name(session, name)
+        if db_project is not None:
+            raise HTTPException(status_code=400, detail="{name} already exists as a Project!")
+        db_project = crud.create_dag_project(session, dag_project_create)
+
+    return db_project
 
 
 @app.post("/build/project/{project}/task")
@@ -289,6 +294,8 @@ def expand_project_with_task(
     task: The name of the task this node represents.
     default_task_kwargs: Any default arguments to pass to the task.
     """
+    with Session() as session:
+        db_project = crud.get_dag_project_by_name(session)
     if project not in PROJECTS:
         raise project_not_found(project)
     project_obj = PROJECTS[project]

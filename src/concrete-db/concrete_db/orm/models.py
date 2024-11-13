@@ -65,6 +65,14 @@ class UserToolLink(Base, table=True):
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, ondelete="CASCADE")
 
 
+class DagNodeToDagNodeLink(Base, table=True):
+    parent: UUID = Field(foreign_key="dagnode.id", primary_key=True, index=True, ondelete="CASCADE")
+    child: UUID = Field(foreign_key="dagnode.id", primary_key=True, ondelete="CASCADE")
+    kwarg_name: str = Field(description="Name of the argument to the child task")
+
+    # TODO maybe store transformation function
+
+
 # region User Models
 
 
@@ -324,6 +332,62 @@ class Project(ProjectBase, MetadataMixin, table=True):
     developer: Operator | None = Relationship(sa_relationship_kwargs={"foreign_keys": "Project.developer_id"})
 
     messages: list["Message"] = Relationship(back_populates="project", cascade_delete=True)
+
+
+# endregion
+# region DagProject Models
+
+
+class DagProjectBase(Base):
+    name: str = Field(
+        description="Name of the project.",
+        unique=True,
+        max_length=64,
+    )
+
+
+class DagProjectUpdate(DagProjectBase):
+    name: str | None = Field(description="Name of the project.", max_length=64, default=None)
+
+
+class DagProjectCreate(DagProjectBase):
+    pass
+
+
+class DagProject(DagProjectBase, MetadataMixin, table=True):
+    edges: list["DagNodeToDagNodeLink"] = Relationship(back_populates="project", cascade_delete=True)
+    nodes: list["DagNode"] = Relationship(back_populates="project", cascade_delete=True)
+
+
+class DagNodeBase(Base):
+    name: str = Field(
+        description="Name of the DAG Project Node.",
+        unique=True,
+        max_length=64,
+    )
+    task: str = Field(description="Name of method on Operator (e.g. 'chat')")
+    operator_id: UUID = Field(
+        description="ID of Operator encapsulated by this DAG Node.",
+        foreign_key="operator.id",
+        ondelete="CASCADE",
+    )
+    default_task_kwargs: str = Field(
+        description="Default kwargs for the task as JSON.",
+        default="{}",
+    )
+    # TODO: options
+
+
+class DagNodeUpdate(Base):
+    pass
+
+
+class DagNodeCreate(DagNodeBase):
+    pass
+
+
+class DagNode(DagNodeBase, MetadataMixin, table=True):
+    operator: Operator = Relationship()
 
 
 # endregion

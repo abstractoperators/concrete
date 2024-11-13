@@ -13,6 +13,12 @@ from .orm.models import (
     Client,
     ClientCreate,
     ClientUpdate,
+    DagNode,
+    DagNodeCreate,
+    DagNodeToDagNodeLink,
+    DagProject,
+    DagProjectCreate,
+    DagProjectUpdate,
     Message,
     MessageCreate,
     MessageUpdate,
@@ -73,7 +79,7 @@ def delete_generic(db: Session, model: M | None) -> M | None:
     return model
 
 
-# ===Operator=== #
+# region Operator CRUD
 
 
 # TODO: automate project creation via DML trigger/event
@@ -151,7 +157,8 @@ def delete_operator(db: Session, operator_id: UUID, orchestrator_id: UUID) -> Op
     )
 
 
-# ===Client=== #
+# endregion
+# region Client CRUD
 
 
 def create_client(db: Session, client_create: ClientCreate) -> Client:
@@ -218,7 +225,8 @@ def delete_client(
     )
 
 
-# ===Tool=== #
+# endregion
+# region Tool CRUD
 
 
 def create_tool(db: Session, tool_create: ToolCreate, user_id: UUID) -> Tool:
@@ -287,7 +295,8 @@ def assign_tool_to_operator(db: Session, operator_id: UUID, tool_id: UUID) -> Op
     )
 
 
-# ===Message=== #
+# endregion
+# region Message CRUD
 
 
 def create_message(db: Session, message_create: MessageCreate) -> Message:
@@ -356,7 +365,8 @@ def delete_message(
     return delete_generic(db, get_message(db, message_id))
 
 
-# ===Orchestrator=== #
+# endregion
+# region Orchestrator CRUD
 
 
 def create_orchestrator(db: Session, orchestrator_create: OrchestratorCreate) -> Orchestrator:
@@ -409,7 +419,8 @@ def delete_orchestrator(db: Session, orchestrator_id: UUID, user_id: UUID | None
     )
 
 
-# ===Project=== #
+# endregion
+# region Project CRUD
 
 
 def create_project(db: Session, project_create: ProjectCreate) -> Project:
@@ -463,7 +474,27 @@ def delete_project(db: Session, project_id: UUID, orchestrator_id: UUID) -> Proj
     )
 
 
-# ===Node=== #
+# endregion
+# region DagProject CRUD
+
+
+def create_dag_project(db: Session, dag_project_create: DagProjectCreate) -> DagProject:
+    return create_generic(db, DagProject(**dag_project_create.model_dump()))
+
+
+def create_dag_node(db: Session, dag_node_create: DagNodeCreate) -> DagNode:
+    return create_generic(db, DagNode(**dag_node_create.model_dump()))
+
+
+def get_dag_project_by_name(db: Session, name: str) -> DagProject | None:
+    stmt = select(DagProject).where(DagProject.name == name)
+    return db.scalars(stmt).first()
+
+
+# endregion
+# region Node CRUD
+
+
 def create_node(db: Session, node_create: NodeCreate) -> Node:
     return create_generic(db, Node(**node_create.model_dump()))
 
@@ -495,7 +526,10 @@ def get_repo_node_by_path(db: Session, org: str, repo: str, abs_path: str, branc
     return db.scalars(stmt).first()
 
 
-# ===User Auth=== #
+# endregion
+# region Auth CRUD
+
+
 def create_authstate(db: Session, authstate_create: AuthStateCreate) -> AuthState:
     return create_generic(
         db,
@@ -522,3 +556,6 @@ def get_user(db: Session, email: str) -> User | None:
 
 def create_authtoken(db: Session, authtoken_create: AuthTokenCreate) -> AuthToken:
     return create_generic(db, AuthToken(**authtoken_create.model_dump()))
+
+
+# endregion

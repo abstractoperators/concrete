@@ -112,7 +112,7 @@ class DAGNode:
     def __init__(
         self,
         name: str,
-        boost: str,
+        task: str,
         operator: Operator,
         default_task_kwargs: dict[str, Any] = {},
         options: dict[str, Any] = {},
@@ -124,13 +124,13 @@ class DAGNode:
         options: Maps to OperatorOptions. Can also be set in default_task_kwargs as {'options': {...}}
         """
         try:
-            self.bound_task = getattr(operator, boost)
+            self.bound_task = getattr(operator, task)
         except AttributeError:
-            raise ValueError(f"{operator} does not have a method {boost}")
+            raise ValueError(f"{operator} does not have a method {task}")
         self.operator: Operator = operator
 
         self.name = name
-        self.boost_str = boost
+        self.boost_str = task
         self.dynamic_kwargs: dict[str, Any] = {}
         self.default_task_kwargs = default_task_kwargs  # TODO probably want to manage this in the project
         self.options = options  # Could also throw this into default_task_kwargs
