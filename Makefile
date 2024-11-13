@@ -38,7 +38,6 @@ deploysimpleflask:
 build-app:
 	docker compose -f docker/docker-compose.yml build $(APP)
 
-
 build-daemons:
 	docker compose -f docker/docker-compose.yml build daemons
 
@@ -112,20 +111,10 @@ local-daemons:
 clear-dist:
 	rm -rf dist/*
 
-build-concrete-core: clear-dist
-	uv build --package concrete-core --no-sources --out-dir dist
-
-build-concrete-async: clear-dist
-	uv build --package concrete-async --no-sources --out-dir dist
-
-build-concrete-db: clear-dist
-	uv build --package concrete-db --no-sources --out-dir dist
-
-publish-concrete-core-test: build-concrete-core 
-	uv publish --project concrete-core --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
-
-publish-concrete-async-test: build-concrete-async
-	uv publish --project concrete-sync --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
-
-publish-concrete-db-test: build-concrete-db
-	uv publish --project concrete-db --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
+# PACKAGE = concrete-core, concrete-async, concrete-db
+build-package: clear-dist
+	uv build --package $(PACKAGE) --no-sources --out-dir dist
+publish-package-test: build-package
+	uv publish --project $(PACKAGE) --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
+publish-package: build-package
+	uv publish --project $(PACKAGE) -t $(PYPI_API_TOKEN)
