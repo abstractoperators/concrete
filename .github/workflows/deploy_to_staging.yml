@@ -13,42 +13,52 @@ on:
 
 
 jobs:
-    build-and-deploy: 
-        name: Builds and Deploy to Staging
-        runs-on: ubuntu-latest
-        environment: staging
-        strategy:
-            fail-fast: false
-            matrix:
-                image: ['api', 'main', 'homepage', 'auth']
+    build:
+      name: Build and Push Images
+      runs-on: ubuntu-latest
+      environment: staging
+      strategy:
+        matrix:
+          image: ['api', 'main', 'homepage', 'auth', alembic]
+      
+      steps:
+          - uses: actions/checkout@v4
 
-        steps:
-            - uses: actions/checkout@v4
+          - uses: docker/setup-buildx-action@v3
+          
+          - uses: aws-actions/configure-aws-credentials@v4
+            with:
+                role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
+                aws-region: us-east-1
 
-            - uses: docker/setup-buildx-action@v3
-            
-            - uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecr-write-access
-                  aws-region: us-east-1
+          - id: login-ecr
+            uses: aws-actions/amazon-ecr-login@v2
+            with:
+                mask-password: "true" 
 
-            - id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
-              with:
-                  mask-password: "true" 
+          - uses: actions/setup-python@v5
+            with:
+              python-version-file: '.python-version'
 
-            - uses: actions/setup-python@v5
-              with:
-                python-version-file: '.python-version'
+          - name: Build the images
+            run: |
+              touch .env 
+              make build-app APP=${{ matrix.image }}
+              
+          - name: Push to ECR
+            run: make aws-ecr-push APP=${{ matrix.image }}
 
-            - name: Build the images
-              run: |
-                touch .env 
-                make build-app APP=${{ matrix.image }}
-                
-            - name: Push to ECR
-              run: make aws-ecr-push APP=${{ matrix.image }}
-            
+    deploy:
+      name: Deploy Webapps to Staging
+      needs: [build, deploy-alembic]
+      runs-on: ubuntu-latest
+      environment: staging
+      strategy:
+        matrix:
+          image: ['api', 'main', 'homepage', 'auth']
+      
+
+      steps:
             - uses: aws-actions/configure-aws-credentials@v4
               with:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
@@ -141,8 +151,43 @@ jobs:
                 cmd="$cmd --health-check-path /ping"
 
                 eval "$cmd"
-    
-    
+
+    deploy-alembic:
+      name: Deploy Alembic Migrations to Staging 
+      needs: build
+      runs-on: ubuntu-latest
+      environment: staging
+      
+      steps:
+        - uses: aws-actions/configure-aws-credentials@v4
+          with:
+              role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+              aws-region: us-east-1
+
+        - uses: astral-sh/setup-uv@v3
+          with: 
+            version: "0.4.27"
+        
+        - name: Set up env for alembic
+          run: |
+            touch .env
+            echo DB_DRIVER=postgresql+psycopg >> .env
+            echo DB_USERNAME=postgres >> .env
+            echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+            echo DB_PORT=5432 >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_DATABASE=postgres >> .env
+
+        - name: Deploy Alembic Task
+          run: |
+             uv run python -m concrete deploy --task \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest \
+                    --container-name alembic-staging \
+                    --container-port 80 \
+                    --container-env-file .env \
+                    --security-groups sg-01af4e696bd2679c3 \
+                    --subnets subnet-0644cadc735c6b557 \ 
+
 permissions:
   id-token: write 
   contents: read 

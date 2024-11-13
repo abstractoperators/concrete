@@ -75,25 +75,12 @@ aws-ecr-login:
 aws-ecr-push: aws-ecr-login
 	docker tag $(APP):latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
-# TODO: Rename the images on AWS to match api/homepage/auth/daemons/main/alembic
-# aws-ecr-push-api: aws-ecr-login
-# 	docker tag api:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
-# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
-# aws-ecr-push-auth: aws-ecr-login
-# 	docker tag auth:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
-# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
-# aws-ecr-push-homepage: aws-ecr-login
-# 	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
-# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
 aws-ecr-push-docs: aws-ecr-login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 aws-ecr-push-daemons: aws-ecr-login
 	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
-# aws-ecr-push-main: aws-ecr-login
-# 	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
-# 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
 aws-ecr-push-alembic: aws-ecr-login
 	docker tag alembic:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
