@@ -23,11 +23,8 @@ jobs:
       
       steps:
           - uses: actions/checkout@v4
-
-          - name: Fix Docker Hub Issue
-            run: docker logout
             
-          - uses: docker/setup-buildx-action@v3.6.1
+          - uses: docker/setup-buildx-action@v3.7.1
           
           - uses: aws-actions/configure-aws-credentials@v4
             with:
@@ -132,6 +129,10 @@ jobs:
                 echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
                 echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
 
+            - uses: actions/setup-python@v5
+              with:
+                python-version-file: '.python-version'
+
             - uses: astral-sh/setup-uv@v3
               with: 
                 version: "0.4.27"
@@ -162,11 +163,16 @@ jobs:
       environment: staging
       
       steps:
+        - uses: actions/checkout@v4
+
         - uses: aws-actions/configure-aws-credentials@v4
           with:
               role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
               aws-region: us-east-1
 
+        - uses: actions/setup-python@v5
+          with:
+            python-version-file: '.python-version'
         - uses: astral-sh/setup-uv@v3
           with: 
             version: "0.4.27"
@@ -189,7 +195,7 @@ jobs:
                     --container-port 80 \
                     --container-env-file .env \
                     --security-groups sg-01af4e696bd2679c3 \
-                    --subnets subnet-0644cadc735c6b557 \ 
+                    --subnets subnet-0644cadc735c6b557
 
 permissions:
   id-token: write 
