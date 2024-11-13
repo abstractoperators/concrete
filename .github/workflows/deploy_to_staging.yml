@@ -59,6 +59,8 @@ jobs:
       
 
       steps:
+            - uses: actions/checkout@v4
+
             - uses: aws-actions/configure-aws-credentials@v4
               with:
                   role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
