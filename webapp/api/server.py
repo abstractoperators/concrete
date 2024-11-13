@@ -1,6 +1,7 @@
+import json
 import os
 from collections.abc import Callable, Sequence
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 import dotenv
@@ -12,6 +13,10 @@ from concrete_db.orm.models import (
     Client,
     ClientCreate,
     ClientUpdate,
+    DagNodeBase,
+    DagNodeCreate,
+    DagNodeToDagNodeLink,
+    DagProject,
     DagProjectCreate,
     Operator,
     OperatorCreate,
@@ -85,7 +90,9 @@ def ping():
     return {"message": "pong"}
 
 
-# ===CRUD operations for Orchestrators=== #
+# region Orchestrators API
+
+
 @app.post("/orchestrators/", response_model=Orchestrator)
 def create_orchestrator(orchestrator: OrchestratorCreate) -> Orchestrator:
     with Session() as db:
@@ -129,7 +136,10 @@ def delete_orchestrator(orchestrator_id: UUID) -> Orchestrator:
         return orchestrator
 
 
-# ===CRUD operations for Operators=== #
+# endregion
+# region Operators API
+
+
 @app.post("/operators/")
 def create_operator(operator: OperatorCreate) -> Operator:
     with Session() as db:
@@ -190,7 +200,10 @@ def delete_operator(orchestrator_id: UUID, operator_id: UUID) -> Operator:
         return operator
 
 
-# ===CRUD operations for Clients=== #
+# endregion
+# region Clients API
+
+
 @app.post("/clients/")
 def create_client(client: ClientCreate) -> Client:
     with Session() as db:
@@ -235,7 +248,7 @@ def read_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> Cl
         return client
 
 
-@app.put("/orchestrator/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
+@app.put("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
 def update_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, client: ClientUpdate) -> Client:
     with Session() as db:
         db_client = crud.update_client(db, client_id, operator_id, orchestrator_id, client)
@@ -244,7 +257,7 @@ def update_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, cli
         return db_client
 
 
-@app.delete("/orchestrator/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
+@app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
 def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> Client:
     with Session() as db:
         client = crud.delete_client(db, client_id, operator_id, orchestrator_id)
@@ -253,12 +266,13 @@ def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> 
         return client
 
 
-# ===Project and Operator Building=== #
-# TODO: add persistence
+# endregion
+# region DagProject API
+# TODO: integrate better into persistence and Concept Hierarchy
 
 
-@app.post("/build/project")
-def initialize_project(dag_project_create: DagProjectCreate) -> str:
+@app.post("/projects/dag/")
+def initialize_project(project: DagProjectCreate) -> DagProject:
     """
     Initiate a directed-acyclic-graph (DAG) project locally.
     Projects must be unique in name.
@@ -271,65 +285,159 @@ def initialize_project(dag_project_create: DagProjectCreate) -> str:
 
     name: The name of the project to be initialized.
     """
-    name = dag_project_create.name
-    with Session() as session:
-        db_project = crud.get_dag_project_by_name(session, name)
+    name = project.name
+    with Session() as db:
+        db_project = crud.get_dag_project_by_name(db, name)
         if db_project is not None:
-            raise HTTPException(status_code=400, detail="{name} already exists as a Project!")
-        db_project = crud.create_dag_project(session, dag_project_create)
+            raise HTTPException(status_code=400, detail=f"{name} already exists as a Project!")
+        db_project = crud.create_dag_project(db, project)
 
-    return db_project
+        return db_project
 
 
-@app.post("/build/project/{project}/task")
-def expand_project_with_task(
-    project: str, operator: str, boost: str = "chat", task: str = "", default_task_kwargs: dict[str, Any] = {}
-) -> str:
+@app.get("/projects/dag/")
+def read_projects(common_read_params: CommonReadDep) -> Sequence[DagProject]:
+    with Session() as db:
+        return crud.get_dag_projects(
+            db,
+            skip=common_read_params.skip,
+            limit=common_read_params.limit,
+        )
+
+
+@app.get("/projects/dag/{project_name}")
+def read_project(project_name: str) -> DagProject:
+    with Session() as db:
+        project = crud.get_dag_project_by_name(db, project_name)
+        if project is None:
+            raise project_not_found(project_name)
+        return project
+
+
+@app.delete("/projects/dag/{project_name}")
+def delete_project(project_name: str) -> DagProject:
+    with Session() as db:
+        project = crud.delete_dag_project_by_name(db, project_name)
+        if project is None:
+            raise project_not_found(project_name)
+        return project
+
+
+@app.post("/projects/dag/{project_name}/tasks")
+def expand_project_with_task(project_name: str, task: DagNodeCreate) -> DagProject:
     """
     Expand a project by adding an operator task as a node in its DAG.
 
-    project: The name of the project to be expanded.
+    project_name: The name of the project to be expanded.
+    name: The name of the task instance this node represents.
     operator: The name of the operator whose task we'd like to use.
-    boost: The name of the operator's prompt boost to add as a node.
-    task: The name of the task this node represents.
+    task: The name of the operator's task to add as a node.
     default_task_kwargs: Any default arguments to pass to the task.
     """
-    with Session() as session:
-        db_project = crud.get_dag_project_by_name(session)
-    if project not in PROJECTS:
-        raise project_not_found(project)
-    project_obj = PROJECTS[project]
-    node = DAGNode(task, boost, getattr(operators, operator)(), default_task_kwargs)
-    return project_obj.add_node(task, node).name
+    if project_name != task.project_name:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Path project name {project_name} and body project name {task.project_name} don't match!",
+        )
+
+    with Session() as db:
+        project = crud.get_dag_project_by_name(db, task.project_name)
+        if project is None:
+            raise project_not_found(task.project_name)
+
+        node = crud.get_dag_node_by_name(db, project.id, task.name)
+        if node is not None:
+            raise HTTPException(
+                status_code=400, detail=f"{task.name} already exists as a node for {task.project_name}!"
+            )
+
+        crud.create_dag_node(
+            db,
+            DagNodeBase(
+                project_id=project.id,
+                **task.model_dump(exclude=set("project")),
+            ),
+        )
+
+        db.refresh(project)
+        return project
 
 
-@app.post("/build/project/{project}/edge")
-def expand_project_with_connection(project: str, parent: str, child: str, input_to_child: str) -> tuple[str, str, str]:
+@app.post("/projects/dag/{project_name}/edges")
+def expand_project_with_connection(project_name: str, edge: DagNodeToDagNodeLink) -> DagProject:
     """
     Expand a project by connecting two tasks together.
     The output from the parent task will be fed into the child task.
 
-    project: The name of the project to be expanded.
-    parent: The name of the parent task in the connection.
-    child: The name of the child task in the connection.
+    project_name: The name of the project to be expanded.
+    parent_name: The name of the parent task in the connection.
+    child_name: The name of the child task in the connection.
     input_to_child: The name of the input to the child (equivalently, the output from the parent)
     """
-    if project not in PROJECTS:
-        raise project_not_found(project)
-    project_obj = PROJECTS[project]
-    return project_obj.add_edge(parent, child, input_to_child)
+    if project_name != edge.project_name:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Path project name {project_name} and body project name {edge.project_name} don't match!",
+        )
+
+    with Session() as db:
+        project = crud.get_dag_project_by_name(db, edge.project_name)
+        if project is None:
+            raise project_not_found(edge.project_name)
+
+        db_edge = crud.get_dag_edge(db, edge.project_name, edge.parent_name, edge.child_name)
+        if db_edge is not None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{edge.project_name} already has an edge from {edge.parent_name} to {edge.child_name}!",
+            )
+
+        crud.create_dag_edge(db, edge)
+
+        db.refresh(project)
+        return project
 
 
-@app.post("/build/project/{project}/run")
-async def run_project(project: str):
+@app.post("/projects/dag/{project_name}/run")
+async def run_project(project_name: str) -> list[tuple[str, str]]:
     """
     Run a project from its sources to its sinks.
 
     project: The name of the project to be run.
     """
-    if project not in PROJECTS:
-        raise project_not_found(project)
-    project_obj = PROJECTS[project]
-    async for operator, response in project_obj.execute():
+    # TODO: error handling for cycles
+    with Session() as session:
+        db_project = crud.get_dag_project_by_name(session, project_name)
+        if db_project is None:
+            raise project_not_found(project_name)
+        nodes = db_project.nodes
+        edges = db_project.edges
+
+    project = Project()
+    for node in nodes:
+        project.add_node(
+            node.name,
+            DAGNode(
+                node.name,
+                node.task_name,
+                getattr(operators, node.operator_name)(),
+                json.loads(node.default_task_kwargs),
+            ),
+        )
+    for edge in edges:
+        project.add_edge(
+            edge.parent_name,
+            edge.child_name,
+            edge.input_to_child,
+        )
+
+    result = []
+    async for operator, response in project.execute():
         print(operator)
-        print(response)
+        print(response.text)
+        result.append((operator, response.text))
+
+    return result
+
+
+# endregion

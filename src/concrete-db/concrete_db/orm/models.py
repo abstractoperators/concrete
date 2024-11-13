@@ -46,7 +46,7 @@ class ProfilePictureMixin(SQLModel):
     )  # TODO: probably use urllib here, oos
 
 
-# Relationship Models
+# region Link Models
 
 
 # TODO for all Link models: Drop index on id, replace with semantic primary key
@@ -66,13 +66,17 @@ class UserToolLink(Base, table=True):
 
 
 class DagNodeToDagNodeLink(Base, table=True):
-    parent: UUID = Field(foreign_key="dagnode.id", primary_key=True, index=True, ondelete="CASCADE")
-    child: UUID = Field(foreign_key="dagnode.id", primary_key=True, ondelete="CASCADE")
-    kwarg_name: str = Field(description="Name of the argument to the child task")
+    project_name: str = Field(foreign_key="dagproject.name", primary_key=True, index=True, ondelete="CASCADE")
+    parent_name: str = Field(foreign_key="dagnode.name", primary_key=True, ondelete="CASCADE")
+    child_name: str = Field(foreign_key="dagnode.name", primary_key=True, ondelete="CASCADE")
+    input_to_child: str = Field(description="Name of the argument to the child task")
+
+    project: "DagProject" = Relationship(back_populates="edges")
 
     # TODO maybe store transformation function
 
 
+# endregion
 # region User Models
 
 
@@ -346,7 +350,7 @@ class DagProjectBase(Base):
     )
 
 
-class DagProjectUpdate(DagProjectBase):
+class DagProjectUpdate(Base):
     name: str | None = Field(description="Name of the project.", max_length=64, default=None)
 
 
@@ -360,21 +364,35 @@ class DagProject(DagProjectBase, MetadataMixin, table=True):
 
 
 class DagNodeBase(Base):
-    name: str = Field(
-        description="Name of the DAG Project Node.",
-        unique=True,
-        max_length=64,
-    )
-    task: str = Field(description="Name of method on Operator (e.g. 'chat')")
-    operator_id: UUID = Field(
-        description="ID of Operator encapsulated by this DAG Node.",
-        foreign_key="operator.id",
+    project_id: UUID = Field(
+        description="ID of DAG Project this DAG Node belongs to.",
+        foreign_key="dagproject.id",
         ondelete="CASCADE",
     )
+    name: str = Field(
+        description="Name of the DAG Project Node.",
+        max_length=64,
+    )
+
+    # TODO: incorporate orchestrator OR decouple
+    operator_name: str = Field(
+        description="Name of Operator encapsulated by this DAG Node.",
+        max_length=64,
+        default="Operator",
+    )
+    task_name: str = Field(
+        description="Name of method on Operator (e.g. 'chat')",
+        max_length=64,
+        default="chat",
+    )
+
     default_task_kwargs: str = Field(
         description="Default kwargs for the task as JSON.",
         default="{}",
     )
+
+    __table_args__ = (UniqueConstraint("name", "project_id", name="no_duplicate_names_per_project"),)
+
     # TODO: options
 
 
@@ -382,12 +400,35 @@ class DagNodeUpdate(Base):
     pass
 
 
-class DagNodeCreate(DagNodeBase):
-    pass
+class DagNodeCreate(Base):
+    project_name: str = Field(
+        description="Name of the DAG Project this DAG Node belongs to.",
+        foreign_key="dagproject.name",
+        max_length=64,
+    )
+    name: str = Field(
+        description="Name of the DAG Project Node.",
+        max_length=64,
+    )
+
+    operator_name: str = Field(
+        description="Name of Operator encapsulated by this DAG Node.",
+        max_length=64,
+        default="Operator",
+    )
+    task_name: str = Field(
+        description="Name of method on Operator (e.g. 'chat')",
+        max_length=64,
+        default="chat",
+    )
+    default_task_kwargs: str = Field(
+        description="Default kwargs for the task as JSON.",
+        default="{}",
+    )
 
 
 class DagNode(DagNodeBase, MetadataMixin, table=True):
-    operator: Operator = Relationship()
+    project: DagProject = Relationship(back_populates="nodes")
 
 
 # endregion

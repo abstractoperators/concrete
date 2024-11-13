@@ -14,11 +14,10 @@ from .orm.models import (
     ClientCreate,
     ClientUpdate,
     DagNode,
-    DagNodeCreate,
+    DagNodeBase,
     DagNodeToDagNodeLink,
     DagProject,
     DagProjectCreate,
-    DagProjectUpdate,
     Message,
     MessageCreate,
     MessageUpdate,
@@ -44,6 +43,9 @@ from .orm.models import (
     UserCreate,
     UserToolLink,
 )
+
+# region Generic Utils
+
 
 M = TypeVar("M", bound=Base)
 N = TypeVar("N", bound=Base)
@@ -79,6 +81,7 @@ def delete_generic(db: Session, model: M | None) -> M | None:
     return model
 
 
+# endregion
 # region Operator CRUD
 
 
@@ -482,13 +485,48 @@ def create_dag_project(db: Session, dag_project_create: DagProjectCreate) -> Dag
     return create_generic(db, DagProject(**dag_project_create.model_dump()))
 
 
-def create_dag_node(db: Session, dag_node_create: DagNodeCreate) -> DagNode:
+def create_dag_node(db: Session, dag_node_create: DagNodeBase) -> DagNode:
     return create_generic(db, DagNode(**dag_node_create.model_dump()))
+
+
+def create_dag_edge(db: Session, dag_edge: DagNodeToDagNodeLink) -> DagNodeToDagNodeLink:
+    return create_generic(db, dag_edge)
+
+
+def get_dag_projects(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+) -> Sequence[DagProject]:
+    stmt = select(DagProject).offset(skip).limit(limit)
+    return db.scalars(stmt).all()
 
 
 def get_dag_project_by_name(db: Session, name: str) -> DagProject | None:
     stmt = select(DagProject).where(DagProject.name == name)
     return db.scalars(stmt).first()
+
+
+def get_dag_node_by_name(db: Session, project_id: UUID, node_name: str) -> DagNode | None:
+    stmt = select(DagNode).where(DagNode.project_id == project_id).where(DagNode.name == node_name)
+    return db.scalars(stmt).first()
+
+
+def get_dag_edge(db: Session, project_name: str, parent_name: str, child_name: str) -> DagNodeToDagNodeLink | None:
+    stmt = (
+        select(DagNodeToDagNodeLink)
+        .where(DagNodeToDagNodeLink.project_name == project_name)
+        .where(DagNodeToDagNodeLink.parent_name == parent_name)
+        .where(DagNodeToDagNodeLink.child_name == child_name)
+    )
+    return db.scalars(stmt).first()
+
+
+def delete_dag_project_by_name(db: Session, name: str) -> DagProject | None:
+    return delete_generic(
+        db,
+        get_dag_project_by_name(db, name),
+    )
 
 
 # endregion
