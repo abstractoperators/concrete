@@ -18,11 +18,13 @@ def invoke_tool(tool: Tool):
     Throws TypeError if the parameters are wrong.
     """
     tool_name = tool.tool_name
-    tool_function = tool.tool_method
+    tool_function = tool.tool_method.strip("()")
+    if "." in tool_function:
+        tool_function = tool_function.split('.')[-1]
     tool_parameters = tool.tool_parameters
     kwargs = {param.name: param.value for param in tool_parameters}
     CLIClient.emit(f"Invoking {tool_name}.{tool_function} with {kwargs}")
 
-    func = getattr(tool_name_to_class(tool_name), tool_function)
+    func = getattr(tool_name_to_class(tool_name), tool_function)  # type: ignore
 
     return func(**kwargs)

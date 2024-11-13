@@ -292,6 +292,7 @@ Here are the children summaries.
 {joined_summaries}"""  # noqa
 
 
+# Dedicated to Michael Deng
 class PromptEngineer(Operator):
     instructions = """
 You are a world-class AI prompt engineer. Your task is to create base prompts that will guide other AI agents in producing high-quality, reliable, and innovative results.
