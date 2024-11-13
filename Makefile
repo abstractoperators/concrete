@@ -34,20 +34,17 @@ deploysimpleflask:
 	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
 # ----------------------- Build commands -----------------------
+# alembic, auth, api, main, homepage
 build-app:
 	docker compose -f docker/docker-compose.yml build $(APP)
 
 
-# build-daemons:
-# 	docker compose -f docker/docker-compose.yml build daemons
+build-daemons:
+	docker compose -f docker/docker-compose.yml build daemons
 
 build-docs:
 	$(UV) mkdocs build --config-file docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
-
-
-build-alembic:
-	docker compose -f docker/docker-compose.yml build alembic
 # ----------------------- Run commands -----------------------
 run-webapp: build-app
 	docker compose -f docker/docker-compose.yml stop $(APP)
@@ -81,9 +78,6 @@ aws-ecr-push-docs: aws-ecr-login
 aws-ecr-push-daemons: aws-ecr-login
 	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
-aws-ecr-push-alembic: aws-ecr-login
-	docker tag alembic:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
 
 # ------------------------ Local Development without Docker ------------------------
 rabbitmq:
