@@ -1,15 +1,9 @@
 name: Deploy Webapps to Staging
 run-name: Deploy Webapps to Staging
 on:
-#   workflow_dispatch:
-#     inputs:
-#       run_job:
-#         description: 'Specify which job(s) to run'
-#         required: false
-#         default: 'all'
     push:
         branches:
-            - michael/workflows
+          main
 
 
 jobs:
@@ -19,7 +13,7 @@ jobs:
       environment: staging
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth', alembic]
+          image: ['api', 'main', 'homepage', 'auth', alembic, docs]
       
       steps:
           - uses: actions/checkout@v4

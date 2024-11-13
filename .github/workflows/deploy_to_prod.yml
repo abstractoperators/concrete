@@ -1,30 +1,62 @@
 run-name: Deploy Webapps to Prod
 name: Deploy Webapps to Prod
 on:
-#   workflow_dispatch:
-#     inputs:
-#       run_job:
-#         description: 'Specify which job(s) to run'
-#         required: false
-#         default: 'all'
-    workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-    deploy: 
-        name: Deploys to Prod
-        runs-on: ubuntu-latest
-        environment: prod
-        strategy:
-            fail-fast: false
-            matrix:
-                image: ['api', 'main', 'homepage', 'auth']
+    deploy-alembic:
+      name: Deploy Alembic Migrations to Staging 
+      runs-on: ubuntu-latest
+      environment: prod
+      
+      steps:
+        - uses: actions/checkout@v4
 
-        steps:
+        - uses: aws-actions/configure-aws-credentials@v4
+          with:
+              role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+              aws-region: us-east-1
+
+        - uses: actions/setup-python@v5
+          with:
+            python-version-file: '.python-version'
+        - uses: astral-sh/setup-uv@v3
+          with: 
+            version: "0.4.27"
+        
+        - name: Set up env for alembic
+          run: |
+            touch .env
+            echo DB_DRIVER=postgresql+psycopg >> .env
+            echo DB_USERNAME=postgres >> .env
+            echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+            echo DB_PORT=5432 >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_DATABASE=postgres >> .env
+
+        - name: Deploy Alembic Task
+          run: |
+             uv run python -m concrete deploy --task \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest \
+                    --container-name alembic-staging \
+                    --container-port 80 \
+                    --container-env-file .env \
+                    --security-groups sg-01af4e696bd2679c3 \
+                    --subnets subnet-0644cadc735c6b557
+   
+    deploy:
+
+      name: Deploy Webapps to Prod
+      needs: [deploy-alembic]
+      runs-on: ubuntu-latest
+      environment: prod 
+      strategy:
+        matrix:
+          image: ['api', 'main', 'homepage', 'auth']
+      
+
+      steps:
             - uses: actions/checkout@v4
-
-            - uses: actions/setup-python@v5
-              with:
-                python-version-file: 'pyproject.toml'
 
             - uses: aws-actions/configure-aws-credentials@v4
               with:
@@ -48,7 +80,7 @@ jobs:
                 echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                 echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
 
-            - name: Set up env file for main
+            - name: Set up env for main
               if: matrix.image == 'main'
               run: |
                 touch .env
@@ -64,10 +96,9 @@ jobs:
                 echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
                 echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                 echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
-            
-                export LISTENER_RULE_FIELD=host-header
-                export LISTENER_RULE_VALUE=app.abop.ai
                 
+                export LISTENER_RULE_FIELD=host-header
+                export LISTENER_RULE_VALUE=app-staging.abop.ai
 
             - name: Set up env for homepage
               if: matrix.image == 'homepage'
@@ -97,7 +128,10 @@ jobs:
                 echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
                 echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
 
-                
+            - uses: actions/setup-python@v5
+              with:
+                python-version-file: '.python-version'
+
             - uses: astral-sh/setup-uv@v3
               with: 
                 version: "0.4.27"
@@ -106,7 +140,7 @@ jobs:
               run: |
                 cmd="uv run python -m concrete deploy \
                       --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/${{ matrix.image }}:latest \
-                      --container-name ${{ matrix.image }} \
+                      --container-name ${{ matrix.image }}-staging \
                       --container-port 80 \
                       --container-env-file .env \
                       --security-groups sg-01af4e696bd2679c3 \
@@ -120,8 +154,7 @@ jobs:
                 cmd="$cmd --health-check-path /ping"
 
                 eval "$cmd"
-
-    
+      
     
 permissions:
   id-token: write 
