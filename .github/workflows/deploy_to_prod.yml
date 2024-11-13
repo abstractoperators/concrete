@@ -5,7 +5,7 @@ on:
 
 jobs:
     deploy-alembic:
-      name: Deploy Alembic Migrations to Staging 
+      name: Deploy Alembic Migrations to Prod 
       runs-on: ubuntu-latest
       environment: prod
       

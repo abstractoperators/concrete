@@ -114,7 +114,9 @@ clear-dist:
 # PACKAGE = concrete-core, concrete-async, concrete-db
 build-package: clear-dist
 	uv build --package $(PACKAGE) --no-sources --out-dir dist
+
 publish-package-test: build-package
 	uv publish --project $(PACKAGE) --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
+
 publish-package: build-package
 	uv publish --project $(PACKAGE) -t $(PYPI_API_TOKEN)
