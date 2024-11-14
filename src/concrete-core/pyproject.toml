@@ -11,8 +11,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-openai = ["openai>=1.40.0"]
-requests = ["requests>=2.26.0"]
+openai = ["openai>=1.40.0"] # https://github.com/openai/openai-python/releases/tag/v1.40.0
+requests = ["requests>=2.0.0"]  
 auth = [
     "pyjwt>=2.9.0",
     "cryptography>=35.0.0",

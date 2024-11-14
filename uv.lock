@@ -596,7 +596,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyjwt", marker = "extra == 'auth'", specifier = ">=2.9.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "requests", marker = "extra == 'requests'", specifier = ">=2.26.0" },
+    { name = "requests", marker = "extra == 'requests'", specifier = ">=2.0.0" },
 ]
 
 [[package]]
