@@ -34,17 +34,9 @@ deploysimpleflask:
 	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
 # ----------------------- Build commands -----------------------
-build-api:
-	docker compose -f docker/docker-compose.yml build api
-
-build-webapp-homepage:
-	docker compose -f docker/docker-compose.yml build webapp-homepage
-
-build-auth:
-	docker compose -f docker/docker-compose.yml build auth
-
-build-dind-builder:
-	docker compose -f docker/docker-compose.yml build dind-builder
+# alembic, auth, api, main, homepage
+build-app:
+	docker compose -f docker/docker-compose.yml build $(APP)
 
 build-daemons:
 	docker compose -f docker/docker-compose.yml build daemons
@@ -52,43 +44,14 @@ build-daemons:
 build-docs:
 	$(UV) mkdocs build --config-file docs/mkdocs.yml
 	docker compose -f docker/docker-compose.yml build docs
-
-build-main:
-	docker compose -f docker/docker-compose.yml build main
-
-build-alembic:
-	docker compose -f docker/docker-compose.yml build alembic
 # ----------------------- Run commands -----------------------
-# NOTE: Services inside docker requiring postgres need to have env variable DB_HOST=host.docker.internal
-# Launch postgres using env variable DB_HOST=localhost for alembic migrations
-# Then, change DB_HOST=host.docker.internal, and launch your dockerized service.
-run-webapp-api: build-api 
-	docker compose -f docker/docker-compose.yml stop api
-	docker compose -f docker/docker-compose.yml up -d api
-
-run-webapp-homepage: build-webapp-homepage
-	docker compose -f docker/docker-compose.yml stop webapp-homepage
-	docker compose -f docker/docker-compose.yml up -d webapp-homepage
-
-run-webapp-auth: build-auth
-	docker compose -f docker/docker-compose.yml stop auth
-	docker compose -f docker/docker-compose.yml up -d auth
-
-run-dind-builder:
-	docker compose -f docker/docker-compose.yml stop dind-builder
-	docker compose -f docker/docker-compose.yml up -d dind-builder
-
-run-daemons:
-	docker compose -f docker/docker-compose.yml stop daemons
-	docker compose -f docker/docker-compose.yml up -d daemons
+run-webapp: build-app
+	docker compose -f docker/docker-compose.yml stop $(APP)
+	docker compose -f docker/docker-compose.yml up -d $(APP)
 
 run-docs: build-docs
 	docker compose -f docker/docker-compose.yml stop docs
 	docker compose -f docker/docker-compose.yml up -d docs
-
-run-main: build-main
-	docker compose -f docker/docker-compose.yml stop main
-	docker compose -f docker/docker-compose.yml up -d main
 
 run-postgres:
 	docker compose -f docker/docker-compose.yml down postgres
@@ -105,28 +68,15 @@ run-postgres:
 aws-ecr-login:
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
 
-# Build before pushing to registry
-aws-ecr-push-api: aws-ecr-login
-	docker tag api:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/api:latest
-aws-ecr-push-auth: aws-ecr-login
-	docker tag auth:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/auth:latest
-aws-ecr-push-homepage: aws-ecr-login
-	docker tag webapp-homepage:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/webapp-homepage:latest
+aws-ecr-push: aws-ecr-login
+	docker tag $(APP):latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
+	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
 aws-ecr-push-docs: aws-ecr-login
 	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
 aws-ecr-push-daemons: aws-ecr-login
 	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
-aws-ecr-push-main: aws-ecr-login
-	docker tag main:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/main:latest
-aws-ecr-push-alembic: aws-ecr-login
-	docker tag alembic:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest
 
 # ------------------------ Local Development without Docker ------------------------
 rabbitmq:
@@ -161,20 +111,12 @@ local-daemons:
 clear-dist:
 	rm -rf dist/*
 
-build-concrete-core: clear-dist
-	uv build --package concrete-core --no-sources --out-dir dist
+# PACKAGE = concrete-core, concrete-async, concrete-db
+build-package: clear-dist
+	uv build --package $(PACKAGE) --no-sources --out-dir dist
 
-build-concrete-async: clear-dist
-	uv build --package concrete-async --no-sources --out-dir dist
+publish-package-test: build-package
+	uv publish --project $(PACKAGE) --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
 
-build-concrete-db: clear-dist
-	uv build --package concrete-db --no-sources --out-dir dist
-
-publish-concrete-core-test: build-concrete-core 
-	uv publish --project concrete-core --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
-
-publish-concrete-async-test: build-concrete-async
-	uv publish --project concrete-sync --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
-
-publish-concrete-db-test: build-concrete-db
-	uv publish --project concrete-db --publish-url https://test.pypi.org/legacy/ -t $(TEST_PYPI_API_TOKEN)
+publish-package: build-package
+	uv publish --project $(PACKAGE) -t $(PYPI_API_TOKEN)

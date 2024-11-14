@@ -3,18 +3,16 @@ FROM python:3.11.10-bookworm
 RUN pip install uv==0.4.27
 
 WORKDIR /app
+
+# Common deps
+COPY pyproject.toml uv.lock .env ./
 COPY src ./src 
-COPY pyproject.toml .
-COPY uv.lock .
-# RUN uv sync
 
-COPY .env .
-
-COPY webapp/api ./webapp/api
-WORKDIR /app/webapp/api
- 
 # App specifics
-RUN chmod +x /app/webapp/api/scripts/start.sh
+COPY webapp/api ./webapp/api
 
+WORKDIR /app/webapp/api
+RUN uv sync
+RUN chmod +x /app/webapp/api/scripts/start.sh
 EXPOSE 80
 CMD ["/app/webapp/api/scripts/start.sh"]
