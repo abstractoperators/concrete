@@ -559,7 +559,7 @@ requires-dist = [
 
 [[package]]
 name = "concrete-core"
-version = "0.0.5"
+version = "0.0.7"
 source = { editable = "src/concrete-core" }
 dependencies = [
     { name = "pydantic" },

@@ -225,7 +225,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
     @property
     def _options(self) -> dict[str, Any]:
-        return {"instructions": self.instructions, "response_format": self.response_format, "use_tools": False}
+        return {"instructions": self.instructions, "response_format": self.response_format, "use_tools": self.use_tools}
 
     def chat(self, message: str, options: dict[str, Any] = {}) -> str:
         """
