@@ -1,19 +1,22 @@
 
 [tool.uv]
-dev-dependencies = [
-    "jupyterlab==4.2.5",
-    "black==24.4.2",
-    "flake8==7.1.0",
-    "isort==5.13.2",
-    "bandit==1.7.9",
-    "pre-commit==3.7.1",
-    "mypy==1.11.2",
-    "alembic==1.13.2",
-    "pytest==8.3.3",
-    "ipykernel==6.29.5",
-    "pip",
-    "boto3",
-    "boto3-stubs[ecs]",
+[dependency-groups]
+dev = [
+    "jupyterlab",
+    "black",
+    "flake8", 
+    "isort", 
+    "bandit", 
+    "pre-commit", 
+    "mypy", 
+    "alembic", 
+    "pytest", 
+    "ipykernel", 
+    "boto3", 
+    "boto3-stubs[ecs]"
+]
+
+packages = [
     "concrete-core",
     "concrete-async",
     "concrete-db",
@@ -21,15 +24,12 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "webapp/api", "docs"] # Can't do src/* because of eggs and misc auto-generated files
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main"] 
 
 [tool.uv.sources]
 concrete-core = { workspace = true }
 concrete-async = { workspace = true }
 concrete-db = { workspace = true }
-api = { workspace = true }
-docs = { workspace = true }
-
 
 [tool.bandit]
 exclude_dirs = ["tests", "path/to/file"]

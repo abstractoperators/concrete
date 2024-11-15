@@ -15,12 +15,12 @@ services:
       ports:
         - "8000:80"
 
-  webapp-homepage:
-    image: webapp-homepage
+  homepage:
+    image: homepage
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.homepage
-    container_name: webapp-homepage
+    container_name: homepage
     network_mode: service:ts-oauth-homepage
     platform: linux/arm64
 

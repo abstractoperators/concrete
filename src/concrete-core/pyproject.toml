@@ -11,18 +11,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-openai = ["openai>=1.40.0"]
-requests = ["requests"]
+openai = ["openai>=1.40.0"] # https://github.com/openai/openai-python/releases/tag/v1.40.0
+requests = ["requests>=2.0.0"]  
 auth = [
-    "pyjwt",
-    "cryptography",
-    "itsdangerous",  # session middleware
-    "fastapi"
+    "pyjwt>=2.9.0",
+    "cryptography>=35.0.0",
+    "itsdangerous>=2.0.0",  # session middleware
+    "fastapi>=0.105"
 ]
 google-auth = [
-    "google-auth",
-    "google-auth-oauthlib",
-    "google-api-python-client",
+    "google-auth>=2.25",
+    "google-auth-oauthlib>=1.1.1",
+    "google-api-python-client>=2.0.0"
 ]
 
 

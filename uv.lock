@@ -7,30 +7,31 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "api",
+    "auth",
     "concrete-async",
     "concrete-core",
     "concrete-db",
     "docs",
+    "homepage",
+    "main",
 ]
 requirements = [
-    { name = "alembic", specifier = "==1.13.2" },
-    { name = "bandit", specifier = "==1.7.9" },
-    { name = "black", specifier = "==24.4.2" },
+    { name = "alembic" },
+    { name = "bandit" },
+    { name = "black" },
     { name = "boto3" },
     { name = "boto3-stubs", extras = ["ecs"] },
     { name = "concrete-async" },
     { name = "concrete-core" },
     { name = "concrete-db" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.4" },
-    { name = "flake8", specifier = "==7.1.0" },
-    { name = "ipykernel", specifier = "==6.29.5" },
-    { name = "isort", specifier = "==5.13.2" },
-    { name = "jupyterlab", specifier = "==4.2.5" },
-    { name = "mypy", specifier = "==1.11.2" },
-    { name = "pip" },
-    { name = "pre-commit", specifier = "==3.7.1" },
-    { name = "pytest", specifier = "==8.3.3" },
+    { name = "flake8" },
+    { name = "ipykernel" },
+    { name = "isort" },
+    { name = "jupyterlab" },
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
 ]
 
 [[package]]
@@ -79,27 +80,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9f/09/45b9b7a6d4e45c6bcb5bf61d19e3ab87df68e0601fa8c5293de3542546cc/anyio-4.6.2.post1.tar.gz", hash = "sha256:4c8bc31ccdb51c7f7bd251f51c609e038d63e34219b44aa86e47576389880b4c", size = 173422 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/f5/f2b75d2fc6f1a260f340f0e7c6a060f4dd2961cc16884ed851b0d18da06a/anyio-4.6.2.post1-py3-none-any.whl", hash = "sha256:6d170c36fba3bdd840c73d3868c1e777e33676a69c3a72cf0a0d5d6d8009b61d", size = 90377 },
-]
-
-[[package]]
-name = "api"
-version = "0.1.0"
-source = { virtual = "webapp/api" }
-dependencies = [
-    { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
-    { name = "concrete-db" },
-    { name = "fastapi" },
-    { name = "gunicorn" },
-    { name = "uvicorn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "concrete-core", extras = ["openai", "auth", "google-auth", "requests"], editable = "src/concrete-core" },
-    { name = "concrete-db", editable = "src/concrete-db" },
-    { name = "fastapi" },
-    { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "uvicorn", specifier = ">=0.32.0" },
 ]
 
 [[package]]
@@ -185,6 +165,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fc/0f/aafca9af9315aee06a89ffde799a10a582fe8de76c563ee80bbcdc08b3fb/attrs-24.2.0.tar.gz", hash = "sha256:5cfb1b9148b5b086569baec03f20d7b6bf3bcacc9a42bebf87ffaaca362f6346", size = 792678 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6a/21/5b6702a7f963e95456c0de2d495f67bf5fd62840ac655dc451586d23d39a/attrs-24.2.0-py3-none-any.whl", hash = "sha256:81921eb96de3191c8258c199618104dd27ac608d9366f5e35d011eae1867ede2", size = 63001 },
+]
+
+[[package]]
+name = "auth"
+version = "0.1.0"
+source = { virtual = "webapp/auth" }
+dependencies = [
+    { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
+    { name = "fastapi" },
+    { name = "gunicorn" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concrete-core", extras = ["openai", "requests", "auth", "google-auth"], editable = "src/concrete-core" },
+    { name = "fastapi", specifier = ">=0.115.4" },
+    { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "uvicorn", specifier = ">=0.32.0" },
 ]
 
 [[package]]
@@ -588,17 +587,17 @@ requests = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cryptography", marker = "extra == 'auth'" },
-    { name = "fastapi", marker = "extra == 'auth'" },
-    { name = "google-api-python-client", marker = "extra == 'google-auth'" },
-    { name = "google-auth", marker = "extra == 'google-auth'" },
-    { name = "google-auth-oauthlib", marker = "extra == 'google-auth'" },
-    { name = "itsdangerous", marker = "extra == 'auth'" },
+    { name = "cryptography", marker = "extra == 'auth'", specifier = ">=35.0.0" },
+    { name = "fastapi", marker = "extra == 'auth'", specifier = ">=0.105" },
+    { name = "google-api-python-client", marker = "extra == 'google-auth'", specifier = ">=2.0.0" },
+    { name = "google-auth", marker = "extra == 'google-auth'", specifier = ">=2.25" },
+    { name = "google-auth-oauthlib", marker = "extra == 'google-auth'", specifier = ">=1.1.1" },
+    { name = "itsdangerous", marker = "extra == 'auth'", specifier = ">=2.0.0" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.40.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "pyjwt", marker = "extra == 'auth'" },
+    { name = "pyjwt", marker = "extra == 'auth'", specifier = ">=2.9.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "requests", marker = "extra == 'requests'" },
+    { name = "requests", marker = "extra == 'requests'", specifier = ">=2.0.0" },
 ]
 
 [[package]]
@@ -990,6 +989,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f5/38/3af3d3633a34a3316095b39c8e8fb4853a28a536e55d347bd8d8e9a14b03/h11-0.14.0.tar.gz", hash = "sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d", size = 100418 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/95/04/ff642e65ad6b90db43e668d70ffb6736436c7ce41fcc549f4e9472234127/h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761", size = 58259 },
+]
+
+[[package]]
+name = "homepage"
+version = "0.1.0"
+source = { virtual = "webapp/homepage" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "gunicorn" },
+    { name = "jinja2" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115.4" },
+    { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "jinja2", specifier = ">=3.1.4" },
+    { name = "uvicorn", specifier = ">=0.32.0" },
 ]
 
 [[package]]
@@ -1467,6 +1485,25 @@ wheels = [
 ]
 
 [[package]]
+name = "main"
+version = "0.1.0"
+source = { virtual = "webapp/main" }
+dependencies = [
+    { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
+    { name = "fastapi" },
+    { name = "gunicorn" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concrete-core", extras = ["auth", "requests", "openai", "google-auth"], editable = "src/concrete-core" },
+    { name = "fastapi", specifier = ">=0.115.4" },
+    { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "uvicorn", specifier = ">=0.32.0" },
+]
+
+[[package]]
 name = "mako"
 version = "1.3.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1855,15 +1892,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/c3/059298687310d527a58bb01f3b1965787ee3b40dce76752eda8b44e9a2c5/pexpect-4.9.0-py2.py3-none-any.whl", hash = "sha256:7236d1e080e4936be2dc3e326cec0af72acf9212a7e1d060210e70a47e253523", size = 63772 },
-]
-
-[[package]]
-name = "pip"
-version = "24.3.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f4/b1/b422acd212ad7eedddaf7981eee6e5de085154ff726459cf2da7c5a184c1/pip-24.3.1.tar.gz", hash = "sha256:ebcb60557f2aefabc2e0f918751cd24ea0d56d8ec5445fe1807f1d2109660b99", size = 1931073 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/7d/500c9ad20238fcfcb4cb9243eede163594d7020ce87bd9610c9e02771876/pip-24.3.1-py3-none-any.whl", hash = "sha256:3790624780082365f47549d032f3770eeb2b1e8bd1f7b2e02dace1afa361b4ed", size = 1822182 },
 ]
 
 [[package]]

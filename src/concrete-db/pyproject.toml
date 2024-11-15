@@ -10,8 +10,6 @@ dependencies = [
     "psycopg[binary]>=3.2.3",
 ]
 
-[tool.uv.sources]
-concrete-core = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
