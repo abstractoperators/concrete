@@ -4,7 +4,8 @@ repo_name: abstractoperators/concrete
 docs_dir: ../docs
 site_dir: ../site
 theme:
-  name: mkdocs
+  name: material
+  custom_dir: ../docs/overrides
   logo: favicon.ico
   features:
     - navigation.tabs
