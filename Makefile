@@ -140,7 +140,7 @@ celery: rabbitmq
 
 # Run locally
 local-docs:
-	$(UV) mkdocs serve --config-file docs/mkdocs.yml
+	$(UV) mkdocs serve --config-file config/mkdocs.yml
 
 local-api:
 	$(UV) fastapi dev webapp/api/server.py --port 8001
