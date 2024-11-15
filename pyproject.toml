@@ -17,6 +17,7 @@ dev-dependencies = [
     "concrete-core",
     "concrete-async",
     "concrete-db",
+    "fastapi[standard]>=0.115.4",
 ]
 
 [tool.uv.workspace]

@@ -1,4 +1,3 @@
-import json
 import os
 from collections.abc import Callable, Sequence
 from typing import Annotated
@@ -333,6 +332,7 @@ def expand_project_with_task(project_name: str, task: DagNodeCreate) -> DagProje
     operator: The name of the operator whose task we'd like to use.
     task: The name of the operator's task to add as a node.
     default_task_kwargs: Any default arguments to pass to the task.
+    options: Any options to pass to the task, e.g. tools, response format.
     """
     if project_name != task.project_name:
         raise HTTPException(
@@ -421,7 +421,8 @@ async def run_project(project_name: str) -> list[tuple[str, str]]:
                 node.name,
                 node.task_name,
                 getattr(operators, node.operator_name)(),
-                json.loads(node.default_task_kwargs),
+                node.default_task_kwargs,
+                node.options,
             ),
         )
     for edge in edges:
