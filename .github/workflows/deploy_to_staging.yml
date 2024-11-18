@@ -2,7 +2,7 @@ name: Deploy Webapps to Staging
 run-name: Deploy Webapps to Staging
 on:
     push:
-        branches: ['main', 'michael/workflow_fix']
+        branches: ['main']
 
 
 jobs:
