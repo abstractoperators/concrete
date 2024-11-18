@@ -8,7 +8,6 @@ dependencies = [
     "mkdocs-material>=9.5.44",
     "mkdocs>=1.6.1",
     "pymdown-extensions>=10.12",
-    "caddy",
 ]
 
 

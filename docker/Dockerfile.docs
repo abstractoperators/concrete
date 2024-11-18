@@ -1,14 +1,5 @@
-# FROM caddy:2.8.4-alpine
 
-# WORKDIR /app
-
-# COPY site ./site
-
-# EXPOSE 80
-# CMD ["caddy", "file-server", "--root", "/app/site"]
-
-
-FROM python:3.11.10-bookworm
+FROM python:3.11.10-bookworm AS builder
 
 RUN pip install uv==0.4.27
 
@@ -19,7 +10,15 @@ COPY src ./src
 
 COPY webapp/docs ./webapp/docs
 WORKDIR /app/webapp/docs
-RUN uv sync
-RUN chmod +x /app/webapp/docs/scripts/start.sh
+
+RUN uv run mkdocs build --config-file /app/webapp/docs/config/mkdocs.yml
+
+FROM caddy:2.8.4-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/webapp/docs/site ./site
 EXPOSE 80
-CMD ["caddy", 'file-server', '--root', '/app/
+
+CMD ["caddy", "file-server", "--root", "/app/site"]
+
