@@ -1,5 +1,5 @@
-Last Updated: 2024-11-07 16:47:45 UTC
-Lines Changed: +109, -0
+Last Updated: 2024-11-18 18:33:48 UTC
+Lines Changed: +111, -0
 # Operators
 
 ## Abstract Operators

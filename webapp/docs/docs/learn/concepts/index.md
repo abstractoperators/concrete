@@ -1,3 +1,5 @@
+Last Updated: 2024-11-18 18:33:48 UTC
+Lines Changed: +21, -0
 # Key Concepts
 
 **[Operators](operators.md)**  

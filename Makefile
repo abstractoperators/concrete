@@ -41,9 +41,9 @@ build-app:
 build-daemons:
 	docker compose -f docker/docker-compose.yml build daemons
 
-build-docs:
-	$(UV) mkdocs build --config-file docs/mkdocs.yml
-	docker compose -f docker/docker-compose.yml build docs
+# build-docs:
+# 	$(UV) mkdocs build --config-file docs/mkdocs.yml
+# 	docker compose -f docker/docker-compose.yml build docs
 # ----------------------- Run commands -----------------------
 run-webapp: build-app
 	docker compose -f docker/docker-compose.yml stop $(APP)
