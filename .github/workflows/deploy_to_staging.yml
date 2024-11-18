@@ -12,7 +12,7 @@ jobs:
       environment: staging
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth', alembic, 'staging']
+          image: ['api', 'main', 'homepage', 'auth', alembic, 'docs']
       
       steps:
           - uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
       environment: staging
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth', 'staging']
+          image: ['api', 'main', 'homepage', 'auth', 'docs']
       
 
       steps:
