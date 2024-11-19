@@ -42,13 +42,7 @@ class Project(StatefulMixin):
 
         return (parent, child, res_name)
 
-    def add_node(self, name: str, node: "DAGNode") -> "DAGNode":
-        if name != node.name:
-            node.name = name
-        if node.name == "" or node.name in self.nodes:
-            # TODO: implement random name generator bandit is happy with
-            # https://www.geeksforgeeks.org/python-generate-random-string-of-given-length/ does not fly
-            node.name = max(self.nodes, default="") + "1"
+    def add_node(self, node: "DAGNode") -> "DAGNode":
         self.nodes[node.name] = node
         return node
 

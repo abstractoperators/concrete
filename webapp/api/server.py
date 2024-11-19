@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import dotenv
+from concrete.clients import CLIClient
 from concrete.projects import DAGNode, Project
 from concrete.webutils import AuthMiddleware
 from concrete_db import crud
@@ -399,14 +400,13 @@ async def run_project(project_name: str, db: DbDep) -> list[tuple[str, str]]:
     project = Project()
     for node in nodes:
         project.add_node(
-            node.name,
             DAGNode(
                 node.name,
                 node.task_name,
                 getattr(operators, node.operator_name)(),
                 node.default_task_kwargs,
                 node.options,
-            ),
+            )
         )
     for edge in edges:
         project.add_edge(
@@ -417,8 +417,8 @@ async def run_project(project_name: str, db: DbDep) -> list[tuple[str, str]]:
 
     result = []
     async for operator, response in project.execute():
-        print(operator)
-        print(response.text)
+        CLIClient.emit(operator)
+        CLIClient.emit(response.text)
         result.append((operator, response.text))
 
     return result
