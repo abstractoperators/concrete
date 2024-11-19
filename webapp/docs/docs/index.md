@@ -11,5 +11,5 @@ Concrete is an AI agent orchestration platform.
 ## [Developer Guide](developer-guide/index.md)
 
 
-Last Updated: 2024-11-07 20:31:48 UTC
-Lines Changed: +3, -6
+Last Updated: 2024-11-18 18:33:48 UTC
+Lines Changed: +15, -0
