@@ -147,7 +147,7 @@ jobs:
                       --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/${{ matrix.image }}:latest \
                       --container-name ${{ matrix.image }} \
                       --container-port 80 \
-                      --container-env-file .env \
+                      --container-env-file .env"
 
                 if [ -n "$LISTENER_RULE_FIELD" ] && [ -n "$LISTENER_RULE_VALUE" ]; then
                   cmd="$cmd --listener-rule-field \"$LISTENER_RULE_FIELD\" --listener-rule-value \"$LISTENER_RULE_VALUE\""
