@@ -7,7 +7,6 @@ import dotenv
 from concrete.projects import DAGNode, Project
 from concrete.webutils import AuthMiddleware
 from concrete_db import crud
-from concrete_db.orm import Session
 from concrete_db.orm.models import (
     Client,
     ClientCreate,
@@ -30,6 +29,8 @@ from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from concrete import operators
+
+from ..common import DbDep
 
 dotenv.load_dotenv(override=True)
 
@@ -93,46 +94,41 @@ def ping():
 
 
 @app.post("/orchestrators/", response_model=Orchestrator)
-def create_orchestrator(orchestrator: OrchestratorCreate) -> Orchestrator:
-    with Session() as db:
-        return crud.create_orchestrator(db, orchestrator)
+def create_orchestrator(orchestrator: OrchestratorCreate, db: DbDep) -> Orchestrator:
+    return crud.create_orchestrator(db, orchestrator)
 
 
 @app.get("/orchestrators/")
-def get_orchestrators(common_read_params: CommonReadDep) -> Sequence[Orchestrator]:
-    with Session() as db:
-        return crud.get_orchestrators(
-            db,
-            skip=common_read_params.skip,
-            limit=common_read_params.limit,
-        )
+def get_orchestrators(common_read_params: CommonReadDep, db: DbDep) -> Sequence[Orchestrator]:
+    return crud.get_orchestrators(
+        db,
+        skip=common_read_params.skip,
+        limit=common_read_params.limit,
+    )
 
 
 @app.get("/orchestrators/{orchestrator_id}")
-def get_orchestrator(orchestrator_id: UUID) -> Orchestrator:
-    with Session() as db:
-        orchestrator = crud.get_orchestrator(db, orchestrator_id)
-        if orchestrator is None:
-            raise orchestrator_not_found(orchestrator_id)
-        return orchestrator
+def get_orchestrator(orchestrator_id: UUID, db: DbDep) -> Orchestrator:
+    orchestrator = crud.get_orchestrator(db, orchestrator_id)
+    if orchestrator is None:
+        raise orchestrator_not_found(orchestrator_id)
+    return orchestrator
 
 
 @app.put("/orchestrators/{orchestrator_id}")
-def update_orchestrator(orchestrator_id: UUID, orchestrator: OrchestratorUpdate) -> Orchestrator:
-    with Session() as db:
-        db_orc = crud.update_orchestrator(db, orchestrator_id, orchestrator)
-        if db_orc is None:
-            raise orchestrator_not_found(orchestrator_id)
-        return db_orc
+def update_orchestrator(orchestrator_id: UUID, orchestrator: OrchestratorUpdate, db: DbDep) -> Orchestrator:
+    db_orc = crud.update_orchestrator(db, orchestrator_id, orchestrator)
+    if db_orc is None:
+        raise orchestrator_not_found(orchestrator_id)
+    return db_orc
 
 
 @app.delete("/orchestrators/{orchestrator_id}")
-def delete_orchestrator(orchestrator_id: UUID) -> Orchestrator:
-    with Session() as db:
-        orchestrator = crud.delete_orchestrator(db, orchestrator_id)
-        if orchestrator is None:
-            raise orchestrator_not_found(orchestrator_id)
-        return orchestrator
+def delete_orchestrator(orchestrator_id: UUID, db: DbDep) -> Orchestrator:
+    orchestrator = crud.delete_orchestrator(db, orchestrator_id)
+    if orchestrator is None:
+        raise orchestrator_not_found(orchestrator_id)
+    return orchestrator
 
 
 # endregion
@@ -140,63 +136,58 @@ def delete_orchestrator(orchestrator_id: UUID) -> Orchestrator:
 
 
 @app.post("/operators/")
-def create_operator(operator: OperatorCreate) -> Operator:
-    with Session() as db:
-        orchestrator = crud.get_orchestrator(db, operator.orchestrator_id)
-        if orchestrator is None:
-            raise orchestrator_not_found(operator.orchestrator_id)
-        return crud.create_operator(db, operator)
+def create_operator(operator: OperatorCreate, db: DbDep) -> Operator:
+    orchestrator = crud.get_orchestrator(db, operator.orchestrator_id)
+    if orchestrator is None:
+        raise orchestrator_not_found(operator.orchestrator_id)
+    return crud.create_operator(db, operator)
 
 
 @app.get("/operators/")
-def read_operators(common_read_params: CommonReadDep) -> Sequence[Operator]:
-    with Session() as db:
-        return crud.get_operators(
-            db,
-            skip=common_read_params.skip,
-            limit=common_read_params.limit,
-        )
+def read_operators(common_read_params: CommonReadDep, db: DbDep) -> Sequence[Operator]:
+    return crud.get_operators(
+        db,
+        skip=common_read_params.skip,
+        limit=common_read_params.limit,
+    )
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/")
 def read_orchestrator_operators(
     orchestrator_id: UUID,
     common_read_params: CommonReadDep,
+    db: DbDep,
 ) -> Sequence[Operator]:
-    with Session() as db:
-        return crud.get_operators(
-            db,
-            orchestrator_id,
-            common_read_params.skip,
-            common_read_params.limit,
-        )
+    return crud.get_operators(
+        db,
+        orchestrator_id,
+        common_read_params.skip,
+        common_read_params.limit,
+    )
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}")
-def read_operator(orchestrator_id: UUID, operator_id: UUID) -> Operator:
-    with Session() as db:
-        operator = crud.get_operator(db, operator_id, orchestrator_id)
-        if operator is None:
-            raise operator_not_found(operator_id)
-        return operator
+def read_operator(orchestrator_id: UUID, operator_id: UUID, db: DbDep) -> Operator:
+    operator = crud.get_operator(db, operator_id, orchestrator_id)
+    if operator is None:
+        raise operator_not_found(operator_id)
+    return operator
 
 
 @app.put("/orchestrators/{orchestrator_id}/operators/{operator_id}")
-def update_operator(orchestrator_id: UUID, operator_id: UUID, operator: OperatorUpdate) -> Operator:
-    with Session() as db:
-        db_operator = crud.update_operator(db, operator_id, orchestrator_id, operator)
-        if db_operator is None:
-            raise operator_not_found(operator_id)
-        return db_operator
+def update_operator(orchestrator_id: UUID, operator_id: UUID, operator: OperatorUpdate, db: DbDep) -> Operator:
+    db_operator = crud.update_operator(db, operator_id, orchestrator_id, operator)
+    if db_operator is None:
+        raise operator_not_found(operator_id)
+    return db_operator
 
 
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")
-def delete_operator(orchestrator_id: UUID, operator_id: UUID) -> Operator:
-    with Session() as db:
-        operator = crud.delete_operator(db, operator_id, orchestrator_id)
-        if operator is None:
-            raise operator_not_found(operator_id)
-        return operator
+def delete_operator(orchestrator_id: UUID, operator_id: UUID, db: DbDep) -> Operator:
+    operator = crud.delete_operator(db, operator_id, orchestrator_id)
+    if operator is None:
+        raise operator_not_found(operator_id)
+    return operator
 
 
 # endregion
@@ -204,22 +195,20 @@ def delete_operator(orchestrator_id: UUID, operator_id: UUID) -> Operator:
 
 
 @app.post("/clients/")
-def create_client(client: ClientCreate) -> Client:
-    with Session() as db:
-        operator = crud.get_operator(db, client.operator_id, client.orchestrator_id)
-        if operator is None:
-            raise operator_not_found(client.operator_id)
-        return crud.create_client(db, client)
+def create_client(client: ClientCreate, db: DbDep) -> Client:
+    operator = crud.get_operator(db, client.operator_id, client.orchestrator_id)
+    if operator is None:
+        raise operator_not_found(client.operator_id)
+    return crud.create_client(db, client)
 
 
 @app.get("/clients/")
-def read_clients(common_read_params: CommonReadDep) -> Sequence[Client]:
-    with Session() as db:
-        return crud.get_clients(
-            db,
-            skip=common_read_params.skip,
-            limit=common_read_params.limit,
-        )
+def read_clients(common_read_params: CommonReadDep, db: DbDep) -> Sequence[Client]:
+    return crud.get_clients(
+        db,
+        skip=common_read_params.skip,
+        limit=common_read_params.limit,
+    )
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/")
@@ -227,42 +216,45 @@ def read_operator_clients(
     orchestrator_id: UUID,
     operator_id: UUID,
     common_read_params: CommonReadDep,
+    db: DbDep,
 ) -> Sequence[Client]:
-    with Session() as db:
-        return crud.get_clients(
-            db,
-            orchestrator_id=orchestrator_id,
-            operator_id=operator_id,
-            skip=common_read_params.skip,
-            limit=common_read_params.limit,
-        )
+    return crud.get_clients(
+        db,
+        orchestrator_id=orchestrator_id,
+        operator_id=operator_id,
+        skip=common_read_params.skip,
+        limit=common_read_params.limit,
+    )
 
 
 @app.get("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
-def read_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> Client:
-    with Session() as db:
-        client = crud.get_client(db, client_id, operator_id, orchestrator_id)
-        if client is None:
-            raise client_not_found(client_id)
-        return client
+def read_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, db: DbDep) -> Client:
+    client = crud.get_client(db, client_id, operator_id, orchestrator_id)
+    if client is None:
+        raise client_not_found(client_id)
+    return client
 
 
 @app.put("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
-def update_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, client: ClientUpdate) -> Client:
-    with Session() as db:
-        db_client = crud.update_client(db, client_id, operator_id, orchestrator_id, client)
-        if db_client is None:
-            raise client_not_found(client_id)
-        return db_client
+def update_client(
+    orchestrator_id: UUID,
+    operator_id: UUID,
+    client_id: UUID,
+    client: ClientUpdate,
+    db: DbDep,
+) -> Client:
+    db_client = crud.update_client(db, client_id, operator_id, orchestrator_id, client)
+    if db_client is None:
+        raise client_not_found(client_id)
+    return db_client
 
 
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}/clients/{client_id}")
-def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> Client:
-    with Session() as db:
-        client = crud.delete_client(db, client_id, operator_id, orchestrator_id)
-        if client is None:
-            raise client_not_found(client_id)
-        return client
+def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID, db: DbDep) -> Client:
+    client = crud.delete_client(db, client_id, operator_id, orchestrator_id)
+    if client is None:
+        raise client_not_found(client_id)
+    return client
 
 
 # endregion
@@ -271,7 +263,7 @@ def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> 
 
 
 @app.post("/projects/dag/")
-def initialize_project(project: DagProjectCreate) -> DagProject:
+def initialize_project(project: DagProjectCreate, db: DbDep) -> DagProject:
     """
     Initiate a directed-acyclic-graph (DAG) project locally.
     Projects must be unique in name.
@@ -285,45 +277,41 @@ def initialize_project(project: DagProjectCreate) -> DagProject:
     name: The name of the project to be initialized.
     """
     name = project.name
-    with Session() as db:
-        db_project = crud.get_dag_project_by_name(db, name)
-        if db_project is not None:
-            raise HTTPException(status_code=400, detail=f"{name} already exists as a Project!")
-        db_project = crud.create_dag_project(db, project)
+    db_project = crud.get_dag_project_by_name(db, name)
+    if db_project is not None:
+        raise HTTPException(status_code=400, detail=f"{name} already exists as a Project!")
+    db_project = crud.create_dag_project(db, project)
 
-        return db_project
+    return db_project
 
 
 @app.get("/projects/dag/")
-def read_projects(common_read_params: CommonReadDep) -> Sequence[DagProject]:
-    with Session() as db:
-        return crud.get_dag_projects(
-            db,
-            skip=common_read_params.skip,
-            limit=common_read_params.limit,
-        )
+def read_projects(common_read_params: CommonReadDep, db: DbDep) -> Sequence[DagProject]:
+    return crud.get_dag_projects(
+        db,
+        skip=common_read_params.skip,
+        limit=common_read_params.limit,
+    )
 
 
 @app.get("/projects/dag/{project_name}")
-def read_project(project_name: str) -> DagProject:
-    with Session() as db:
-        project = crud.get_dag_project_by_name(db, project_name)
-        if project is None:
-            raise project_not_found(project_name)
-        return project
+def read_project(project_name: str, db: DbDep) -> DagProject:
+    project = crud.get_dag_project_by_name(db, project_name)
+    if project is None:
+        raise project_not_found(project_name)
+    return project
 
 
 @app.delete("/projects/dag/{project_name}")
-def delete_project(project_name: str) -> DagProject:
-    with Session() as db:
-        project = crud.delete_dag_project_by_name(db, project_name)
-        if project is None:
-            raise project_not_found(project_name)
-        return project
+def delete_project(project_name: str, db: DbDep) -> DagProject:
+    project = crud.delete_dag_project_by_name(db, project_name)
+    if project is None:
+        raise project_not_found(project_name)
+    return project
 
 
 @app.post("/projects/dag/{project_name}/tasks")
-def expand_project_with_task(project_name: str, task: DagNodeCreate) -> DagProject:
+def expand_project_with_task(project_name: str, task: DagNodeCreate, db: DbDep) -> DagProject:
     """
     Expand a project by adding an operator task as a node in its DAG.
 
@@ -340,31 +328,28 @@ def expand_project_with_task(project_name: str, task: DagNodeCreate) -> DagProje
             detail=f"Path project name {project_name} and body project name {task.project_name} don't match!",
         )
 
-    with Session() as db:
-        project = crud.get_dag_project_by_name(db, task.project_name)
-        if project is None:
-            raise project_not_found(task.project_name)
+    project = crud.get_dag_project_by_name(db, task.project_name)
+    if project is None:
+        raise project_not_found(task.project_name)
 
-        node = crud.get_dag_node_by_name(db, project.id, task.name)
-        if node is not None:
-            raise HTTPException(
-                status_code=400, detail=f"{task.name} already exists as a node for {task.project_name}!"
-            )
+    node = crud.get_dag_node_by_name(db, project.id, task.name)
+    if node is not None:
+        raise HTTPException(status_code=400, detail=f"{task.name} already exists as a node for {task.project_name}!")
 
-        crud.create_dag_node(
-            db,
-            DagNodeBase(
-                project_id=project.id,
-                **task.model_dump(exclude=set("project")),
-            ),
-        )
+    crud.create_dag_node(
+        db,
+        DagNodeBase(
+            project_id=project.id,
+            **task.model_dump(exclude=set("project")),
+        ),
+    )
 
-        db.refresh(project)
-        return project
+    db.refresh(project)
+    return project
 
 
 @app.post("/projects/dag/{project_name}/edges")
-def expand_project_with_connection(project_name: str, edge: DagNodeToDagNodeLink) -> DagProject:
+def expand_project_with_connection(project_name: str, edge: DagNodeToDagNodeLink, db: DbDep) -> DagProject:
     """
     Expand a project by connecting two tasks together.
     The output from the parent task will be fed into the child task.
@@ -380,38 +365,36 @@ def expand_project_with_connection(project_name: str, edge: DagNodeToDagNodeLink
             detail=f"Path project name {project_name} and body project name {edge.project_name} don't match!",
         )
 
-    with Session() as db:
-        project = crud.get_dag_project_by_name(db, edge.project_name)
-        if project is None:
-            raise project_not_found(edge.project_name)
+    project = crud.get_dag_project_by_name(db, edge.project_name)
+    if project is None:
+        raise project_not_found(edge.project_name)
 
-        db_edge = crud.get_dag_edge(db, edge.project_name, edge.parent_name, edge.child_name)
-        if db_edge is not None:
-            raise HTTPException(
-                status_code=400,
-                detail=f"{edge.project_name} already has an edge from {edge.parent_name} to {edge.child_name}!",
-            )
+    db_edge = crud.get_dag_edge(db, edge.project_name, edge.parent_name, edge.child_name)
+    if db_edge is not None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{edge.project_name} already has an edge from {edge.parent_name} to {edge.child_name}!",
+        )
 
-        crud.create_dag_edge(db, edge)
+    crud.create_dag_edge(db, edge)
 
-        db.refresh(project)
-        return project
+    db.refresh(project)
+    return project
 
 
 @app.post("/projects/dag/{project_name}/run")
-async def run_project(project_name: str) -> list[tuple[str, str]]:
+async def run_project(project_name: str, db: DbDep) -> list[tuple[str, str]]:
     """
     Run a project from its sources to its sinks.
 
     project: The name of the project to be run.
     """
     # TODO: error handling for cycles
-    with Session() as session:
-        db_project = crud.get_dag_project_by_name(session, project_name)
-        if db_project is None:
-            raise project_not_found(project_name)
-        nodes = db_project.nodes
-        edges = db_project.edges
+    db_project = crud.get_dag_project_by_name(db, project_name)
+    if db_project is None:
+        raise project_not_found(project_name)
+    nodes = db_project.nodes
+    edges = db_project.edges
 
     project = Project()
     for node in nodes:

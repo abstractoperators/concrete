@@ -10,7 +10,7 @@ from concrete.models.messages import ProjectDirectory
 from concrete.orchestrators import SoftwareOrchestrator
 from concrete.webutils import AuthMiddleware
 from concrete_db import crud
-from concrete_db.orm import Session
+from concrete_db.orm import engine
 from concrete_db.orm.models import (
     Base,
     MessageCreate,
@@ -32,6 +32,7 @@ from fastapi.middleware import Middleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlmodel import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from webapp.common import (
@@ -82,7 +83,7 @@ def sidebar_create(
 
 
 def sidebar_create_orchestrator(request: Request, user_email: str):
-    with Session() as session:
+    with Session(engine) as session:
         user_tools = crud.get_user_tools(session, user_email)
         tool_names = [tool.name for tool in user_tools]
 
@@ -97,7 +98,7 @@ def sidebar_create_orchestrator(request: Request, user_email: str):
 
 
 def sidebar_create_operator(orchestrator_id: UUID, request: Request, user_id: UUID):
-    with Session() as session:
+    with Session(engine) as session:
         orchestrator_tools = crud.get_orchestrator_tools(session, orchestrator_id, user_id)
         tool_names = [tool.name for tool in orchestrator_tools]
     return sidebar_create(
@@ -111,7 +112,7 @@ def sidebar_create_operator(orchestrator_id: UUID, request: Request, user_id: UU
 
 
 def sidebar_create_project(orchestrator_id: UUID, request: Request):
-    with Session() as session:
+    with Session(engine) as session:
         operators = crud.get_operators(session, orchestrator_id)
         CLIClient.emit_sequence(operators)
         CLIClient.emit("\n")
@@ -194,7 +195,7 @@ async def login(request: Request):
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request, user_id: UserIdDep):
     # TODO interactive tool creation.
-    with Session() as session:
+    with Session(engine) as session:
         tools_to_add = ["HTTPTool", "Arithmetic"]
         for tool_name in tools_to_add:
             tool_create = ToolCreate(name=tool_name)
@@ -223,7 +224,7 @@ async def get_changelog(request: Request):
 
 @app.get("/orchestrators", response_class=HTMLResponse)
 async def get_orchestrator_list(request: Request, user_id: UserIdDep):
-    with Session() as session:
+    with Session(engine) as session:
         orchestrators = crud.get_orchestrators(session, user_id)
         CLIClient.emit_sequence(orchestrators)
         CLIClient.emit("\n")
@@ -252,7 +253,7 @@ async def create_orchestrator(
     )
 
     # Create orchestrator with tools assigned to it
-    with Session() as session:
+    with Session(engine) as session:
         orchestrator = crud.create_orchestrator(session, orchestrator_create)
         CLIClient.emit(f"Creating {orchestrator=}\n")
         CLIClient.emit(f"Assigning tools: {tool_names=}\n")
@@ -272,7 +273,7 @@ async def validate_orchestrator_name(
     name: annotatedFormStr = "",
 ):
     def db_getter():
-        with Session() as session:
+        with Session(engine) as session:
             return crud.get_orchestrator_by_name(session, name, user_id)
 
     return create_name_validation(name, db_getter, request)
@@ -285,7 +286,7 @@ async def create_orchestrator_form(request: Request, user_email: UserEmailDep):
 
 @app.get("/orchestrators/{orchestrator_id}", response_class=HTMLResponse)
 async def get_orchestrator(orchestrator_id: UUID, request: Request, user_id: UserIdDep):
-    with Session() as session:
+    with Session(engine) as session:
         orchestrator = crud.get_orchestrator(session, orchestrator_id, user_id)
         return templates.TemplateResponse(
             name="orchestrator.html",
@@ -298,7 +299,7 @@ async def get_orchestrator(orchestrator_id: UUID, request: Request, user_id: Use
 
 @app.delete("/orchestrators/{orchestrator_id}")
 async def delete_orchestrator(orchestrator_id: UUID, user_id: UserIdDep):
-    with Session() as session:
+    with Session(engine) as session:
         orchestrator = crud.delete_orchestrator(session, orchestrator_id, user_id)
         CLIClient.emit(f"{orchestrator}\n")
         headers = {"HX-Trigger": "getOrchestrators"}
@@ -308,7 +309,7 @@ async def delete_orchestrator(orchestrator_id: UUID, user_id: UserIdDep):
 # === Operators === #
 @app.get("/orchestrators/{orchestrator_id}/operators", response_class=HTMLResponse)
 async def get_operator_list(orchestrator_id: UUID, request: Request):
-    with Session() as session:
+    with Session(engine) as session:
         operators = crud.get_operators(session, orchestrator_id)
         CLIClient.emit_sequence(operators)
         CLIClient.emit("\n")
@@ -338,7 +339,7 @@ async def create_operator(
         title=title,
         orchestrator_id=orchestrator_id,
     )
-    with Session() as session:
+    with Session(engine) as session:
         operator = crud.create_operator(session, operator_create)
         for tool_name in tool_names:
             tool = crud.get_tool_by_name(session, user_id, tool_name)
@@ -359,7 +360,7 @@ async def validate_operator_name(
     name: annotatedFormStr = "",
 ):
     def db_getter():
-        with Session() as session:
+        with Session(engine) as session:
             return crud.get_operator_by_name(session, name, orchestrator_id)
 
     return create_name_validation(name, db_getter, request)
@@ -375,7 +376,7 @@ async def create_operator_form(orchestrator_id: UUID, request: Request, user_id:
     response_class=HTMLResponse,
 )
 async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Request):
-    with Session() as session:
+    with Session(engine) as session:
         operator = crud.get_operator(session, operator_id, orchestrator_id)
         return templates.TemplateResponse(
             name="operator.html",
@@ -389,7 +390,7 @@ async def get_operator(orchestrator_id: UUID, operator_id: UUID, request: Reques
 @app.delete("/orchestrators/{orchestrator_id}/operators/{operator_id}")
 async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
     # TODO: generate error feedback for user when operator is in a group project
-    with Session() as session:
+    with Session(engine) as session:
         operator = crud.delete_operator(session, operator_id, orchestrator_id)
         CLIClient.emit(f"{operator}\n")
         headers = {"HX-Trigger": "getOperators"}
@@ -401,7 +402,7 @@ async def delete_operator(orchestrator_id: UUID, operator_id: UUID):
 
 @app.get("/orchestrators/{orchestrator_id}/projects", response_class=HTMLResponse)
 async def get_project_list(orchestrator_id: UUID, request: Request):
-    with Session() as session:
+    with Session(engine) as session:
         projects = crud.get_projects(session, orchestrator_id)
         CLIClient.emit_sequence(projects)
         CLIClient.emit("\n")
@@ -429,7 +430,7 @@ async def create_project(
         developer_id=developer_id,
         orchestrator_id=orchestrator_id,
     )
-    with Session() as session:
+    with Session(engine) as session:
         project = crud.create_project(session, project_create)
         CLIClient.emit(f"{project}\n")
         return sidebar_create_project(orchestrator_id, request)
@@ -442,7 +443,7 @@ async def validate_project_name(
     name: annotatedFormStr = "",
 ):
     def db_getter():
-        with Session() as session:
+        with Session(engine) as session:
             return crud.get_project_by_name(session, name, orchestrator_id)
 
     return create_name_validation(name, db_getter, request)
@@ -458,7 +459,7 @@ async def create_project_form(orchestrator_id: UUID, request: Request):
     response_class=HTMLResponse,
 )
 async def get_project(orchestrator_id: UUID, project_id: UUID, request: Request):
-    with Session() as session:
+    with Session(engine) as session:
         project = crud.get_project(session, project_id, orchestrator_id)
         CLIClient.emit(f"{project}\n")
         return templates.TemplateResponse(
@@ -472,7 +473,7 @@ async def get_project(orchestrator_id: UUID, project_id: UUID, request: Request)
 
 @app.delete("/orchestrators/{orchestrator_id}/projects/{project_id}")
 async def delete_project(orchestrator_id: UUID, project_id: UUID):
-    with Session() as session:
+    with Session(engine) as session:
         project = crud.delete_project(session, project_id, orchestrator_id)
         CLIClient.emit(f"{project}\n")
         headers = {"HX-Trigger": "getProjects"}
@@ -484,7 +485,7 @@ async def delete_project(orchestrator_id: UUID, project_id: UUID):
     response_class=HTMLResponse,
 )
 async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Request):
-    with Session() as session:
+    with Session(engine) as session:
         chat = crud.get_messages(session, project_id)
         CLIClient.emit_sequence(chat)
         CLIClient.emit("\n")
@@ -510,7 +511,7 @@ async def get_project_chat(orchestrator_id: UUID, project_id: UUID, request: Req
 
 
 def get_project_is_done(project_id: UUID) -> bool:
-    with Session() as session:
+    with Session(engine) as session:
         final_message = crud.get_completed_project(session, project_id)
         return final_message is not None
 
@@ -523,7 +524,7 @@ async def get_downloadable_completed_project(orchestrator_id, project_id: UUID) 
     if not get_project_is_done(project_id):
         raise HTTPException(status_code=404, detail=f"Project {project_id} not completed yet!")
 
-    with Session() as session:
+    with Session(engine) as session:
         final_message = crud.get_completed_project(session, project_id)
         if final_message is not None:
             pydantic_message = final_message.to_obj()
@@ -552,7 +553,7 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
             prompt = data["prompt"]
             # TODO: Use concrete.messages.TextMessage and
             # more tightly-couple Pydantic models with SQLModel models
-            with Session() as session:
+            with Session(engine) as session:
                 prompt_message = crud.create_message(
                     session,
                     MessageCreate(

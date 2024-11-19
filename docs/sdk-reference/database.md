@@ -58,17 +58,18 @@ If you need to save objects manually, use a database `Session` object. The `Sess
 Example
 
 ```python
-from concrete_db import Session
+from concrete_db.orm import engine
 from concrete_db.orm.models import MetadataMixin, Base
+from sqlmodel import Session
 
 class MyModel(Base, MetadataMixin):
     pass
 
-with Session() as session:
+with Session(engine) as session:
     my_model = MyModel()
     session.add(my_model)
     session.commit()
 ```
 
-Last Updated: 2024-11-08 15:12:55 UTC
-Lines Changed: +72, -0
+Last Updated: 2024-11-19 02:16:01 UTC
+Lines Changed: +5, -4

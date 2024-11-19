@@ -1,3 +1,3 @@
-from .setup import Session
+from .setup import engine
 
-__all__ = ["Session"]
+__all__ = ["engine"]
