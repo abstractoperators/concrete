@@ -52,7 +52,7 @@ jobs:
       environment: prod 
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth']
+          image: ['api', 'main', 'homepage', 'auth', 'docs']
       continue-on-error: true
         
 
