@@ -20,13 +20,16 @@ try:
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            print("TRACE_ENABLED", TRACE_ENABLED)
             if not TRACE_ENABLED:
                 return func(self, *args, **kwargs)
 
             with tracer.start_as_current_span(f"{self.__class__.__name__}.{func.__name__}") as span:
                 span.set_attribute("args", str(args))
                 span.set_attribute("kwargs", str(kwargs))
+
+                span.set_attribute('project_id', str(self.project_id))
+                span.set_attribute('operator_id', str(self.operator_id))
+                span.set_attribute('starting_prompt', str(self.starting_prompt))
 
                 # TODO: Make generic to non-operator.qna
                 # span.set_attribute("operator_id", str(self.operator_id))
