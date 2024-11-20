@@ -1,5 +1,7 @@
 from .clients import CLIClient
 
+TRACE_ENABLED = False
+
 try:
     from functools import wraps
 
@@ -18,6 +20,10 @@ try:
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
+            print("TRACE_ENABLED", TRACE_ENABLED)
+            if not TRACE_ENABLED:
+                return func(self, *args, **kwargs)
+
             with tracer.start_as_current_span(f"{self.__class__.__name__}.{func.__name__}") as span:
                 span.set_attribute("args", str(args))
                 span.set_attribute("kwargs", str(kwargs))
@@ -45,4 +51,4 @@ except ImportError:
     def otel_wrapper(func):
         return func
 
-    CLIClient.emit("OpenTelemetry not installed, skipping OpenTelemetry tracing.")
+    CLIClient.emit("concrete[otel] extra dependencies not installed. Tracing is disabled")
