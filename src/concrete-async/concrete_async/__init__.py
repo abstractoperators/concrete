@@ -3,10 +3,10 @@ from typing import Any, cast
 
 from celery.result import AsyncResult
 from concrete.clients import CLIClient, model_to_schema
-from concrete.models import KombuMixin, Message, Operation
 from concrete_async.tasks import abstract_operation
 
 import concrete
+from concrete.models import KombuMixin, Message, Operation
 
 
 def _delay_factory(string_func: Callable[..., str]) -> Callable[..., AsyncResult]:

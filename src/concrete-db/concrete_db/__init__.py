@@ -4,9 +4,10 @@ from functools import wraps
 from concrete.abstract import AbstractOperator
 from concrete.clients import CLIClient
 from concrete.models.messages import Message
+from sqlmodel import Session
 
 from .crud import create_message
-from .orm import Session
+from .orm import engine
 from .orm.models import MessageCreate
 
 
@@ -20,7 +21,7 @@ def _qnawrapper(_qna: Callable) -> Callable:
     ) -> Message:
         answer = _qna(self, query, response_format, instructions)
         if self.store_messages:
-            with Session() as session:
+            with Session(engine) as session:
                 create_message(
                     session,
                     MessageCreate(

@@ -15,12 +15,13 @@ from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
 from concrete.tools.knowledge import KnowledgeGraphTool
 from concrete_db import crud
-from concrete_db.orm import Session
+from concrete_db.orm import engine
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlmodel import Session
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -359,7 +360,7 @@ class AOGitHubDaemon(Webhook):
         if not found:
             return ("", "")
 
-        with Session() as db:
+        with Session(engine) as db:
             documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
             if documentation_node is None:
                 CLIClient.emit(f"Documentation node not found for {path}")

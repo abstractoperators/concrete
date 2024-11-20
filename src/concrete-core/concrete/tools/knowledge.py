@@ -8,7 +8,8 @@ from uuid import UUID
 
 try:
     from concrete_db import crud
-    from concrete_db.orm import Session, models
+    from concrete_db.orm import engine, models
+    from sqlmodel import Session
 except ImportError:
     raise ImportError("Install concrete_db to use knowledge tools")
 
@@ -57,7 +58,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
                 branch=branch,
             )
 
-            with Session() as db:
+            with Session(engine) as db:
                 root_node_id = crud.create_repo_node(db=db, repo_node_create=root_node).id
                 to_split.put(root_node_id)
 
@@ -84,7 +85,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Chunks a node into smaller nodes.
         Adds children nodes to database, and returns them for further chunking.
         """
-        with Session() as db:
+        with Session(engine) as db:
             parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
             if parent is None:
                 return []
@@ -119,7 +120,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         res = []
         for child in children:
-            with Session() as db:
+            with Session(engine) as db:
                 child_node = crud.create_repo_node(db=db, repo_node_create=child)
             res.append(child_node.id)
 
@@ -159,7 +160,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
 
         while not nodes.empty():
             node_id = nodes.get()
-            with Session() as db:
+            with Session(engine) as db:
                 node = crud.get_repo_node(db=db, repo_node_id=node_id)
                 if node is None:
                     continue
@@ -215,7 +216,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             vert_gap = height / (max([level for level in levels]) + 1)
             return make_pos({})
 
-        with Session() as db:
+        with Session(engine) as db:
             root_node = crud.get_repo_node(db=db, repo_node_id=root_node_id)
             if not root_node:
                 db.close()
@@ -245,7 +246,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Prerequisite on the graph being built.
         """
         node_ids: list[list[UUID]] = [[root_node_id]]  # Stack of node ids in ascending order of depth. root -> leaf
-        with Session() as db:
+        with Session(engine) as db:
             while node_ids[-1] != []:
                 to_append = []
                 for node_id in node_ids[-1]:
@@ -270,7 +271,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Recursively updates all parent summaries up until the root. Prerequisite on the graph being built.
         """
-        with Session() as db:
+        with Session(engine) as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_id)
             if child is not None:
                 parent_id = child.parent_id
@@ -287,7 +288,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         from concrete_core.operators import Executive
 
-        with Session() as db:
+        with Session(engine) as db:
             child = crud.get_repo_node(db=db, repo_node_id=child_node_id)
             if child and child.parent_id:
                 parent = crud.get_repo_node(db=db, repo_node_id=child.parent_id)
@@ -310,7 +311,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             message_format=NodeSummary,
         )  # type: ignore
 
-        with Session() as db:
+        with Session(engine) as db:
             parent = crud.get_repo_node(db=db, repo_node_id=parent_id)
             if parent is not None:
                 parent_overall_summary = node_summary.overall_summary
@@ -336,7 +337,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         import chardet
         from concrete_core.operators import Executive
 
-        with Session() as db:
+        with Session(engine) as db:
             leaf_node = crud.get_repo_node(db=db, repo_node_id=leaf_node_id)
             if leaf_node is not None and leaf_node.abs_path is not None and leaf_node.partition_type == "file":
                 path = leaf_node.abs_path
@@ -360,7 +361,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
             options={"message_format": ChildNodeSummary},
         )
         repo_node_create = models.RepoNodeUpdate(summary=child_node_summary.summary)
-        with Session() as db:
+        with Session(engine) as db:
             crud.update_repo_node(db=db, repo_node_id=leaf_node_id, repo_node_update=repo_node_create)
 
     @classmethod
@@ -370,7 +371,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         from concrete_core.operators import Executive
 
-        with Session() as db:
+        with Session(engine) as db:
             parent = crud.get_repo_node(db=db, repo_node_id=repo_node_id)
             if parent is None:
                 raise ValueError(f"Node {repo_node_id} not found.")
@@ -395,7 +396,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         parent_node_update = models.RepoNodeUpdate(
             summary=overall_summary, children_summaries=parent_children_summaries
         )
-        with Session() as db:
+        with Session(engine) as db:
             crud.update_repo_node(db=db, repo_node_id=repo_node_id, repo_node_update=parent_node_update)
 
     @classmethod
@@ -404,7 +405,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns the summary of a node.
         (overall_summary, children_summaries)
         """
-        with Session() as db:
+        with Session(engine) as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
                 return ("", "")
@@ -415,7 +416,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Returns the UUID of the parent of node (if it exists, else None).
         """
-        with Session() as db:
+        with Session(engine) as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None or node.parent_id is None:
                 return None
@@ -427,7 +428,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns the UUIDs of the children of a node.
         {child_name: child_id}
         """
-        with Session() as db:
+        with Session(engine) as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
                 return {}
@@ -439,7 +440,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         """
         Returns the abs_path attribute of a node.
         """
-        with Session() as db:
+        with Session(engine) as db:
             node = crud.get_repo_node(db=db, repo_node_id=node_id)
             if node is None:
                 return ""
@@ -451,7 +452,7 @@ class KnowledgeGraphTool(metaclass=MetaTool):
         Returns the UUID of a node by its path. Enables file pointer lookup.
         If path is none, returns the root node
         """
-        with Session() as db:
+        with Session(engine) as db:
             if path is None:
                 node = crud.get_root_repo_node(db=db, org=org, repo=repo, branch=branch)
             else:

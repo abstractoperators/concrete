@@ -1,10 +1,8 @@
 import os
-from contextlib import contextmanager
 
 from concrete.clients import CLIClient
 from dotenv import load_dotenv
 from sqlalchemy import URL
-from sqlmodel import Session as SQLModelSession
 from sqlmodel import create_engine
 
 load_dotenv(override=True)
@@ -36,12 +34,3 @@ else:
     connect_args = {}
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
-
-
-@contextmanager
-def Session():
-    session = SQLModelSession(engine)
-    try:
-        yield session
-    finally:
-        session.close()
