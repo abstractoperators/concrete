@@ -7,10 +7,11 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
+from dotenv import dotenv_values
+
 from concrete.clients import CLIClient
 from concrete.models.base import ConcreteModel
 from concrete.tools import MetaTool
-from dotenv import dotenv_values
 
 
 class Container(ConcreteModel):
@@ -163,10 +164,12 @@ class AwsTool(metaclass=MetaTool):
         # Replace rule for target group if it already exists
         existing_rules = elbv2_client.describe_rules(ListenerArn=listener_arn)["Rules"]
         target_group_arn = None
+        existing_rule_priority = None
         for rule in existing_rules:
             if rule["Actions"][0]["Type"] == "forward" and rule["Actions"][0]["TargetGroupArn"].startswith(
                 arn_prefix + f":targetgroup/{target_group_name}"
             ):
+                existing_rule_priority = int(rule["Priority"])
                 elbv2_client.delete_rule(RuleArn=rule["RuleArn"])
 
         if target_group_arn is None:
@@ -185,14 +188,17 @@ class AwsTool(metaclass=MetaTool):
             )["TargetGroups"][0]["TargetGroupArn"]
 
         # Calculate lowest unused rule priority
-        existing_rule_priorities = set(
-            [int(rule["Priority"]) for rule in existing_rules if rule["Priority"] != "default"]
-        )
-        listener_rule_priority = len(existing_rule_priorities) + 1
-        for i in range(1, len(existing_rules) + 1):
-            if i not in existing_rule_priorities:
-                listener_rule_priority = i
-                break
+        if not existing_rule_priority:
+            existing_rule_priorities = set(
+                [int(rule["Priority"]) for rule in existing_rules if rule["Priority"] != "default"]
+            )
+            listener_rule_priority = len(existing_rule_priorities) + 1
+            for i in range(1, len(existing_rules) + 1):
+                if i not in existing_rule_priorities:
+                    listener_rule_priority = i
+                    break
+        else:
+            listener_rule_priority = existing_rule_priority
 
         elbv2_client.create_rule(
             ListenerArn=listener_arn,
