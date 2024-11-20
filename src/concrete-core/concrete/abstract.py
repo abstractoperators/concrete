@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 from concrete.clients import CLIClient
 from concrete.clients.openai import OpenAIClient
 from concrete.models.messages import Message, TextMessage, Tool
+from concrete.otel import otel_wrapper
 from concrete.tools import MetaTool
 from concrete.tools.utils import invoke_tool
 
@@ -59,6 +60,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.store_messages = store_messages
         self.use_tools = use_tools
 
+    @otel_wrapper
     def _qna(
         self,
         query: str,
