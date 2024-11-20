@@ -507,8 +507,8 @@ def get_dag_project_by_name(db: Session, name: str) -> DagProject | None:
     return db.scalars(stmt).first()
 
 
-def get_dag_node_by_name(db: Session, project_id: UUID, node_name: str) -> DagNode | None:
-    stmt = select(DagNode).where(DagNode.project_id == project_id).where(DagNode.name == node_name)
+def get_dag_node_by_name(db: Session, project_name: str, node_name: str) -> DagNode | None:
+    stmt = select(DagNode).where(DagNode.project_name == project_name).where(DagNode.name == node_name)
     return db.scalars(stmt).first()
 
 

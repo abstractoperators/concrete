@@ -10,7 +10,13 @@ from concrete.state import ProjectStatus
 from concrete.tools import MetaTool
 from concrete.tools.utils import tool_name_to_class
 from pydantic import ConfigDict, ValidationError, model_validator
-from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKeyConstraint,
+    UniqueConstraint,
+)
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 from sqlmodel import JSON, Field, Relationship, SQLModel
@@ -67,12 +73,24 @@ class UserToolLink(Base, table=True):
 
 class DagNodeToDagNodeLink(Base, table=True):
     project_name: str = Field(foreign_key="dagproject.name", primary_key=True, index=True, ondelete="CASCADE")
-    parent_name: str = Field(foreign_key="dagnode.name", primary_key=True, ondelete="CASCADE")
-    child_name: str = Field(foreign_key="dagnode.name", primary_key=True, ondelete="CASCADE")
+    parent_name: str = Field(primary_key=True)
+    child_name: str = Field(primary_key=True)
     input_to_child: str = Field(description="Name of the argument to the child task", default="message")
 
     project: "DagProject" = Relationship(back_populates="edges")
 
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["project_name", "parent_name"],
+            ["dagnode.project_name", "dagnode.name"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["project_name", "child_name"],
+            ["dagnode.project_name", "dagnode.name"],
+            ondelete="CASCADE",
+        ),
+    )
     # TODO maybe store transformation function
 
 
@@ -364,9 +382,9 @@ class DagProject(DagProjectBase, MetadataMixin, table=True):
 
 
 class DagNodeBase(Base):
-    project_id: UUID = Field(
-        description="ID of DAG Project this DAG Node belongs to.",
-        foreign_key="dagproject.id",
+    project_name: str = Field(
+        description="Name of DAG Project this DAG Node belongs to.",
+        foreign_key="dagproject.name",
         ondelete="CASCADE",
     )
     name: str = Field(
@@ -393,7 +411,7 @@ class DagNodeBase(Base):
         sa_column=Column(JSON),
     )
 
-    __table_args__ = (UniqueConstraint("name", "project_id", name="no_duplicate_names_per_project"),)
+    __table_args__ = (UniqueConstraint("name", "project_name", name="no_duplicate_names_per_project"),)
 
     # TODO: options
 

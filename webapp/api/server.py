@@ -333,16 +333,13 @@ def expand_project_with_task(project_name: str, task: DagNodeCreate, db: DbDep) 
     if project is None:
         raise project_not_found(task.project_name)
 
-    node = crud.get_dag_node_by_name(db, project.id, task.name)
+    node = crud.get_dag_node_by_name(db, project.name, task.name)
     if node is not None:
         raise HTTPException(status_code=400, detail=f"{task.name} already exists as a node for {task.project_name}!")
 
     crud.create_dag_node(
         db,
-        DagNodeBase(
-            project_id=project.id,
-            **task.model_dump(exclude=set("project")),
-        ),
+        DagNodeBase(**task.model_dump()),
     )
 
     db.refresh(project)
@@ -413,6 +410,7 @@ async def run_project(project_name: str, db: DbDep) -> list[tuple[str, str]]:
             edge.parent_name,
             edge.child_name,
             edge.input_to_child,
+            lambda x: x.text,  # TODO: account for different message types
         )
 
     result = []

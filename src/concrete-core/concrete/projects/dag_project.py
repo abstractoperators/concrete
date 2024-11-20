@@ -138,6 +138,7 @@ class DAGNode:
         """
         kwargs = self.default_task_kwargs | self.dynamic_kwargs
         options = self.options | options
+        print(kwargs)
         res = self.bound_task(**kwargs, options=self.options | options)
         if options.get("run_async"):
             res = res.get().message
