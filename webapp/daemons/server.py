@@ -7,13 +7,6 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 import jwt
-from concrete.clients import CLIClient
-from concrete.clients.openai import OpenAIClient
-from concrete.models.messages import NodeUUID
-from concrete.operators import Executive
-from concrete.tools.github import GithubTool
-from concrete.tools.http import RestApiTool
-from concrete.tools.knowledge import KnowledgeGraphTool
 from concrete_db import crud
 from concrete_db.orm import Session
 from dotenv import load_dotenv
@@ -21,6 +14,14 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+from concrete.clients import CLIClient
+from concrete.clients.openai import OpenAIClient
+from concrete.models.messages import NodeUUID
+from concrete.operators import Executive
+from concrete.tools.github import GithubTool
+from concrete.tools.http import RestApiTool
+from concrete.tools.knowledge import KnowledgeGraphTool
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
