@@ -13,7 +13,7 @@ try:
 
     # Set up TracerProvider ~ Tracer Factory
     multi_span_processor = ConcurrentMultiSpanProcessor(num_threads=1)
-    span_processor = SimpleSpanProcessor(FileSpanExporter("trace.log"))
+    span_processor = SimpleSpanProcessor(FileSpanExporter(filepath="trace.log"))
     multi_span_processor.add_span_processor(span_processor)
     trace.set_tracer_provider(TracerProvider(active_span_processor=multi_span_processor))
 
@@ -24,7 +24,7 @@ try:
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            if os.getenv("TRACE_ENABLED").lower() == 'true':
+            if not os.getenv("TRACE_ENABLED").lower() == 'true':
                 return func(self, *args, **kwargs)
 
             with tracer.start_as_current_span(f"{self.__class__.__name__}.{func.__name__}") as span:

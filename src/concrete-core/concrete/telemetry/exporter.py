@@ -24,14 +24,16 @@ class FileSpanExporter(ConsoleSpanExporter):
         service_name: typing.Optional[str] = None,
         formatter: typing.Callable[[ReadableSpan], str] = lambda span: span.to_json() + linesep,
     ):
-        self.file = open(filepath, 'a', encoding='utf-8')
+        self.filepath = filepath
         super().__init__(
             service_name=service_name,
-            out=self.file,  # typing.IO can handle files
             formatter=formatter,
         )
 
-    # export: ConsoleSpanExporter will write to file and flush changes. But WONT close the file.
+    def export(self, spans: typing.Sequence[ReadableSpan]) -> None:
+        with open(self.filepath, 'a+', encoding='utf-8') as file:
+            self.out = file
+            super().export(spans)
 
     def shutdown(self) -> None:
         self.file.close()
