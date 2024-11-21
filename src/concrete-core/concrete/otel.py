@@ -1,6 +1,6 @@
-from .clients import CLIClient
+import os
 
-TRACE_ENABLED = False
+from .clients import CLIClient
 
 try:
     from functools import wraps
@@ -22,7 +22,7 @@ try:
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            if not TRACE_ENABLED:
+            if not os.getenv("TRACE_ENABLED").lower() == 'true':
                 return func(self, *args, **kwargs)
 
             with tracer.start_as_current_span(f"{self.__class__.__name__}.{func.__name__}") as span:
