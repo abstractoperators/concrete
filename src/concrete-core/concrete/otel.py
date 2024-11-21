@@ -6,12 +6,14 @@ try:
     from functools import wraps
 
     from opentelemetry import trace
-    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace import ConcurrentMultiSpanProcessor, TracerProvider
     from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
     # Set up TracerProvider ~ Tracer Factory
+    multi_span_processor = ConcurrentMultiSpanProcessor(num_threads=1)
     span_processor = SimpleSpanProcessor(ConsoleSpanExporter())
-    trace.set_tracer_provider(TracerProvider(active_span_processor=span_processor))
+    multi_span_processor.add_span_processor(span_processor)
+    trace.set_tracer_provider(TracerProvider(active_span_processor=multi_span_processor))
 
     def otel_wrapper(func):
         """Decorator to add OpenTelemetry tracing."""
