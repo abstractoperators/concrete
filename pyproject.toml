@@ -4,18 +4,18 @@
 dev = [
     "jupyterlab",
     "black",
-    "flake8", 
-    "isort", 
-    "bandit", 
-    "pre-commit", 
-    "mypy", 
-    "alembic", 
-    "pytest", 
-    "ipykernel", 
-    "boto3", 
-    "boto3-stubs[ecs]"
+    "flake8",
+    "isort",
+    "bandit",
+    "pre-commit",
+    "mypy",
+    "alembic",
+    "pytest",
+    "ipykernel",
+    "boto3",
+    "boto3-stubs[ecs]",
+    "fastapi[standard]>=0.115.4",
 ]
-
 packages = [
     "concrete-core",
     "concrete-async",

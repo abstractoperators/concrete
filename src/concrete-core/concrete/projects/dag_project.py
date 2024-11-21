@@ -16,18 +16,18 @@ class Project(StatefulMixin):
         self,
         options: dict = {},
     ) -> None:
-        self.edges: dict[DAGNode, list[tuple[DAGNode, str, Callable]]] = defaultdict(list)
+        self.edges: dict[str, list[tuple[str, str, Callable]]] = defaultdict(list)
         self.options = options
 
-        self.nodes: set[DAGNode] = set()
+        self.nodes: dict[str, DAGNode] = {}
 
     def add_edge(
         self,
-        child: "DAGNode",
-        parent: "DAGNode",
+        parent: str,
+        child: str,
         res_name: str,
         res_transformation: Callable = lambda x: x,
-    ) -> None:
+    ) -> tuple[str, str, str]:
         """
         child: Downstream node
         parent: Upstream node
@@ -40,8 +40,11 @@ class Project(StatefulMixin):
 
         self.edges[parent].append((child, res_name, res_transformation))
 
-    def add_node(self, node: "DAGNode") -> None:
-        self.nodes.add(node)
+        return (parent, child, res_name)
+
+    def add_node(self, node: "DAGNode") -> "DAGNode":
+        self.nodes[node.name] = node
+        return node
 
     async def execute(self) -> AsyncGenerator[tuple[str, str], None]:
         if not self.is_dag:
@@ -55,12 +58,12 @@ class Project(StatefulMixin):
 
         while no_dep_nodes:
             ready_node = no_dep_nodes.pop()
-            operator_name, res = await ready_node.execute(self.options)
+            operator_name, res = await self.nodes[ready_node].execute(self.options)
 
             yield (operator_name, res)
 
             for child, res_name, res_transformation in self.edges[ready_node]:
-                child.update(res_transformation(res), res_name)
+                self.nodes[child].update(res_name, res_transformation(res))
                 node_dep_count[child] -= 1
                 if node_dep_count[child] == 0:
                     no_dep_nodes.add(child)
@@ -212,17 +215,17 @@ class Project(StatefulMixin):
 
 
     @property
-    def is_dag(self):
+    def is_dag(self) -> bool:
         # AI generated
-        visited = set()
-        rec_stack = set()
+        visited: set[str] = set()
+        rec_stack: set[str] = set()
 
-        def dfs(node: DAGNode) -> bool:
+        def dfs(node: str) -> bool:
             if node not in visited:
                 visited.add(node)
                 rec_stack.add(node)
 
-                for child, _, _ in self.edges.get(node, []):
+                for child, _, _ in self.edges[node]:
                     if child not in visited:
                         if not dfs(child):
                             return False
@@ -248,6 +251,7 @@ class DAGNode:
 
     def __init__(
         self,
+        name: str,
         task: str,
         operator: Operator,
         default_task_kwargs: dict[str, Any] = {},
@@ -265,12 +269,13 @@ class DAGNode:
             raise ValueError(f"{operator} does not have a method {task}")
         self.operator: Operator = operator
 
-        self.task_str = task
+        self.name = name
+        self.boost_str = task
         self.dynamic_kwargs: dict[str, Any] = {}
         self.default_task_kwargs = default_task_kwargs  # TODO probably want to manage this in the project
         self.options = options  # Could also throw this into default_task_kwargs
 
-    def update(self, dyn_kwarg_value, dyn_kwarg_name) -> None:
+    def update(self, dyn_kwarg_name, dyn_kwarg_value) -> None:
         self.dynamic_kwargs[dyn_kwarg_name] = dyn_kwarg_value
 
     async def execute(self, options: dict = {}) -> Any:
@@ -279,11 +284,12 @@ class DAGNode:
         """
         kwargs = self.default_task_kwargs | self.dynamic_kwargs
         options = self.options | options
+        print(kwargs)
         res = self.bound_task(**kwargs, options=self.options | options)
         if options.get("run_async"):
             res = res.get().message
 
-        return type(self.operator).__name__, res
+        return self.name, res
 
     def __str__(self):
-        return f"{type(self.operator).__name__}.{self.task_str}(**{self.default_task_kwargs})"
+        return f"{type(self.operator).__name__}.{self.boost_str}(**{self.default_task_kwargs})"
