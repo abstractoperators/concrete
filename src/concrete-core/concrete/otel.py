@@ -31,13 +31,6 @@ try:
                 span.set_attribute('operator_id', str(self.operator_id))
                 span.set_attribute('starting_prompt', str(self.starting_prompt))
 
-                # TODO: Make generic to non-operator.qna
-                # span.set_attribute("operator_id", str(self.operator_id))
-                # span.set_attribute("project_id", str(self.project_id))
-                # Assume a bound method
-                # Set all self.attributes as span attribute
-                # for k, v in self.__dict__.items():
-
                 try:
                     result = func(self, *args, **kwargs)
                     span.set_attribute("result", str(result))

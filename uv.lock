@@ -11,7 +11,6 @@ members = [
     "concrete-async",
     "concrete-core",
     "concrete-db",
-    "concrete-otel",
     "homepage",
     "main",
 ]
@@ -580,6 +579,12 @@ google-auth = [
 openai = [
     { name = "openai" },
 ]
+otel = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp" },
+    { name = "opentelemetry-propagator-b3" },
+    { name = "opentelemetry-sdk" },
+]
 requests = [
     { name = "requests" },
 ]
@@ -593,6 +598,10 @@ requires-dist = [
     { name = "google-auth-oauthlib", marker = "extra == 'google-auth'", specifier = ">=1.1.1" },
     { name = "itsdangerous", marker = "extra == 'auth'", specifier = ">=2.0.0" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.40.0" },
+    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.28.2" },
+    { name = "opentelemetry-exporter-otlp", marker = "extra == 'otel'", specifier = ">=1.28.2" },
+    { name = "opentelemetry-propagator-b3", marker = "extra == 'otel'", specifier = ">=1.28.2" },
+    { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.28.2" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyjwt", marker = "extra == 'auth'", specifier = ">=2.9.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -614,25 +623,6 @@ requires-dist = [
     { name = "concrete-core", editable = "src/concrete-core" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.3" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
-]
-
-[[package]]
-name = "concrete-otel"
-version = "0.1.0"
-source = { virtual = "src/concrete-otel" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-propagator-b3" },
-    { name = "opentelemetry-sdk" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "opentelemetry-api", specifier = ">=1.28.2" },
-    { name = "opentelemetry-exporter-otlp", specifier = ">=1.28.2" },
-    { name = "opentelemetry-propagator-b3", specifier = ">=1.28.2" },
-    { name = "opentelemetry-sdk", specifier = ">=1.28.2" },
 ]
 
 [[package]]
