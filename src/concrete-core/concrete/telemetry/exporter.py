@@ -11,12 +11,7 @@ from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SpanExportResult
 
 
 class FileSpanExporter(ConsoleSpanExporter):
-    """Implementation of SpanExporter that writes spans to a file.
-    Extends ConsoleSpanExporter to inherit its formatting capabilities.
-
-    Notes:
-    ConsoleSpanExporter.out: typing.IO can handle file objects
-    """
+    """Implementation of SpanExporter that writes spans to a file."""
 
     def __init__(
         self,
@@ -34,6 +29,3 @@ class FileSpanExporter(ConsoleSpanExporter):
         with open(self.filepath, 'a+', encoding='utf-8') as file:
             self.out = file
             return super().export(spans)
-
-    def shutdown(self) -> None:
-        self.file.close()
