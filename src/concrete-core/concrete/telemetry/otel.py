@@ -24,7 +24,8 @@ try:
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            if not os.getenv("TRACE_ENABLED").lower() == 'true':
+            trace_enabled = os.getenv("TRACE_ENABLED")
+            if not trace_enabled or not trace_enabled.lower() == 'true':
                 return func(self, *args, **kwargs)
 
             with tracer.start_as_current_span(f"{self.__class__.__name__}.{func.__name__}") as span:
