@@ -92,7 +92,7 @@ class Project(StatefulMixin):
         flowchart = f"flowchart {direction}\n"
 
         if title is not None:
-            flowchart = flowchart + f"---\ntitle: {title}\n---\n"
+            flowchart = f"---\ntitle: {title}\n---\n" + flowchart
 
         remove_whitespace: Callable[[str], str] = lambda string: "".join(string.split())
         get_child: Callable[[tuple[str, str, Callable]], str] = lambda edge: edge[0]
