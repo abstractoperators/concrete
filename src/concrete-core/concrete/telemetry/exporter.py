@@ -7,7 +7,7 @@ import typing
 from os import linesep
 
 from opentelemetry.sdk.trace import ReadableSpan
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SpanExportResult
 
 
 class FileSpanExporter(ConsoleSpanExporter):
@@ -30,10 +30,10 @@ class FileSpanExporter(ConsoleSpanExporter):
             formatter=formatter,
         )
 
-    def export(self, spans: typing.Sequence[ReadableSpan]) -> None:
+    def export(self, spans: typing.Sequence[ReadableSpan]) -> SpanExportResult:
         with open(self.filepath, 'a+', encoding='utf-8') as file:
             self.out = file
-            super().export(spans)
+            return super().export(spans)
 
     def shutdown(self) -> None:
         self.file.close()
