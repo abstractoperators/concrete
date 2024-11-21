@@ -1,14 +1,16 @@
-"""AI generated"""
-
 import base64
 import os
+from collections import defaultdict, deque
+from collections.abc import Callable
 from datetime import timedelta
+from typing import Any, TypeVar
 
 import dotenv
 import jwt
 
 dotenv.load_dotenv(override=True)
 
+# region AI generated
 # # These are slow-changing, so the certs are hardcoded directly here
 GOOGLE_OIDC_DISCOVERY = "https://accounts.google.com/.well-known/openid-configuration"
 # GOOGLE_OIDC_CONFIG = requests.get(GOOGLE_OIDC_DISCOVERY).json()
@@ -64,3 +66,67 @@ def map_python_type_to_json_type(py_type) -> str:
         return type_map[py_type]
     else:
         raise ValueError(f"Unexpected Python type: {py_type}")
+
+
+# endregion
+
+
+NodeId = TypeVar("NodeId")
+Edge = TypeVar("Edge")
+
+
+def find_sources_and_sinks(
+    nodes: dict[NodeId, Any],
+    edges: dict[NodeId, list[Edge]],
+    get_neighbor: Callable[[Edge], NodeId] = lambda x: x,  # type: ignore[assignment, return-value]
+) -> tuple[list[NodeId], list[NodeId]]:
+    in_degree: defaultdict[NodeId, int] = defaultdict(int)
+    out_degree: dict[NodeId, int] = {node: len(edges.get(node, [])) for node in nodes}
+
+    for node in nodes:
+        # For each node, check its neighbors (outgoing edges)
+        neighbors = {get_neighbor(edge) for edge in edges.get(node, [])}
+        for neighbor in neighbors:
+            in_degree[neighbor] += 1
+
+    source_nodes = [node for node in nodes if in_degree[node] == 0 and out_degree[node] > 0]
+    sink_nodes = [node for node in nodes if in_degree[node] > 0 and out_degree[node] == 0]
+
+    return source_nodes, sink_nodes
+
+
+def bfs_traversal(
+    edges: dict[NodeId, list[Edge]],
+    start_nodes: list[NodeId],
+    end_nodes: list[NodeId] = [],
+    process_node: Callable[[NodeId], Any] = print,
+    process_edge: Callable[[NodeId, Edge], Any] = print,
+    get_neighbor: Callable[[Edge], NodeId] = lambda x: x,  # type: ignore[assignment, return-value]
+):
+    end_nodes_set = set(end_nodes)
+
+    def bfs(queue: deque[NodeId], visited: set[NodeId]) -> set[NodeId]:
+        if not queue:
+            return visited  # If queue is empty, return visited nodes (end condition)
+
+        node = queue.popleft()
+        if node in visited:
+            return bfs(queue, visited)  # Skip if already visited
+
+        # Process the current node
+        process_node(node)
+        visited = visited | {node}
+
+        # If an end node is reached and provided, stop traversal
+        if node in end_nodes_set:
+            return visited
+
+        for edge in edges.get(node, []):
+            process_edge(node, edge)
+
+        # Enqueue unvisited neighbors
+        neighbors = [get_neighbor(edge) for edge in edges.get(node, [])]
+        unvisited_neighbors = deque(neighbor for neighbor in neighbors if neighbor not in visited)
+        return bfs(queue + unvisited_neighbors, visited)
+
+    return bfs(deque(start_nodes), set())
