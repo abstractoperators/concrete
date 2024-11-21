@@ -1,8 +1,3 @@
-"""
-This module contains a custom file exporter
-https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/fileexporter Is in alpha
-"""
-
 import typing
 from os import linesep
 
