@@ -2,8 +2,7 @@ name: Deploy Webapps to Staging
 run-name: Deploy Webapps to Staging
 on:
     push:
-        branches:
-          main
+        branches: ['main']
 
 
 jobs:
@@ -13,7 +12,7 @@ jobs:
       environment: staging
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth', alembic, docs]
+          image: ['api', 'main', 'homepage', 'auth', alembic, 'docs']
       
       steps:
           - uses: actions/checkout@v4
@@ -49,7 +48,8 @@ jobs:
       environment: staging
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth']
+          image: ['api', 'main', 'homepage', 'auth', 'docs']
+      continue-on-error: true
       
 
       steps:
@@ -125,6 +125,10 @@ jobs:
                 echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
                 echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
 
+            - name: Set up env for docs
+              if: matrix.image == 'docs'
+              run: |
+                touch .env
             - uses: actions/setup-python@v5
               with:
                 python-version-file: '.python-version'

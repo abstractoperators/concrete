@@ -169,6 +169,6 @@ By default, operators rely on OpenAI ChatGPT 4 models to process queries. OpenAI
 OPENAI_API_KEY=<your api key here>
 ```
 
-Last Updated: 2024-11-07 20:31:48 UTC
+Last Updated: 2024-11-18 18:33:48 UTC
 
-Lines Changed: +4, -3
+Lines Changed: +174, -0

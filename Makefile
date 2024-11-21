@@ -34,24 +34,19 @@ deploysimpleflask:
 	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
 # ----------------------- Build commands -----------------------
-# alembic, auth, api, main, homepage
+# alembic, auth, api, main, homepage, docs
 build-app:
 	docker compose -f docker/docker-compose.yml build $(APP)
 
 build-daemons:
 	docker compose -f docker/docker-compose.yml build daemons
 
-build-docs:
-	$(UV) mkdocs build --config-file docs/mkdocs.yml
-	docker compose -f docker/docker-compose.yml build docs
+
 # ----------------------- Run commands -----------------------
 run-webapp: build-app
 	docker compose -f docker/docker-compose.yml stop $(APP)
 	docker compose -f docker/docker-compose.yml up -d $(APP)
 
-run-docs: build-docs
-	docker compose -f docker/docker-compose.yml stop docs
-	docker compose -f docker/docker-compose.yml up -d docs
 
 run-postgres:
 	docker compose -f docker/docker-compose.yml down postgres
@@ -90,7 +85,7 @@ celery: rabbitmq
 
 # Run locally
 local-docs:
-	$(UV) mkdocs serve --config-file config/mkdocs.yml
+	$(UV) mkdocs serve --config-file webapp/docs/config/mkdocs.yml
 
 local-api:
 	$(UV) fastapi dev webapp/api/server.py --port 8001

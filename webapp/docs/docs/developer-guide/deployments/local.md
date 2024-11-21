@@ -1,3 +1,5 @@
+Last Updated: 2024-11-18 18:33:48 UTC
+Lines Changed: +26, -0
 # Local Deployments
 
 It's often necessary, and recommended, to deploy our services locally while making changes to them.
