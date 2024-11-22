@@ -21,8 +21,6 @@ import os
 import urllib
 
 import dotenv
-from concrete.utils import verify_jwt
-from concrete.webutils import AuthMiddleware
 from concrete_db.crud import (
     create_authstate,
     create_authtoken,
@@ -39,6 +37,9 @@ from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+
+from concrete.utils import verify_jwt
+from concrete.webutils import AuthMiddleware
 
 dotenv.load_dotenv(override=True)
 
