@@ -28,3 +28,6 @@ def invoke_tool(tool: Tool):
     func = getattr(tool_name_to_class(tool_name), tool_function)  # type: ignore
 
     return func(**kwargs)
+
+
+# TODO Invoke tool middleware

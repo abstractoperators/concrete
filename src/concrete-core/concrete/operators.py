@@ -335,3 +335,16 @@ class Salesperson(Operator):
     instructions = """
         You are a top-tier salesperson at a leading AI agent orchestration startup. Your role is to communicate the transformative potential of our AI solutions to prospective clients, emphasizing how our technology can seamlessly integrate into their operations to enhance efficiency, drive innovation, and boost their bottom line.
     """  # noqa E501
+
+
+class Judge(Operator):
+    instructions = """
+You are an AI judge tasked with evaluating the performance of AI agents in a variety of tasks.
+You will first think about all relevant criteria for evaluation. Then, you will evaluate the AI agent's performance based on these criteria."""  # noqa E501
+
+    def rate_simple(self, query: str, response: str, options: dict[str, Any] = {}) -> str:
+        return f"""
+Rate the AI agent's response to the following query.
+Query: {query}
+Response: {response}
+"""

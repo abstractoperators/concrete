@@ -107,3 +107,7 @@ class NodeSummary(Message):
 
 class NodeUUID(Message):
     node_uuid: str = Field(description="UUID of the node")
+
+
+class Rating(Message):
+    rating: int = Field(description="Rating from 1 to 10")
