@@ -34,10 +34,12 @@ from webapp.common import JwtToken
 
 # from concrete.clients import CLIClient
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
 
 @app.get("/ping", response_class=HTMLResponse)
@@ -311,7 +313,7 @@ class InstallationToken:
 #         Recommends documentation location for a given path.
 #         Path refers to a module to be documented (e.g. tools)
 #         Returns a boolean to indicate whether an appropriate node exists.
-#         Returns current's UUID, which represents the documentation destination node if the boolean is True (e.g. UUID for docs/tools.md)
+#         Returns current's UUID, which represents the documentation destination node if the boolean is True (e.g. UUID for docs/tools.md) # noqa: E501
 #         """  # noqa: E501
 #         node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
 
@@ -324,7 +326,7 @@ class InstallationToken:
 
 #         exec = Executive(clients={"openai": OpenAIClient()})
 #         next_node_id = exec.chat(
-#             f"""You will navigate to the best child to document the following module. Ideally, a the module will be documented in a central location.
+#             f"""You will navigate to the best child to document the following module. Ideally, a the module will be documented in a central location. # noqa
 #         Module: {node_to_document_summary}
 
 #         The following are summaries of children you may navigate to: {cur_node_summary}
@@ -332,7 +334,7 @@ class InstallationToken:
 #         The following is a list of the children's UUIDs.
 #         {cur_children_nodes}
 
-#         Think about which child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to.
+#         Think about which child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to. # noqa
 #         If you do not believe any children are appropriate, respond with NA.""",  # noqa
 #             options={"response_format": NodeUUID},
 #         ).node_uuid
@@ -478,10 +480,6 @@ class SlackDaemon(Webhook):
             },
         )
 
-
-# hooks = [gh_daemon := GitHubDaemon(), slack_daemon := SlackDaemon(Operator())]
-# for hook in hooks:
-#     app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
 
 routers = [slack_daemon := SlackDaemon(Operator())]
 for router in routers:

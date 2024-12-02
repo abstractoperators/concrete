@@ -97,7 +97,7 @@ ngrok: # Use the provided url as your webhook url
 	ngrok http 8000
 
 local-daemons: 
-	$(UV) fastapi dev webapp/daemons/server.py
+	$(UV) fastapi dev webapp/daemons/server.py 
 
 
 # Build Packages
