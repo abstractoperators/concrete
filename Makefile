@@ -95,8 +95,9 @@ local-auth:
 # I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
 ngrok: # Use the provided url as your webhook url
 	ngrok http 8000
-local-daemons: ngrok
-	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(UV) fastapi dev server.py"
+
+local-daemons: 
+	$(UV) fastapi dev webapp/daemons/server.py
 
 
 # Build Packages

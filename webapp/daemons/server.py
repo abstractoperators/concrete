@@ -1,28 +1,39 @@
-import hashlib
-import hmac
-import json
+# import hashlib
+# import hmac
+# import json
 import os
 import time
-from abc import ABC, abstractmethod
-from typing import Callable
-from uuid import UUID
 
-from concrete.clients import CLIClient
-from concrete.clients.openai import OpenAIClient
-from concrete.models.messages import NodeUUID
-from concrete.operators import Executive, Operator
-from concrete.tools.github import GithubTool
+# from abc import abstractmethod
+from abc import ABC
+from typing import Callable
+
+# from concrete.clients.openai import OpenAIClient
+# from concrete.models.messages import NodeUUID
+# from concrete.operators import Executive, Operator
+from concrete.operators import Operator
+
+# from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
-from concrete.tools.knowledge import KnowledgeGraphTool
-from concrete_db import crud
-from concrete_db.orm import Session
+
+# from concrete.tools.knowledge import KnowledgeGraphTool
+# from concrete_db import crud
+# from concrete_db.orm import Session
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+
+# from fastapi import BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from webapp.common import JwtToken
+
+# from uuid import UUID
+
+
+# from concrete.clients import CLIClient
+
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -385,13 +396,6 @@ class SlackDaemon(Webhook):
         self.routes['/slack/slash_commands'] = self.slash_commands
 
         self.operators: dict[str, Operator] = {}  # Slack workspace: Operator
-        self.operator = operator
-
-        # TODO state management
-        self.operator.immutable_instructions = (
-            "You are a slack chat bot. Respond to the latest user message. Your name is Jaime Daemon"
-        )
-        self.past_messages: list[str] = []  # Ordered list of interactios
 
     def new_operator(self, team_id: str):
         """
@@ -413,16 +417,18 @@ class SlackDaemon(Webhook):
         return self.operators[team_id]['operator'].chat(full_message).text
 
     def clear_operator_history(self, team_id: str):
-        self.operators[team_id]['past_messages'] = []
+        if team_id in self.operators:
+            self.operators[team_id]['past_messages'] = []
 
     def append_operator_history(self, team_id: str, message: str):
-        self.operators[team_id]['past_messages'].append(message)
+        if team_id in self.operators:
+            self.operators[team_id]['past_messages'].append(message)
 
     def update_operator_instructions(self, team_id: str, instructions: str):
-        self.operators[team_id]['operator'].instructions = instructions
+        if team_id in self.operators:
+            self.operators[team_id]['operator'].instructions = instructions
 
     async def slash_commands(self, request: Request):
-
         json_data = await request.json()
         team_id = json_data.get('team_id')
         command = json_data.get('command')
@@ -430,13 +436,10 @@ class SlackDaemon(Webhook):
         if command == "/clearmemory":
             self.clear_operator_history(team_id)
             return Response(content='Cleared memory')
-        elif command == 'updateinstructions':
+        elif command == '/updateinstructions':
             self.update_operator_instructions(team_id, json_data.get('text'))
 
     async def event_subscriptions(self, request: Request):
-        """
-        Listens to slack events posted to the /slack/events route.
-        """
         json_data = await request.json()
         team_id = json_data.get('team_id')
 

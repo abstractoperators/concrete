@@ -1,0 +1,14 @@
+[project]
+name = "daemons"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.9, <4.0.0"
+dependencies = [
+    "jinja2>=3.1.4",
+    "fastapi[standard]>=0.115.4",
+    "gunicorn>=23.0.0",
+    "uvicorn>=0.32.0",
+]
+
+[tool.uv.sources]
