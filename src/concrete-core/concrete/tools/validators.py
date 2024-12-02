@@ -5,8 +5,8 @@ from .meta import MetaTool
 
 
 class ValidatePython(metaclass=MetaTool):
-    @classmethod
-    def is_valid_python(cls, file_name: str, file_contents: str) -> bool:
+    @staticmethod
+    def is_valid_python(file_name: str, file_contents: str) -> bool:
         """
         file_name (str): The name of the file + extension.
         file_contents (str): The full contents of the file.
@@ -19,8 +19,8 @@ class ValidatePython(metaclass=MetaTool):
 
 
 class LMAsJudge(metaclass=MetaTool):
-    @classmethod
-    def rate_message(cls, query: str, message: str) -> Rating:
+    @staticmethod
+    def rate_message(query: str, message: str) -> Rating:
         """
         query (str): The query to rate the message against.
         message (str): The message to rate.
