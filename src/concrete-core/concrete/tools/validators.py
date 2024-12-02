@@ -1,5 +1,5 @@
 from concrete.models.messages import ProjectFile, Rating, TextMessage
-from concrete.validators.utils import is_valid_python, qna_llm_as_a_judge_middleware
+from concrete.validators.utils import is_valid_python, qna_llm_as_a_judge
 
 from .meta import MetaTool
 
@@ -26,4 +26,4 @@ class LMAsJudge(metaclass=MetaTool):
         message (str): The message to rate.
         """
 
-        return qna_llm_as_a_judge_middleware(query, TextMessage(text=message))
+        return qna_llm_as_a_judge(query, TextMessage(text=message))

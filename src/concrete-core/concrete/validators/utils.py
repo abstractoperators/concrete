@@ -12,7 +12,7 @@ def is_valid_python(projectfile: ProjectFile) -> bool:
         return False
 
 
-def qna_llm_as_a_judge_middleware(query: str, message: Message) -> Rating:
+def qna_llm_as_a_judge(query: str, message: Message) -> Rating:
     """
     Utility function for invoking a LLM as a Judge.
     """
