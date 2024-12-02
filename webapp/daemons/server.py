@@ -13,7 +13,6 @@ from concrete.operators import Executive, Operator
 from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
 from concrete.tools.knowledge import KnowledgeGraphTool
-from concrete.utils import JwtToken
 from concrete_db import crud
 from concrete_db.orm import Session
 from dotenv import load_dotenv
@@ -21,6 +20,8 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+from webapp.common import JwtToken
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -384,7 +385,7 @@ class SlackDaemon(Daemon):
         self.operator.instructions = (
             "You are a slack chat bot. Respond to the latest user message. Your name is Jaime Daemon"
         )
-        self.past_messages = []  # Ordered list of interactions
+        self.past_messages: list[str] = []  # Ordered list of interactions
 
     async def webhook_handler(self, request: Request):
         """
