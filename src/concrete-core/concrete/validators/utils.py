@@ -12,7 +12,7 @@ def is_valid_python(projectfile: ProjectFile) -> bool:
         return False
 
 
-def qna_llm_as_a_judge_middleware(query: str, message: Message) -> None:
+def qna_llm_as_a_judge_middleware(query: str, message: Message) -> Rating:
     """
     Utility function for invoking a LLM as a Judge.
     """
@@ -20,3 +20,5 @@ def qna_llm_as_a_judge_middleware(query: str, message: Message) -> None:
     judge = Judge()
     rating: Rating = judge.rate_simple(query, str(message), options={'response_format': Rating})  # type: ignore # noqa
     # Do something with this rating ig
+
+    return rating
