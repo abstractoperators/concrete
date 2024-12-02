@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
-    <title>Operators - List View</title>
+    <title>Orchestrator: {{ orchestrator.name }}</title>
     <link href="{{ dyn_url_for(request, 'static', path='/css/abop.css') }}" rel="stylesheet">
     <link rel="icon" type="image/x-icon"
         href="{{ dyn_url_for(request, 'static', path='/abstractoperators_favicon.jpg') }}">
@@ -37,13 +37,14 @@
     {% from "back_button.html" import back_button with context %}
     {{ back_button(dyn_url_for(request, 'root')) }}
     <main class="main panel">
+        <h1 class="header">{{ orchestrator.name }}</h1>
         <div class="list row">
             <div>
                 <h1 class="header">Operators</h1>
-                <ul hx-get="{{ dyn_url_for(request, 'get_operator_list', orchestrator_id=orchestrator_id) }}"
+                <ul hx-get="{{ dyn_url_for(request, 'get_operator_list', orchestrator_id=orchestrator.id) }}"
                     hx-trigger="load, getOperators from:body" class="operator-card-list"></ul>
                 <button class="button circle"
-                    hx-get="{{ dyn_url_for(request, 'create_operator_form', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for(request, 'create_operator_form', orchestrator_id=orchestrator.id) }}"
                     hx-swap="afterend">
                     <img height="65em" src="{{ dyn_url_for(request, 'static', path='/icons/create_icon.svg') }}"
                         alt="Create Operator button">
@@ -52,10 +53,10 @@
             </div>
             <div>
                 <h1 class="header">Projects</h1>
-                <ul hx-get="{{ dyn_url_for(request, 'get_project_list', orchestrator_id=orchestrator_id) }}"
+                <ul hx-get="{{ dyn_url_for(request, 'get_project_list', orchestrator_id=orchestrator.id) }}"
                     hx-trigger="load, getProjects from:body" class="operator-card-list"></ul>
                 <button class="button circle"
-                    hx-get="{{ dyn_url_for(request, 'create_project_form', orchestrator_id=orchestrator_id) }}"
+                    hx-get="{{ dyn_url_for(request, 'create_project_form', orchestrator_id=orchestrator.id) }}"
                     hx-swap="afterend">
                     <img height="65em" src="{{ dyn_url_for(request, 'static', path='/icons/create_icon.svg') }}"
                         alt="Create Project button">

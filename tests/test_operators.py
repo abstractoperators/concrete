@@ -20,11 +20,15 @@ class TestOperator(unittest.TestCase):
         subclasses = get_all_subclasses(Operator)
         for subclass in subclasses:
             self.assertIn(
-                'instructions', subclass.__dict__, f"Attribute `instructions` must be defined on {subclass.__name__}"
+                "instructions",
+                subclass.__dict__,
+                f"Attribute `instructions` must be defined on {subclass.__name__}",
             )
-            instructions = subclass.__dict__['instructions']
+            instructions = subclass.__dict__["instructions"]
             self.assertIsInstance(
-                instructions, str, f"{subclass.__name__}'s 'instructions' attribute must be of type str"
+                instructions,
+                str,
+                f"{subclass.__name__}'s 'instructions' attribute must be of type str",
             )
 
     def test_operator_chat(self):
@@ -35,7 +39,7 @@ class TestOperator(unittest.TestCase):
         for subclass in subclasses:
             # Ensure that each subclass has a 'chat' method
             self.assertIn(
-                'chat',
+                "chat",
                 dir(subclass),
                 f"Subclass '{subclass.__name__}' does not implement a 'chat' method. Existing methods: {dir(subclass)}",
             )
@@ -64,14 +68,14 @@ class TestOperator(unittest.TestCase):
                 return f"Sum of {x} and {y} is {x + y}"
 
         string_methods = [
-            'method_returning_str',
-            'method_with_args',
+            "method_returning_str",
+            "method_with_args",
         ]
 
         non_string_methods = [
-            'method_returning_int',
-            'method_returning_none',
-            'method_returning_list',
+            "method_returning_int",
+            "method_returning_none",
+            "method_returning_list",
         ]
 
         operator = MockOperator()
@@ -90,7 +94,7 @@ class TestOperator(unittest.TestCase):
             unwrapped_result = original_method(operator)
             wrapped_result = method()
             self.assertEqual(
-                f'Mocked: {unwrapped_result}',
+                f"Mocked: {unwrapped_result}",
                 wrapped_result,
                 f"Method '{method_name}' should invoke _qna and return the mocked response",
             )

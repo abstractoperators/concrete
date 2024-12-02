@@ -1,0 +1,16 @@
+[project]
+name = "concrete-db"
+version = "0.0.0"
+description = "AI Agent Orchestration, Database Support"
+readme = "README.md"
+requires-python = ">=3.11.9, <4.0.0"
+dependencies = [
+    "concrete-core",
+    "sqlmodel>=0.0.22",
+    "psycopg[binary]>=3.2.3",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

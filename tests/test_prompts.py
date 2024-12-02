@@ -4,8 +4,10 @@ from typing import List, Tuple
 
 import pytest
 
-from concrete import orchestrator
-from concrete.utils import remove_comments
+from concrete.orchestrators import Orchestrator
+
+# TODO: decide where utils go
+# from concrete.utils import remove_comments
 
 test_fixture: List[Tuple[str, str, str]] = [
     (
@@ -44,7 +46,8 @@ def test_simple_prompts_string_comp(test_name, prompt, expected):
     prompt (str): Initial prompt for the project.
     expected (str): Expected output.
     """
-    actual = orchestrator.main(prompt)
+    # TODO Fix this and have it actually run
+    actual = Orchestrator.main(prompt)
 
     # # For developing tester.
     # actual = dedent(
@@ -63,10 +66,10 @@ def test_simple_prompts_string_comp(test_name, prompt, expected):
     # )
 
     actual = dedent(strip_code_block(actual))
-    actual = remove_comments(actual)
+    # actual = remove_comments(actual)
 
     expected = dedent(strip_code_block(expected))
-    expected = remove_comments(expected)
+    # expected = remove_comments(expected)
 
     if actual != expected:
         actual = actual.split("\n")

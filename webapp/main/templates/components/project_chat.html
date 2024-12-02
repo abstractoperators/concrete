@@ -15,7 +15,7 @@
                 </h1>
                 <h1 class="header small left">{{ message.operator.name }}</h1>
             </hgroup>
-            <pre class="message">{{ message.content }}</pre>
+            <p class="message">{{ message.content|replace("\\n", "\n")|replace("\\\"", "'") }}</p>
         </li>
     {% endif %}
 {% endfor %}

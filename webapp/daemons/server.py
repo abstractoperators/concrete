@@ -6,19 +6,21 @@ import time
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+from concrete.clients import CLIClient
+from concrete.clients.openai import OpenAIClient
+from concrete.models.messages import NodeUUID
+from concrete.operators import Executive, Operator
+from concrete.tools.github import GithubTool
+from concrete.tools.http import RestApiTool
+from concrete.tools.knowledge import KnowledgeGraphTool
+from concrete.utils import JwtToken
+from concrete_db import crud
+from concrete_db.orm import Session
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-from concrete.clients import CLIClient, OpenAIClient
-from concrete.db import crud
-from concrete.db.orm import Session
-from concrete.models.messages import NodeUUID
-from concrete.operators import Executive, Operator
-from concrete.tools import GithubTool, KnowledgeGraphTool, RestApiTool
-from concrete.utils import JwtToken
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -42,7 +44,7 @@ class Webhook(ABC):
         self.route = route
 
     @abstractmethod
-    async def webhook_handler(self, request: Request):
+    async def webhook_handler(self, request: Request, background_tasks: BackgroundTasks):
         pass
 
 
@@ -88,8 +90,11 @@ class InstallationToken:
             "Authorization": f"Bearer {self.jwt_token.token}",
             "X-GitHub-Version": "2022-11-28",
         }
-        url = f'https://api.github.com/app/installations/{self.installation_id}/access_tokens'
+        url = f"https://api.github.com/app/installations/{self.installation_id}/access_tokens"
 
+        self._expiry = int(time.time() + 3600)
+        token = RestApiTool.post(url=url, headers=headers).get("token", "")
+        self._token = token
         self.exp = int(time.time() + self.expiry_offset)
         self._token = RestApiTool.post(url=url, headers=headers).get('token', '')
 
@@ -123,6 +128,8 @@ class GitHubDaemon(Daemon):
         self.repo = repo
 
         self.open_revisions: dict[str, str] = {}  # {source branch: revision branch}
+        self.org = "abstractoperators"
+        self.repo = "concrete"
 
     @staticmethod
     def _verify_signature(payload_body, signature_header):
@@ -142,7 +149,11 @@ class GitHubDaemon(Daemon):
         if not signature_header:
             raise HTTPException(status_code=403, detail="x-hub-signature-256 header is missing")
 
-        hash_object = hmac.new(GH_WEBHOOK_SECRET.encode('utf-8'), msg=payload_body, digestmod=hashlib.sha256)
+        hash_object = hmac.new(
+            GH_WEBHOOK_SECRET.encode("utf-8"),
+            msg=payload_body,
+            digestmod=hashlib.sha256,
+        )
 
         expected_signature = "sha256=" + hash_object.hexdigest()
         if not hmac.compare_digest(expected_signature, signature_header):
@@ -160,29 +171,29 @@ class GitHubDaemon(Daemon):
             return {"error": str(e.detail)}, e.status_code
 
         payload: dict = json.loads(raw_payload)
-        self.installation_token.set_installation_id(payload.get('installation', {}).get('id', ''))
+        self.installation_token.set_installation_id(payload.get("installation", {}).get("id", ""))
 
-        if payload.get('pull_request', None):
-            action = payload.get('action', None)
-            sender = payload.get('sender', {}).get('login', '')
-            base = payload.get('pull_request', {}).get('base', {}).get('ref', '')
-            if sender != 'concreteoperator[bot]':
+        if payload.get("pull_request", None):
+            action = payload.get("action", None)
+            sender = payload.get("sender", {}).get("login", "")
+            base = payload.get("pull_request", {}).get("base", {}).get("ref", "")
+            if sender != "concreteoperator[bot]":
                 CLIClient.emit(f"Received PR event: {action}")
-                if action == 'opened' or action == 'reopened':
+                if action == "opened" or action == "reopened":
                     # Open and begin working on a revision branch
-                    branch_name = payload['pull_request']['head']['ref']
+                    branch_name = payload["pull_request"]["head"]["ref"]
                     background_tasks.add_task(self._start_revision, branch_name, base)
 
-                elif action == 'closed':
+                elif action == "closed":
                     # Close and delete the revision branch
-                    branch_name = payload['pull_request']['head']['ref']
+                    branch_name = payload["pull_request"]["head"]["ref"]
                     background_tasks.add_task(self._close_revision, branch_name)
 
-    def _start_revision(self, source_branch: str, source_target: str = 'main'):
+    def _start_revision(self, source_branch: str, source_target: str = "main"):
         """
         Serial execution of creating a revision branch + commits + PR.
         """
-        revision_branch = f'ghdaemon/revision/{source_branch}'
+        revision_branch = f"ghdaemon/revision/{source_branch}"
         self.open_revisions[source_branch] = revision_branch
 
         CLIClient.emit(f"Creating revision branch: {revision_branch}")
@@ -209,7 +220,7 @@ class GitHubDaemon(Daemon):
                 org=self.org,
                 repo=self.repo,
                 dir_path=root_path,
-                rel_gitignore_path='.gitignore',
+                rel_gitignore_path=".gitignore",
                 branch=revision_branch,
             )
         else:
@@ -218,29 +229,29 @@ class GitHubDaemon(Daemon):
             CLIClient.emit("Root node file path: " + root_path)
 
         CLIClient.emit("Finding changed files in source branch/PR")
-        changed_files = GithubTool.get_changed_files(
+        raw_changed_files = GithubTool.get_changed_files(
             org=self.org,
             repo=self.repo,
             base=source_target,
             head=source_branch,
             access_token=self.installation_token.token,
         )
-        changed_files = [file[2:] for (_, file), _ in changed_files]
+        changed_files = [file[2:] for (_, file), _ in raw_changed_files]
 
         for changed_file in changed_files:
             full_path_to_file_to_document = os.path.join(root_path, changed_file)
-            CLIClient.emit(f'Creating append-only documentation for {full_path_to_file_to_document}')
+            CLIClient.emit(f"Creating append-only documentation for {full_path_to_file_to_document}")
             suggested_documentation_to_append, documentation_dest_path = self.recommend_documentation(
                 branch=revision_branch,
                 path=full_path_to_file_to_document,
             )
 
-            if suggested_documentation_to_append == '' or documentation_dest_path == '':
+            if suggested_documentation_to_append == "" or documentation_dest_path == "":
                 CLIClient.emit(f"No documentation to append for {full_path_to_file_to_document}")
                 continue
 
             CLIClient.emit(f"Appending documentation to {documentation_dest_path}. Committing to github.")
-            with open(documentation_dest_path, 'a+') as f:
+            with open(documentation_dest_path, "a+") as f:
                 f.write(suggested_documentation_to_append)
                 f.seek(0)
                 full_documentation = f.read()
@@ -291,7 +302,7 @@ class GitHubDaemon(Daemon):
         node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
 
         cur_node_summary = KnowledgeGraphTool.get_node_summary(cur_id)
-        CLIClient.emit(f'Currently @ {cur_node_summary}')
+        CLIClient.emit(f"Currently @ {cur_node_summary}")
         cur_children_nodes = KnowledgeGraphTool.get_node_children(cur_id)
 
         if not cur_children_nodes:
@@ -309,10 +320,10 @@ class GitHubDaemon(Daemon):
         
         Think about which child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to.
         If you do not believe any children are appropriate, respond with NA.""",  # noqa
-            message_format=NodeUUID,
+            options={"response_format": NodeUUID},
         ).node_uuid
 
-        if next_node_id == 'NA':
+        if next_node_id == "NA":
             return (False, cur_id)
         else:
             return self.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
@@ -327,28 +338,28 @@ class GitHubDaemon(Daemon):
             org=self.org, repo=self.repo, path=path, branch=branch
         )
         if not node_to_document_id or not root_node_id:
-            CLIClient.emit(f'Node not found for {path}')
-            return ('', '')
+            CLIClient.emit(f"Node not found for {path}")
+            return ("", "")
         found, documentation_node_id = self.navigate_to_documentation(node_to_document_id, root_node_id)
 
         if not found:
-            return ('', '')
+            return ("", "")
 
         with Session() as db:
             documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
             if documentation_node is None:
-                CLIClient.emit(f'Documentation node not found for {path}')
-                return ('', '')
+                CLIClient.emit(f"Documentation node not found for {path}")
+                return ("", "")
             documentation_path = documentation_node.abs_path
 
         if not found:
-            documentation_path = f'{documentation_path}/{path}.md'
-            with open(documentation_path, 'w') as f:
-                f.write('')
+            documentation_path = f"{documentation_path}/{path}.md"
+            with open(documentation_path, "w") as f:
+                f.write("")
 
-        with open(documentation_path, 'r') as f:
+        with open(documentation_path, "r") as f:
             existing_documentation = f.read()
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             module_contents = f.read()
 
         exec = Executive(clients={"openai": OpenAIClient()})

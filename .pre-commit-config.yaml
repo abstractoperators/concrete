@@ -19,13 +19,22 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-        - "pydantic==v2.9.1"
-        - "sqlmodel==0.0.22"
+          - "pydantic==v2.9.1"
+          - "sqlmodel==0.0.22"
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.9
     hooks:
       - id: bandit
         exclude: ^tests/
         args:
-        - -s
-        - B101,B601
+          - -s
+          - B101,B601
+
+  - repo: local
+    hooks:
+      - id: update-last-edited
+        name: Update Last Edited Timestamp
+        entry: uv run python scripts/update_last_edited.py
+        language: python
+        types: [markdown]
+        stages: [commit]

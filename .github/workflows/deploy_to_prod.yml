@@ -1,0 +1,164 @@
+run-name: Deploy Webapps to Prod
+name: Deploy Webapps to Prod
+on:
+  workflow_dispatch:
+
+jobs:
+    deploy-alembic:
+      name: Deploy Alembic Migrations to Prod 
+      runs-on: ubuntu-latest
+      environment: prod
+      
+      steps:
+        - uses: actions/checkout@v4
+
+        - uses: aws-actions/configure-aws-credentials@v4
+          with:
+              role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+              aws-region: us-east-1
+
+        - uses: actions/setup-python@v5
+          with:
+            python-version-file: '.python-version'
+        - uses: astral-sh/setup-uv@v3
+          with: 
+            version: "0.4.27"
+        
+        - name: Set up env for alembic
+          run: |
+            touch .env
+            echo DB_DRIVER=postgresql+psycopg >> .env
+            echo DB_USERNAME=postgres >> .env
+            echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+            echo DB_PORT=5432 >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_DATABASE=postgres >> .env
+
+        - name: Deploy Alembic Task
+          run: |
+             uv run python -m concrete deploy --task \
+                    --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest \
+                    --container-name alembic-staging \
+                    --container-port 80 \
+                    --container-env-file .env \
+                    --security-groups sg-01af4e696bd2679c3 \
+                    --subnets subnet-0644cadc735c6b557
+   
+    deploy:
+
+      name: Deploy Webapps to Prod
+      needs: [deploy-alembic]
+      runs-on: ubuntu-latest
+      environment: prod 
+      strategy:
+        matrix:
+          image: ['api', 'main', 'homepage', 'auth', 'docs']
+      continue-on-error: true
+        
+
+      steps:
+            - uses: actions/checkout@v4
+
+            - uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::008971649127:role/gha-ecs-full-access
+                  aws-region: us-east-1
+            
+            - name: Set up env for api
+              if: matrix.image == 'api' 
+              run: |
+                touch .env
+                echo OPENAI_API_KEY=${{ secrets.DEMO_OPENAI_API_KEY }} > .env
+                echo OPENAI_TEMPERATURE=0 >> .env
+                echo DB_DRIVER=postgresql+psycopg >> .env 
+                echo DB_USERNAME=postgres >> .env
+                echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+                echo DB_PORT=5432 >> .env
+                echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+                echo DB_DATABASE=postgres >> .env
+
+                echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+
+            - name: Set up env for main
+              if: matrix.image == 'main'
+              run: |
+                touch .env
+                echo OPENAI_TEMPERATURE=0 > .env
+                echo OPENAI_API_KEY=${{ secrets.DEMO_OPENAI_API_KEY }} >> .env
+                echo DB_DRIVER=postgresql+psycopg >> .env
+                echo DB_USERNAME=postgres >> .env
+                echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+                echo DB_PORT=5432 >> .env
+                echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+                echo DB_DATABASE=postgres >> .env
+
+                echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+                
+                export LISTENER_RULE_FIELD=host-header
+                export LISTENER_RULE_VALUE=app-staging.abop.ai
+
+            - name: Set up env for homepage
+              if: matrix.image == 'homepage'
+              run: |
+                touch .env
+            
+            - name: Set up env for auth
+              if: matrix.image == 'auth'
+              run: |
+                touch .env
+                echo OPENAI_TEMPERATURE=0 > .env
+                echo OPENAI_API_KEY=${{ secrets.DEMO_OPENAI_API_KEY }} >> .env
+                echo DB_DRIVER=postgresql+psycopg >> .env
+                echo DB_USERNAME=postgres >> .env
+                echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .env
+                echo DB_PORT=5432 >> .env
+                echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+                echo DB_DATABASE=postgres >> .env
+
+                echo HTTP_CORS_ORIGINS=*.abop.ai >> .env
+                echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+                echo SAAS_AUTH_REDIRECT=https://app-staging.abop.ai >> .env
+
+                echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+                echo GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }} >> .env
+                echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
+                echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
+
+            - uses: actions/setup-python@v5
+              with:
+                python-version-file: '.python-version'
+
+            - uses: astral-sh/setup-uv@v3
+              with: 
+                version: "0.4.27"
+
+            - name: Deploy to ECS
+              run: |
+                cmd="uv run python -m concrete deploy \
+                      --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/${{ matrix.image }}:latest \
+                      --container-name ${{ matrix.image }}-staging \
+                      --container-port 80 \
+                      --container-env-file .env \
+                      --security-groups sg-01af4e696bd2679c3 \
+                      --subnets subnet-0644cadc735c6b557 \
+                      --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46"
+
+                if [ -n "$LISTENER_RULE_FIELD" ] && [ -n "$LISTENER_RULE_VALUE" ]; then
+                  cmd="$cmd --listener-rule-field \"$LISTENER_RULE_FIELD\" --listener-rule-value \"$LISTENER_RULE_VALUE\""
+                fi
+
+                cmd="$cmd --health-check-path /ping"
+
+                eval "$cmd"
+      
+    
+permissions:
+  id-token: write 
+  contents: read 
+
+  

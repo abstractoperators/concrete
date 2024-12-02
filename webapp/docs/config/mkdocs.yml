@@ -1,0 +1,72 @@
+site_name: Concrete
+repo_url: https://github.com/abstractoperators/concrete
+repo_name: abstractoperators/concrete
+docs_dir: ../docs
+site_dir: ../site
+theme:
+  name: material
+  custom_dir: ../docs/overrides
+  logo: favicon.ico
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to system preference
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+extra_css:
+  - stylesheets/extra.css
+nav:
+  - Concrete: index.md
+  - Installation: installation.md
+  - Learn:
+      - learn/index.md
+      - learn/hello-world.md
+      - Key Concepts:
+          - learn/concepts/index.md
+          - learn/concepts/operators.md
+          - learn/concepts/projects.md
+          - learn/concepts/tools.md
+          - learn/concepts/daemons.md
+  - Developer Guide:
+      - developer-guide/index.md
+      - developer-guide/setup.md
+      - developer-guide/database.md
+      - Deployments:
+          - developer-guide/deployments/local.md
+  - SDK Guide:
+      - sdk-reference/index.md
+      - sdk-reference/operators.md
+      - sdk-reference/messages.md
+      - sdk-reference/tools.md
+      - sdk-reference/database.md
+      - sdk-reference/orchestrators.md
+      - sdk-reference/projects.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

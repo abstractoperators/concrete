@@ -22,6 +22,10 @@
     --header-small-size: 24px;
     --header-small-height: 28px;
     --header-small-letter-spacing: 0px;
+
+    --header-xsmall-size: 20px;
+    --header-xsmall-height: 24px;
+    --header-xsmall-letter-spacing: 0px;
 }
 
 a {
@@ -75,6 +79,12 @@ header, footer {
     font-size: var(--header-small-size);
     line-height: var(--header-small-height);
     letter-spacing: var(--header-small-letter-spacing);
+}
+
+.header.xsmall {
+    font-size: var(--header-xsmall-size);
+    line-height: var(--header-xsmall-height);
+    letter-spacing: var(--header-xsmall-letter-spacing);
 }
 
 .header.small.left {
@@ -165,6 +175,9 @@ h1.operator-avatar-text {
 .message {
     font-family: var(--sans-serif-family);
     font-style: normal;
+
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 
     border-radius: var(--rounding-rectangle);
     background: var(--primary-100);
