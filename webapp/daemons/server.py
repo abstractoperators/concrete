@@ -38,8 +38,13 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(dname, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/ping", response_class=HTMLResponse)
