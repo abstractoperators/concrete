@@ -422,8 +422,16 @@ class SlackDaemon(Webhook):
         self.operators[team_id]['operator'].instructions = instructions
 
     async def slash_commands(self, request: Request):
-        pass
-        # handler for slash commands
+
+        json_data = await request.json()
+        team_id = json_data.get('team_id')
+        command = json_data.get('command')
+
+        if command == "/clearmemory":
+            self.clear_operator_history(team_id)
+            return Response(content='Cleared memory')
+        elif command == 'updateinstructions':
+            self.update_operator_instructions(team_id, json_data.get('text'))
 
     async def event_subscriptions(self, request: Request):
         """
@@ -441,28 +449,12 @@ class SlackDaemon(Webhook):
             if event.get('type') == 'app_mention':
                 text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
 
-                if text == 'CLEAR':
-                    self.clear_operator_history(team_id)
-                    self.post_message(channel=event.get('channel'), message='Cleared chat history')
+                self.past_messages.append(text)
+                self.append_operator_history(team_id, f'User: {text}')
+                resp = self.chat_operator(team_id, text)
+                self.append_operator_history(team_id, f'You: {resp}')
 
-                else:
-                    self.past_messages.append(text)
-                    history = ''
-                    for i, message in enumerate(self.past_messages):
-                        if i % 2 == 0:
-                            history += f'{event.get("user")}: {message}\n'
-                        else:
-                            history += f'Slack Chat Daemon: {message}\n'
-
-                    response = self.chat(history)
-                    self.past_messages.append(response)
-                    self.post_message(channel=event.get('channel'), message=response)
-
-    def chat(self, message: str) -> str:
-        """
-        Responds to a message.
-        """
-        return self.operator.chat(message).text
+                self.post_message(channel=event.get('channel'), message=resp)
 
     def post_message(self, channel: str, message: str):
         """
