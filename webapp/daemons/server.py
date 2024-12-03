@@ -6,11 +6,12 @@ import time
 
 # from abc import abstractmethod
 from abc import ABC
-from typing import Callable
+from typing import Any, Callable
 
 # from concrete.clients.openai import OpenAIClient
 # from concrete.models.messages import NodeUUID
 # from concrete.operators import Executive, Operator
+from concrete.clients.http import HTTPClient
 from concrete.operators import Operator
 
 # from concrete.tools.github import GithubTool
@@ -402,7 +403,7 @@ class SlackDaemon(Webhook):
         self.routes['/slack/events'] = self.event_subscriptions
         self.routes['/slack/slash_commands'] = self.slash_commands
 
-        self.operators: dict[str, Operator] = {}  # Slack workspace: Operator
+        self.operators: dict[str, Any] = {}  # Slack workspace: Operator
 
     def new_operator(self, team_id: str):
         """
@@ -436,15 +437,17 @@ class SlackDaemon(Webhook):
             self.operators[team_id]['operator'].instructions = instructions
 
     async def slash_commands(self, request: Request):
-        json_data = await request.json()
+        json_data = await request.form()
         team_id = json_data.get('team_id')
         command = json_data.get('command')
 
         if command == "/clearmemory":
             self.clear_operator_history(team_id)
+            self.post_message(channel=json_data.get('channel_id'), message='Cleared memory')
             return Response(content='Cleared memory')
         elif command == '/updateinstructions':
             self.update_operator_instructions(team_id, json_data.get('text'))
+            self.post_message(channel=json_data.get('channel_id'), message='Updated instructions')
 
     async def event_subscriptions(self, request: Request):
         json_data = await request.json()
@@ -459,7 +462,9 @@ class SlackDaemon(Webhook):
             if event.get('type') == 'app_mention':
                 text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
 
-                self.past_messages.append(text)
+                if team_id not in self.operators:
+                    self.new_operator(team_id)
+
                 self.append_operator_history(team_id, f'User: {text}')
                 resp = self.chat_operator(team_id, text)
                 self.append_operator_history(team_id, f'You: {resp}')
@@ -470,13 +475,14 @@ class SlackDaemon(Webhook):
         """
         Posts a message to a slack channel.
         """
+        print(f'Posting message to {channel}: {message}')
         chat_endpoint = 'https://slack.com/api/chat.postMessage'
         headers = {
             'Content-type': 'application/json',
             'Authorization': f'Bearer {os.getenv("SLACK_BOT_TOKEN")}',  # TODO: Workspace independent token
         }
 
-        RestApiTool.post(
+        HTTPClient().post(
             url=chat_endpoint,
             headers=headers,
             json={
