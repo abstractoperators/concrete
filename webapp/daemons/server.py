@@ -464,7 +464,8 @@ class SlackDaemon(Webhook):
             event = json_data.get("event")
 
             def handle_event(event):
-                if event.get('type') == 'app_mention':
+                event_type = event.get('type')
+                if event_type == 'app_mention':
                     text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
 
                     if team_id not in self.operators:
@@ -472,7 +473,7 @@ class SlackDaemon(Webhook):
 
                     self.append_operator_history(team_id, f'User: {text}')
                     resp = self.chat_operator(team_id, text)
-                    self.append_operator_history(team_id, f'You: {resp}')
+                    self.append_operator_history(team_id, f'Assistant: {resp}')
 
                     self.post_message(channel=event.get('channel'), message=resp)
 
