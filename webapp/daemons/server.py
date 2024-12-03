@@ -21,9 +21,7 @@ from concrete.tools.http import RestApiTool
 # from concrete_db import crud
 # from concrete_db.orm import Session
 from dotenv import load_dotenv
-
-# from fastapi import BackgroundTasks
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -436,20 +434,25 @@ class SlackDaemon(Webhook):
         if team_id in self.operators:
             self.operators[team_id]['operator'].instructions = instructions
 
-    async def slash_commands(self, request: Request):
+    async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
         json_data = await request.form()
+
         team_id = json_data.get('team_id')
         command = json_data.get('command')
 
-        if command == "/clearmemory":
-            self.clear_operator_history(team_id)
-            self.post_message(channel=json_data.get('channel_id'), message='Cleared memory')
-            return Response(content='Cleared memory')
-        elif command == '/updateinstructions':
-            self.update_operator_instructions(team_id, json_data.get('text'))
-            self.post_message(channel=json_data.get('channel_id'), message='Updated instructions')
+        def handle_command(command):
+            if command == "/clearmemory":
+                self.clear_operator_history(team_id)
+                self.post_message(channel=json_data.get('channel_id'), message='Cleared memory')
+                return Response(content='Cleared memory')
+            elif command == '/updateinstructions':
+                self.update_operator_instructions(team_id, json_data.get('text'))
+                self.post_message(channel=json_data.get('channel_id'), message='Updated instructions')
 
-    async def event_subscriptions(self, request: Request):
+        background_tasks.add_task(handle_command, command)
+        return Response(status_code=200)
+
+    async def event_subscriptions(self, request: Request, background_tasks: BackgroundTasks):
         json_data = await request.json()
         team_id = json_data.get('team_id')
 
@@ -459,17 +462,22 @@ class SlackDaemon(Webhook):
 
         elif json_data.get("type") == "event_callback":
             event = json_data.get("event")
-            if event.get('type') == 'app_mention':
-                text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
 
-                if team_id not in self.operators:
-                    self.new_operator(team_id)
+            def handle_event(event):
+                if event.get('type') == 'app_mention':
+                    text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
 
-                self.append_operator_history(team_id, f'User: {text}')
-                resp = self.chat_operator(team_id, text)
-                self.append_operator_history(team_id, f'You: {resp}')
+                    if team_id not in self.operators:
+                        self.new_operator(team_id)
 
-                self.post_message(channel=event.get('channel'), message=resp)
+                    self.append_operator_history(team_id, f'User: {text}')
+                    resp = self.chat_operator(team_id, text)
+                    self.append_operator_history(team_id, f'You: {resp}')
+
+                    self.post_message(channel=event.get('channel'), message=resp)
+
+            background_tasks.add_task(handle_event, event)
+            return Response(status_code=200)
 
     def post_message(self, channel: str, message: str):
         """
