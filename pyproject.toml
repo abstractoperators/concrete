@@ -15,6 +15,7 @@ dev = [
     "boto3", 
     "boto3-stubs[ecs]", 
     "urllib3<2",
+    "awscli",
 ]
 
 packages = [

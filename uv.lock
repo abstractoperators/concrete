@@ -19,6 +19,7 @@ members = [
 ]
 requirements = [
     { name = "alembic" },
+    { name = "awscli" },
     { name = "bandit" },
     { name = "black" },
     { name = "boto3" },
@@ -210,6 +211,23 @@ requires-dist = [
 ]
 
 [[package]]
+name = "awscli"
+version = "1.36.16"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore" },
+    { name = "colorama" },
+    { name = "docutils" },
+    { name = "pyyaml" },
+    { name = "rsa" },
+    { name = "s3transfer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/71/cf/a45eca6cac071f300c06a49a19871b88b175ba004587228dc1bc176272a1/awscli-1.36.16.tar.gz", hash = "sha256:5f3e229a27939d87f1183edd154feab0f90f6e96d6058ea4ad2b6d27fe3f5be0", size = 1833166 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/39/4727ab689706275cea1bc4e4e01311f319bae20ac71423516a46b76b272b/awscli-1.36.16-py3-none-any.whl", hash = "sha256:af267da20b8c1a6cfa2e0c0842538fd2f2daf8b4b51981cccd9fb7399cef1e03", size = 4536049 },
+]
+
+[[package]]
 name = "babel"
 version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -325,16 +343,16 @@ ecs = [
 
 [[package]]
 name = "botocore"
-version = "1.35.55"
+version = "1.35.75"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "python-dateutil" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/ee/80065bfe466ea38fa14a996bab44cdd61dd2d1df70d31f23c934ac5c5848/botocore-1.35.55.tar.gz", hash = "sha256:61ae18f688250372d7b6046e35c86f8fd09a7c0f0064b52688f3490b4d6c9d6b", size = 12927591 }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/76/07c65844c2c87a0ffc279e40d0eb668732fd54081adb3f7887933258ee25/botocore-1.35.75.tar.gz", hash = "sha256:7c7d272d9794d07f0c40caa110a266e910103559340b5a5d252857928e920a4a", size = 13426083 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/91/5a7a7472c50e3ffa4b6abb242641dc6db2b40135cd49c9164254da94f07d/botocore-1.35.55-py3-none-any.whl", hash = "sha256:3d54739e498534c9d7a6e9732ae2d17ed29c7d5e29fe36c956d8488b859538b0", size = 12713468 },
+    { url = "https://files.pythonhosted.org/packages/f8/db/9f48e2119c9d224af2238f6e438aa7b71f3f689f7a76d3bceccb31729c3e/botocore-1.35.75-py3-none-any.whl", hash = "sha256:d60f663420fcab93a23f53092d3287da481e411388776b3f6957c648bba6f559", size = 13231062 },
 ]
 
 [[package]]
@@ -791,6 +809,15 @@ requires-dist = [
     { name = "mkdocs", specifier = ">=1.6.1" },
     { name = "mkdocs-material", specifier = ">=9.5.44" },
     { name = "pymdown-extensions", specifier = ">=10.12" },
+]
+
+[[package]]
+name = "docutils"
+version = "0.16"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/e0/3d435b34abd2d62e8206171892f174b180cd37b09d57b924ca5c2ef2219d/docutils-0.16.tar.gz", hash = "sha256:c2de3a60e9e7d07be26b7f2b00ca0309c207e06c100f9cc2a94931fc75a478fc", size = 1962041 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/44/8a15e45ffa96e6cf82956dd8d7af9e666357e16b0d93b253903475ee947f/docutils-0.16-py2.py3-none-any.whl", hash = "sha256:0c5b78adfbf7762415433f5515cd5c9e762339e23369dbe8000d84a4bf4ab3af", size = 548181 },
 ]
 
 [[package]]
@@ -2854,14 +2881,14 @@ wheels = [
 
 [[package]]
 name = "rsa"
-version = "4.9"
+version = "4.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyasn1" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/65/7d973b89c4d2351d7fb232c2e452547ddfa243e93131e7cfa766da627b52/rsa-4.9.tar.gz", hash = "sha256:e38464a49c6c85d7f1351b0126661487a7e0a14a50f1675ec50eb34d4f20ef21", size = 29711 }
+sdist = { url = "https://files.pythonhosted.org/packages/db/b5/475c45a58650b0580421746504b680cd2db4e81bc941e94ca53785250269/rsa-4.7.2.tar.gz", hash = "sha256:9d689e6ca1b3038bc82bf8d23e944b6b6037bc02301a574935b2dd946e0353b9", size = 39711 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/97/fa78e3d2f65c02c8e1268b9aba606569fe97f6c8f7c2d74394553347c145/rsa-4.9-py3-none-any.whl", hash = "sha256:90260d9058e514786967344d0ef75fa8727eed8a7d2e43ce9f4bcf1b536174f7", size = 34315 },
+    { url = "https://files.pythonhosted.org/packages/e9/93/0c0f002031f18b53af7a6166103c02b9c0667be528944137cc954ec921b3/rsa-4.7.2-py3-none-any.whl", hash = "sha256:78f9a9bf4e7be0c5ded4583326e7461e3a3c5aae24073648b4bdfa797d78c9d2", size = 34505 },
 ]
 
 [[package]]
