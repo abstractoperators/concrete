@@ -1,6 +1,3 @@
-Last Updated: 2024-11-18 18:33:48 UTC
-Lines Changed: +18, -0
-
 # Messages
 
 Messages are a format for structured outputs from OpenAI completions. Outputs are validated against the Message format, guaranteeing the syntax.
@@ -16,3 +13,9 @@ class CustomMessage(Message):
 ```
 
 Messages can be used in Operators by passing the `response_format` option to string returning functions. By default, the `TextMessage` format is used.
+
+---
+
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +6, -3
