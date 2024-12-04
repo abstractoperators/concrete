@@ -3,18 +3,23 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Self, cast
 from uuid import UUID, uuid4
 
-from pydantic import ConfigDict, ValidationError, model_validator
-from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
-from sqlalchemy.schema import Index
-from sqlalchemy.sql import func
-from sqlmodel import Field, Relationship, SQLModel
-
 from concrete.clients import CLIClient
 from concrete.models.messages import Message as ConcreteMessage
 from concrete.models.messages import TextMessage
 from concrete.state import ProjectStatus
 from concrete.tools import MetaTool
 from concrete.tools.utils import tool_name_to_class
+from pydantic import ConfigDict, ValidationError, model_validator
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKeyConstraint,
+    UniqueConstraint,
+)
+from sqlalchemy.schema import Index
+from sqlalchemy.sql import func
+from sqlmodel import JSON, Field, Relationship, SQLModel
 
 from .setup import SQLALCHEMY_DATABASE_URL, engine
 
@@ -47,7 +52,7 @@ class ProfilePictureMixin(SQLModel):
     )  # TODO: probably use urllib here, oos
 
 
-# Relationship Models
+# region Link Models
 
 
 # TODO for all Link models: Drop index on id, replace with semantic primary key
@@ -66,6 +71,30 @@ class UserToolLink(Base, table=True):
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, ondelete="CASCADE")
 
 
+class DagNodeToDagNodeLink(Base, table=True):
+    project_name: str = Field(foreign_key="dagproject.name", primary_key=True, index=True, ondelete="CASCADE")
+    parent_name: str = Field(primary_key=True)
+    child_name: str = Field(primary_key=True)
+    input_to_child: str = Field(description="Name of the argument to the child task", default="message")
+
+    project: "DagProject" = Relationship(back_populates="edges")
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["project_name", "parent_name"],
+            ["dagnode.project_name", "dagnode.name"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["project_name", "child_name"],
+            ["dagnode.project_name", "dagnode.name"],
+            ondelete="CASCADE",
+        ),
+    )
+    # TODO maybe store transformation function
+
+
+# endregion
 # region User Models
 
 
@@ -325,6 +354,107 @@ class Project(ProjectBase, MetadataMixin, table=True):
     developer: Operator | None = Relationship(sa_relationship_kwargs={"foreign_keys": "Project.developer_id"})
 
     messages: list["Message"] = Relationship(back_populates="project", cascade_delete=True)
+
+
+# endregion
+# region DagProject Models
+
+
+class DagProjectBase(Base):
+    name: str = Field(
+        description="Name of the project.",
+        unique=True,
+        max_length=64,
+    )
+
+
+class DagProjectUpdate(Base):
+    name: str | None = Field(description="Name of the project.", max_length=64, default=None)
+
+
+class DagProjectCreate(DagProjectBase):
+    pass
+
+
+class DagProject(DagProjectBase, MetadataMixin, table=True):
+    edges: list["DagNodeToDagNodeLink"] = Relationship(back_populates="project", cascade_delete=True)
+    nodes: list["DagNode"] = Relationship(back_populates="project", cascade_delete=True)
+
+
+class DagNodeBase(Base):
+    project_name: str = Field(
+        description="Name of DAG Project this DAG Node belongs to.",
+        foreign_key="dagproject.name",
+        ondelete="CASCADE",
+    )
+    name: str = Field(
+        description="Name of the DAG Project Node.",
+        max_length=64,
+    )
+
+    # TODO: incorporate orchestrator OR decouple
+    operator_name: str = Field(
+        description="Name of Operator encapsulated by this DAG Node.",
+        max_length=64,
+    )
+    task_name: str = Field(
+        description="Name of method on Operator (e.g. 'chat')",
+        max_length=64,
+    )
+
+    default_task_kwargs: dict = Field(
+        description="Default kwargs for the task as JSON.",
+        sa_column=Column(JSON),
+    )
+    options: dict = Field(
+        description="Options to run the task with. Includes tools, response format, etc.",
+        sa_column=Column(JSON),
+    )
+
+    __table_args__ = (UniqueConstraint("name", "project_name", name="no_duplicate_names_per_project"),)
+
+    # TODO: options
+
+
+class DagNodeUpdate(Base):
+    pass
+
+
+class DagNodeCreate(Base):
+    project_name: str = Field(
+        description="Name of the DAG Project this DAG Node belongs to.",
+        foreign_key="dagproject.name",
+        max_length=64,
+    )
+    name: str = Field(
+        description="Name of the DAG Project Node.",
+        max_length=64,
+    )
+
+    operator_name: str = Field(
+        description="Name of Operator encapsulated by this DAG Node.",
+        max_length=64,
+        default="Operator",
+    )
+    task_name: str = Field(
+        description="Name of method on Operator (e.g. 'chat')",
+        max_length=64,
+        default="chat",
+    )
+    default_task_kwargs: dict = Field(
+        description="Default kwargs for the task as JSON.",
+        sa_column=Column(JSON),
+        default={"message": "Hi, how are you?"},
+    )
+    options: dict = Field(
+        description="Options to run the task with. Includes tools, response format, etc.",
+        sa_column=Column(JSON),
+        default_factory=dict,
+    )
+
+
+class DagNode(DagNodeBase, MetadataMixin, table=True):
+    project: DagProject = Relationship(back_populates="nodes")
 
 
 # endregion

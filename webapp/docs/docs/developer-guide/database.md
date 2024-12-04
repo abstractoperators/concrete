@@ -22,25 +22,26 @@ class my_table(Base, table=True):
 
 ## DB Operations
 
-Use `concrete.db.orm.Session` to get a session context manager.
+Pass `concrete.db.orm.engine` to `sqlmodel.Session` to get a session context manager.
 Use this session to perform DB operations.
 Best practice is to use one session per one transaction.
 By default, sessions will not flush or commit.
 
 ```python
-from concrete.db.orm import Session
+from concrete.db.orm import engine
+from sqlmodel import Session
 
 # The following solutions achieve the same thing, but with different approaches
 # ORM Centric solution
 
 def delete_my_table_orm():
-    with Session() as session:
+    with Session(engine) as session:
         deleted_count = session.query(my_table).where(my_column == "my_value").delete()
         session.commit()
         return deleted_count
 
 def delete_my_table_core():
-    with Session() as session:
+    with Session(engine) as session:
         stmt = delete(my_table).where(my_column == "my_value")
         result = session.execute(stmt)
         deleted_count = result.rowcount
@@ -171,6 +172,6 @@ For a deeper dive, please examine the [alembic operations reference](https://ale
 
 ---
 
-Last Updated: 2024-12-04 09:21:32 UTC
+Last Updated: 2024-12-04 20:22:37 UTC
 
 Lines Changed: +5, -2

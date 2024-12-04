@@ -21,6 +21,8 @@ import os
 import urllib
 
 import dotenv
+from concrete.utils import verify_jwt
+from concrete.webutils import AuthMiddleware
 from concrete_db.crud import (
     create_authstate,
     create_authtoken,
@@ -28,18 +30,16 @@ from concrete_db.crud import (
     get_authstate,
     get_user,
 )
+from concrete_db.orm import engine
 from concrete_db.orm.models import AuthStateCreate, AuthTokenCreate, UserCreate
-from concrete_db.orm.setup import Session
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from google_auth_oauthlib.flow import Flow
 from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
+from sqlmodel import Session
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-
-from concrete.utils import verify_jwt
-from concrete.webutils import AuthMiddleware
 
 dotenv.load_dotenv(override=True)
 
@@ -121,7 +121,7 @@ def login(request: Request, destination_url: str | None = None):
     )
 
     auth_state = AuthStateCreate(state=state, destination_url=clean_destination_url)
-    with Session() as session:
+    with Session(engine) as session:
         create_authstate(session, auth_state)
 
     return RedirectResponse(authorization_url)
@@ -150,7 +150,7 @@ def auth_callback(request: Request):
         )
     if (state := query_params.get("state")) is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    with Session() as session:
+    with Session(engine) as session:
         auth_state = get_authstate(session, state)
         if auth_state is None:
             raise HTTPException(
@@ -190,7 +190,7 @@ def auth_callback(request: Request):
     # user_info_service = build('oauth2', 'v2', credentials=flow.credentials)
     # user_info = user_info_service.userinfo().get().execute()
 
-    with Session() as session:
+    with Session(engine) as session:
         user = get_user(session, user_info["email"])
 
     if user is None:
@@ -201,12 +201,12 @@ def auth_callback(request: Request):
             email=user_info["email"],
             profile_picture_url=user_info["picture"],
         )
-        with Session() as session:
+        with Session(engine) as session:
             user = create_user(session, new_user)
 
         # Start saving refresh tokens for later. Only given to us for the first auth.
         auth_token = AuthTokenCreate(refresh_token=flow.credentials.refresh_token, user_id=user.id)
-        with Session() as session:
+        with Session(engine) as session:
             create_authtoken(session, auth_token)
 
     # Not strictly necessary as of now

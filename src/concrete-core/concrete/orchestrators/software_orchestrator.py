@@ -2,11 +2,12 @@ from collections.abc import AsyncGenerator
 from typing import cast
 from uuid import UUID, uuid1, uuid4
 
-from concrete import prompts
 from concrete.clients.openai import OpenAIClient
 from concrete.operators import Developer, Executive, Operator
 from concrete.projects import SoftwareProject
 from concrete.state import ProjectStatus, State, StatefulMixin
+
+from concrete import prompts
 
 from . import Orchestrator
 

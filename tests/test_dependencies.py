@@ -2,7 +2,6 @@ import asyncio
 import sys
 
 import pytest
-
 from concrete.orchestrators import SoftwareOrchestrator
 
 
