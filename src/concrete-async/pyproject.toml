@@ -9,8 +9,6 @@ dependencies = [
     "celery>5",
 ]
 
-[tool.uv.sources]
-concrete-core = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

@@ -1,11 +1,12 @@
 import os
 from contextlib import contextmanager
 
-from concrete.clients import CLIClient
 from dotenv import load_dotenv
 from sqlalchemy import URL
 from sqlmodel import Session as SQLModelSession
 from sqlmodel import create_engine
+
+from concrete.clients import CLIClient
 
 load_dotenv(override=True)
 if (
