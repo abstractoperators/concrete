@@ -1,6 +1,6 @@
-import inspect
 from collections import defaultdict
 from collections.abc import AsyncGenerator
+from inspect import Parameter, signature
 from typing import Any, Callable
 
 from concrete.mermaid import FlowchartDirection
@@ -203,6 +203,20 @@ class DAGNode:
         return self.name, res
 
     def __str__(self):
-        signature = inspect.signature(self.bound_task)
-
-        return f"{type(self.operator).__name__}.{self.boost_str}({signature})"
+        boost_signature = signature(getattr(self.operator.__class__, self.boost_str))
+        params = [
+            Parameter(
+                param.name,
+                param.kind,
+                default=(
+                    param.default
+                    if param.name not in self.default_task_kwargs
+                    else self.default_task_kwargs[param.name]
+                ),
+                annotation=param.annotation,
+            )
+            for param in boost_signature.parameters.values()
+        ]
+        boost_signature = boost_signature.replace(parameters=params)
+        param_str = ", ".join(str(param) for param in boost_signature.parameters.values())
+        return f"{type(self.operator).__name__}.{self.boost_str}({param_str})"
