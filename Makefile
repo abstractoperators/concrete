@@ -29,19 +29,14 @@ simpleflask:
 
 
 # ----------------------- Build commands -----------------------
-# alembic, auth, api, main, homepage, docs
+# alembic, auth, api, main, homepage, docs, daemons
 build-app:
 	docker compose -f docker/docker-compose.yml build $(APP)
-
-build-daemons:
-	docker compose -f docker/docker-compose.yml build daemons
-
 
 # ----------------------- Run commands -----------------------
 run-webapp: build-app
 	docker compose -f docker/docker-compose.yml stop $(APP)
 	docker compose -f docker/docker-compose.yml up -d $(APP)
-
 
 run-postgres:
 	docker compose -f docker/docker-compose.yml down postgres
@@ -56,7 +51,7 @@ run-postgres:
 
 # Need to set your aws config for default profile + credentials
 aws-ecr-login:
-	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
+	uv run aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
 
 aws-ecr-push: aws-ecr-login
 	docker tag $(APP):latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
