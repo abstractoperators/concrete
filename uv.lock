@@ -332,7 +332,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "swebench", extras = ["inference"], directory = "benchmarks/SWE-bench" }]
+requires-dist = [{ name = "swebench", extras = ["inference"], editable = "benchmarks/SWE-bench" }]
 
 [[package]]
 name = "billiard"
@@ -3348,7 +3348,7 @@ wheels = [
 [[package]]
 name = "swebench"
 version = "2.1.6"
-source = { directory = "benchmarks/SWE-bench" }
+source = { editable = "benchmarks/SWE-bench" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "chardet" },
