@@ -30,16 +30,16 @@ def update_last_edited(file_paths):
             with open(file_path, "r", encoding="utf-8") as file:
                 content = file.read()
 
-            # Replacing existing respects placement if it already exists, and adds it to the top if it doesn't.
+            # Replacing existing respects placement if it already exists, and adds it to the bottom if it doesn't.
             if lines_changed_pattern.search(content):
                 content = lines_changed_pattern.sub(lines_changed_str, content)
             else:
-                content = lines_changed_str + "\n" + content
+                content = content + "\n" + lines_changed_str
 
             if last_updated_pattern.search(content):
                 new_content = last_updated_pattern.sub(date_str, content)
             else:
-                new_content = date_str + "\n" + content
+                new_content = content + "\n" + date_str
 
             with open(file_path, "w", encoding="utf-8") as file:
                 file.write(new_content)
