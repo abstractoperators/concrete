@@ -1,0 +1,10 @@
+[project]
+name = "benchmarks"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.9, <4.0.0"
+dependencies = [
+    "swebench",
+]
+

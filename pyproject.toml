@@ -23,12 +23,13 @@ packages = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main"] 
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main", "benchmarks"] 
 
 [tool.uv.sources]
 concrete-core = { workspace = true }
 concrete-async = { workspace = true }
 concrete-db = { workspace = true }
+swebench = {path = "./benchmarks/SWE-bench"}
 
 [tool.bandit]
 exclude_dirs = ["tests", "path/to/file"]
