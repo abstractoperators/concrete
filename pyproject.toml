@@ -23,7 +23,7 @@ packages = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main", "benchmarks"] 
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main", "benchmarks",] 
 
 [tool.uv.sources]
 concrete-core = { workspace = true }
