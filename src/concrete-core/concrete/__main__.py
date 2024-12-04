@@ -1,9 +1,10 @@
 import argparse
 import asyncio
 
-from concrete import orchestrators
 from concrete.clients import CLIClient
 from concrete.tools.aws import AwsTool, Container
+
+from concrete import orchestrators
 
 try:
     import concrete_async  # noqa

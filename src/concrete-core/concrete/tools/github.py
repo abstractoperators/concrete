@@ -5,7 +5,6 @@ import tempfile
 import zipfile
 
 import requests
-
 from concrete.clients import CLIClient
 from concrete.tools import MetaTool
 from concrete.tools.http import HTTPTool, RestApiTool
