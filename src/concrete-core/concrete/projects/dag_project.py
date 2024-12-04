@@ -1,3 +1,4 @@
+import inspect
 from collections import defaultdict
 from collections.abc import AsyncGenerator
 from typing import Any, Callable
@@ -202,4 +203,6 @@ class DAGNode:
         return self.name, res
 
     def __str__(self):
-        return f"{type(self.operator).__name__}.{self.boost_str}(**{self.default_task_kwargs})"
+        signature = inspect.signature(self.bound_task)
+
+        return f"{type(self.operator).__name__}.{self.boost_str}({signature})"
