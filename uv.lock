@@ -328,11 +328,15 @@ name = "benchmarks"
 version = "0.1.0"
 source = { virtual = "benchmarks" }
 dependencies = [
+    { name = "concrete-core" },
     { name = "swebench", extra = ["inference"] },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "swebench", extras = ["inference"], editable = "benchmarks/SWE-bench" }]
+requires-dist = [
+    { name = "concrete-core", editable = "src/concrete-core" },
+    { name = "swebench", extras = ["inference"], editable = "benchmarks/SWE-bench" },
+]
 
 [[package]]
 name = "billiard"

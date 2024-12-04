@@ -6,5 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
 dependencies = [
     "swebench[inference]",
+    "concrete-core",
 ]
 
