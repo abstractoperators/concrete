@@ -61,12 +61,7 @@ aws-ecr-login:
 aws-ecr-push: aws-ecr-login
 	docker tag $(APP):latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
-aws-ecr-push-docs: aws-ecr-login
-	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
-aws-ecr-push-daemons: aws-ecr-login
-	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+
 
 # ------------------------ Local Development without Docker ------------------------
 rabbitmq:

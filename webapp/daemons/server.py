@@ -464,6 +464,7 @@ class SlackDaemon(Webhook):
             event = json_data.get("event")
 
             def handle_event(event):
+                print(event)
                 event_type = event.get('type')
                 if event_type == 'app_mention':
                     text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
