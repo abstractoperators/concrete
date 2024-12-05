@@ -8,15 +8,6 @@ import time
 from abc import ABC
 from typing import Any, Callable
 
-# from concrete.clients.openai import OpenAIClient
-# from concrete.models.messages import NodeUUID
-# from concrete.operators import Executive, Operator
-from concrete.clients.http import HTTPClient
-from concrete.operators import Operator
-
-# from concrete.tools.github import GithubTool
-from concrete.tools.http import RestApiTool
-
 # from concrete.tools.knowledge import KnowledgeGraphTool
 # from concrete_db import crud
 # from concrete_db.orm import Session
@@ -26,6 +17,14 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+# from concrete.clients.openai import OpenAIClient
+# from concrete.models.messages import NodeUUID
+# from concrete.operators import Executive, Operator
+from concrete.clients.http import HTTPClient
+from concrete.operators import Operator
+
+# from concrete.tools.github import GithubTool
+from concrete.tools.http import RestApiTool
 from webapp.common import JwtToken
 
 # from uuid import UUID
@@ -46,9 +45,9 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/ping", response_class=HTMLResponse)
-async def ping():
-    return "pong"
+@app.get("/ping")
+def ping():
+    return {"message": "pong"}
 
 
 load_dotenv('.env', override=True)
