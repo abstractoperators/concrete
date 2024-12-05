@@ -1,4 +1,3 @@
-
 # Setup
 
 This guide will take you through environment setup in order to run the codebase locally and contribute to our project.
@@ -169,6 +168,8 @@ By default, operators rely on OpenAI ChatGPT 4 models to process queries. OpenAI
 OPENAI_API_KEY=<your api key here>
 ```
 
-Last Updated: 2024-11-18 18:33:48 UTC
+---
 
-Lines Changed: +174, -0
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +4, -3

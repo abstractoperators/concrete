@@ -25,7 +25,8 @@ class Arithmetic(metaclass = MetaTool):
 print(Arithmetic)
 ```
 
+---
 
-Last Updated: 2024-11-18 18:33:48 UTC
+Last Updated: 2024-12-04 09:21:32 UTC
 
-Lines Changed: +31, -0
+Lines Changed: +3, -2

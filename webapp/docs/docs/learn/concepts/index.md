@@ -1,5 +1,3 @@
-Last Updated: 2024-11-18 18:33:48 UTC
-Lines Changed: +21, -0
 # Key Concepts
 
 **[Operators](operators.md)**  
@@ -19,3 +17,9 @@ A `Project` represents a unit of work executed on and returned to a user or anot
 
 **Daemons**
 `Daemons` are long-running processes providing an entrypoint for Operators and Tools to interact.
+
+---
+
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +6, -2

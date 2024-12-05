@@ -1,5 +1,3 @@
-Last Updated: 2024-11-18 18:33:48 UTC
-Lines Changed: +111, -0
 # Operators
 
 ## Abstract Operators
@@ -109,3 +107,9 @@ operator.chat(
     "Could you make a directory for a helloworld python project?", options={'response_format': ProjectDirectory}
 )
 ```
+
+---
+
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +7, -3

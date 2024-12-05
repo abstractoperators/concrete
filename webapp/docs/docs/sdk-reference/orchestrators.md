@@ -23,6 +23,8 @@ Creates and processes a new software project.
 
 Returns an AsyncGenerator of the project's messages.
 
-#
-Last Updated: 2024-11-18 18:33:48 UTC
-Lines Changed: +28, -0
+---
+
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +5, -3

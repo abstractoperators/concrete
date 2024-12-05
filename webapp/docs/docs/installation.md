@@ -25,5 +25,8 @@ Other extras include:
 
 [Developer Installation](developer-guide/setup.md)
 
-Last Updated: 2024-11-18 18:33:48 UTC
-Lines Changed: +29, -0
+---
+
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +5, -2
