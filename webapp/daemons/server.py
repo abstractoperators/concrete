@@ -394,6 +394,42 @@ class InstallationToken:
 # endregion
 
 
+class SlackPersona:
+    """
+    Represents a persona in a slack workspace
+    """
+
+    def __init__(self, instructions: str, icon: str, username: str):
+        self.operator = Operator()
+        self.operator.instructions = instructions
+
+        self.icon = icon
+        self.username = username
+
+        self.memory = []
+
+    def chat_no_memory(self, message: str) -> str:
+        return self.operator.chat(message)
+
+    def chat_with_memory(self, message: str) -> str:
+        return self.operator.chat('\n'.join(self.memory) + message)
+
+    def append_memory(self, message: str) -> None:
+        self.memory.append(message)
+
+    def clear_memory(self) -> None:
+        self.memory = []
+
+    def update_instructions(self, instructions: str) -> None:
+        self.operator.instructions = instructions
+
+    def get_instructions(self) -> str:
+        return self.operator.instructions
+
+    def get_memory(self) -> list[str]:
+        return self.memory
+
+
 class SlackDaemon(Webhook):
     def __init__(self, operator: Operator):
         super().__init__()
@@ -401,6 +437,17 @@ class SlackDaemon(Webhook):
         self.routes['/slack/slash_commands'] = self.slash_commands
 
         self.operators: dict[str, Any] = {}  # Slack workspace: Operator
+
+        self.personas = {
+            'jaime': SlackPersona(
+                instructions="You are the persona of a slack chat bot. Your name is Jaime. Assist users in the workspace.",
+                icon=":robot_face:",
+                username="Jaime",
+            )
+        }
+        self.personas = {
+            'jaime': Operator(),
+        }
 
     def new_operator(self, team_id: str):
         """
