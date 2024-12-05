@@ -10,6 +10,7 @@ COPY src ./src
 # App specifics
 
 COPY webapp/homepage ./webapp/homepage
+COPY webapp/__init__.py webapp/common.py ./webapp/
 WORKDIR /app/webapp/homepage
 RUN uv sync
 RUN chmod +x /app/webapp/homepage/scripts/start.sh

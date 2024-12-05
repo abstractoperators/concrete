@@ -9,6 +9,7 @@ dependencies = [
     "fastapi[standard]>=0.115.4",
     "gunicorn>=23.0.0",
     "uvicorn>=0.32.0",
+    "concrete-core[openai]",
 ]
 
 [tool.uv.sources]
