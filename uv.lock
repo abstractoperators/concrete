@@ -1651,6 +1651,7 @@ version = "0.1.0"
 source = { virtual = "webapp/main" }
 dependencies = [
     { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
+    { name = "concrete-db" },
     { name = "fastapi" },
     { name = "gunicorn" },
     { name = "uvicorn" },
@@ -1659,6 +1660,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "concrete-core", extras = ["auth", "requests", "openai", "google-auth"], specifier = ">=0.0.4" },
+    { name = "concrete-db", specifier = ">=0.0.0" },
     { name = "fastapi", specifier = ">=0.115.4" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "uvicorn", specifier = ">=0.32.0" },

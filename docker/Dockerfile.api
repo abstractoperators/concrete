@@ -13,8 +13,6 @@ COPY webapp/api ./webapp/api
 COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
 
 
-WORKDIR /app/webapp/api
-RUN uv sync
 RUN chmod +x /app/webapp/api/scripts/start.sh
 EXPOSE 80
 CMD ["/app/webapp/api/scripts/start.sh"]
