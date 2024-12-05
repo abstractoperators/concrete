@@ -1,0 +1,13 @@
+{% macro header(request) %}
+<header>
+    <a id=#home-button href="{{ url_for('root') }}">
+        <img height="40rem" src="{{ url_for('static', path='abstractoperators_favicon.jpg') }}" alt="Home">
+    </a>
+    <a class="links" href="https://github.com/abstractoperators/concrete" target="_blank">
+        github
+    </a>
+    <a class="links" href="https://app.abop.ai" target="_blank">
+        demo
+    </a>
+</header>
+{% endmacro %}

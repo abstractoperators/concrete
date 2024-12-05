@@ -4,16 +4,17 @@
 <head>
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
     <title>Abstract Operators</title>
-    <link href="/static/css/style.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="/static/abstractoperators_favicon.jpg">
+    <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
 </head>
 
 <body>
+    {% from "header.html" import header with context %}
+    {{ header(request=request) }}
     <h1>abstract operators</h1>
 
     <a class="links" href="https://github.com/abstractoperators/concrete" target="_blank">github</a>
     <a class="links" href="https://app.abop.ai" target="_blank">demo</a>
-    <a class="links" href="/pitch-deck" target="_blank">pitch deck</a>
 
 </body>
 
