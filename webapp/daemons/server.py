@@ -3,11 +3,15 @@
 # import json
 # from uuid import UUID
 import argparse
+import json
 import os
+import shlex
 import time
 
 # from abc import abstractmethod
 from abc import ABC
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from typing import Any, Callable
 
 # from concrete.tools.knowledge import KnowledgeGraphTool
@@ -15,7 +19,7 @@ from typing import Any, Callable
 # from concrete_db.orm import Session
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -440,37 +444,30 @@ class SlackPersona:
         return self.icon
 
 
-class ArgParserNoError(argparse.ArgumentParser):
-    """
-    Overrides error method to return a message instead of SystemExit
-    """
-
-    def error(self, message):
-        raise HTTPException(status_code=400, detail=message)
-
-
 class SlackDaemon(Webhook):
     def __init__(self, operator: Operator):
         super().__init__()
         self.routes['/slack/events'] = self.event_subscriptions
         self.routes['/slack/slash_commands'] = self.slash_commands
 
-        # self.operators: dict[str, Any] = {}  # Slack workspace: Operator
-
         self.personas = {
             'jaime': SlackPersona(
                 instructions="You are the persona of a slack chat bot. Your name is Jaime. Assist users in the workspace.",  # noqa
                 icon=":robot_face:",
-                username="Jaime",
+                persona_name="Jaime",
             )
         }
 
         self.init_slashcommand_parser()
 
     def init_slashcommand_parser(self):
-        self.arg_parser = ArgParserNoError("Jaime Bot is a slack bot that can create personas which chat with users.")
+        self.arg_parser = argparse.ArgumentParser(
+            description="Jaime Bot is a slack bot that can create personas which chat with users.",
+            prog="/jaime",
+        )
 
         subparsers = self.arg_parser.add_subparsers(dest="subcommand")
+        subparsers.required = True
 
         new_persona_parser = subparsers.add_parser("new", help="Create a new persona")
         update_persona_parser = subparsers.add_parser("update", help="Update a persona")
@@ -478,9 +475,10 @@ class SlackDaemon(Webhook):
         get_persona_parser = subparsers.add_parser("get", help="Get a persona or a list of persona names")
 
         new_persona_parser.add_argument(
-            "name",
+            "--name",
             type=str,
             help="The name of the persona",
+            required=True,
         )
         new_persona_parser.add_argument(
             "--instructions",
@@ -497,9 +495,10 @@ class SlackDaemon(Webhook):
         )
 
         update_persona_parser.add_argument(
-            "name",
+            "--name",
             type=str,
             help="The name of the persona",
+            required=True,
         )
         update_persona_parser.add_argument(
             "--instructions",
@@ -515,9 +514,10 @@ class SlackDaemon(Webhook):
         )
 
         delete_persona_parser.add_argument(
-            "name",
+            "--name",
             type=str,
             help="The name of the persona",
+            required=True,
         )
 
         get_persona_parser.add_argument(
@@ -532,39 +532,66 @@ class SlackDaemon(Webhook):
 
         team_id = json_data.get('team_id')
         command = json_data.get('command')
+        text = json_data.get('text').strip()
+        args = shlex.split(text)
 
-        def handle_command(command):
-            if command == "/jaime":
-                args = self.arg_parser.parse_args(command.split(' '))
+        buf = StringIO()
+        parsed_args = None
+        try:
+            # -h is stdout, parse errors go to stderr
+            with redirect_stderr(buf), redirect_stdout(buf):
+                parsed_args = self.arg_parser.parse_args(args)
+        except SystemExit:
+            message = {
+                "response_type": "ephemeral",
+                "text": buf.getvalue(),
+            }
+            return JSONResponse(content=message, status_code=200)
 
-                if args.subcommand == 'new':
-                    if args.name in self.personas:
-                        return Response(content=f'Persona {args.name} already exists')
-                    self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
-                    return Response(content=f'Created persona {args.name}')
+        def handle_command(args: argparse.Namespace) -> str:
+            """
+            Potentially can take a long time to run.
+            """
+            if args.subcommand == 'new':
+                if args.name in self.personas:
+                    resp = f'Persona {args.name} already exists'
+                self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
+                resp = f'Persona {args.name} created'
 
-                elif args.subcommand == 'update':
-                    if args.name not in self.personas:
-                        return Response(content=f'Persona {args.name} does not exist')
+            elif args.subcommand == 'update':
+                if args.name not in self.personas:
+                    resp = f'Persona {args.name} does not exist'
+                else:
                     persona = self.personas[args.name]
                     persona.update_instructions(args.instructions)
-                    return Response(content=f'Updated instructions for persona {args.name}')
+                    resp = f'Persona {args.name} updated'
 
-                elif args.subcommand == 'delete':
-                    if args.name not in self.personas:
-                        return Response(content=f'Persona {args.name} does not exist')
+            elif args.subcommand == 'delete':
+                if args.name not in self.personas:
+                    resp = f'Persona {args.name} does not exist'
+                else:
                     self.personas.pop(args.name)
+                    resp = f'Persona {args.name} deleted'
 
-                elif args.subcommand == 'get':
-                    if args.name:
-                        if args.name not in self.personas:
-                            return Response(content=f'Persona {args.name} does not exist')
+            elif args.subcommand == 'get':
+                if args.name:
+                    if args.name not in self.personas:
+                        resp = f'Persona {args.name} does not exist'
+                    else:
                         persona = self.personas[args.name]
-                        return Response(content=f'Persona {args.name}:\n{persona.get_instructions()}')
+                        resp = f'Persona {args.name}:\n{persona.get_instructions()}'
+                else:
+                    resp = '\n'.join([persona.username for persona in self.personas.values()])
 
-                    return Response(content='\n'.join(self.personas.keys()))
+            response_url = json_data.get('response_url')
+            HTTPClient().post(
+                url=response_url,
+                json={"text": resp},
+            )
 
-        background_tasks.add_task(handle_command, command)
+        if parsed_args is not None:
+            background_tasks.add_task(handle_command, parsed_args)
+
         return Response(status_code=200)
 
     def new_persona(self, persona_name: str, instructions: str = "", icon: str = ':robot_face:'):
