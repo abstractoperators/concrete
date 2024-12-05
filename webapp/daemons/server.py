@@ -1,6 +1,8 @@
 # import hashlib
 # import hmac
 # import json
+# from uuid import UUID
+import argparse
 import os
 import time
 
@@ -26,9 +28,6 @@ from concrete.operators import Operator
 # from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
 from webapp.common import JwtToken
-
-# from uuid import UUID
-
 
 # from concrete.clients import CLIClient
 
@@ -399,14 +398,19 @@ class SlackPersona:
     Represents a persona in a slack workspace
     """
 
-    def __init__(self, instructions: str, icon: str, username: str):
+    def __init__(
+        self,
+        instructions: str,
+        icon: str,
+        persona_name: str,
+    ):
         self.operator = Operator()
         self.operator.instructions = instructions
 
-        self.icon = icon
-        self.username = username
+        self.icon: str = icon
+        self.username: str = persona_name
 
-        self.memory = []
+        self.memory: list[str] = []
 
     def chat_no_memory(self, message: str) -> str:
         return self.operator.chat(message)
@@ -423,11 +427,26 @@ class SlackPersona:
     def update_instructions(self, instructions: str) -> None:
         self.operator.instructions = instructions
 
+    def update_icon(self, icon: str) -> None:
+        self.icon = icon
+
     def get_instructions(self) -> str:
         return self.operator.instructions
 
     def get_memory(self) -> list[str]:
         return self.memory
+
+    def get_icon(self) -> str:
+        return self.icon
+
+
+class ArgParserNoError(argparse.ArgumentParser):
+    """
+    Overrides error method to return a message instead of SystemExit
+    """
+
+    def error(self, message):
+        raise HTTPException(status_code=400, detail=message)
 
 
 class SlackDaemon(Webhook):
@@ -436,49 +455,77 @@ class SlackDaemon(Webhook):
         self.routes['/slack/events'] = self.event_subscriptions
         self.routes['/slack/slash_commands'] = self.slash_commands
 
-        self.operators: dict[str, Any] = {}  # Slack workspace: Operator
+        # self.operators: dict[str, Any] = {}  # Slack workspace: Operator
 
         self.personas = {
             'jaime': SlackPersona(
-                instructions="You are the persona of a slack chat bot. Your name is Jaime. Assist users in the workspace.",
+                instructions="You are the persona of a slack chat bot. Your name is Jaime. Assist users in the workspace.",  # noqa
                 icon=":robot_face:",
                 username="Jaime",
             )
         }
-        self.personas = {
-            'jaime': Operator(),
-        }
 
-    def new_operator(self, team_id: str):
-        """
-        Creates a new operator for a slack workspace.
-        """
-        if team_id not in self.operators:
-            operator = Operator()
-            operator.instructions = (
-                "You are a slack chat bot. Respond to the latest user message. Your name is Jaime Daemon"
-            )
-            self.operators[team_id] = {}
-            self.operators[team_id]['operator'] = operator
-            self.operators[team_id]['past_messages'] = []
+        self.init_slashcommand_parser()
 
-    def chat_operator(self, team_id: str, message: str) -> str:
-        past_messages = '\n'.join(self.operators[team_id]['past_messages'])
-        full_message = f'History:\n{past_messages}\n\n\n{message}'
+    def init_slashcommand_parser(self):
+        self.arg_parser = ArgParserNoError("Jaime Bot is a slack bot that can create personas which chat with users.")
 
-        return self.operators[team_id]['operator'].chat(full_message).text
+        subparsers = self.arg_parser.add_subparsers(dest="subcommand")
 
-    def clear_operator_history(self, team_id: str):
-        if team_id in self.operators:
-            self.operators[team_id]['past_messages'] = []
+        new_persona_parser = subparsers.add_parser("new", help="Create a new persona")
+        update_persona_parser = subparsers.add_parser("update", help="Update a persona")
+        delete_persona_parser = subparsers.add_parser("delete", help="Delete a persona")
+        get_persona_parser = subparsers.add_parser("get", help="Get a persona or a list of persona names")
 
-    def append_operator_history(self, team_id: str, message: str):
-        if team_id in self.operators:
-            self.operators[team_id]['past_messages'].append(message)
+        new_persona_parser.add_argument(
+            "name",
+            type=str,
+            help="The name of the persona",
+        )
+        new_persona_parser.add_argument(
+            "--instructions",
+            type=str,
+            help="The instructions for the persona",
+            required=False,
+        )
+        new_persona_parser.add_argument(
+            "--icon",
+            type=str,
+            help="The icon for the persona (e.g. :smiley:)",
+            default=":robot_face:",
+            required=False,
+        )
 
-    def update_operator_instructions(self, team_id: str, instructions: str):
-        if team_id in self.operators:
-            self.operators[team_id]['operator'].instructions = instructions
+        update_persona_parser.add_argument(
+            "name",
+            type=str,
+            help="The name of the persona",
+        )
+        update_persona_parser.add_argument(
+            "--instructions",
+            type=str,
+            help="The instructions for the persona",
+            required=False,
+        )
+        update_persona_parser.add_argument(
+            "--icon",
+            type=str,
+            help="The icon for the persona (e.g. :smiley:)",
+            required=False,
+        )
+
+        delete_persona_parser.add_argument(
+            "name",
+            type=str,
+            help="The name of the persona",
+        )
+
+        get_persona_parser.add_argument(
+            "--name",
+            type=str,
+            help="The name of the persona",
+            required=False,
+        )
 
     async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
         json_data = await request.form()
@@ -487,16 +534,43 @@ class SlackDaemon(Webhook):
         command = json_data.get('command')
 
         def handle_command(command):
-            if command == "/clearmemory":
-                self.clear_operator_history(team_id)
-                self.post_message(channel=json_data.get('channel_id'), message='Cleared memory')
-                return Response(content='Cleared memory')
-            elif command == '/updateinstructions':
-                self.update_operator_instructions(team_id, json_data.get('text'))
-                self.post_message(channel=json_data.get('channel_id'), message='Updated instructions')
+            if command == "/jaime":
+                args = self.arg_parser.parse_args(command.split(' '))
+
+                if args.subcommand == 'new':
+                    if args.name in self.personas:
+                        return Response(content=f'Persona {args.name} already exists')
+                    self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
+                    return Response(content=f'Created persona {args.name}')
+
+                elif args.subcommand == 'update':
+                    if args.name not in self.personas:
+                        return Response(content=f'Persona {args.name} does not exist')
+                    persona = self.personas[args.name]
+                    persona.update_instructions(args.instructions)
+                    return Response(content=f'Updated instructions for persona {args.name}')
+
+                elif args.subcommand == 'delete':
+                    if args.name not in self.personas:
+                        return Response(content=f'Persona {args.name} does not exist')
+                    self.personas.pop(args.name)
+
+                elif args.subcommand == 'get':
+                    if args.name:
+                        if args.name not in self.personas:
+                            return Response(content=f'Persona {args.name} does not exist')
+                        persona = self.personas[args.name]
+                        return Response(content=f'Persona {args.name}:\n{persona.get_instructions()}')
+
+                    return Response(content='\n'.join(self.personas.keys()))
 
         background_tasks.add_task(handle_command, command)
         return Response(status_code=200)
+
+    def new_persona(self, persona_name: str, instructions: str = "", icon: str = ':robot_face:'):
+        instructions = f'You are a slack bot persona named {persona_name}' + instructions
+        icon = icon
+        self.personas[persona_name] = SlackPersona(instructions, icon, persona_name)
 
     async def event_subscriptions(self, request: Request, background_tasks: BackgroundTasks):
         json_data = await request.json()
