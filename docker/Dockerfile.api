@@ -10,6 +10,8 @@ COPY src ./src
 
 # App specifics
 COPY webapp/api ./webapp/api
+COPY webapp/common.py ./webapp/common.py
+COPY webapp/__init__.py ./webapp/__init__.py
 
 WORKDIR /app/webapp/api
 RUN uv sync
