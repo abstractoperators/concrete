@@ -25,7 +25,7 @@ packages = [
 ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/*"]
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/*", "webapp"]
 exclude = ["*/__pycache__"]
 
 [tool.uv.sources]

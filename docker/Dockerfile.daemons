@@ -8,7 +8,7 @@ COPY pyproject.toml uv.lock .env ./
 COPY src ./src
 
 COPY webapp/daemons ./webapp/daemons
-COPY webapp/common.py webapp/__init__.py ./webapp/
+COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
 
 RUN uv sync
 

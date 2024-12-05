@@ -10,7 +10,8 @@ COPY src ./src
 
 # App specifics
 COPY webapp/main ./webapp/main
-COPY webapp/__init__.py webapp/common.py ./webapp/
+COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
+
 WORKDIR /app/webapp/main
 RUN uv sync
 RUN chmod +x /app/webapp/main/scripts/start.sh
