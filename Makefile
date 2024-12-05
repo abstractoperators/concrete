@@ -82,7 +82,7 @@ local-main:
 local-auth:
 	$(UV) fastapi dev webapp/auth/server.py --port 8002
 
-local-main:
+local-homepage:
 	$(UV) fastapi dev webapp/homepage/server.py --port 8003
 
 # Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
