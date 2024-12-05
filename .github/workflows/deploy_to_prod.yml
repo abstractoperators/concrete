@@ -40,9 +40,7 @@ jobs:
                     --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/alembic:latest \
                     --container-name alembic-staging \
                     --container-port 80 \
-                    --container-env-file .env \
-                    --security-groups sg-01af4e696bd2679c3 \
-                    --subnets subnet-0644cadc735c6b557
+                    --container-env-file .env
    
     deploy:
 
