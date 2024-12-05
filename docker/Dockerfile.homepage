@@ -12,7 +12,7 @@ COPY src ./src
 COPY webapp/homepage ./webapp/homepage
 COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
 
-
+RUN uv sync
 RUN chmod +x /app/webapp/homepage/scripts/start.sh
 
 EXPOSE 80
