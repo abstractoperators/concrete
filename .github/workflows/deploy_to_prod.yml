@@ -143,10 +143,8 @@ jobs:
                       --image-uri 008971649127.dkr.ecr.us-east-1.amazonaws.com/${{ matrix.image }}:latest \
                       --container-name ${{ matrix.image }}-staging \
                       --container-port 80 \
-                      --container-env-file .env \
-                      --security-groups sg-01af4e696bd2679c3 \
-                      --subnets subnet-0644cadc735c6b557 \
-                      --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4/451389d914171f05"
+                      --container-env-file .env
+                      --service-name ${{ matrix.image }}"
 
                 if [ -n "$LISTENER_RULE_FIELD" ] && [ -n "$LISTENER_RULE_VALUE" ]; then
                   cmd="$cmd --listener-rule-field \"$LISTENER_RULE_FIELD\" --listener-rule-value \"$LISTENER_RULE_VALUE\""
