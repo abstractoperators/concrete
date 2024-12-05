@@ -38,6 +38,7 @@ run-webapp: build-app
 	docker compose -f docker/docker-compose.yml stop $(APP)
 	docker compose -f docker/docker-compose.yml up -d $(APP)
 
+
 run-postgres:
 	docker compose -f docker/docker-compose.yml down postgres
 	docker compose -f docker/docker-compose.yml up -d postgres
