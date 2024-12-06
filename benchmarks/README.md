@@ -36,7 +36,8 @@ uv run python -m swebench.harness.run_evaluation \
     --run_id <run_id>
 ```
 
-Pre-curated datasets can be found on [Hugging Face](https://huggingface.co/princeton-nlp).
+Pre-curated datasets can be found on [Hugging Face](https://huggingface.co/princeton-nlp). 
+> Make sure you use the same dataset as the predictions file (oracle/bm doesn't matter).
 `predictions_path` refers to the path to the `.jsonl` file with the predictions.
 `run_id` names the results for the run.
 
@@ -63,5 +64,5 @@ output_dir is where the predictions will be saved. It will automatically saved a
 
 
 
-Lines Changed: +7, -5
-Last Updated: 2024-12-06 17:42:36 UTC
+Lines Changed: +2, -1
+Last Updated: 2024-12-06 18:02:39 UTC
