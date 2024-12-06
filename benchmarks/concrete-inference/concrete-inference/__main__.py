@@ -18,11 +18,12 @@ import openai
 import tiktoken
 from anthropic import AI_PROMPT, HUMAN_PROMPT, Anthropic
 from datasets import load_dataset, load_from_disk
-from swebench.inference.make_datasets.utils import extract_diff
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from tqdm.auto import tqdm
 
 import concrete
+
+from .utils import extract_diff
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)

@@ -42,24 +42,26 @@ Pre-curated datasets can be found on [Hugging Face](https://huggingface.co/princ
 
 ### Inference
 
-You can either code your own application to create `jsonl` prediction files. Or you can use the `swebench.inference` module.
+You can either code your own application to create `jsonl` prediction files. Or you can use the `concrete-inference` module
 
-This module uses `swebench.inference` with a custom concrete method to generate predictions.
+`concrete-inference` is 95% copied from `swebench-inference`. It removes local Llama Predictions. It also removes dataset creation.
+This is because `swebench[inference]` is really hard to install.
 
 Run zero-shot predictions using an Operator
 
 ```python
-uv run python -m swebench.inference.run_api \
+uv run python -m concrete-inference \
   --dataset_name_or_path princeton-nlp/SWE-bench_oracle \
   --model_name_or_path concrete \
   --output_dir ./outputs
 ```
 
 dataset_name_or_path refers to either a huggingface [dataset](https://huggingface.co/princeton-nlp), or a local path to a datset (local takes precedence). Dataset requires prompt `text` column that evaluation does not require. Precurated `_oracle` and `_bm25` datasets provide these, but you can also make them yourself.
-model_name_or_path dictates what model is used for inference. Refer to `run_api.main` to see how this arg routes to inference methods.
-output_dir is where the predictions will be saved. It will automaticall saved as `model__dataset__test.jsonl`
+model_name_or_path dictates what model is used for inference. Refer to `__main__.main` to see how this arg routes to inference methods.
+output_dir is where the predictions will be saved. It will automatically saved as `model__dataset__test.jsonl`
 
 
 
-Lines Changed: +5, -2
-Last Updated: 2024-12-06 16:23:00 UTC
+
+Lines Changed: +7, -5
+Last Updated: 2024-12-06 17:42:36 UTC
