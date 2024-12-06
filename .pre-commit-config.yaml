@@ -1,11 +1,12 @@
+minimum_pre_commit_version: "2.16.0"
 repos:
   - repo: https://github.com/pycqa/flake8
-    rev: 7.1.0
+    rev: 7.1.1
     hooks:
       - id: flake8
         args: [--max-line-length=120, --ignore=W293]
   - repo: https://github.com/psf/black
-    rev: 24.4.2
+    rev: 24.10.0
     hooks:
       - id: black
         args: [--skip-string-normalization, --line-length=120]
@@ -15,14 +16,14 @@ repos:
       - id: isort
         args: ["--profile", "black"]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
+    rev: v1.13.0
     hooks:
       - id: mypy
         additional_dependencies:
-          - "pydantic==v2.9.1"
+          - "pydantic==2.9.1"
           - "sqlmodel==0.0.22"
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.9
+    rev: 1.8.0
     hooks:
       - id: bandit
         exclude: ^tests/
@@ -37,4 +38,4 @@ repos:
         entry: uv run python scripts/update_last_edited.py
         language: python
         types: [markdown]
-        stages: [commit]
+        stages: [pre-commit]
