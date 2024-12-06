@@ -1,7 +1,9 @@
 import ast
 import os
 import re
-import subprocess
+
+# Modified for lint
+import subprocess  # nosec
 from argparse import ArgumentTypeError
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -89,7 +91,7 @@ def extract_minimal_patch(model_patch):
     new_patch = ""
     for patch in PATCH_PATTERN.findall(model_patch):
         total_delta = 0
-        diff_header = DIFF_PATTERN.findall(patch)
+        # diff_header = DIFF_PATTERN.findall(patch) # Modified from original because unused
         patch_header = PATCH_FILE_PATTERN.findall(patch)[0]
         if patch_header:
             new_patch += patch_header + "\n"
@@ -152,15 +154,17 @@ class ContextManager:
         os.chdir(self.repo_path)
         cmd = f"git reset --hard {self.base_commit} && git clean -fdxq"
         if self.verbose:
-            subprocess.run(cmd, shell=True, check=True)
+            # Modified for lint
+            subprocess.run(cmd, shell=True, check=True)  # nosec
         else:
+            # Modified for lint
             subprocess.run(
                 cmd,
                 shell=True,
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-            )
+            )  # nosec
         return self
 
     def get_environment(self):

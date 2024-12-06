@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-"""This python script is designed to run inference on a dataset using either the OpenAI or Anthropic API, depending on the model specified. 
-It sorts instances by length and continually writes the outputs to a specified file, so that the script can be stopped and restarted without losing progress.
+"""This python script is designed to run inference on a dataset using either the OpenAI or Anthropic API, depending on the model specified. # noqa
+It sorts instances by length and continually writes the outputs to a specified file, so that the script can be stopped and restarted without losing progress. # noqa
 """
 
 import json
@@ -514,7 +514,7 @@ def main(
         dataset = load_from_disk(dataset_name_or_path)
     else:
         dataset = load_dataset(dataset_name_or_path)
-    if not split in dataset:
+    if split not in dataset:
         raise ValueError(f"Invalid split {split} for dataset {dataset_name_or_path}")
     dataset = dataset[split]
     lens = np.array(list(map(len, dataset["text"])))
@@ -543,7 +543,7 @@ def main(
         concrete_operator_inference(**inference_args)
     else:
         raise ValueError(f"Invalid model name or path {model_name_or_path}")
-    logger.info(f"Done!")
+    logger.info("Done!")
 
 
 if __name__ == "__main__":
