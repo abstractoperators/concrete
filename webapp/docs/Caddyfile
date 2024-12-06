@@ -1,0 +1,10 @@
+:80 {
+    # Serve the site
+    root * /app/site
+    file_server
+
+    # Add a /ping endpoint for health checks
+    respond /ping 200 {
+        body "pong"
+    }
+}

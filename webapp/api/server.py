@@ -4,6 +4,8 @@ from typing import Annotated
 from uuid import UUID
 
 import dotenv
+from concrete.projects import PROJECTS, DAGNode, Project
+from concrete.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm import Session
 from concrete_db.orm.models import (
@@ -23,8 +25,6 @@ from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from concrete import operators
-from concrete.projects import PROJECTS, DAGNode, Project
-from concrete.webutils import AuthMiddleware
 
 dotenv.load_dotenv(override=True)
 
