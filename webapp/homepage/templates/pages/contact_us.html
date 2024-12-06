@@ -3,7 +3,7 @@
 
 <head>
     <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
-    <title>Abstract Operators</title>
+    <title>Abstract Operators - Contact Us</title>
     <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
 </head>
@@ -11,9 +11,16 @@
 <body>
     {% from "header.html" import header with context %}
     {{ header(request=request) }}
-    <h1>abstract operators</h1>
+    <h1>Contact Us</h1>
 
-    <a href="{{ url_for('contact_us')}}">Contact Us</a>
+    <form>
+        <label>First Name</label>
+        <input type="text">
+        <label>Last Name</label>
+        <input type="text">
+        <button>Submit</button>
+    </form>
+
 
 </body>
 
