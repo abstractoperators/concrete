@@ -563,8 +563,7 @@ if __name__ == "__main__":
         "--model_name_or_path",
         type=str,
         help="Name of API model. Update MODEL* constants in this file to add new models.",
-        # choices=sorted(list(MODEL_LIMITS.keys())) + ["concrete"],
-        choices=['concrete'],
+        choices=sorted(list(MODEL_LIMITS.keys())) + ["concrete"],
     )
     parser.add_argument(
         "--shard_id",
