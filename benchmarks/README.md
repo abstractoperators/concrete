@@ -51,12 +51,15 @@ Run zero-shot predictions using an Operator
 ```python
 uv run python -m swebench.inference.run_api \
   --dataset_name_or_path princeton-nlp/SWE-bench_oracle \
-  --model_name_or_path concrete
+  --model_name_or_path concrete \
   --output_dir ./outputs
 ```
 
-dataset_name_or_path refers to either a huggingface [dataset](https://huggingface.co/princeton-nlp), or a local path to a datset (local takes precedence).
+dataset_name_or_path refers to either a huggingface [dataset](https://huggingface.co/princeton-nlp), or a local path to a datset (local takes precedence). Dataset requires prompt `text` column that evaluation does not require. Precurated `_oracle` and `_bm25` datasets provide these, but you can also make them yourself.
 model_name_or_path dictates what model is used for inference. Refer to `run_api.main` to see how this arg routes to inference methods.
 output_dir is where the predictions will be saved. It will automaticall saved as `model__dataset__test.jsonl`
 
 
+
+Lines Changed: +5, -2
+Last Updated: 2024-12-06 16:23:00 UTC
