@@ -54,7 +54,6 @@ nav:
       - Deployments:
           - developer-guide/deployments/local.md
   - SDK Guide:
-      - sdk-reference/index.md
       - sdk-reference/operators.md
       - sdk-reference/messages.md
       - sdk-reference/tools.md

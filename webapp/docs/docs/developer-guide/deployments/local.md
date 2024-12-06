@@ -1,5 +1,3 @@
-Last Updated: 2024-11-18 18:33:48 UTC
-Lines Changed: +26, -0
 # Local Deployments
 
 It's often necessary, and recommended, to deploy our services locally while making changes to them.
@@ -24,3 +22,9 @@ make local-auth
 ```
 
 Once the auth service is up, create a session by navigating to `auth.abop.bot:8002/login` in your choice of browser.
+
+---
+
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +7, -3

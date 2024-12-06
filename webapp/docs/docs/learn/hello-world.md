@@ -1,7 +1,3 @@
-Last Updated: 2024-11-18 18:33:48 UTC
-
-Lines Changed: +73, -0
-
 # Hello World
 
 Let's go ahead and make our "Hello World" equivalent for `concrete`.
@@ -71,3 +67,9 @@ for operator, result in [_ async for _ in project_output]:
 `process_new_project` returns an `AsyncGenerator` that yields tuples of form `(operator_name, operator_output)`.
 The results will be in chronological order; that is, printing out the results like we have here lets you see the whole conversation between our executive and developer!
 Go ahead and try running the same code with different prompts; instead of `"Create a simple hello world program"`, consider "Create a basic calculator application".
+
+---
+
+Last Updated: 2024-12-04 09:21:32 UTC
+
+Lines Changed: +7, -5
