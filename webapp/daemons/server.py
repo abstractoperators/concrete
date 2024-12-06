@@ -417,10 +417,10 @@ class SlackPersona:
         self.memory: list[str] = []
 
     def chat_no_memory(self, message: str) -> str:
-        return self.operator.chat(message)
+        return self.operator.chat(message).text
 
     def chat_with_memory(self, message: str) -> str:
-        return self.operator.chat('\n'.join(self.memory) + message)
+        return self.operator.chat('\n'.join(self.memory) + message).text
 
     def append_memory(self, message: str) -> None:
         self.memory.append(message)
@@ -442,6 +442,22 @@ class SlackPersona:
 
     def get_icon(self) -> str:
         return self.icon
+
+    def post_message_as_persona(self, token: str, channel: str, message):
+        endpoint = 'https://slack.com/api/chat.postMessage'
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': f'Bearer {token}',
+        }
+        payload = {
+            'channel': channel,
+            'text': message,
+            'icon_emoji': f':{self.icon}:',
+            'username': self.username,
+        }
+
+        print(payload)
+        HTTPClient().post(url=endpoint, headers=headers, json=payload)
 
 
 class SlackDaemon(Webhook):
@@ -473,6 +489,7 @@ class SlackDaemon(Webhook):
         update_persona_parser = subparsers.add_parser("update", help="Update a persona")
         delete_persona_parser = subparsers.add_parser("delete", help="Delete a persona")
         get_persona_parser = subparsers.add_parser("get", help="Get a persona or a list of persona names")
+        chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
 
         new_persona_parser.add_argument(
             "--name",
@@ -527,6 +544,19 @@ class SlackDaemon(Webhook):
             required=False,
         )
 
+        chat_persona_parser.add_argument(
+            "--name",
+            type=str,
+            help="The name of the persona",
+            required=True,
+        )
+        chat_persona_parser.add_argument(
+            "--message",
+            type=str,
+            help="The message to send to the persona",
+            required=True,
+        )
+
     async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
         json_data = await request.form()
 
@@ -543,7 +573,7 @@ class SlackDaemon(Webhook):
                 parsed_args = self.arg_parser.parse_args(args)
         except SystemExit:
             message = {
-                "response_type": "ephemeral",
+                "response_type": "in_channel",
                 "text": buf.getvalue(),
             }
             return JSONResponse(content=message, status_code=200)
@@ -552,42 +582,61 @@ class SlackDaemon(Webhook):
             """
             Potentially can take a long time to run.
             """
-            if args.subcommand == 'new':
-                if args.name in self.personas:
-                    resp = f'Persona {args.name} already exists'
-                self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
-                resp = f'Persona {args.name} created'
-
-            elif args.subcommand == 'update':
+            subcommand = args.subcommand
+            if subcommand == 'chat':
                 if args.name not in self.personas:
                     resp = f'Persona {args.name} does not exist'
+                    HTTPClient().post(
+                        url=json_data.get('response_url'),
+                        json={"text": resp},
+                    )
                 else:
                     persona = self.personas[args.name]
-                    persona.update_instructions(args.instructions)
-                    resp = f'Persona {args.name} updated'
+                    resp = persona.chat_no_memory(args.message)
+                    persona.append_memory(args.message)
 
-            elif args.subcommand == 'delete':
-                if args.name not in self.personas:
-                    resp = f'Persona {args.name} does not exist'
-                else:
-                    self.personas.pop(args.name)
-                    resp = f'Persona {args.name} deleted'
+                    persona.post_message_as_persona(
+                        token=os.getenv('SLACK_BOT_TOKEN'),
+                        channel=json_data.get('channel_id'),
+                        message=resp,
+                    )
+            else:
+                if subcommand == 'new':
+                    if args.name in self.personas:
+                        resp = f'Persona {args.name} already exists'
+                    self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
+                    resp = f'Persona {args.name} created'
 
-            elif args.subcommand == 'get':
-                if args.name:
+                elif subcommand == 'update':
                     if args.name not in self.personas:
                         resp = f'Persona {args.name} does not exist'
                     else:
                         persona = self.personas[args.name]
-                        resp = f'Persona {args.name}:\n{persona.get_instructions()}'
-                else:
-                    resp = '\n'.join([persona.username for persona in self.personas.values()])
+                        persona.update_instructions(args.instructions)
+                        resp = f'Persona {args.name} updated'
 
-            response_url = json_data.get('response_url')
-            HTTPClient().post(
-                url=response_url,
-                json={"text": resp},
-            )
+                elif subcommand == 'delete':
+                    if args.name not in self.personas:
+                        resp = f'Persona {args.name} does not exist'
+                    else:
+                        self.personas.pop(args.name)
+                        resp = f'Persona {args.name} deleted'
+
+                elif subcommand == 'get':
+                    if args.name:
+                        if args.name not in self.personas:
+                            resp = f'Persona {args.name} does not exist'
+                        else:
+                            persona = self.personas[args.name]
+                            resp = f'Persona {args.name}:\n{persona.get_instructions()}'
+                    else:
+                        resp = '\n'.join(self.personas.keys())
+
+                response_url = json_data.get('response_url')
+                HTTPClient().post(
+                    url=response_url,
+                    json={"text": resp},
+                )
 
         if parsed_args is not None:
             background_tasks.add_task(handle_command, parsed_args)
