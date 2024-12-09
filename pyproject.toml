@@ -18,6 +18,12 @@ dev = [
     "awscli",
 ]
 
+packages = [ # Note that packages is just a dependency group.
+    "concrete-core[openai]",
+    "concrete-async",
+    "concrete-db",
+    "concrete-inference",
+]
 
 # https://docs.astral.sh/uv/concepts/projects/workspaces/#getting-started
 [tool.uv.workspace]
