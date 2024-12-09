@@ -22,6 +22,7 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential
 from tqdm.auto import tqdm
 
 import concrete
+from concrete.clients.openai import OpenAIClient
 
 from .utils import extract_diff
 
@@ -184,13 +185,9 @@ def concrete_operator_inference(
     output_file (str): The path to the output file.
     model_args (dict): A dictionary of model arguments.
     """
-    # encoding = tiktoken.encoding_for_model(model_name_or_path)
-    # test_dataset = test_dataset.filter(
-    #     lambda x: gpt_tokenize(x["text"], encoding) <= MODEL_LIMITS[model_name_or_path],
-    #     desc="Filtering",
-    #     load_from_cache_file=False,
-    # )
-    # Pray that the dataset isn't too large lmao
+    test_dataset = test_dataset.filter(
+        lambda x: OpenAIClient.message_fits(x["text"]),
+    )
     basic_args = {
         "model_name_or_path": model_name_or_path,
     }
