@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-"""This python script is designed to run inference on a dataset using either the OpenAI or Anthropic API, depending on the model specified. # noqa
+"""
+This file was taken from swe-bench and modified to support concrete by adding `concrete_operator_inference`.
+
+Original Description:
+This python script is designed to run inference on a dataset using either the OpenAI or Anthropic API, depending on the model specified. # noqa
 It sorts instances by length and continually writes the outputs to a specified file, so that the script can be stopped and restarted without losing progress. # noqa
 """
 

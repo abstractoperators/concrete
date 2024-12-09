@@ -7,12 +7,13 @@ SWE Bench in this module is copied over from the official [SWE Bench Github Page
 Several components have been removed or modified to work with the concrete framework.
 
 SWE Bench has a couple of components:
+
 - Evaluation
 - Dataset creation
   - Includes getters for GitHub issues
   - Includes RAG-like solutions for generating context for those issues
   - (Not implemented or documented for use with Concrete)
-- Infererence
+- Inference
 
 ### Evaluation
 
@@ -36,10 +37,10 @@ uv run python -m swebench.harness.run_evaluation \
     --run_id <run_id>
 ```
 
-Pre-curated datasets can be found on [Hugging Face](https://huggingface.co/princeton-nlp). 
-> Make sure you use the same dataset as the predictions file (oracle/bm doesn't matter).
 `predictions_path` refers to the path to the `.jsonl` file with the predictions.
 `run_id` names the results for the run.
+Pre-curated datasets can be found on [Hugging Face](https://huggingface.co/princeton-nlp).
+> Make sure you use the same dataset as the predictions file (oracle/bm doesn't matter).
 
 ### Inference
 
@@ -57,12 +58,11 @@ uv run python -m concrete-inference \
   --output_dir ./outputs
 ```
 
-dataset_name_or_path refers to either a huggingface [dataset](https://huggingface.co/princeton-nlp), or a local path to a datset (local takes precedence). Dataset requires prompt `text` column that evaluation does not require. Precurated `_oracle` and `_bm25` datasets provide these, but you can also make them yourself.
+dataset_name_or_path refers to either a huggingface [dataset](https://huggingface.co/princeton-nlp), or a local path to a dataset (local takes precedence). Dataset requires prompt `text` column that evaluation does not require. Precurated `_oracle` and `_bm25` datasets provide these, but you can also make them yourself.
 model_name_or_path dictates what model is used for inference. Refer to `__main__.main` to see how this arg routes to inference methods.
-output_dir is where the predictions will be saved. It will automatically saved as `model__dataset__test.jsonl`
+output_dir is where the predictions will be saved. It will automatically saved as `model__dataset__test.jsonl`. 
+> output_dir will not be created if it does not exist.
 
 
-
-
-Lines Changed: +2, -1
-Last Updated: 2024-12-06 18:02:39 UTC
+Lines Changed: +7, -7
+Last Updated: 2024-12-09 16:42:16 UTC
