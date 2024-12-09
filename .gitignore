@@ -189,3 +189,6 @@ shared/
 .site/
 
 .vsls.json
+
+# Benchmarking
+benchmarks/logs/
