@@ -75,6 +75,11 @@ class OpenAIClient(LMClient):
         temperature: float | None = None,
         **kwargs,
     ) -> "ChatCompletion":
+
+        # TODO: Custom tokens_per_message and tokens_per_name
+        # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
+        if not self.message_fits(' '.join([m['content'] for m in messages])):
+            raise ValueError("Message does not fit in model")
         from openai import RateLimitError
 
         request_params = {
