@@ -4,7 +4,10 @@ from concrete.tools.meta import MetaTool
 
 try:
     import arxiv
-    import pymupdf
+
+    # import pymupdf
+    import pymupdf4llm
+    from llama_index.core.schema import Document
 except ImportError as e:
     raise ImportError(
         "Failed optional imports for tool-arxiv. Please install concrete[tool-arxiv] to continue. "
@@ -17,7 +20,7 @@ class ArxivTool(metaclass=MetaTool):
     @classmethod
     def _search(
         cls,
-        query: str | None = None,
+        query: str = "",
         id_list: list[str] = [],
         max_results: int | None = None,
         sort_by: str = "Relevance",
@@ -79,12 +82,11 @@ class ArxivTool(metaclass=MetaTool):
         paper.download_pdf(filename=f'{id}.pdf')
 
     @classmethod
-    def get_paper_contents(cls, id: str):
-
-        if not os.path.exists(f"{id}.pdf"):
-            cls._download_paper_pdf(id)
-
-        with open(f'{id}-out.txt', 'wb') as out:
-            for page in pymupdf.open(f'{id}.pdf'):
-                out.write(page.get_text().encode('utf-8'))
-                out.write(bytes((12,)))
+    def _get_llama_documents_from_id(cls, id: list[str]) -> list[Document]:
+        """
+        Downloads arxiv pdfs and returns a list of LlamaDocuments.
+        """
+        llama_reader = pymupdf4llm.LlamaMarkdownReader()
+        cls._download_paper_pdf(id)
+        llama_doc = llama_reader.load_data(f'{id}.pdf')
+        return llama_doc
