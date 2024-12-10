@@ -1,9 +1,14 @@
+import os
+
 from concrete.tools.meta import MetaTool
 
 try:
     import arxiv
+    import pymupdf
 except ImportError as e:
-    raise ImportError("Failed to import arxiv: " + str(e) + "\nInstall concrete[tool-arxiv] to use ArxivTool")
+    raise ImportError(
+        "Failed optional imports for tool-arxiv. Please install concrete[tool-arxiv] to continue. "
+    ) from e
 
 
 class ArxivTool(metaclass=MetaTool):
@@ -12,11 +17,11 @@ class ArxivTool(metaclass=MetaTool):
     @classmethod
     def _search(
         cls,
-        query: str,
-        id_list: list[str],
-        max_results: int,
-        sort_by: str,
-        sort_order: str,
+        query: str | None = None,
+        id_list: list[str] = [],
+        max_results: int | None = None,
+        sort_by: str = "Relevance",
+        sort_order: str = "Descending",
     ) -> list[arxiv.Result]:
         """
         Helper function to search and return a list of arXiv articles.
@@ -34,6 +39,7 @@ class ArxivTool(metaclass=MetaTool):
 
         return results
 
+    @classmethod
     def search(
         cls,
         query: str,
@@ -63,3 +69,22 @@ class ArxivTool(metaclass=MetaTool):
         )
 
         return "\n\n".join([repr(result) for result in results])
+
+    @classmethod
+    def _download_paper_pdf(cls, id: str):
+        """
+        id (str): Paper ID to get the full text of (e.g. "1605.08386v1")
+        """
+        paper: arxiv.Result = cls._search(id_list=[id])[0]
+        paper.download_pdf(filename=f'{id}.pdf')
+
+    @classmethod
+    def get_paper_contents(cls, id: str):
+
+        if not os.path.exists(f"{id}.pdf"):
+            cls._download_paper_pdf(id)
+
+        with open(f'{id}-out.txt', 'wb') as out:
+            for page in pymupdf.open(f'{id}.pdf'):
+                out.write(page.get_text().encode('utf-8'))
+                out.write(bytes((12,)))
