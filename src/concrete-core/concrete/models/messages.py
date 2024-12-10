@@ -63,7 +63,9 @@ class TextMessage(Message):
 
 class Param(Message):
     name: str = Field(description="Name of the parameter")
-    value: str = Field(description="Value of the parameter")
+    value: str | float | bool | int | list[str | int | float | bool] | None = Field(
+        description="Value of the parameter"
+    )
 
 
 class Tool(Message):
