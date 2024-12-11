@@ -770,6 +770,9 @@ auth = [
     { name = "itsdangerous" },
     { name = "pyjwt" },
 ]
+documentretriever = [
+    { name = "llama-index" },
+]
 google-auth = [
     { name = "google-api-python-client" },
     { name = "google-auth" },
@@ -777,6 +780,7 @@ google-auth = [
 ]
 openai = [
     { name = "openai" },
+    { name = "tiktoken" },
 ]
 otel = [
     { name = "opentelemetry-api" },
@@ -804,6 +808,7 @@ requires-dist = [
     { name = "google-auth", marker = "extra == 'google-auth'", specifier = ">=2.25" },
     { name = "google-auth-oauthlib", marker = "extra == 'google-auth'", specifier = ">=1.1.1" },
     { name = "itsdangerous", marker = "extra == 'auth'", specifier = ">=2.0.0" },
+    { name = "llama-index", marker = "extra == 'documentretriever'", specifier = ">=0.12.5" },
     { name = "llama-index", marker = "extra == 'tool-arxiv'", specifier = ">=0.12.5" },
     { name = "llama-index-vector-stores-postgres", marker = "extra == 'tool-arxiv'", specifier = ">=0.3.3" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.40.0" },
@@ -817,6 +822,7 @@ requires-dist = [
     { name = "pymupdf4llm", marker = "extra == 'tool-arxiv'", specifier = ">=0.0.17" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "requests", marker = "extra == 'requests'", specifier = ">=2.0.0" },
+    { name = "tiktoken", marker = "extra == 'openai'", specifier = ">=0.8.0" },
 ]
 
 [[package]]

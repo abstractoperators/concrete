@@ -11,7 +11,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-openai = ["openai>=1.40.0"]
+openai = [
+    "openai>=1.40.0",
+    "tiktoken>=0.8.0",
+]
 requests = ["requests>=2.0.0"]
 auth = [
     "pyjwt>=2.9.0",
@@ -36,6 +39,9 @@ tool-arxiv = [
     "llama-index>=0.12.5",
     "pymupdf4llm>=0.0.17",
     "pymupdf>=1.25.0",
+]
+documentretriever = [
+    "llama-index>=0.12.5",
 ]
 
 
