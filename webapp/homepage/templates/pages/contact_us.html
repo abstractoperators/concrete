@@ -6,6 +6,19 @@
     <title>Abstract Operators - Contact Us</title>
     <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/abstractoperators_favicon.jpg') }}">
+
+    <!-- Kantumruy Pro -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+
+    <!-- Judson -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Judson:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -13,11 +26,16 @@
     {{ header(request=request) }}
     <h1>Contact Us</h1>
 
-    <form>
+    <form hx-post="{{ url_for(complete_contact_us) }}">
+        <label>Email Address</label>
+        <input type="text">
+
         <label>First Name</label>
         <input type="text">
+
         <label>Last Name</label>
         <input type="text">
+
         <button>Submit</button>
     </form>
 

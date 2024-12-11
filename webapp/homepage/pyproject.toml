@@ -12,3 +12,8 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+
+[dependency-groups]
+dev = [
+    "fastapi[standard]>=0.115.4",
+]
