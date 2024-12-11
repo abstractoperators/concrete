@@ -3,7 +3,8 @@
 # import json
 # from uuid import UUID
 import argparse
-import json
+
+# import json
 import os
 import shlex
 import time
@@ -12,7 +13,9 @@ import time
 from abc import ABC
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
-from typing import Any, Callable
+
+# from typing import Any, Callable
+from typing import Callable
 
 import llama_index
 
@@ -31,6 +34,7 @@ from fastapi.templating import Jinja2Templates
 from concrete.clients.http import HTTPClient
 from concrete.operators import Operator
 from concrete.tools.arxiv import ArxivTool
+from concrete.tools.document import DocumentTool
 
 # from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
@@ -143,7 +147,7 @@ class SlackPersona:
         icon: str,
         persona_name: str,
     ):
-        self.operator = Operator()
+        self.operator = Operator(tools=[ArxivTool, DocumentTool], use_tools=True)
         self.operator.instructions = instructions
 
         self.icon: str = icon
@@ -178,7 +182,7 @@ class SlackPersona:
     def get_icon(self) -> str:
         return self.icon
 
-    def post_message_as_persona(self, token: str, channel: str, message):
+    def post_message(self, token: str, channel: str, message):
         endpoint = 'https://slack.com/api/chat.postMessage'
         headers = {
             'Content-type': 'application/json',
@@ -191,7 +195,6 @@ class SlackPersona:
             'username': self.username,
         }
 
-        print(payload)
         HTTPClient().post(url=endpoint, headers=headers, json=payload)
 
 
@@ -227,84 +230,38 @@ class SlackDaemon(Webhook):
         chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
         arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", "Add an arXiv paper to RAG database")
 
+        new_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
         new_persona_parser.add_argument(
-            "--name",
-            type=str,
-            help="The name of the persona",
-            required=True,
+            "--instructions", type=str, help="The instructions for the persona", required=False
         )
         new_persona_parser.add_argument(
-            "--instructions",
-            type=str,
-            help="The instructions for the persona",
-            required=False,
-        )
-        new_persona_parser.add_argument(
-            "--icon",
-            type=str,
-            help="The icon for the persona (e.g. :smiley:)",
-            default=":robot_face:",
-            required=False,
+            "--icon", type=str, help="The icon for the persona (e.g. :smiley:)", default=":robot_face:", required=False
         )
 
+        update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
         update_persona_parser.add_argument(
-            "--name",
-            type=str,
-            help="The name of the persona",
-            required=True,
+            "--instructions", type=str, help="The instructions for the persona", required=False
         )
         update_persona_parser.add_argument(
-            "--instructions",
-            type=str,
-            help="The instructions for the persona",
-            required=False,
-        )
-        update_persona_parser.add_argument(
-            "--icon",
-            type=str,
-            help="The icon for the persona (e.g. :smiley:)",
-            required=False,
+            "--icon", type=str, help="The icon for the persona (e.g. :smiley:)", required=False
         )
 
-        delete_persona_parser.add_argument(
-            "--name",
-            type=str,
-            help="The name of the persona",
-            required=True,
-        )
+        delete_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
 
-        get_persona_parser.add_argument(
-            "--name",
-            type=str,
-            help="The name of the persona",
-            required=False,
-        )
+        get_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=False)
 
+        chat_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
         chat_persona_parser.add_argument(
-            "--name",
-            type=str,
-            help="The name of the persona",
-            required=True,
-        )
-        chat_persona_parser.add_argument(
-            "--message",
-            type=str,
-            help="The message to send to the persona",
-            required=True,
+            "--message", type=str, help="The message to send to the persona", required=True
         )
 
-        arxiv_papers_parser.add_argument(
-            "--id",
-            type=str,
-            help="The arXiv paper ID (e.g. 2308.08155)",
-            required=True,
-        )
+        arxiv_papers_parser.add_argument("--id", type=str, help="The arXiv paper ID (e.g. 2308.08155)", required=True)
 
     async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
         json_data = await request.form()
 
-        team_id = json_data.get('team_id')
-        command = json_data.get('command')
+        # team_id = json_data.get('team_id')
+        # command = json_data.get('command')
         text = json_data.get('text').strip()
         args = shlex.split(text)
 
@@ -321,7 +278,7 @@ class SlackDaemon(Webhook):
             }
             return JSONResponse(content=message, status_code=200)
 
-        def handle_command(args: argparse.Namespace) -> str:
+        def handle_command(args: argparse.Namespace) -> None:
             """
             Potentially can take a long time to run.
             """
@@ -376,9 +333,13 @@ class SlackDaemon(Webhook):
                         resp = '\n'.join(self.personas.keys())
 
                 elif subcommand == 'add_arxiv_paper':
-                    paper_documents: llama_index.core.schema.Document = ArxivTool._get_llama_documents_from_id(
+                    documents: list[llama_index.core.schema.Document] = ArxivTool.get_arxiv_paper_as_llama_document(
                         id=args.id
                     )
+                    for document in documents:
+                        DocumentTool.index.insert(document)
+
+                    resp = f'ArXiv paper {args.id} added to RAG database'
 
                 response_url = json_data.get('response_url')
                 HTTPClient().post(

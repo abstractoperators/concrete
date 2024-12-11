@@ -11,9 +11,10 @@ import os
 from concrete.tools import MetaTool
 
 
-class DocumentRetriever(metaclass=MetaTool):
+class DocumentTool(metaclass=MetaTool):
     """
-    This is a tool for retrieving documents from a document store based on a query.
+    This is a tool for retrieving and inserting documents from a document store.
+    Contains a pre-configured document store found in the environment variables.
     """
 
     drivername: str = os.environ.get("POSTGRES_VECTOR_DB_DRIVER", "")
@@ -69,18 +70,36 @@ class DocumentRetriever(metaclass=MetaTool):
         Args:
             query (str): The query string to search for
         Returns:
+            A list of retrieved documents formatted as a string.
             The document retrieved from the document store
         """
 
-        return cls.retriever.retrieve(query)
+        res: list[str] = ["Here are list of retrieved documents:"]
+        for i, node in cls.retriever.retrieve(query):
+            res.append(f'Document {i}: \n{node.get_content()}')
+
+        return "\n\n".join(res)
 
     @classmethod
-    def insert_document(cls, document: str) -> None:
+    def insert_text_as_document(cls, text: str) -> None:
         """
-        Inserts a document into the document store.
+        Inserts text as a document into the document store.
 
         Args:
             document (str): The document to insert
         """
 
-        cls.index.insert(Document(text=document))
+        cls.index.insert(Document(text=text))
+
+    @classmethod
+    def _insert_document(cls, document: Document) -> None:
+        """
+        Inserts a document into the document store.
+        Note: LLMs can't use this yet because they don't have a way to make a Document object.
+
+
+        Args:
+            document (Document): The document to insert
+        """
+
+        cls.index.insert(document)
