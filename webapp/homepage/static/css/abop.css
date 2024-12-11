@@ -3,7 +3,10 @@
     --serif-family: "Judson", serif;
     --rounding-rectangle: 16px;
 
-    --violet: 8b00ff;
+    --cobalt-blue: #0047ab;
+    --royal-purple: #4B006E;
+    --electric-violet: #8b00ff;
+
     --primary-100: #C6DBFF;
     --primary-200: #7ab6ff;
     --primary-400: #006bb3;
@@ -53,9 +56,10 @@ body {
     padding: 0;
 
     font-family: var(--serif-family);
+    color: white;
 
     /* background-image: url("../Mandelbulb.png"); */
-    background-color: var(--violet);
+    background-color: var(--cobalt-blue);
 }
 
 #home_button {
