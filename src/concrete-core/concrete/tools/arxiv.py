@@ -1,5 +1,3 @@
-import os
-
 from concrete.tools.meta import MetaTool
 
 try:
@@ -30,6 +28,9 @@ class ArxivTool(metaclass=MetaTool):
         Helper function to search and return a list of arXiv articles.
         Uses only simple types available to OpenAI Structured Output
         """
+        if not query and not id_list:
+            raise ValueError("At least one of query or id_list must be provided.")
+
         search: arxiv.Search = arxiv.Search(
             query=query,
             id_list=id_list,
@@ -74,17 +75,27 @@ class ArxivTool(metaclass=MetaTool):
         return "\n\n".join([repr(result) for result in results])
 
     @classmethod
-    def _download_paper_pdf(cls, id: str):
+    def _download_paper_pdf(cls, id: str) -> None:
         """
-        id (str): Paper ID to get the full text of (e.g. "1605.08386v1")
+        Downloads the PDF of an arXiv paper.
+
+        Args:
+            id (str): Paper ID to get the full text of (e.g. "1605.08386v1")
+        Returns:
+            None
         """
         paper: arxiv.Result = cls._search(id_list=[id])[0]
         paper.download_pdf(filename=f'{id}.pdf')
 
     @classmethod
-    def _get_llama_documents_from_id(cls, id: list[str]) -> list[Document]:
+    def get_arxiv_paper_as_llama_document(cls, id: str) -> list[Document]:
         """
-        Downloads arxiv pdfs and returns a list of LlamaDocuments.
+        Downloads the PDF of an arXiv paper. Parses and returns the paper as a list of LlamaDocuments.
+
+        Args:
+            id (str): Paper ID to get the full text of (e.g. "1605.08386v1")
+        Returns:
+            list[Document]: List of LlamaDocuments representing the paper
         """
         llama_reader = pymupdf4llm.LlamaMarkdownReader()
         cls._download_paper_pdf(id)
