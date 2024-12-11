@@ -22,11 +22,6 @@ async def root(request: Request):
     return templates.TemplateResponse(name="index.html", request=request)
 
 
-@app.get("/contact-us", response_class=HTMLResponse)
-async def contact_us(request: Request):
-    return templates.TemplateResponse(name="contact_us.html", request=request)
-
-
 @app.get("/ping")
 def ping():
     return {"message": "pong"}
