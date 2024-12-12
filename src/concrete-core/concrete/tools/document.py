@@ -74,9 +74,10 @@ class DocumentTool(metaclass=MetaTool):
             The document retrieved from the document store
         """
 
-        res: list[str] = ["Here are list of retrieved documents:"]
-        for i, node in cls.retriever.retrieve(query):
-            res.append(f'Document {i}: \n{node.get_content()}')
+        res: list[str] = []
+        nodes = cls.retriever.retrieve(query)
+        for i, node in enumerate(nodes):
+            res.append(f'Retrieved Document {i+1}: \n{node.get_content()}')
 
         return "\n\n".join(res)
 

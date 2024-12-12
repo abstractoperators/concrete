@@ -17,8 +17,6 @@ from io import StringIO
 # from typing import Any, Callable
 from typing import Callable
 
-import llama_index
-
 # from concrete.tools.knowledge import KnowledgeGraphTool
 # from concrete_db import crud
 # from concrete_db.orm import Session
@@ -39,6 +37,9 @@ from concrete.tools.document import DocumentTool
 # from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
 from webapp.common import JwtToken
+
+# import llama_index
+
 
 # from concrete.clients import CLIClient
 
@@ -199,9 +200,9 @@ class SlackPersona:
 
 
 class SlackDaemon(Webhook):
-    def __init__(self, operator: Operator):
+    def __init__(self):
         super().__init__()
-        self.routes['/slack/events'] = self.event_subscriptions
+        # self.routes['/slack/events'] = self.event_subscriptions
         self.routes['/slack/slash_commands'] = self.slash_commands
 
         self.personas = {
@@ -228,14 +229,14 @@ class SlackDaemon(Webhook):
         delete_persona_parser = subparsers.add_parser("delete_persona", help="Delete a persona")
         get_persona_parser = subparsers.add_parser("get_persona", help="Get a persona or a list of persona names")
         chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
-        arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", "Add an arXiv paper to RAG database")
+        arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", help="Add an arXiv paper to RAG database")
 
         new_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
         new_persona_parser.add_argument(
             "--instructions", type=str, help="The instructions for the persona", required=False
         )
         new_persona_parser.add_argument(
-            "--icon", type=str, help="The icon for the persona (e.g. :smiley:)", default=":robot_face:", required=False
+            "--icon", type=str, help="The icon for the persona (e.g. smiley)", default=":robot_face:", required=False
         )
 
         update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
@@ -243,7 +244,7 @@ class SlackDaemon(Webhook):
             "--instructions", type=str, help="The instructions for the persona", required=False
         )
         update_persona_parser.add_argument(
-            "--icon", type=str, help="The icon for the persona (e.g. :smiley:)", required=False
+            "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
         )
 
         delete_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
@@ -295,7 +296,7 @@ class SlackDaemon(Webhook):
                     resp = persona.chat_no_memory(args.message)
                     persona.append_memory(args.message)
 
-                    persona.post_message_as_persona(
+                    persona.post_message(
                         token=os.getenv('SLACK_BOT_TOKEN'),
                         channel=json_data.get('channel_id'),
                         message=resp,
@@ -333,9 +334,7 @@ class SlackDaemon(Webhook):
                         resp = '\n'.join(self.personas.keys())
 
                 elif subcommand == 'add_arxiv_paper':
-                    documents: list[llama_index.core.schema.Document] = ArxivTool.get_arxiv_paper_as_llama_document(
-                        id=args.id
-                    )
+                    documents = ArxivTool.get_arxiv_paper_as_llama_document(id=args.id)
                     for document in documents:
                         DocumentTool.index.insert(document)
 
@@ -352,39 +351,39 @@ class SlackDaemon(Webhook):
 
         return Response(status_code=200)
 
-    def new_persona(self, persona_name: str, instructions: str = "", icon: str = ':robot_face:'):
+    def new_persona(self, persona_name: str, instructions: str = "", icon: str = 'robot_face'):
         instructions = f'You are a slack bot persona named {persona_name}' + instructions
         icon = icon
         self.personas[persona_name] = SlackPersona(instructions, icon, persona_name)
 
-    async def event_subscriptions(self, request: Request, background_tasks: BackgroundTasks):
-        json_data = await request.json()
-        team_id = json_data.get('team_id')
+    # async def event_subscriptions(self, request: Request, background_tasks: BackgroundTasks):
+    #     json_data = await request.json()
+    #     team_id = json_data.get('team_id')
 
-        if json_data.get('type') == 'url_verification':
-            challenge = json_data.get('challenge')
-            return Response(content=challenge, media_type='text/plain')
+    #     if json_data.get('type') == 'url_verification':
+    #         challenge = json_data.get('challenge')
+    #         return Response(content=challenge, media_type='text/plain')
 
-        elif json_data.get("type") == "event_callback":
-            event = json_data.get("event")
+    #     elif json_data.get("type") == "event_callback":
+    #         event = json_data.get("event")
 
-            def handle_event(event):
-                print(event)
-                event_type = event.get('type')
-                if event_type == 'app_mention':
-                    text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
+    #         def handle_event(event):
+    #             print(event)
+    #             event_type = event.get('type')
+    #             if event_type == 'app_mention':
+    #                 text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
 
-                    if team_id not in self.operators:
-                        self.new_operator(team_id)
+    #                 if team_id not in self.operators:
+    #                     self.new_operator(team_id)
 
-                    self.append_operator_history(team_id, f'User: {text}')
-                    resp = self.chat_operator(team_id, text)
-                    self.append_operator_history(team_id, f'Assistant: {resp}')
+    #                 self.append_operator_history(team_id, f'User: {text}')
+    #                 resp = self.chat_operator(team_id, text)
+    #                 self.append_operator_history(team_id, f'Assistant: {resp}')
 
-                    self.post_message(channel=event.get('channel'), message=resp)
+    #                 self.post_message(channel=event.get('channel'), message=resp)
 
-            background_tasks.add_task(handle_event, event)
-            return Response(status_code=200)
+    #         background_tasks.add_task(handle_event, event)
+    #         return Response(status_code=200)
 
     def post_message(self, channel: str, message: str):
         """
@@ -407,7 +406,7 @@ class SlackDaemon(Webhook):
         )
 
 
-routers = [slack_daemon := SlackDaemon(Operator())]
+routers = [slack_daemon := SlackDaemon()]
 for router in routers:
     for route, handler in router.routes.items():
         app.add_api_route(route, handler, methods=["POST"])

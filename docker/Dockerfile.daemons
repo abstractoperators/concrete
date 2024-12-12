@@ -4,13 +4,15 @@ COPY --from=ghcr.io/astral-sh/uv:0.4.27 /uv /uvx /bin/
 
 WORKDIR /app
 
+COPY .env .env
 COPY pyproject.toml uv.lock .env ./
 COPY src ./src
 
 COPY webapp/daemons ./webapp/daemons
 COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
+COPY benchmarks ./benchmarks
 
-RUN uv sync
+RUN uv sync --no-dev
 RUN chmod +x /app/webapp/daemons/scripts/start.sh
 EXPOSE 80
 CMD ["/app/webapp/daemons/scripts/start.sh"]

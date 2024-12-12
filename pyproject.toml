@@ -18,15 +18,15 @@ dev = [
     "awscli",
 ]
 
-packages = [ # Note that packages is just a dependency group.
-    "concrete-core[openai]",
-    "concrete-async",
-    "concrete-db",
-    "concrete-inference",
-]
+# packages = [ # Note that packages is just a dependency group.
+#     "concrete-core[openai]",
+#     "concrete-async",
+#     "concrete-db",
+#     "concrete-inference",
+# ]
 
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main", "benchmarks/concrete-inference", "benchmarks"] 
+members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main", "benchmarks/concrete-inference", "benchmarks", "webapp", "webapp/daemons"] 
 
 [tool.uv.sources]
 concrete-core = { workspace = true }
