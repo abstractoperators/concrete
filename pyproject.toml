@@ -4,38 +4,41 @@
 dev = [
     "jupyterlab",
     "black",
-    "flake8", 
-    "isort", 
-    "bandit", 
-    "pre-commit", 
-    "mypy", 
-    "alembic", 
-    "pytest", 
-    "ipykernel", 
-    "boto3", 
-    "boto3-stubs[ecs]", 
+    "flake8",
+    "isort",
+    "bandit",
+    "pre-commit",
+    "mypy",
+    "alembic",
+    "pytest",
+    "ipykernel",
+    "boto3",
+    "boto3-stubs[ecs]",
     "urllib3",
     "awscli",
 ]
 
-# packages = [ # Note that packages is just a dependency group.
-#     "concrete-core[openai]",
-#     "concrete-async",
-#     "concrete-db",
-#     "concrete-inference",
-# ]
 
+# https://docs.astral.sh/uv/concepts/projects/workspaces/#getting-started
 [tool.uv.workspace]
-members = ["src/concrete-core", "src/concrete-async", "src/concrete-db", "docs", "webapp/homepage", "webapp/auth", "webapp/main", "benchmarks/concrete-inference", "benchmarks", "webapp", "webapp/daemons"] 
+members = [
+    "src/concrete-core",
+    "src/concrete-async",
+    "src/concrete-db",
+    "benchmarks",
+    "benchmarks/concrete-inference",
+    "webapp/*",
+]
 
+# https://docs.astral.sh/uv/concepts/projects/workspaces/#workspace-sources
 [tool.uv.sources]
 concrete-core = { workspace = true }
 concrete-async = { workspace = true }
 concrete-db = { workspace = true }
 concrete-inference = { workspace = true }
+webapp-common = { workspace = true }
 
 [tool.bandit]
 exclude_dirs = ["tests", "path/to/file"]
 tests = ["B201", "B301"]
 skips = ["B101", "B601"]
-

@@ -29,18 +29,18 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-
-from concrete.clients import CLIClient
-from concrete.models.messages import ProjectDirectory
-from concrete.orchestrators import SoftwareOrchestrator
-from concrete.webutils import AuthMiddleware
-from webapp.common import (
+from webapp_common import (
     ConnectionManager,
     UserEmailDep,
     UserIdDep,
     UserIdDepWS,
     replace_html_entities,
 )
+
+from concrete.clients import CLIClient
+from concrete.models.messages import ProjectDirectory
+from concrete.orchestrators import SoftwareOrchestrator
+from concrete.webutils import AuthMiddleware
 
 from .models import HiddenInput
 

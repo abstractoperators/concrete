@@ -10,8 +10,7 @@ COPY src ./src
 COPY alembic.ini alembic.ini
 COPY migrations migrations
 COPY scripts/run_alembic_migrations.sh scripts/run_alembic_migrations.sh
-# TODO: Remove benchmarks. Workaround for alembic not having it own uv requirements.
-COPY benchmarks benchmarks 
+
 RUN uv sync
 RUN chmod +x scripts/run_alembic_migrations.sh
 CMD ["./scripts/run_alembic_migrations.sh"]

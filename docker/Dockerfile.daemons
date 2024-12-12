@@ -9,10 +9,11 @@ COPY pyproject.toml uv.lock .env ./
 COPY src ./src
 
 COPY webapp/daemons ./webapp/daemons
-COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
-COPY benchmarks ./benchmarks
+COPY webapp/webapp-common ./webapp/webapp-common
 
-RUN uv sync --no-dev
+WORKDIR /app/webapp/daemons
+RUN uv sync
+
 RUN chmod +x /app/webapp/daemons/scripts/start.sh
 EXPOSE 80
 CMD ["/app/webapp/daemons/scripts/start.sh"]

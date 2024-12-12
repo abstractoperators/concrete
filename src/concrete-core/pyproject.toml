@@ -43,6 +43,7 @@ tool-arxiv = [
 tool-documentretriever = [
     "llama-index>=0.12.5",
 ]
+all = ["concrete-core[openai,requests,auth,google-auth,otel,tool-arxiv,tool-documentretriever]"]
 
 
 [build-system]

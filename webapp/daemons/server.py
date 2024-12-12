@@ -25,6 +25,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from webapp_common import JwtToken
 
 # from concrete.clients.openai import OpenAIClient
 # from concrete.models.messages import NodeUUID
@@ -36,7 +37,6 @@ from concrete.tools.document import DocumentTool
 
 # from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
-from webapp.common import JwtToken
 
 # import llama_index
 
