@@ -7,6 +7,13 @@
     --royal-purple: #4B006E;
     --electric-violet: #8b00ff;
 
+    --princeton-orange: #FF961F;
+    --dark-orange: #ff8800;
+    --yellow: #F5F500;
+    --aureolin: #E4E400;
+
+    --jet: #2F2F2F;
+
     --primary-100: #C6DBFF;
     --primary-200: #7ab6ff;
     --primary-400: #006bb3;
@@ -62,9 +69,15 @@ body {
     background-color: var(--cobalt-blue);
 }
 
-#home_button {
+#home-button {
     border-radius: 50%;
     height: 3rem;
+
+    transition: filter 1s;
+}
+
+#home-button:hover {
+    filter: brightness(350%);
 }
 
 #submit-prompt {
@@ -72,6 +85,44 @@ body {
     flex-direction: row;
     justify-content: flex-start;
     align-items: flex-start;
+}
+
+#nav-github {
+    transition: filter 1s;
+}
+
+#nav-github:hover {
+    filter: brightness(250%);
+}
+
+.call-to-action {
+    font-family: var(--sans-serif-family);
+    font-weight: 500;
+    color: var(--jet);
+
+    background-color: var(--aureolin);
+
+    border-radius: 3rem;
+    border-style: solid;
+    border-color: var(--royal-purple);
+
+    transition: filter 1s;
+
+    &.large {
+        box-shadow: 0px 2px 2px var(--jet);
+
+        padding: 1rem 2rem;
+
+        font-size: 3vw;
+    }
+
+    &.nav {
+        padding: .5rem 1rem;
+    }
+}
+
+.call-to-action:hover{
+    filter: brightness(175%);
 }
 
 .icon {
@@ -211,6 +262,30 @@ h1.operator-avatar-text {
     gap: 16px;
 }
 
+.left-aligned {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+}
+
+#landing-panels {
+    .main.panel {
+        height: 100vh;
+        justify-content: center;
+    }
+
+    h1 {
+        font-size: 64px;
+        font-size: 6vw;
+    }
+
+    p {
+        font-size: 48px;
+        font-size: 3vw;
+        width: 50vw;
+    }
+}
+
 .button {
     display: flex;
     justify-content: flex-start;
@@ -261,7 +336,7 @@ h1.operator-avatar-text {
 
 header {
     width: 100%;
-    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px 2px 6px var(--jet);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -280,6 +355,10 @@ header nav {
 
 header nav a {
     max-height: 32px;
+}
+
+header nav a:hover {
+    text-decoration: none;
 }
 
 header nav a img {

@@ -2,16 +2,23 @@
 <header>
     <a style="height: 3rem" href="{{ url_for('root') }}">
         <img
-            id="home_button"
+            id="home-button"
             src="{{ url_for('static', path='abstractoperators_favicon.jpg') }}"
             alt="Home"
         >
     </a>
     <nav>
-        <a href="https://github.com/abstractoperators" target="_blank">
+        <a
+            id="nav-github"
+            href="https://github.com/abstractoperators"
+            target="_blank"
+        >
             <img src="{{ url_for('static', path='/icons/github.svg') }}" alt="Github">
         </a>
-        <a href="mailto:hello@abstractoperators.ai">
+        <a
+            class="call-to-action nav"
+            href="mailto:hello@abstractoperators.ai"
+        >
             Contact Us
         </a>
     </nav>

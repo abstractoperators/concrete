@@ -21,23 +21,29 @@
 <body>
     {% from "header.html" import header with context %}
     {{ header(request=request) }}
-    <main>
+    <main id="landing-panels">
         <div class="main panel">
             <hgroup>
                 <h1>Ushering in the age of AI...</h1>
                 <h1>...one discovery at a time.</h1>
             </hgroup>
-            <a href="mailto:hello@abstractoperators.ai">
+            <a
+                class="call-to-action large"
+                style="text-decoration: none;"
+                href="mailto:hello@abstractoperators.ai"
+            >
                 Contact Us
             </a>
         </div>
         <div class="main panel">
-            <h1>Who are we?</h1>
-            <p>
-                An applied research lab exploring
-                the exciting world of AI agents
-                and AI agent orchestration.
-            </p>
+            <div class="left-aligned">
+                <h1>Who are we?</h1>
+                <p>
+                    An applied research lab exploring
+                    the exciting world of AI agents
+                    and AI agent orchestration.
+                </p>
+            </div>
         </div>
     </main>
 
