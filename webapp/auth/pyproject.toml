@@ -8,7 +8,7 @@ dependencies = [
     "fastapi>=0.115.4",
     "gunicorn>=23.0.0",
     "uvicorn>=0.32.0",
-    "concrete-core[openai,requests,auth,google-auth]>=0.0.4"
+    "concrete-core[openai,requests,auth,google-auth]>=0.0.4",
     "concrete-db",
     "webapp-common"
 ]
