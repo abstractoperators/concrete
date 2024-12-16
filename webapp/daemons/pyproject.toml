@@ -1,0 +1,11 @@
+[project]
+name = "daemons"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.9, <4.0.0"
+dependencies = [
+    "concrete-core[openai,tool-arxiv,tool-documentretriever,requests]>=0.0.7",
+    "webapp-common",
+]
+
