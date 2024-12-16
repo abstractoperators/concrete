@@ -1464,6 +1464,12 @@ wheels = [
 name = "homepage"
 version = "0.1.0"
 source = { virtual = "webapp/homepage" }
+dependencies = [
+    { name = "webapp-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "webapp-common", editable = "webapp/webapp-common" }]
 
 [[package]]
 name = "httpcore"
