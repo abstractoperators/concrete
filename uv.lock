@@ -299,17 +299,21 @@ version = "0.1.0"
 source = { virtual = "webapp/auth" }
 dependencies = [
     { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
+    { name = "concrete-db" },
     { name = "fastapi" },
     { name = "gunicorn" },
     { name = "uvicorn" },
+    { name = "webapp-common" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "concrete-core", extras = ["openai", "requests", "auth", "google-auth"], editable = "src/concrete-core" },
+    { name = "concrete-db", editable = "src/concrete-db" },
     { name = "fastapi", specifier = ">=0.115.4" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "uvicorn", specifier = ">=0.32.0" },
+    { name = "webapp-common", editable = "webapp/webapp-common" },
 ]
 
 [[package]]
@@ -1460,20 +1464,6 @@ wheels = [
 name = "homepage"
 version = "0.1.0"
 source = { virtual = "webapp/homepage" }
-dependencies = [
-    { name = "fastapi" },
-    { name = "gunicorn" },
-    { name = "jinja2" },
-    { name = "uvicorn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.115.4" },
-    { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "jinja2", specifier = ">=3.1.4" },
-    { name = "uvicorn", specifier = ">=0.32.0" },
-]
 
 [[package]]
 name = "httpcore"
@@ -1985,17 +1975,15 @@ version = "0.1.0"
 source = { virtual = "webapp/main" }
 dependencies = [
     { name = "concrete-core", extra = ["auth", "google-auth", "openai", "requests"] },
-    { name = "fastapi" },
-    { name = "gunicorn" },
-    { name = "uvicorn" },
+    { name = "concrete-db" },
+    { name = "webapp-common" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "concrete-core", extras = ["auth", "requests", "openai", "google-auth"], editable = "src/concrete-core" },
-    { name = "fastapi", specifier = ">=0.115.4" },
-    { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "uvicorn", specifier = ">=0.32.0" },
+    { name = "concrete-db", editable = "src/concrete-db" },
+    { name = "webapp-common", editable = "webapp/webapp-common" },
 ]
 
 [[package]]
