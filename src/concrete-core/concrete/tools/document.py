@@ -77,7 +77,7 @@ class DocumentTool(metaclass=MetaTool):
         res: list[str] = []
         nodes = cls.retriever.retrieve(query)
         for i, node in enumerate(nodes):
-            res.append(f'Retrieved Document {i+1}: \n{node.get_content()}')
+            res.append(f'Retrieved Document {i + 1}: \n{node.get_content()}')
 
         return "\n\n".join(res)
 
