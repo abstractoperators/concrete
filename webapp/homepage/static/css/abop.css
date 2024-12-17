@@ -107,7 +107,7 @@ body {
 
         padding: 1rem 2rem;
 
-        font-size: 3vw;
+        font-size: max(32px, 3vw);
     }
 
     &.nav {
@@ -170,16 +170,15 @@ li.right {
     .main.panel {
         height: 100vh;
         justify-content: center;
+        margin: 0 16px;
     }
 
     h1 {
-        font-size: 64px;
-        font-size: 6vw;
+        font-size: max(64px, 6vw);
     }
 
     p {
-        font-size: 48px;
-        font-size: 3vw;
+        font-size: max(32px, 3vw);
         width: 50vw;
     }
 }
