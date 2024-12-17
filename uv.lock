@@ -380,7 +380,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "concrete-inference", editable = "benchmarks/concrete-inference" },
+    { name = "concrete-inference", virtual = "benchmarks/concrete-inference" },
     { name = "swebench", specifier = ">=2.1.6" },
 ]
 
@@ -801,7 +801,7 @@ requires-dist = [
 [[package]]
 name = "concrete-inference"
 version = "0.1.0"
-source = { editable = "benchmarks/concrete-inference" }
+source = { virtual = "benchmarks/concrete-inference" }
 dependencies = [
     { name = "anthropic" },
     { name = "beautifulsoup4" },
