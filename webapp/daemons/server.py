@@ -1,25 +1,12 @@
-# import hashlib
-# import hmac
-# import json
-# from uuid import UUID
 import argparse
-
-# import json
 import os
 import shlex
 import time
-
-# from abc import abstractmethod
 from abc import ABC
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
-
-# from typing import Any, Callable
 from typing import Callable
 
-# from concrete.tools.knowledge import KnowledgeGraphTool
-# from concrete_db import crud
-# from concrete_db.orm import Session
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -27,21 +14,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from webapp_common import JwtToken
 
-# from concrete.clients.openai import OpenAIClient
-# from concrete.models.messages import NodeUUID
-# from concrete.operators import Executive, Operator
 from concrete.clients.http import HTTPClient
 from concrete.operators import Operator
 from concrete.tools.arxiv import ArxivTool
 from concrete.tools.document import DocumentTool
-
-# from concrete.tools.github import GithubTool
 from concrete.tools.http import RestApiTool
-
-# import llama_index
-
-
-# from concrete.clients import CLIClient
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
@@ -71,24 +48,6 @@ class Webhook(ABC):
 
     def __init__(self):
         self.routes: dict[str, Callable] = {}
-
-    # @abstractmethod
-    # async def webhook_handler(self, request: Request, background_tasks: BackgroundTasks):
-    #     pass
-
-
-# class Daemon(Webhook):
-#     """
-#     Represents a Daemon. Daemons ~ Stance of an Operator
-#     """
-
-#     def __init__(self, operator: Operator, route: str):
-#         """
-#         route (str): The route the daemon listens to.
-#         e.g. "/github/webhook"
-#         """
-#         super().__init__(route)
-#         self.operator = operator
 
 
 class InstallationToken:
@@ -261,8 +220,6 @@ class SlackDaemon(Webhook):
     async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
         json_data = await request.form()
 
-        # team_id = json_data.get('team_id')
-        # command = json_data.get('command')
         text = json_data.get('text').strip()
         args = shlex.split(text)
 
@@ -355,55 +312,6 @@ class SlackDaemon(Webhook):
         instructions = f'You are a slack bot persona named {persona_name}' + instructions
         icon = icon
         self.personas[persona_name] = SlackPersona(instructions, icon, persona_name)
-
-    # async def event_subscriptions(self, request: Request, background_tasks: BackgroundTasks):
-    #     json_data = await request.json()
-    #     team_id = json_data.get('team_id')
-
-    #     if json_data.get('type') == 'url_verification':
-    #         challenge = json_data.get('challenge')
-    #         return Response(content=challenge, media_type='text/plain')
-
-    #     elif json_data.get("type") == "event_callback":
-    #         event = json_data.get("event")
-
-    #         def handle_event(event):
-    #             print(event)
-    #             event_type = event.get('type')
-    #             if event_type == 'app_mention':
-    #                 text = event.get('text', '').replace('<@U07N8UE0NCV>', '').strip()  # TODO: Stop assuming bot id
-
-    #                 if team_id not in self.operators:
-    #                     self.new_operator(team_id)
-
-    #                 self.append_operator_history(team_id, f'User: {text}')
-    #                 resp = self.chat_operator(team_id, text)
-    #                 self.append_operator_history(team_id, f'Assistant: {resp}')
-
-    #                 self.post_message(channel=event.get('channel'), message=resp)
-
-    #         background_tasks.add_task(handle_event, event)
-    #         return Response(status_code=200)
-
-    def post_message(self, channel: str, message: str):
-        """
-        Posts a message to a slack channel.
-        """
-        print(f'Posting message to {channel}: {message}')
-        chat_endpoint = 'https://slack.com/api/chat.postMessage'
-        headers = {
-            'Content-type': 'application/json',
-            'Authorization': f'Bearer {os.getenv("SLACK_BOT_TOKEN")}',  # TODO: Workspace independent token
-        }
-
-        HTTPClient().post(
-            url=chat_endpoint,
-            headers=headers,
-            json={
-                'channel': channel,  # Note, channel_id is only unique within a workspace.
-                'text': message,
-            },
-        )
 
 
 routers = [slack_daemon := SlackDaemon()]
