@@ -46,6 +46,14 @@ def random_split(
     from_dataset_path: str,
     custom_split_name: str,
 ):
+    """
+    Randomly splits a dataset and saves the split to the specified directory.
+
+    Args:
+        split_ratio (float): How much of the dataset to keep.
+        from_dataset_path (str): Path to the dataset to split.
+        custom_split_name (str): Name of the split.
+    """
     dataset = Dataset.load_from_disk(from_dataset_path)
 
     random_split = dataset.train_test_split(test_size=1 - split_ratio)
@@ -62,8 +70,33 @@ def selected_split(
     from_dataset_path: str,
     custom_split_column: str,
     custom_split_values: list[str],
+    custom_split_name: str,
 ):
-    pass
+    """
+    Splits a dataset based on a custom column and equality values and saves the split to the specified directory.
+
+    Args:
+        from_dataset_path (str): Path to the dataset to split.
+        custom_split_column (str): Column to split on.
+        custom_split_values (list[str]): Values to split on.
+        custom_split_name (str): Name of the split.
+    """
+    if not custom_split_values:
+        custom_split_values = [  # Easy values from verified dataset
+            'django__django-15103',
+            'sympy__sympy-19346',
+            'django__django-16662',
+            'pytest-dev__pytest-7205',
+            'pydata__xarray-3304',
+        ]
+    dataset = Dataset.load_from_disk(from_dataset_path)
+
+    subset = dataset.filter(lambda row: row[custom_split_column] in custom_split_values)
+
+    save_path = f"{from_dataset_path}_{custom_split_name}"
+    subset.save_to_disk(save_path)
+
+    CLIClient.emit(f"Saved {custom_split_name} split to {save_path}")
 
 
 if __name__ == '__main__':
@@ -89,6 +122,14 @@ if __name__ == '__main__':
     random_split_parser.add_argument('--from_dataset_path', type=str, help='Path to the dataset to split.')
     random_split_parser.add_argument('--custom_split_name', type=str, help='Name of the split')
 
+    custom_split_parser = subparsers.add_parser('selected_split', help='Split a dataset based on a custom column.')
+    custom_split_parser.add_argument('dataset_path', type=str)
+    custom_split_parser.add_argument('split_column', type=str, help='Column to split on.')
+    custom_split_parser.add_argument('split_name', type=str, help='Name of the split. Defaults to "custom_split".')
+    custom_split_parser.add_argument(
+        '--split_values', type=str, nargs='+', help='Values to split on (space-separated).'
+    )
+
     args = parser.parse_args()
 
     if args.subcommand == 'download_dataset':
@@ -101,4 +142,11 @@ if __name__ == '__main__':
             split_ratio=args.split_ratio,
             from_dataset_path=args.from_dataset_path,
             custom_split_name=args.custom_split_name,
+        )
+    elif args.subcommand == 'selected_split':
+        selected_split(
+            from_dataset_path=args.dataset_path,
+            custom_split_column=args.split_column,
+            custom_split_values=args.split_values,
+            custom_split_name=args.split_name,
         )
