@@ -29,18 +29,18 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-
-from concrete.clients import CLIClient
-from concrete.models.messages import ProjectDirectory
-from concrete.orchestrators import SoftwareOrchestrator
-from concrete.webutils import AuthMiddleware
-from webapp.common import (
+from webapp_common import (
     ConnectionManager,
     UserEmailDep,
     UserIdDep,
     UserIdDepWS,
     replace_html_entities,
 )
+
+from concrete.clients import CLIClient
+from concrete.models.messages import ProjectDirectory
+from concrete.orchestrators import SoftwareOrchestrator
+from concrete.webutils import AuthMiddleware
 
 from .models import HiddenInput
 
@@ -528,6 +528,7 @@ async def get_downloadable_completed_project(orchestrator_id, project_id: UUID) 
         if final_message is not None:
             pydantic_message = final_message.to_obj()
         CLIClient.emit(f"{pydantic_message=}\n")
+        CLIClient.emit(f"{pydantic_message=}\n")
 
         if not isinstance(pydantic_message, ProjectDirectory):
             raise HTTPException(
@@ -606,9 +607,9 @@ async def project_chat_ws(websocket: WebSocket, orchestrator_id: UUID, project_i
                     <li class="right">
                         <hgroup class="message-avatar-and-name right">
                             <h1 class="operator-avatar-text">U</h1>
-                            <h1 class="header small right"> {websocket.session["user"]["email"]} </h1>
+                            <h1 class="header small right">{websocket.session["user"]["email"]}</h1>
                         </hgroup>
-                        <p class="message"> {replace_html_entities(prompt)} </p>
+                        <p class="message">{replace_html_entities(prompt)}</p>
                     </li>
                 </ol>
                 """,

@@ -4,9 +4,8 @@
 * Create a directory e.g. homepage
 * Create a corresponding dockerfile in `concrete/docker`, e.g. `Dockerfile.homepage`
 * Use the previous dockerfile to upload an image to ecr. See `make build-webapp-homepage` and `make aws-ecr-push-homepage`
-* To test locally, use `make run-webapp-[homepage]`. Note that running the containers will not build, so you will need to build as appropriate. 
-* Add these commands to GH actions through `concrete/.github/workflows/deploy_to_staging.yml`
-  - Alternatively, call `poetry run python -m concrete deploy --image_uri  <image_uri> --container_name <container_name> --container_port <container_port> [--service_name=<custom_service_name>]`
+* To test locally, use `make run-webapp APP=homepage`. Note that running the containers will not build, so you will need to build as appropriate.
+* Add these commands to GH actions through `concrete/.github/workflows/deploy_to_staging.yml` and `concrete/.github/workflows/deploy_to_prod.yml`
 * To delete the deployment, delete the service through ECS
   
 ## Deploying webapps to tailscale network locally
@@ -65,10 +64,5 @@ Besides networking differences, deploying a webapp to staging is identical to de
 
 Subnet Router: You don't need to do anything to create the subnet router. It's on AWS already, and won't be reinstantiated or anything. SSH key to it is in `Tailscale Subnet Router` in 1Password, `ssh -i <key> ubuntu@3.81.140.147`. Initial creation entailed following this [tutorial](https://tailscale.com/kb/1019/subnets) to advertise the route for the CIDR blocks of the internal load balancer.
 
-## Docs server
-Use the make commands from root of concrete
-
-```bash
-make build-docs
-make run-docs
-```
+Lines Changed: +2, -11
+Last Updated: 2024-12-16 17:58:01 UTC

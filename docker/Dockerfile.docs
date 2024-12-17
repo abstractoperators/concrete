@@ -9,6 +9,8 @@ COPY pyproject.toml uv.lock .env ./
 COPY src ./src
 
 COPY webapp/docs ./webapp/docs
+COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
+
 WORKDIR /app/webapp/docs
 
 RUN uv run mkdocs build --config-file /app/webapp/docs/config/mkdocs.yml
@@ -18,7 +20,8 @@ FROM caddy:2.8.4-alpine
 WORKDIR /app
 
 COPY --from=builder /app/webapp/docs/site ./site
+COPY webapp/docs/Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80
 
-CMD ["caddy", "file-server", "--root", "/app/site"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]
 
