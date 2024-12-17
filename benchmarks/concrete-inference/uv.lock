@@ -243,19 +243,34 @@ wheels = [
 [[package]]
 name = "concrete-core"
 version = "0.0.7"
-source = { registry = "https://pypi.org/simple" }
+source = { directory = "../../src/concrete-core" }
 dependencies = [
     { name = "pydantic" },
     { name = "python-dotenv" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/30/087953b6e06fc0d32a7af55e82f880acd7319e3b1bf5b5d7320e6b8799b6/concrete_core-0.0.7.tar.gz", hash = "sha256:b0bd462f510a150aabfafd0fb3e329cd21352358f379752a49a29cf17c6f9931", size = 30828 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/5d/254a56f3af796a2ed9f5916bb142eebacb01bdc00c0eb65206d1859dc746/concrete_core-0.0.7-py3-none-any.whl", hash = "sha256:92b95e0aa18aa050ab7db8b54c0266751bc7108f0c834f0d079d757ae68ad092", size = 38732 },
 ]
 
 [package.optional-dependencies]
 openai = [
     { name = "openai" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cryptography", marker = "extra == 'auth'", specifier = ">=35.0.0" },
+    { name = "fastapi", marker = "extra == 'auth'", specifier = ">=0.105" },
+    { name = "google-api-python-client", marker = "extra == 'google-auth'", specifier = ">=2.0.0" },
+    { name = "google-auth", marker = "extra == 'google-auth'", specifier = ">=2.25" },
+    { name = "google-auth-oauthlib", marker = "extra == 'google-auth'", specifier = ">=1.1.1" },
+    { name = "itsdangerous", marker = "extra == 'auth'", specifier = ">=2.0.0" },
+    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.40.0" },
+    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.28.2" },
+    { name = "opentelemetry-exporter-otlp", marker = "extra == 'otel'", specifier = ">=1.28.2" },
+    { name = "opentelemetry-propagator-b3", marker = "extra == 'otel'", specifier = ">=1.28.2" },
+    { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.28.2" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pyjwt", marker = "extra == 'auth'", specifier = ">=2.9.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "requests", marker = "extra == 'requests'", specifier = ">=2.0.0" },
 ]
 
 [[package]]
@@ -289,7 +304,7 @@ requires-dist = [
     { name = "anthropic" },
     { name = "beautifulsoup4" },
     { name = "chardet" },
-    { name = "concrete-core", extras = ["openai"], specifier = ">=0.0.7" },
+    { name = "concrete-core", extras = ["openai"], directory = "../../src/concrete-core" },
     { name = "datasets" },
     { name = "docker" },
     { name = "ghapi" },

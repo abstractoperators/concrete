@@ -23,10 +23,12 @@ dependencies = [
     'rich',
     'unidiff',
     'tqdm',
-    "concrete-core[openai]>=0.0.7",
+    "concrete-core[openai]",
 ]
 
 
+[tool.uv.sources]
+concrete-core = { path = "../../src/concrete-core" }
 
 [build-system]
 requires = ["hatchling"]

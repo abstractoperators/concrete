@@ -202,6 +202,12 @@ def concrete_operator_inference(
         "model_name_or_path": model_name_or_path,
     }
     print(f"Filtered to {len(test_dataset)} instances")
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+
+    # Check if the file exists, and if not, create an empty one
+    if not Path(output_file).exists():
+        with open(output_file, "w") as f:
+            pass
     with open(output_file, "a+") as f:
         for datum in tqdm(test_dataset, desc=f"Inference for {model_name_or_path}"):
             instance_id = datum["instance_id"]
