@@ -246,7 +246,7 @@ def openai_inference(
     if openai_key is None:
         raise ValueError("Must provide an api key. Expected in OPENAI_API_KEY environment variable.")
     openai.api_key = openai_key
-    print(f"Using OpenAI key {'*' * max(0, len(openai_key)-5) + openai_key[-5:]}")
+    print(f"Using OpenAI key {'*' * max(0, len(openai_key) - 5) + openai_key[-5:]}")
     use_azure = model_args.pop("use_azure", False)
     if use_azure:
         openai.api_type = "azure"
@@ -384,7 +384,7 @@ def anthropic_inference(
     api_key = os.environ.get("ANTHROPIC_API_KEY", None)
     if api_key is None:
         raise ValueError("Must provide an api key. Expected in ANTHROPIC_API_KEY environment variable.")
-    print(f"Using Anthropic key {'*' * max(0, len(api_key)-5) + api_key[-5:]}")
+    print(f"Using Anthropic key {'*' * max(0, len(api_key) - 5) + api_key[-5:]}")
     anthropic = Anthropic(api_key=api_key)
     test_dataset = test_dataset.filter(
         lambda x: claude_tokenize(x["text"], anthropic) <= MODEL_LIMITS[model_name_or_path],
