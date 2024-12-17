@@ -93,8 +93,9 @@ def selected_split(
 
     subset = dataset.filter(lambda row: row[custom_split_column] in custom_split_values)
 
+    dataset_dict = DatasetDict({'test': subset})
     save_path = f"{from_dataset_path}_{custom_split_name}"
-    subset.save_to_disk(save_path)
+    dataset_dict.save_to_disk(save_path)
 
     CLIClient.emit(f"Saved {custom_split_name} split to {save_path}")
 

@@ -189,8 +189,14 @@ def concrete_operator_inference(
     output_file (str): The path to the output file.
     model_args (dict): A dictionary of model arguments.
     """
+    operator = concrete.operators.Operator()
+    # openai_client = operator.clients['openai']
+    openai_client = OpenAIClient()
+    print(openai_client.__dict__)
+    print(f'type: {type(openai_client)}')
+    print(f'client: {openai_client}')
     test_dataset = test_dataset.filter(
-        lambda x: OpenAIClient.message_fits(x["text"]),
+        lambda x: openai_client.message_fits(message=x["text"]),
     )
     basic_args = {
         "model_name_or_path": model_name_or_path,

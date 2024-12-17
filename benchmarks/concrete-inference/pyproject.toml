@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
 dependencies = [
-    "concrete-core[openai]",
     "numpy",
     "tiktoken",
     "anthropic",
@@ -24,11 +23,14 @@ dependencies = [
     'rich',
     'unidiff',
     'tqdm',
+    "concrete-core[openai]>=0.0.7",
 ]
+
+
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["concrete-inference"]
+packages = ["concrete_inference"]
