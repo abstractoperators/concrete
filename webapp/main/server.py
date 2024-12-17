@@ -528,6 +528,7 @@ async def get_downloadable_completed_project(orchestrator_id, project_id: UUID) 
         if final_message is not None:
             pydantic_message = final_message.to_obj()
         CLIClient.emit(f"{pydantic_message=}\n")
+        CLIClient.emit(f"{pydantic_message=}\n")
 
         if not isinstance(pydantic_message, ProjectDirectory):
             raise HTTPException(

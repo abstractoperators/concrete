@@ -28,10 +28,6 @@ requirements = [
     { name = "black" },
     { name = "boto3" },
     { name = "boto3-stubs", extras = ["ecs"] },
-    { name = "concrete-async", editable = "src/concrete-async" },
-    { name = "concrete-core", extras = ["openai"], editable = "src/concrete-core" },
-    { name = "concrete-db", editable = "src/concrete-db" },
-    { name = "concrete-inference", editable = "benchmarks/concrete-inference" },
     { name = "flake8" },
     { name = "ipykernel" },
     { name = "isort" },
@@ -322,7 +318,7 @@ requires-dist = [
 
 [[package]]
 name = "awscli"
-version = "1.36.24"
+version = "1.36.22"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "botocore" },
@@ -332,9 +328,9 @@ dependencies = [
     { name = "rsa" },
     { name = "s3transfer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/74/c42c400a0c955584e1c7308f9727f4e80e491b9c93cf119daacf82a4d25d/awscli-1.36.24.tar.gz", hash = "sha256:d159eb0c68de856c8294ac49c3f3cc516bb6f4acf370695cca1e70d5df747940", size = 1832986 }
+sdist = { url = "https://files.pythonhosted.org/packages/23/5b/36d4ef863db20c6c86a9984526b418e5b37ad97700be2b1a05055cc14e82/awscli-1.36.22.tar.gz", hash = "sha256:f857de6dc6e84b76eb87c869d6311b6a33a6e10c1adc89d6cf07f27574d669d0", size = 1832957 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/e0/fdfd5970542e9e95eb681530f08351e7b683038b43b1eb46191476bf48fb/awscli-1.36.24-py3-none-any.whl", hash = "sha256:f974a5796d16eb756e99b47b4c69bc9e97dcc91d63650f9ff78d26fe20471a05", size = 4535744 },
+    { url = "https://files.pythonhosted.org/packages/4f/6a/3350f48c9cb7d20ed1cef29e1410893b30b0af6537b884091e47b365d5fd/awscli-1.36.22-py3-none-any.whl", hash = "sha256:2a3c9d8b2efedaa42f34214dc39b3f0c1db0f520c810fb38e1dd8e2d25a102bf", size = 4536045 },
 ]
 
 [[package]]
@@ -468,16 +464,16 @@ ecs = [
 
 [[package]]
 name = "botocore"
-version = "1.35.83"
+version = "1.35.81"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "python-dateutil" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/06/dd/835b5f9ed7a7d7ffbf7f1f600dc963f5f6c1e5939ca0ca8d0f3ae73f19cb/botocore-1.35.83.tar.gz", hash = "sha256:df5e4384838e50bbafd47e9b5fefb995e83cbb9412e7cd7c0db9555174d91bba", size = 13477605 }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/a8/b44d94c14ee4eb13db6dc549269c79199b43bddd70982e192aefd6ca6279/botocore-1.35.81.tar.gz", hash = "sha256:564c2478e50179e0b766e6a87e5e0cdd35e1bc37eb375c1cf15511f5dd13600d", size = 13460205 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/61/4e/603c90be490cfadaf7d171d7e93a440772bd32a7b6d0401c19c74fabe0b7/botocore-1.35.83-py3-none-any.whl", hash = "sha256:ba363183e4df79fbcfd5f3600fd473bd45a1de03d0d0b5e78abd59f276971d27", size = 13281339 },
+    { url = "https://files.pythonhosted.org/packages/1a/ad/00dfec368dd4e957063ed1126b5511238b0900c1014dfe539af93fc0ac29/botocore-1.35.81-py3-none-any.whl", hash = "sha256:a7b13bbd959bf2d6f38f681676aab408be01974c46802ab997617b51399239f7", size = 13265330 },
 ]
 
 [[package]]
@@ -3172,11 +3168,11 @@ wheels = [
 
 [[package]]
 name = "python-multipart"
-version = "0.0.20"
+version = "0.0.19"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f3/87/f44d7c9f274c7ee665a29b885ec97089ec5dc034c7f3fafa03da9e39a09e/python_multipart-0.0.20.tar.gz", hash = "sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13", size = 37158 }
+sdist = { url = "https://files.pythonhosted.org/packages/c1/19/93bfb43a3c41b1dd0fa1fa66a08286f6467d36d30297a7aaab8c0b176a26/python_multipart-0.0.19.tar.gz", hash = "sha256:905502ef39050557b7a6af411f454bc19526529ca46ae6831508438890ce12cc", size = 36886 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/58/38b5afbc1a800eeea951b9285d3912613f2603bdf897a4ab0f4bd7f405fc/python_multipart-0.0.20-py3-none-any.whl", hash = "sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104", size = 24546 },
+    { url = "https://files.pythonhosted.org/packages/e1/f4/ddd0fcdc454cf3870153ae16a818256523d31c3c8136e216bc6836ed4cd1/python_multipart-0.0.19-py3-none-any.whl", hash = "sha256:f8d5b0b9c618575bf9df01c684ded1d94a338839bdd8223838afacfb4bb2082d", size = 24448 },
 ]
 
 [[package]]
