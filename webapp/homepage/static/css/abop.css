@@ -5,14 +5,17 @@
 
     --cobalt-blue: #0047ab;
     --royal-purple: #4B006E;
+    --electric-purple: #BF00FF;
     --electric-violet: #8b00ff;
 
     --princeton-orange: #FF961F;
-    --dark-orange: #ff8800;
+    --dark-orange: #ff8d0a;
     --yellow: #F5F500;
     --aureolin: #E4E400;
 
-    --jet: #2F2F2F;
+    --jet: #2f2f2f;
+
+    --hover-transition-time: .25s;
 
     --primary-100: #C6DBFF;
     --primary-200: #7ab6ff;
@@ -73,7 +76,7 @@ body {
     border-radius: 50%;
     height: 3rem;
 
-    transition: filter 1s;
+    transition: filter var(--hover-transition-time);
 }
 
 #home-button:hover {
@@ -81,11 +84,11 @@ body {
 }
 
 #nav-github {
-    transition: filter 1s;
+    transition: filter var(--hover-transition-time);
 }
 
 #nav-github:hover {
-    filter: brightness(250%);
+    filter: brightness(150%);
 }
 
 .call-to-action {
@@ -93,14 +96,13 @@ body {
     font-weight: 500;
     color: white;
 
-    background-color: var(--royal-purple);
+    background-color: var(--electric-violet);
 
-    border-radius: 3rem;
-    border-style: solid;
-    border-color: var(--princeton-orange);
-    border-width: 1.5px;
+    border-radius: .5em;
 
-    transition: filter 1s;
+    transition:
+        color var(--hover-transition-time),
+        background-color var(--hover-transition-time);
 
     &.large {
         box-shadow: 0px 2px 2px var(--jet);
@@ -116,7 +118,8 @@ body {
 }
 
 .call-to-action:hover{
-    filter: brightness(175%);
+    color: var(--aureolin);
+    background-color: var(--electric-purple);
 }
 
 section.sidebar.right {
@@ -212,6 +215,13 @@ header {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+
+    background: linear-gradient(
+        to bottom,
+        rgba(47, 47, 47, 1) 0%,
+        rgba(47, 47, 47, 1) 60%,
+        rgba(47, 47, 47, 0) 100%
+    );
 }
 
 header a {
