@@ -291,27 +291,30 @@ class SlackDaemon(Webhook):
         text = json_data.get('text').strip()
         args = shlex.split(text)
 
+        # argparse is designed to be CLI, so we need to redirect stdout and stderr to capture help messages
         buf = StringIO()
         parsed_args = None
         try:
             # -h is stdout, parse errors go to stderr
             with redirect_stderr(buf), redirect_stdout(buf):
                 parsed_args = self.arg_parser.parse_args(args)
-        except SystemExit:
-            message = {
-                "response_type": "ephemeral",
-                "text": buf.getvalue(),
-            }
-            return JSONResponse(content=message, status_code=200)
 
-        if parsed_args is not None:
             background_tasks.add_task(handle_command, parsed_args)
-
-        message = {
-            "response_type": "ephemeral",
-            "text": f"Processing command.",
-        }
-        return Response(status_code=200)
+            return JSONResponse(
+                content={
+                    "response_type": "ephemeral",
+                    "text": f'Processing command from {json_data.get("user_id")}: {text}',
+                },
+            )
+        # Immediately return a help message if the command is invalid
+        except SystemExit:
+            return JSONResponse(
+                content={
+                    "response_type": "ephemeral",
+                    "text": buf.getvalue(),
+                },
+                status_code=200,
+            )
 
     def new_persona(self, persona_name: str, instructions: str = "", icon: str = 'robot_face'):
         instructions = f'You are a slack bot persona named {persona_name}' + instructions
