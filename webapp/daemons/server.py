@@ -214,6 +214,9 @@ class SlackDaemon(Webhook):
             update_persona_parser.add_argument(
                 "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
             )
+            update_persona_parser.add_argument(
+                "--clear-memory", action="store_true", help="Clear the memory of the persona", required=False
+            )
 
             delete_persona_parser.add_argument(
                 "name", type=str, help="The name of the persona to delete", required=True
@@ -285,7 +288,13 @@ class SlackDaemon(Webhook):
                         )
                     else:
                         persona = self.personas[args.name]
-                        persona.update_instructions(args.instructions)
+                        if args.instructions:
+                            persona.update_instructions(args.instructions)
+                        if args.icon:
+                            persona.update_icon(args.icon)
+                        if args.clear_memory:
+                            persona.clear_memory()
+
                         self.respond(
                             response_url=response_url,
                             text=f'Persona {args.name} updated',
