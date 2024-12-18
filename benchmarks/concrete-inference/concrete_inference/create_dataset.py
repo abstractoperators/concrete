@@ -9,10 +9,9 @@
 # 6. Utility for adding context to dataset (via oracle or bm context) should be possible.
 
 import argparse
-import os
 from pathlib import Path
 
-from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
+from datasets import Dataset, DatasetDict, load_dataset
 
 from concrete.clients import CLIClient
 
