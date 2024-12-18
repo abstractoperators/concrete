@@ -258,8 +258,9 @@ class SlackDaemon(Webhook):
                     )
                 else:
                     persona = self.personas[args.name]
-                    resp = persona.chat_no_memory(args.message)
-                    persona.append_memory(args.message)
+                    resp = persona.chat_with_memory(args.message)
+                    persona.append_memory(f'User {json_data.get("user_id")}: {args.message}')
+                    persona.append_memory(f'Assistant {args.name}: {resp}')
 
                     persona.post_message(
                         token=os.getenv('SLACK_BOT_TOKEN'),
