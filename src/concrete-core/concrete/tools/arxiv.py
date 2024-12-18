@@ -26,7 +26,6 @@ class ArxivTool(metaclass=MetaTool):
     ) -> list[arxiv.Result]:
         """
         Helper function to search and return a list of arXiv articles.
-        Uses only simple types available to OpenAI Structured Output
         """
         if not query and not id_list:
             raise ValueError("At least one of query or id_list must be provided.")
