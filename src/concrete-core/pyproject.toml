@@ -11,8 +11,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-openai = ["openai>=1.40.0"] # https://github.com/openai/openai-python/releases/tag/v1.40.0
-requests = ["requests>=2.0.0"]  
+openai = [
+    "openai>=1.40.0",
+    "tiktoken>=0.8.0",
+]
+requests = ["requests>=2.0.0"]
 auth = [
     "pyjwt>=2.9.0",
     "cryptography>=35.0.0",
@@ -24,12 +27,23 @@ google-auth = [
     "google-auth-oauthlib>=1.1.1",
     "google-api-python-client>=2.0.0"
 ]
-otel=[ 
+otel = [ 
     "opentelemetry-api>=1.28.2",
     "opentelemetry-exporter-otlp>=1.28.2",
     "opentelemetry-propagator-b3>=1.28.2",
     "opentelemetry-sdk>=1.28.2",
 ]
+tool-arxiv = [
+    "arxiv>=2.1.3",
+    "llama-index-vector-stores-postgres>=0.3.3",
+    "llama-index>=0.12.5",
+    "pymupdf4llm>=0.0.17",
+    "pymupdf>=1.25.0",
+]
+tool-documentretriever = [
+    "llama-index>=0.12.5",
+]
+all = ["concrete-core[openai,requests,auth,google-auth,otel,tool-arxiv,tool-documentretriever]"]
 
 
 [build-system]

@@ -1,31 +1,31 @@
-import hashlib
-import hmac
-import json
+import argparse
 import os
+import shlex
 import time
-from abc import ABC, abstractmethod
-from uuid import UUID
+from abc import ABC
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
+from typing import Callable
 
-import jwt
-from concrete_db import crud
-from concrete_db.orm import Session
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from webapp_common import JwtToken
 
-from concrete.clients import CLIClient
-from concrete.clients.openai import OpenAIClient
-from concrete.models.messages import NodeUUID
-from concrete.operators import Executive
-from concrete.tools.github import GithubTool
+from concrete.clients.http import HTTPClient
+from concrete.operators import Operator
+from concrete.tools.arxiv import ArxivTool
+from concrete.tools.document import DocumentTool
 from concrete.tools.http import RestApiTool
-from concrete.tools.knowledge import KnowledgeGraphTool
+
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory=os.path.join(dname, "templates"))
+app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -33,7 +33,12 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-load_dotenv(".env.daemons", override=True)
+@app.get("/ping")
+def ping():
+    return {"message": "pong"}
+
+
+load_dotenv('.env', override=True)
 
 
 class Webhook(ABC):
@@ -41,56 +46,8 @@ class Webhook(ABC):
     Represents a Webhook.
     """
 
-    def __init__(self, route: str):
-        self.route = route
-
-    @abstractmethod
-    async def webhook_handler(self, request: Request, background_tasks: BackgroundTasks):
-        pass
-
-
-class JwtToken:
-    """
-    Represents a JWT token for GitHub App authentication.
-    Manages token expiry and generation.
-    """
-
     def __init__(self):
-        self._token: str = ""  # nosec
-        self._expiry: float = 0
-        self.PRIVATE_KEY_PATH: str = os.environ.get("GH_PRIVATE_KEY_PATH")
-        try:
-            with open(self.PRIVATE_KEY_PATH, "rb") as pem_file:
-                self.signing_key = pem_file.read()
-        except FileNotFoundError:
-            raise HTTPException(status_code=500, detail="Failed to read private key")
-
-        self.GH_APP_CLIENT_ID = os.environ.get("GH_CLIENT_ID")
-        if not self.GH_APP_CLIENT_ID:
-            raise HTTPException(status_code=500, detail="GH_CLIENT_ID is not set")
-
-    @property
-    def token(self):
-        if not self._token or self._is_expired():
-            self._generate_jwt()
-        return self._token
-
-    def _is_expired(self):
-        return not self._expiry or self._expiry < time.time()
-
-    def _generate_jwt(self):
-        iat = int(time.time())
-        exp = iat + 600
-        payload = {
-            "iat": iat,
-            "exp": exp,
-            "iss": self.GH_APP_CLIENT_ID,
-        }
-        self._token = jwt.encode(payload, self.signing_key, algorithm="RS256")
-        self._expiry = exp
-
-    def get_jwt(self) -> tuple[str, int]:
-        return self.token
+        self.routes: dict[str, Callable] = {}
 
 
 class InstallationToken:
@@ -98,19 +55,24 @@ class InstallationToken:
     Represents an Installation Access Token for GitHub App authentication.
     """
 
-    def __init__(self, jwt_token: JwtToken, installation_id: str = ""):
+    def __init__(self, jwt_token: JwtToken, installation_id: str | None = None):
         self._token: str = ""  # nosec
-        self._expiry: float = 0
+        self.expiry_offset = 3600
+        self.exp = None
+        self._generated_at = 0
         self.jwt_token = jwt_token
-        self.installation_id: str = ""
+        self.installation_id = installation_id
 
     def _is_expired(self):
-        return not self._expiry or self._expiry < time.time()
+        return self.exp is None or time.time() >= self.exp
 
     def _generate_installation_token(self):
         """
         installation_id (str): GitHub App installation ID. Can be found in webhook payload, or from GitHub API.
         """
+        if not self.installation_id:
+            raise HTTPException(status_code=500, detail="Installation ID is not set")
+
         headers = {
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {self.jwt_token.token}",
@@ -121,6 +83,8 @@ class InstallationToken:
         self._expiry = int(time.time() + 3600)
         token = RestApiTool.post(url=url, headers=headers).get("token", "")
         self._token = token
+        self.exp = int(time.time() + self.expiry_offset)
+        self._token = RestApiTool.post(url=url, headers=headers).get('token', '')
 
     @property
     def token(self) -> str:
@@ -132,263 +96,225 @@ class InstallationToken:
         self.installation_id = installation_id
 
 
-class AOGitHubDaemon(Webhook):
+class SlackPersona:
     """
-    Represents a GitHub PR Daemon.
-    Daemon can act on many installations, orgs/repos/branches.
-    TODO: AOGitHubDaemon -> GitHubDaemon. Should be installable on any repository, and not hardcoded to abop.
+    Represents a persona in a slack workspace
     """
 
+    def __init__(
+        self,
+        instructions: str,
+        icon: str,
+        persona_name: str,
+    ):
+        self.operator = Operator(tools=[ArxivTool, DocumentTool], use_tools=True)
+        self.operator.instructions = instructions
+
+        self.icon: str = icon
+        self.username: str = persona_name
+
+        self.memory: list[str] = []
+
+    def chat_no_memory(self, message: str) -> str:
+        return self.operator.chat(message).text
+
+    def chat_with_memory(self, message: str) -> str:
+        return self.operator.chat('\n'.join(self.memory) + message).text
+
+    def append_memory(self, message: str) -> None:
+        self.memory.append(message)
+
+    def clear_memory(self) -> None:
+        self.memory = []
+
+    def update_instructions(self, instructions: str) -> None:
+        self.operator.instructions = instructions
+
+    def update_icon(self, icon: str) -> None:
+        self.icon = icon
+
+    def get_instructions(self) -> str:
+        return self.operator.instructions
+
+    def get_memory(self) -> list[str]:
+        return self.memory
+
+    def get_icon(self) -> str:
+        return self.icon
+
+    def post_message(self, token: str, channel: str, message):
+        endpoint = 'https://slack.com/api/chat.postMessage'
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': f'Bearer {token}',
+        }
+        payload = {
+            'channel': channel,
+            'text': message,
+            'icon_emoji': f':{self.icon}:',
+            'username': self.username,
+        }
+
+        HTTPClient().post(url=endpoint, headers=headers, json=payload)
+
+
+class SlackDaemon(Webhook):
     def __init__(self):
-        super().__init__("/github/webhook")
-        self.installation_token: InstallationToken = InstallationToken(JwtToken())
-        self.open_revisions: dict[str, str] = {}  # {source branch: revision branch}
-        self.org = "abstractoperators"
-        self.repo = "concrete"
+        super().__init__()
+        # self.routes['/slack/events'] = self.event_subscriptions
+        self.routes['/slack/slash_commands'] = self.slash_commands
 
-    @staticmethod
-    def _verify_signature(payload_body, signature_header):
-        """Verify that the payload was sent from GitHub by validating SHA256.
-        https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
-        Raise and return 403 if not authorized.
+        self.personas = {
+            'jaime': SlackPersona(
+                instructions="You are the persona of a slack chat bot. Your name is Jaime. Assist users in the workspace.",  # noqa
+                icon=":robot_face:",
+                persona_name="Jaime",
+            )
+        }
 
-        Args:
-            payload_body: original request body to verify (request.body())
-            secret_token: GitHub app webhook token (WEBHOOK_SECRET)
-            signature_header: header received from GitHub (x-hub-signature-256)
-        """
-        GH_WEBHOOK_SECRET = os.environ.get("GH_WEBHOOK_SECRET")
-        if not GH_WEBHOOK_SECRET:
-            raise HTTPException(status_code=500, detail="GH_WEBHOOK_SECRET is not set")
+        self.init_slashcommand_parser()
 
-        if not signature_header:
-            raise HTTPException(status_code=403, detail="x-hub-signature-256 header is missing")
-
-        hash_object = hmac.new(
-            GH_WEBHOOK_SECRET.encode("utf-8"),
-            msg=payload_body,
-            digestmod=hashlib.sha256,
+    def init_slashcommand_parser(self):
+        self.arg_parser = argparse.ArgumentParser(
+            description="Jaime Bot is a slack bot that can create personas which chat with users.",
+            prog="/jaime",
         )
 
-        expected_signature = "sha256=" + hash_object.hexdigest()
-        if not hmac.compare_digest(expected_signature, signature_header):
-            raise HTTPException(status_code=403, detail="Request signatures didn't match")
+        subparsers = self.arg_parser.add_subparsers(dest="subcommand")
+        subparsers.required = True
 
-    async def webhook_handler(self, request: Request, background_tasks: BackgroundTasks):
-        """
-        Receive and respond to GH webhook events.
-        """
-        raw_payload = await request.body()
-        signature = request.headers.get("x-hub-signature-256")
+        new_persona_parser = subparsers.add_parser("new_persona", help="Create a new persona")
+        update_persona_parser = subparsers.add_parser("update_persona", help="Update a persona")
+        delete_persona_parser = subparsers.add_parser("delete_persona", help="Delete a persona")
+        get_persona_parser = subparsers.add_parser("get_persona", help="Get a persona or a list of persona names")
+        chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
+        arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", help="Add an arXiv paper to RAG database")
+
+        new_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+        new_persona_parser.add_argument(
+            "--instructions", type=str, help="The instructions for the persona", required=False
+        )
+        new_persona_parser.add_argument(
+            "--icon", type=str, help="The icon for the persona (e.g. smiley)", default=":robot_face:", required=False
+        )
+
+        update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+        update_persona_parser.add_argument(
+            "--instructions", type=str, help="The instructions for the persona", required=False
+        )
+        update_persona_parser.add_argument(
+            "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
+        )
+
+        delete_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+
+        get_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=False)
+
+        chat_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+        chat_persona_parser.add_argument(
+            "--message", type=str, help="The message to send to the persona", required=True
+        )
+
+        arxiv_papers_parser.add_argument("--id", type=str, help="The arXiv paper ID (e.g. 2308.08155)", required=True)
+
+    async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
+        json_data = await request.form()
+
+        text = json_data.get('text').strip()
+        args = shlex.split(text)
+
+        buf = StringIO()
+        parsed_args = None
         try:
-            self._verify_signature(raw_payload, signature)
-        except HTTPException as e:
-            return {"error": str(e.detail)}, e.status_code
+            # -h is stdout, parse errors go to stderr
+            with redirect_stderr(buf), redirect_stdout(buf):
+                parsed_args = self.arg_parser.parse_args(args)
+        except SystemExit:
+            message = {
+                "response_type": "in_channel",
+                "text": buf.getvalue(),
+            }
+            return JSONResponse(content=message, status_code=200)
 
-        payload: dict = json.loads(raw_payload)
-        self.installation_token.set_installation_id(payload.get("installation", {}).get("id", ""))
+        def handle_command(args: argparse.Namespace) -> None:
+            """
+            Potentially can take a long time to run.
+            """
+            subcommand = args.subcommand
+            if subcommand == 'chat':
+                if args.name not in self.personas:
+                    resp = f'Persona {args.name} does not exist'
+                    HTTPClient().post(
+                        url=json_data.get('response_url'),
+                        json={"text": resp},
+                    )
+                else:
+                    persona = self.personas[args.name]
+                    resp = persona.chat_no_memory(args.message)
+                    persona.append_memory(args.message)
 
-        if payload.get("pull_request", None):
-            action = payload.get("action", None)
-            sender = payload.get("sender", {}).get("login", "")
-            base = payload.get("pull_request", {}).get("base", {}).get("ref", "")
-            if sender != "concreteoperator[bot]":
-                CLIClient.emit(f"Received PR event: {action}")
-                if action == "opened" or action == "reopened":
-                    # Open and begin working on a revision branch
-                    branch_name = payload["pull_request"]["head"]["ref"]
-                    background_tasks.add_task(self._start_revision, branch_name, base)
+                    persona.post_message(
+                        token=os.getenv('SLACK_BOT_TOKEN'),
+                        channel=json_data.get('channel_id'),
+                        message=resp,
+                    )
+            else:
+                if subcommand == 'new_persona':
+                    if args.name in self.personas:
+                        resp = f'Persona {args.name} already exists'
+                    self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
+                    resp = f'Persona {args.name} created'
 
-                elif action == "closed":
-                    # Close and delete the revision branch
-                    branch_name = payload["pull_request"]["head"]["ref"]
-                    background_tasks.add_task(self._close_revision, branch_name)
+                elif subcommand == 'update_persona':
+                    if args.name not in self.personas:
+                        resp = f'Persona {args.name} does not exist'
+                    else:
+                        persona = self.personas[args.name]
+                        persona.update_instructions(args.instructions)
+                        resp = f'Persona {args.name} updated'
 
-    def _start_revision(self, source_branch: str, source_target: str = "main"):
-        """
-        Serial execution of creating a revision branch + commits + PR.
-        """
-        revision_branch = f"ghdaemon/revision/{source_branch}"
-        self.open_revisions[source_branch] = revision_branch
+                elif subcommand == 'delete_persona':
+                    if args.name not in self.personas:
+                        resp = f'Persona {args.name} does not exist'
+                    else:
+                        self.personas.pop(args.name)
+                        resp = f'Persona {args.name} deleted'
 
-        CLIClient.emit(f"Creating revision branch: {revision_branch}")
-        GithubTool.create_branch(
-            org=self.org,
-            repo=self.repo,
-            new_branch=revision_branch,
-            base_branch=source_branch,
-            access_token=self.installation_token.token,
-        )
+                elif subcommand == 'get_persona':
+                    if args.name:
+                        if args.name not in self.personas:
+                            resp = f'Persona {args.name} does not exist'
+                        else:
+                            persona = self.personas[args.name]
+                            resp = f'Persona {args.name}:\n{persona.get_instructions()}'
+                    else:
+                        resp = '\n'.join(self.personas.keys())
 
-        root_node_id = KnowledgeGraphTool._get_node_by_path(org=self.org, repo=self.repo, branch=revision_branch)
-        if root_node_id is None:
-            CLIClient.emit(f"Fetching revision branch contents: {revision_branch}")
-            root_path = GithubTool.fetch_branch(
-                org=self.org,
-                repo=self.repo,
-                branch=revision_branch,
-                access_token=self.installation_token.token,
-            )
+                elif subcommand == 'add_arxiv_paper':
+                    documents = ArxivTool.get_arxiv_paper_as_llama_document(id=args.id)
+                    for document in documents:
+                        DocumentTool.index.insert(document)
 
-            CLIClient.emit(f"Creating knowledge graph from revision branch: {revision_branch}")
-            root_node_id = KnowledgeGraphTool._parse_to_tree(
-                org=self.org,
-                repo=self.repo,
-                dir_path=root_path,
-                rel_gitignore_path=".gitignore",
-                branch=revision_branch,
-            )
-        else:
-            CLIClient.emit(f"Getting root node {root_node_id} file path")
-            root_path = KnowledgeGraphTool.get_node_path(root_node_id)
-            CLIClient.emit("Root node file path: " + root_path)
+                    resp = f'ArXiv paper {args.id} added to RAG database'
 
-        CLIClient.emit("Finding changed files in source branch/PR")
-        raw_changed_files = GithubTool.get_changed_files(
-            org=self.org,
-            repo=self.repo,
-            base=source_target,
-            head=source_branch,
-            access_token=self.installation_token.token,
-        )
-        changed_files = [file[2:] for (_, file), _ in raw_changed_files]
+                response_url = json_data.get('response_url')
+                HTTPClient().post(
+                    url=response_url,
+                    json={"text": resp},
+                )
 
-        for changed_file in changed_files:
-            full_path_to_file_to_document = os.path.join(root_path, changed_file)
-            CLIClient.emit(f"Creating append-only documentation for {full_path_to_file_to_document}")
-            suggested_documentation_to_append, documentation_dest_path = self.recommend_documentation(
-                branch=revision_branch,
-                path=full_path_to_file_to_document,
-            )
+        if parsed_args is not None:
+            background_tasks.add_task(handle_command, parsed_args)
 
-            if suggested_documentation_to_append == "" or documentation_dest_path == "":
-                CLIClient.emit(f"No documentation to append for {full_path_to_file_to_document}")
-                continue
+        return Response(status_code=200)
 
-            CLIClient.emit(f"Appending documentation to {documentation_dest_path}. Committing to github.")
-            with open(documentation_dest_path, "a+") as f:
-                f.write(suggested_documentation_to_append)
-                f.seek(0)
-                full_documentation = f.read()
-
-            # Need to use relpath to get path relative to local root.
-            changed_file = os.path.relpath(documentation_dest_path, root_path)
-            CLIClient.emit(f"Putting changed file {changed_file} to github.")
-            GithubTool.put_file(
-                org=self.org,
-                repo=self.repo,
-                branch=revision_branch,
-                path=changed_file,
-                file_contents=full_documentation,
-                access_token=self.installation_token.token,
-                commit_message=f"Append documentation for {changed_file}",
-            )
-
-        CLIClient.emit(f"Creating PR for revision branch: {revision_branch}")
-        GithubTool.create_pr(
-            org=self.org,
-            repo=self.repo,
-            title=f"Revision of {source_branch}",
-            head=revision_branch,
-            base=source_branch,
-            access_token=self.installation_token.token,
-        )
-
-    def _close_revision(self, source_branch: str):
-        revision_branch = self.open_revisions.get(source_branch, None)
-        CLIClient.emit(f"Closing revision branch: {revision_branch}")
-        if not revision_branch:
-            return
-        GithubTool.delete_branch(
-            org=self.org,
-            repo=self.repo,
-            branch=revision_branch,
-            access_token=self.installation_token.token,
-        )
-        self.open_revisions.pop(source_branch)
-
-    def navigate_to_documentation(self, node_to_document_id: UUID, cur_id: UUID) -> tuple[bool, UUID]:
-        """
-        Recommends documentation location for a given path.
-        Path refers to a module to be documented (e.g. tools)
-        Returns a boolean to indicate whether an appropriate node exists.
-        Returns current's UUID, which represents the documentation destination node if the boolean is True (e.g. UUID for docs/tools.md)
-        """  # noqa: E501
-        node_to_document_summary = KnowledgeGraphTool.get_node_summary(node_to_document_id)
-
-        cur_node_summary = KnowledgeGraphTool.get_node_summary(cur_id)
-        CLIClient.emit(f"Currently @ {cur_node_summary}")
-        cur_children_nodes = KnowledgeGraphTool.get_node_children(cur_id)
-
-        if not cur_children_nodes:
-            return (True, cur_id)
-
-        exec = Executive(clients={"openai": OpenAIClient()})
-        next_node_id = exec.chat(
-            f"""You will navigate to the best child to document the following module. Ideally, a the module will be documented in a central location.
-        Module: {node_to_document_summary}
-
-        The following are summaries of children you may navigate to: {cur_node_summary}
-
-        The following is a list of the children's UUIDs.
-        {cur_children_nodes}
-        
-        Think about which child would be most appropriate to document the module in. Then, respond with the UUID of the child node you wish to navigate to.
-        If you do not believe any children are appropriate, respond with NA.""",  # noqa
-            options={"response_format": NodeUUID},
-        ).node_uuid
-
-        if next_node_id == "NA":
-            return (False, cur_id)
-        else:
-            return self.navigate_to_documentation(node_to_document_id, UUID(next_node_id))
-
-    def recommend_documentation(self, branch: str, path: str) -> tuple[str, str]:
-        """
-        Recommends documentation for the file at a given path.
-        Returns a tuple of the (suggested_documentation, documentation_path)
-        """
-        root_node_id = KnowledgeGraphTool._get_node_by_path(org=self.org, repo=self.repo, branch=branch)
-        node_to_document_id = KnowledgeGraphTool._get_node_by_path(
-            org=self.org, repo=self.repo, path=path, branch=branch
-        )
-        if not node_to_document_id or not root_node_id:
-            CLIClient.emit(f"Node not found for {path}")
-            return ("", "")
-        found, documentation_node_id = self.navigate_to_documentation(node_to_document_id, root_node_id)
-
-        if not found:
-            return ("", "")
-
-        with Session() as db:
-            documentation_node = crud.get_repo_node(db=db, repo_node_id=documentation_node_id)
-            if documentation_node is None:
-                CLIClient.emit(f"Documentation node not found for {path}")
-                return ("", "")
-            documentation_path = documentation_node.abs_path
-
-        if not found:
-            documentation_path = f"{documentation_path}/{path}.md"
-            with open(documentation_path, "w") as f:
-                f.write("")
-
-        with open(documentation_path, "r") as f:
-            existing_documentation = f.read()
-        with open(path, "r") as f:
-            module_contents = f.read()
-
-        exec = Executive(clients={"openai": OpenAIClient()})
-        suggested_documentation = exec.chat(
-            f"""Your job is to document the following module.
-    Existing Documentation: {existing_documentation}
-    Module Contents: {module_contents}
-
-    Respond with documentation for the module to be APPENDED to the existing documentation. Meaning, you must follow the style and structure of the existing documentation. Do NOT repeat existing information, return new documentation that is structurally consistent with the existing documentation.""",  # noqa
-        ).text
-
-        return suggested_documentation, documentation_path
+    def new_persona(self, persona_name: str, instructions: str = "", icon: str = 'robot_face'):
+        instructions = f'You are a slack bot persona named {persona_name}' + instructions
+        icon = icon
+        self.personas[persona_name] = SlackPersona(instructions, icon, persona_name)
 
 
-hooks = [gh_daemon := AOGitHubDaemon()]
-for hook in hooks:
-    app.add_api_route(hook.route, hook.webhook_handler, methods=["POST"])
+routers = [slack_daemon := SlackDaemon()]
+for router in routers:
+    for route, handler in router.routes.items():
+        app.add_api_route(route, handler, methods=["POST"])
