@@ -23,11 +23,8 @@ class ArxivTool(metaclass=MetaTool):
         max_results: int | None = None,
         sort_by: arxiv.SortCriterion = arxiv.SortCriterion.Relevance,
         sort_order: arxiv.SortOrder = arxiv.SortOrder.Descending,
-        sort_by: arxiv.SortCriterion = arxiv.SortCriterion.Relevance,
-        sort_order: arxiv.SortOrder = arxiv.SortOrder.Descending,
     ) -> list[arxiv.Result]:
         """
-        Human use _search method to get a list of arxiv articles.
         Human use _search method to get a list of arxiv articles.
         """
         if not query and not id_list:
