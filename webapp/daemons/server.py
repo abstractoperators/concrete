@@ -182,18 +182,18 @@ class SlackDaemon(Webhook):
             subparsers = self.arg_parser.add_subparsers(dest="subcommand")
             subparsers.required = True
 
-            new_persona_parser = subparsers.add_parser("new_persona", help="Create a new persona")
-            update_persona_parser = subparsers.add_parser("update_persona", help="Update a persona")
-            delete_persona_parser = subparsers.add_parser("delete_persona", help="Delete a persona")
+            new_persona_parser = subparsers.add_parser("new-persona", help="Create a new persona")
+            update_persona_parser = subparsers.add_parser("update-persona", help="Update a persona")
+            delete_persona_parser = subparsers.add_parser("delete-persona", help="Delete a persona")
             get_persona_parser = subparsers.add_parser(
-                "get_persona",
+                "get-persona",
                 help=(
                     "Get a persona or a list of persona names. Provide a name to get a specific persona."
                     "Leave blank to get a list of persona names."
                 ),
             )
             chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
-            arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", help="Add an arXiv paper to RAG database")
+            arxiv_papers_parser = subparsers.add_parser("add-arxiv-paper", help="Add an arXiv paper to RAG database")
 
             new_persona_parser.add_argument("name", type=str, help="The name of the persona to create.")
             new_persona_parser.add_argument(
@@ -245,11 +245,12 @@ class SlackDaemon(Webhook):
             Potentially can take a long time to run.
             """
             subcommand = args.subcommand
+            response_url = json_data.get('response_url')
 
             if subcommand == 'chat':
                 if args.name not in self.personas:
                     self.respond(
-                        response_url=json_data.get('response_url'),
+                        response_url=response_url,
                         text=f'Persona {args.name} does not exist',
                     )
                 else:
@@ -263,84 +264,84 @@ class SlackDaemon(Webhook):
                         message=resp,
                     )
             else:
-                if subcommand == 'new_persona':
+                if subcommand == 'new-persona':
                     if args.name in self.personas:
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text=f'Persona {args.name} already exists',
                         )
                     else:
                         self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text=f'Persona {args.name} created',
                         )
 
-                elif subcommand == 'update_persona':
+                elif subcommand == 'update-persona':
                     if args.name not in self.personas:
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text=f'Persona {args.name} does not exist',
                         )
                     else:
                         persona = self.personas[args.name]
                         persona.update_instructions(args.instructions)
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text=f'Persona {args.name} updated',
                         )
 
-                elif subcommand == 'delete_persona':
+                elif subcommand == 'delete-persona':
                     if args.name not in self.personas:
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text=f'Persona {args.name} does not exist',
                         )
                     else:
                         self.personas.pop(args.name)
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text=f'Persona {args.name} deleted',
                         )
 
-                elif subcommand == 'get_persona':
+                elif subcommand == 'get-persona':
                     if args.name:
                         if args.name not in self.personas:
                             self.respond(
-                                response_url=json_data.get('response_url'),
+                                response_url=response_url,
                                 text=f'Persona {args.name} does not exist',
                             )
                         else:
                             persona = self.personas[args.name]
                             self.respond(
-                                response_url=json_data.get('response_url'),
+                                response_url=response_url,
                                 text=f'Persona {args.name}\nInstructions: {persona.get_instructions()}',
                             )
                     else:
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text='\n'.join(self.personas.keys()),
                         )
 
-                elif subcommand == 'add_arxiv_paper':
+                elif subcommand == 'add-arxiv-paper':
                     self.respond(
-                        response_url=json_data.get('response_url'),
+                        response_url=response_url,
                         text=f'Adding ArXiv paper {args.id} to RAG database...',
                     )
                     documents = ArxivTool.get_arxiv_paper_as_llama_document(id=args.id)
                     self.respond(
-                        response_url=json_data.get('response_url'),
+                        response_url=response_url,
                         text=f'ArXiv paper {args.id} retrieved. Chunked into {len(documents)} documents',
                     )
                     for i, document in enumerate(documents):
                         self.respond(
-                            response_url=json_data.get('response_url'),
+                            response_url=response_url,
                             text=f'Adding document {i + 1} of {len(documents)} to RAG database...',
                         )
                         DocumentTool.index.insert(document)
 
                     self.respond(
-                        response_url=json_data.get('response_url'),
+                        response_url=response_url,
                         text=f'ArXiv paper {args.id} added to RAG database',
                     )
 
