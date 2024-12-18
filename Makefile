@@ -82,6 +82,9 @@ local-main:
 local-auth:
 	$(UV) fastapi dev webapp/auth/server.py --port 8002
 
+local-homepage:
+	$(UV) fastapi dev webapp/homepage/server.py --port 8003
+
 # Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
 # I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
 ngrok: # Use the provided url as your webhook url

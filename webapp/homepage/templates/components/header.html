@@ -1,0 +1,27 @@
+{% macro header(request) %}
+<header>
+    <a style="height: 3rem" href="{{ url_for('root') }}">
+        <img
+            id="home-button"
+            src="{{ url_for('static', path='abstractoperators_favicon.jpg') }}"
+            alt="Home"
+        >
+    </a>
+    <nav>
+        <a
+            id="nav-github"
+            href="https://github.com/abstractoperators"
+            target="_blank"
+        >
+            <img src="{{ url_for('static', path='/icons/github.svg') }}" alt="Github">
+        </a>
+        <a
+            class="call-to-action nav"
+            href="http://calendly.com/kentgang/30min"
+            target="_blank"
+        >
+            Contact Us
+        </a>
+    </nav>
+</header>
+{% endmacro %}
