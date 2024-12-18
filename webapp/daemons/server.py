@@ -195,7 +195,7 @@ class SlackDaemon(Webhook):
             "--instructions", type=str, help="The instructions for the persona", required=False
         )
         new_persona_parser.add_argument(
-            "--icon", type=str, help="The icon for the persona (e.g. smiley)", default=":robot_face:", required=False
+            "--icon", type=str, help="The icon for the persona (e.g. smiley)", default="smiley", required=False
         )
 
         update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
@@ -218,24 +218,6 @@ class SlackDaemon(Webhook):
         arxiv_papers_parser.add_argument("--id", type=str, help="The arXiv paper ID (e.g. 2308.08155)", required=True)
 
     async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
-        json_data = await request.form()
-
-        text = json_data.get('text').strip()
-        args = shlex.split(text)
-
-        buf = StringIO()
-        parsed_args = None
-        try:
-            # -h is stdout, parse errors go to stderr
-            with redirect_stderr(buf), redirect_stdout(buf):
-                parsed_args = self.arg_parser.parse_args(args)
-        except SystemExit:
-            message = {
-                "response_type": "in_channel",
-                "text": buf.getvalue(),
-            }
-            return JSONResponse(content=message, status_code=200)
-
         def handle_command(args: argparse.Namespace) -> None:
             """
             Potentially can take a long time to run.
@@ -291,6 +273,7 @@ class SlackDaemon(Webhook):
                         resp = '\n'.join(self.personas.keys())
 
                 elif subcommand == 'add_arxiv_paper':
+
                     documents = ArxivTool.get_arxiv_paper_as_llama_document(id=args.id)
                     for document in documents:
                         DocumentTool.index.insert(document)
@@ -303,9 +286,31 @@ class SlackDaemon(Webhook):
                     json={"text": resp},
                 )
 
+        json_data = await request.form()
+
+        text = json_data.get('text').strip()
+        args = shlex.split(text)
+
+        buf = StringIO()
+        parsed_args = None
+        try:
+            # -h is stdout, parse errors go to stderr
+            with redirect_stderr(buf), redirect_stdout(buf):
+                parsed_args = self.arg_parser.parse_args(args)
+        except SystemExit:
+            message = {
+                "response_type": "ephemeral",
+                "text": buf.getvalue(),
+            }
+            return JSONResponse(content=message, status_code=200)
+
         if parsed_args is not None:
             background_tasks.add_task(handle_command, parsed_args)
 
+        message = {
+            "response_type": "ephemeral",
+            "text": f"Processing command.",
+        }
         return Response(status_code=200)
 
     def new_persona(self, persona_name: str, instructions: str = "", icon: str = 'robot_face'):
