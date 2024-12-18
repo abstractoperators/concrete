@@ -161,7 +161,6 @@ class SlackPersona:
 class SlackDaemon(Webhook):
     def __init__(self):
         super().__init__()
-        # self.routes['/slack/events'] = self.event_subscriptions
         self.routes['/slack/slash_commands'] = self.slash_commands
 
         self.personas = {
@@ -172,50 +171,52 @@ class SlackDaemon(Webhook):
             )
         }
 
-        self.init_slashcommand_parser()
+        def init_slashcommand_parser():
+            self.arg_parser = argparse.ArgumentParser(
+                description="Jaime Bot is a slack bot that can create personas which chat with users.",
+                prog="/jaime",
+            )
 
-    def init_slashcommand_parser(self):
-        self.arg_parser = argparse.ArgumentParser(
-            description="Jaime Bot is a slack bot that can create personas which chat with users.",
-            prog="/jaime",
-        )
+            subparsers = self.arg_parser.add_subparsers(dest="subcommand")
+            subparsers.required = True
 
-        subparsers = self.arg_parser.add_subparsers(dest="subcommand")
-        subparsers.required = True
+            new_persona_parser = subparsers.add_parser("new_persona", help="Create a new persona")
+            update_persona_parser = subparsers.add_parser("update_persona", help="Update a persona")
+            delete_persona_parser = subparsers.add_parser("delete_persona", help="Delete a persona")
+            get_persona_parser = subparsers.add_parser("get_persona", help="Get a persona or a list of persona names")
+            chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
+            arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", help="Add an arXiv paper to RAG database")
 
-        new_persona_parser = subparsers.add_parser("new_persona", help="Create a new persona")
-        update_persona_parser = subparsers.add_parser("update_persona", help="Update a persona")
-        delete_persona_parser = subparsers.add_parser("delete_persona", help="Delete a persona")
-        get_persona_parser = subparsers.add_parser("get_persona", help="Get a persona or a list of persona names")
-        chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
-        arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", help="Add an arXiv paper to RAG database")
+            new_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+            new_persona_parser.add_argument(
+                "--instructions", type=str, help="The instructions for the persona", required=False
+            )
+            new_persona_parser.add_argument(
+                "--icon", type=str, help="The icon for the persona (e.g. smiley)", default="smiley", required=False
+            )
 
-        new_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-        new_persona_parser.add_argument(
-            "--instructions", type=str, help="The instructions for the persona", required=False
-        )
-        new_persona_parser.add_argument(
-            "--icon", type=str, help="The icon for the persona (e.g. smiley)", default="smiley", required=False
-        )
+            update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+            update_persona_parser.add_argument(
+                "--instructions", type=str, help="The instructions for the persona", required=False
+            )
+            update_persona_parser.add_argument(
+                "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
+            )
 
-        update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-        update_persona_parser.add_argument(
-            "--instructions", type=str, help="The instructions for the persona", required=False
-        )
-        update_persona_parser.add_argument(
-            "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
-        )
+            delete_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
 
-        delete_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+            get_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=False)
 
-        get_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=False)
+            chat_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+            chat_persona_parser.add_argument(
+                "--message", type=str, help="The message to send to the persona", required=True
+            )
 
-        chat_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-        chat_persona_parser.add_argument(
-            "--message", type=str, help="The message to send to the persona", required=True
-        )
+            arxiv_papers_parser.add_argument(
+                "--id", type=str, help="The arXiv paper ID (e.g. 2308.08155)", required=True
+            )
 
-        arxiv_papers_parser.add_argument("--id", type=str, help="The arXiv paper ID (e.g. 2308.08155)", required=True)
+        init_slashcommand_parser()
 
     async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
         def handle_command(args: argparse.Namespace) -> None:
