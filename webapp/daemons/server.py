@@ -8,7 +8,7 @@ from io import StringIO
 from typing import Callable
 
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -185,37 +185,47 @@ class SlackDaemon(Webhook):
             new_persona_parser = subparsers.add_parser("new_persona", help="Create a new persona")
             update_persona_parser = subparsers.add_parser("update_persona", help="Update a persona")
             delete_persona_parser = subparsers.add_parser("delete_persona", help="Delete a persona")
-            get_persona_parser = subparsers.add_parser("get_persona", help="Get a persona or a list of persona names")
+            get_persona_parser = subparsers.add_parser(
+                "get_persona",
+                help=(
+                    "Get a persona or a list of persona names. Provide a name to get a specific persona."
+                    "Leave blank to get a list of persona names."
+                ),
+            )
             chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
             arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", help="Add an arXiv paper to RAG database")
 
-            new_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+            new_persona_parser.add_argument("name", type=str, help="The name of the persona to create.")
             new_persona_parser.add_argument(
-                "--instructions", type=str, help="The instructions for the persona", required=False
+                "--instructions",
+                type=str,
+                help="The instructions for the persona.",
+                default="You are a slack bot persona.",
+                required=False,
             )
             new_persona_parser.add_argument(
                 "--icon", type=str, help="The icon for the persona (e.g. smiley)", default="smiley", required=False
             )
 
-            update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
+            update_persona_parser.add_argument("name", type=str, help="The name of the persona to update.")
             update_persona_parser.add_argument(
-                "--instructions", type=str, help="The instructions for the persona", required=False
+                "--instructions", type=str, help="The instructions for the persona.", required=False
             )
             update_persona_parser.add_argument(
                 "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
             )
 
-            delete_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-
-            get_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=False)
-
-            chat_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-            chat_persona_parser.add_argument(
-                "--message", type=str, help="The message to send to the persona", required=True
+            delete_persona_parser.add_argument(
+                "name", type=str, help="The name of the persona to delete", required=True
             )
 
+            get_persona_parser.add_argument("name", type=str, help="The name of the persona to get", required=False)
+
+            chat_persona_parser.add_argument("name", type=str, help="The name of the persona to chat with")
+            chat_persona_parser.add_argument("message", type=str, help="The message to send to the persona")
+
             arxiv_papers_parser.add_argument(
-                "--id", type=str, help="The arXiv paper ID (e.g. 2308.08155)", required=True
+                "id", type=str, help="The arXiv paper ID to add (e.g. 2308.08155)", required=True
             )
 
         init_slashcommand_parser()
