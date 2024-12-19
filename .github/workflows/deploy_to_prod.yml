@@ -126,6 +126,22 @@ jobs:
                 echo GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }} >> .env
                 echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
                 echo GOOGLE_OAUTH_REDIRECT=https://auth-staging.abop.ai/auth >> .env
+            
+            - name: Set up env for daemons
+              if: matrix.image == 'daemons'
+              run: |
+                touch .env
+                # For Document (RAG) Tool
+                echo POSTGRES_VECTOR_DB_DRIVER=postgresql+psycopg2 >> .env
+                echo POSTGRES_VECTOR_DB_USERNAME=postgres >> .env
+                echo POSTGRES_VECTOR_DB_PASSWORD=${{ secrets.POSTGRES_VECTOR_DB_PASSWORD }} >> .env
+                echo POSTGRES_VECTOR_DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com
+                echo POSTGRES_VECTOR_DB_PORT=5432 >> .env
+                echo POSTGRES_VECTOR_DB_DATABASE=postgres >> .env
+                echo POSTGRES_VECTOR_STORE_TABLE='arxiv_paper_vector_store' >> .env
+                
+                echo OPENAI_API_KEY=${{ secrets.JAIME_OPENAI_API_KEY }} >> .env
+
 
             - uses: actions/setup-python@v5
               with:
