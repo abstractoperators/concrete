@@ -103,6 +103,8 @@ jobs:
               if: matrix.image == 'homepage'
               run: |
                 touch .env
+                export LISTENER_RULE_FIELD=host-header
+                export LISTENER_RULE_VALUE=www.abop.ai
             
             - name: Set up env for auth
               if: matrix.image == 'auth'
