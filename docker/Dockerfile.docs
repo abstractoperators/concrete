@@ -9,7 +9,7 @@ COPY pyproject.toml uv.lock .env ./
 COPY src ./src
 
 COPY webapp/docs ./webapp/docs
-COPY webapp/common.py webapp/__init__.py webapp/pyproject.toml ./webapp/
+COPY webapp/webapp-common ./webapp/webapp-common
 
 WORKDIR /app/webapp/docs
 

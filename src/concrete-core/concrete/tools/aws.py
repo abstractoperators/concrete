@@ -149,7 +149,6 @@ class AwsTool(metaclass=MetaTool):
         import boto3
 
         elbv2_client = boto3.client("elbv2")
-        target_group_arn = None
         if listener_rule is None:
             listener_rule_field = "host-header"
             listener_rule_value = f"{target_group_name}.abop.ai"
@@ -225,7 +224,8 @@ class AwsTool(metaclass=MetaTool):
         subnets: list[str] = ["subnet-0ba67bfb6421d660d"],
         vpc: str = "vpc-022b256b8d0487543",
         security_groups: list[str] = ["sg-0463bb6000a464f50"],
-        listener_arn: str = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4/451389d914171f05",  # noqa E501
+        https_listener_arn: str = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4/451389d914171f05",  # noqa E501
+        http_listener_arn: str = "arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteLoadBalancer/f7cec30e1ac2e4a4/cb8e15ae72e816fd",  # noqa E501
         health_check_path: str = "/",
         cluster: str = "DemoCluster",
     ) -> bool:
@@ -250,8 +250,17 @@ class AwsTool(metaclass=MetaTool):
         service_name = service_name or containers[0].container_name
         execution_role_arn = "arn:aws:iam::008971649127:role/ecsTaskExecutionWithSecret"
 
-        target_group_arn = cls._new_listener_rule(
-            listener_arn=listener_arn,
+        https_target_group_arn = cls._new_listener_rule(
+            listener_arn=https_listener_arn,
+            target_group_name=service_name,
+            listener_rule=listener_rule,
+            port=containers[0].container_port,
+            vpc=vpc,
+            health_check_path=health_check_path,
+        )
+        # They should be the same value.
+        http_target_group_arn = cls._new_listener_rule(
+            listener_arn=http_listener_arn,
             target_group_name=service_name,
             listener_rule=listener_rule,
             port=containers[0].container_port,
@@ -321,10 +330,15 @@ class AwsTool(metaclass=MetaTool):
                 },
                 loadBalancers=[
                     {
-                        "targetGroupArn": target_group_arn,  # type: ignore
+                        "targetGroupArn": https_target_group_arn,  # type: ignore
                         "containerName": service_name,
                         "containerPort": containers[0].container_port,
-                    }
+                    },
+                    {
+                        "targetGroupArn": http_target_group_arn,  # type: ignore
+                        "containerName": service_name,
+                        "containerPort": containers[0].container_port,
+                    },
                 ],
                 enableECSManagedTags=True,
                 propagateTags="SERVICE",
