@@ -7,6 +7,7 @@ except ImportError as e:
     raise ImportError("Install concrete[document-retriever] to use document retrieval (aka 'rag') functionality") from e
 
 import os
+from pathlib import Path
 
 from concrete.tools import MetaTool
 
@@ -33,7 +34,8 @@ class DocumentTool(metaclass=MetaTool):
     # Not used, but required for instantiation of vector_store
     async_url: str = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{database}"
 
-    connect_args: dict = {"sslmode": 'require', "sslrootcert": "../us-east-1-bundle.pem"}
+    sslrootcert_path = Path(__file__) / "us-east-1-bundle.pem"
+    connect_args: dict = {"sslmode": 'require', "sslrootcert": sslrootcert_path}
     vector_store: PGVectorStore = PGVectorStore.from_params(
         connection_string=url,
         async_connection_string=async_url,  # Required for vector store creation
