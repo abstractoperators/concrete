@@ -14,7 +14,9 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
+import io
 import json
+import zipfile
 
 from pydantic import Field
 
@@ -94,6 +96,20 @@ class ProjectDirectory(Message):
     files: list[ProjectFile] = Field(
         description="A list of files in the project directory. Each list item represents a file"
     )
+
+    def to_zip(self) -> io.BytesIO:
+        """
+        Creates an in-memory ZIP file of the project directory.
+
+        Returns:
+            io.BytesIO: A buffer containing the ZIP file.
+        """
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for project_file in self.files:
+                zip_file.writestr(project_file.file_name, project_file.file_contents)
+        zip_buffer.seek(0)  # Reset buffer position for streaming
+        return zip_buffer
 
 
 class ChildNodeSummary(Message):
