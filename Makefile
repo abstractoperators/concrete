@@ -77,7 +77,7 @@ local-api:
 	$(UV) fastapi dev webapp/api/server.py --port 8001
 
 local-main:
-	$(UV) fastapi dev webapp/main/server.py
+	$(UV) fastapi dev webapp/main/server.py --port 8004
 
 local-auth:
 	$(UV) fastapi dev webapp/auth/server.py --port 8002
