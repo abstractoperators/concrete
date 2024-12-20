@@ -218,18 +218,16 @@ class SlackDaemon(Webhook):
                 "--clear-memory", action="store_true", help="Clear the memory of the persona", required=False
             )
 
-            delete_persona_parser.add_argument(
-                "name", type=str, help="The name of the persona to delete", required=True
-            )
+            delete_persona_parser.add_argument("name", type=str, help="The name of the persona to delete")
 
-            get_persona_parser.add_argument("name", type=str, help="The name of the persona to get", required=False)
+            get_persona_parser.add_argument(
+                "name", type=str, help="The name of the persona to get", nargs="?", default=None
+            )
 
             chat_persona_parser.add_argument("name", type=str, help="The name of the persona to chat with")
             chat_persona_parser.add_argument("message", type=str, help="The message to send to the persona")
 
-            arxiv_papers_parser.add_argument(
-                "id", type=str, help="The arXiv paper ID to add (e.g. 2308.08155)", required=True
-            )
+            arxiv_papers_parser.add_argument("id", type=str, help="The arXiv paper ID to add (e.g. 2308.08155)")
 
         init_slashcommand_parser()
 
@@ -369,14 +367,14 @@ class SlackDaemon(Webhook):
             background_tasks.add_task(handle_command, parsed_args)
             return JSONResponse(
                 content={
-                    "response_type": "ephemeral",
+                    "response_type": "in_channel",
                     "text": f'Processing command from {json_data.get("user_id")}: {text}',
                 },
             )
         except SystemExit:  # Immediately return a help message if the command is invalid
             return JSONResponse(
                 content={
-                    "response_type": "ephemeral",
+                    "response_type": "in_channel",
                     "text": buf.getvalue(),
                 },
                 status_code=200,
