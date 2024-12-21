@@ -12,7 +12,7 @@ COPY src ./src
 COPY webapp/main ./webapp/main
 COPY webapp/webapp-common ./webapp/webapp-common
 
-WORKDIR /app/webapp/main
+WORKDIR /app/webapp
 RUN uv sync
 RUN chmod +x /app/webapp/main/scripts/start.sh
 
