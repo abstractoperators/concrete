@@ -8,7 +8,7 @@ from io import StringIO
 from typing import Callable
 
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -161,7 +161,6 @@ class SlackPersona:
 class SlackDaemon(Webhook):
     def __init__(self):
         super().__init__()
-        # self.routes['/slack/events'] = self.event_subscriptions
         self.routes['/slack/slash_commands'] = self.slash_commands
 
         self.personas = {
@@ -172,86 +171,94 @@ class SlackDaemon(Webhook):
             )
         }
 
-        self.init_slashcommand_parser()
+        self.http_client = HTTPClient()
 
-    def init_slashcommand_parser(self):
-        self.arg_parser = argparse.ArgumentParser(
-            description="Jaime Bot is a slack bot that can create personas which chat with users.",
-            prog="/jaime",
+        def init_slashcommand_parser():
+            self.arg_parser = argparse.ArgumentParser(
+                description="Jaime Bot is a slack bot that can create personas which chat with users.",
+                prog="/jaime",
+            )
+
+            subparsers = self.arg_parser.add_subparsers(dest="subcommand")
+            subparsers.required = True
+
+            new_persona_parser = subparsers.add_parser("new-persona", help="Create a new persona")
+            update_persona_parser = subparsers.add_parser("update-persona", help="Update a persona")
+            delete_persona_parser = subparsers.add_parser("delete-persona", help="Delete a persona")
+            get_persona_parser = subparsers.add_parser(
+                "get-persona",
+                help=(
+                    "Get a persona or a list of persona names. Provide a name to get a specific persona."
+                    "Leave blank to get a list of persona names."
+                ),
+            )
+            chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
+            arxiv_papers_parser = subparsers.add_parser("add-arxiv-paper", help="Add an arXiv paper to RAG database")
+
+            new_persona_parser.add_argument("name", type=str, help="The name of the persona to create.")
+            new_persona_parser.add_argument(
+                "--instructions",
+                type=str,
+                help="The instructions for the persona.",
+                default="You are a slack bot persona.",
+                required=False,
+            )
+            new_persona_parser.add_argument(
+                "--icon", type=str, help="The icon for the persona (e.g. smiley)", default="smiley", required=False
+            )
+
+            update_persona_parser.add_argument("name", type=str, help="The name of the persona to update.")
+            update_persona_parser.add_argument(
+                "--instructions", type=str, help="The instructions for the persona.", required=False
+            )
+            update_persona_parser.add_argument(
+                "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
+            )
+            update_persona_parser.add_argument(
+                "--clear-memory", action="store_true", help="Clear the memory of the persona", required=False
+            )
+
+            delete_persona_parser.add_argument("name", type=str, help="The name of the persona to delete")
+
+            get_persona_parser.add_argument(
+                "name", type=str, help="The name of the persona to get", nargs="?", default=None
+            )
+
+            chat_persona_parser.add_argument("name", type=str, help="The name of the persona to chat with")
+            chat_persona_parser.add_argument("message", type=str, help="The message to send to the persona")
+
+            arxiv_papers_parser.add_argument("id", type=str, help="The arXiv paper ID to add (e.g. 2308.08155)")
+
+        init_slashcommand_parser()
+
+    def respond(self, response_url: str, text: str, response_type: str = 'in_channel'):
+        self.http_client.post(
+            url=response_url,
+            json={
+                'text': text,
+                'response_type': response_type,
+            },
         )
-
-        subparsers = self.arg_parser.add_subparsers(dest="subcommand")
-        subparsers.required = True
-
-        new_persona_parser = subparsers.add_parser("new_persona", help="Create a new persona")
-        update_persona_parser = subparsers.add_parser("update_persona", help="Update a persona")
-        delete_persona_parser = subparsers.add_parser("delete_persona", help="Delete a persona")
-        get_persona_parser = subparsers.add_parser("get_persona", help="Get a persona or a list of persona names")
-        chat_persona_parser = subparsers.add_parser("chat", help="Chat with a persona")
-        arxiv_papers_parser = subparsers.add_parser("add_arxiv_paper", help="Add an arXiv paper to RAG database")
-
-        new_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-        new_persona_parser.add_argument(
-            "--instructions", type=str, help="The instructions for the persona", required=False
-        )
-        new_persona_parser.add_argument(
-            "--icon", type=str, help="The icon for the persona (e.g. smiley)", default=":robot_face:", required=False
-        )
-
-        update_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-        update_persona_parser.add_argument(
-            "--instructions", type=str, help="The instructions for the persona", required=False
-        )
-        update_persona_parser.add_argument(
-            "--icon", type=str, help="The icon for the persona (e.g. smiley)", required=False
-        )
-
-        delete_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-
-        get_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=False)
-
-        chat_persona_parser.add_argument("--name", type=str, help="The name of the persona", required=True)
-        chat_persona_parser.add_argument(
-            "--message", type=str, help="The message to send to the persona", required=True
-        )
-
-        arxiv_papers_parser.add_argument("--id", type=str, help="The arXiv paper ID (e.g. 2308.08155)", required=True)
 
     async def slash_commands(self, request: Request, background_tasks: BackgroundTasks):
-        json_data = await request.form()
-
-        text = json_data.get('text').strip()
-        args = shlex.split(text)
-
-        buf = StringIO()
-        parsed_args = None
-        try:
-            # -h is stdout, parse errors go to stderr
-            with redirect_stderr(buf), redirect_stdout(buf):
-                parsed_args = self.arg_parser.parse_args(args)
-        except SystemExit:
-            message = {
-                "response_type": "in_channel",
-                "text": buf.getvalue(),
-            }
-            return JSONResponse(content=message, status_code=200)
-
         def handle_command(args: argparse.Namespace) -> None:
             """
             Potentially can take a long time to run.
             """
             subcommand = args.subcommand
+            response_url = json_data.get('response_url')
+
             if subcommand == 'chat':
                 if args.name not in self.personas:
-                    resp = f'Persona {args.name} does not exist'
-                    HTTPClient().post(
-                        url=json_data.get('response_url'),
-                        json={"text": resp},
+                    self.respond(
+                        response_url=response_url,
+                        text=f'Persona {args.name} does not exist',
                     )
                 else:
                     persona = self.personas[args.name]
-                    resp = persona.chat_no_memory(args.message)
-                    persona.append_memory(args.message)
+                    resp = persona.chat_with_memory(args.message)
+                    persona.append_memory(f'User {json_data.get("user_id")}: {args.message}')
+                    persona.append_memory(f'Assistant {args.name}: {resp}')
 
                     persona.post_message(
                         token=os.getenv('SLACK_BOT_TOKEN'),
@@ -259,54 +266,119 @@ class SlackDaemon(Webhook):
                         message=resp,
                     )
             else:
-                if subcommand == 'new_persona':
+                if subcommand == 'new-persona':
                     if args.name in self.personas:
-                        resp = f'Persona {args.name} already exists'
-                    self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
-                    resp = f'Persona {args.name} created'
+                        self.respond(
+                            response_url=response_url,
+                            text=f'Persona {args.name} already exists',
+                        )
+                    else:
+                        self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
+                        self.respond(
+                            response_url=response_url,
+                            text=f'Persona {args.name} created',
+                        )
 
-                elif subcommand == 'update_persona':
+                elif subcommand == 'update-persona':
                     if args.name not in self.personas:
-                        resp = f'Persona {args.name} does not exist'
+                        self.respond(
+                            response_url=response_url,
+                            text=f'Persona {args.name} does not exist',
+                        )
                     else:
                         persona = self.personas[args.name]
-                        persona.update_instructions(args.instructions)
-                        resp = f'Persona {args.name} updated'
+                        if args.instructions:
+                            persona.update_instructions(args.instructions)
+                        if args.icon:
+                            persona.update_icon(args.icon)
+                        if args.clear_memory:
+                            persona.clear_memory()
 
-                elif subcommand == 'delete_persona':
+                        self.respond(
+                            response_url=response_url,
+                            text=f'Persona {args.name} updated',
+                        )
+
+                elif subcommand == 'delete-persona':
                     if args.name not in self.personas:
-                        resp = f'Persona {args.name} does not exist'
+                        self.respond(
+                            response_url=response_url,
+                            text=f'Persona {args.name} does not exist',
+                        )
                     else:
                         self.personas.pop(args.name)
-                        resp = f'Persona {args.name} deleted'
+                        self.respond(
+                            response_url=response_url,
+                            text=f'Persona {args.name} deleted',
+                        )
 
-                elif subcommand == 'get_persona':
+                elif subcommand == 'get-persona':
                     if args.name:
                         if args.name not in self.personas:
-                            resp = f'Persona {args.name} does not exist'
+                            self.respond(
+                                response_url=response_url,
+                                text=f'Persona {args.name} does not exist',
+                            )
                         else:
                             persona = self.personas[args.name]
-                            resp = f'Persona {args.name}:\n{persona.get_instructions()}'
+                            self.respond(
+                                response_url=response_url,
+                                text=f'Persona {args.name}\nInstructions: {persona.get_instructions()}',
+                            )
                     else:
-                        resp = '\n'.join(self.personas.keys())
+                        self.respond(
+                            response_url=response_url,
+                            text='\n'.join(self.personas.keys()),
+                        )
 
-                elif subcommand == 'add_arxiv_paper':
+                elif subcommand == 'add-arxiv-paper':
+                    self.respond(
+                        response_url=response_url,
+                        text=f'Adding ArXiv paper {args.id} to RAG database...',
+                    )
                     documents = ArxivTool.get_arxiv_paper_as_llama_document(id=args.id)
-                    for document in documents:
+                    self.respond(
+                        response_url=response_url,
+                        text=f'ArXiv paper {args.id} retrieved. Chunked into {len(documents)} documents',
+                    )
+                    for i, document in enumerate(documents):
+                        self.respond(
+                            response_url=response_url,
+                            text=f'Adding document {i + 1} of {len(documents)} to RAG database...',
+                        )
                         DocumentTool.index.insert(document)
 
-                    resp = f'ArXiv paper {args.id} added to RAG database'
+                    self.respond(
+                        response_url=response_url,
+                        text=f'ArXiv paper {args.id} added to RAG database',
+                    )
 
-                response_url = json_data.get('response_url')
-                HTTPClient().post(
-                    url=response_url,
-                    json={"text": resp},
-                )
+        json_data = await request.form()
 
-        if parsed_args is not None:
+        text = json_data.get('text').strip()
+        args = shlex.split(text)
+
+        # argparse is designed to be CLI, so we need to redirect stdout and stderr to capture help messages
+        buf = StringIO()
+        parsed_args = None
+        try:
+            with redirect_stderr(buf), redirect_stdout(buf):  # -h goes to stdout, parse errors go to stderr
+                parsed_args = self.arg_parser.parse_args(args)
             background_tasks.add_task(handle_command, parsed_args)
-
-        return Response(status_code=200)
+            return JSONResponse(
+                content={
+                    "response_type": "in_channel",
+                    "text": f'Processing command from {json_data.get("user_id")}: {text}',
+                },
+            )
+        except SystemExit:  # Immediately return a help message if the command is invalid
+            return JSONResponse(
+                content={
+                    "response_type": "in_channel",
+                    "text": buf.getvalue(),
+                },
+                status_code=200,
+            )
 
     def new_persona(self, persona_name: str, instructions: str = "", icon: str = 'robot_face'):
         instructions = f'You are a slack bot persona named {persona_name}' + instructions
