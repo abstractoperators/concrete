@@ -87,7 +87,7 @@ class ArxivTool(metaclass=MetaTool):
         paper.download_pdf(filename=f'{id}.pdf')
 
     @classmethod
-    def get_arxiv_paper_as_llama_document(cls, id: str) -> list[Document]:
+    def _get_arxiv_paper_as_llama_document(cls, id: str) -> list[Document]:
         """
         Downloads the PDF of an arXiv paper. Parses and returns the paper as a list of LlamaDocuments.
 
