@@ -84,7 +84,7 @@ def ping():
     return {"message": "pong"}
 
 
-# ===CRUD operations for Orchestrators=== #
+# region ===CRUD operations for Orchestrators=== #
 @app.post("/orchestrators/", response_model=Orchestrator)
 def create_orchestrator(orchestrator: OrchestratorCreate) -> Orchestrator:
     with Session() as db:
@@ -128,7 +128,11 @@ def delete_orchestrator(orchestrator_id: UUID) -> Orchestrator:
         return orchestrator
 
 
-# ===CRUD operations for Operators=== #
+# endregion
+
+# region ===CRUD operations for Operators=== #
+
+
 @app.post("/operators/")
 def create_operator(operator: OperatorCreate) -> Operator:
     with Session() as db:
@@ -189,7 +193,11 @@ def delete_operator(orchestrator_id: UUID, operator_id: UUID) -> Operator:
         return operator
 
 
-# ===CRUD operations for Clients=== #
+# endregion ===CRUD operations for Clients=== #
+
+# region ===CRUD operations for Clients=== #
+
+
 @app.post("/clients/")
 def create_client(client: ClientCreate) -> Client:
     with Session() as db:
@@ -252,7 +260,9 @@ def delete_client(orchestrator_id: UUID, operator_id: UUID, client_id: UUID) -> 
         return client
 
 
-# ===Project and Operator Building=== #
+# endregion
+
+# region ===Project and Operator Building=== #
 # TODO: add persistence
 
 
@@ -306,3 +316,6 @@ def expand_project_with_connection(project_name: str, parent_name: str, child_na
     """
     if project_name not in PROJECTS:
         raise project_not_found(project_name)
+
+
+# endregion
