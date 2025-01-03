@@ -66,6 +66,11 @@ class UserToolLink(Base, table=True):
     tool_id: UUID = Field(foreign_key="tool.id", primary_key=True, ondelete="CASCADE")
 
 
+class UserOperatorLink(Base, table=True):
+    user_id: UUID = Field(foreign_key="user.id", primary_key=True, index=True)
+    operator_id: UUID = Field(foreign_key="operator.id", primary_key=True)
+
+
 # region User Models
 
 
@@ -90,10 +95,13 @@ class User(UserBase, MetadataMixin, table=True):
         back_populates="user",
         cascade_delete=True,
     )
+
     operators: list["Operator"] = Relationship(
         back_populates="user",
         cascade_delete=True,
+        link_model=UserOperatorLink,
     )
+
     # Store Google's refresh token for later
     auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
     tools: list["Tool"] = Relationship(back_populates="user", link_model=UserToolLink)
@@ -189,7 +197,7 @@ class Operator(OperatorBase, MetadataMixin, table=True):
     )
     tools: list["Tool"] = Relationship(back_populates="operators", link_model=OperatorToolLink)
     orchestrator: Orchestrator = Relationship(back_populates="operators")
-    user: User = Relationship(back_populates="operators")
+    user: User = Relationship(back_populates="operators", link_model=UserOperatorLink)
     direct_message_project: "Project" = Relationship(
         back_populates="direct_message_operator",
         cascade_delete=True,
