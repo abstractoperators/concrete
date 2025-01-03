@@ -343,9 +343,15 @@ def chat(operator_id: UUID, message: str) -> str:
 @app.post("/operators/{operator_id}/complete")
 def complete(
     operator_id: UUID,
-    kwargs: dict[str, str],
-    method_name: str = "chat",
+    method_name: str,
+    method_kwargs: dict[str, str],
 ) -> str:
+    """
+    Chat with the operator using a template method.
+    Args:
+        method_name: The name of the method to call on the opeartor.
+        method_kwargs: A dictionary of keyword arguments to pass to the method.
+    """
 
     operator: OperatorModel = crud.get_operator(operator_id)
     if operator is None:
@@ -357,10 +363,7 @@ def complete(
 
     method = getattr(pydantic_operator, method_name)
 
-    return method(**kwargs)
+    return method(**method_kwargs)
 
-
-# TODO: .template_chat ([Any] + str) -> ChatCompletion
-# template_chat takes name of the chat method (e.g. "chat")
 
 # endregion
