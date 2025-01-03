@@ -6,11 +6,10 @@ from uuid import UUID
 import dotenv
 from concrete_db import crud
 from concrete_db.orm import Session
+from concrete_db.orm.models import Client, ClientCreate, ClientUpdate
+from concrete_db.orm.models import Operator
+from concrete_db.orm.models import Operator as OperatorModel
 from concrete_db.orm.models import (
-    Client,
-    ClientCreate,
-    ClientUpdate,
-    Operator,
     OperatorCreate,
     OperatorUpdate,
     Orchestrator,
@@ -323,7 +322,23 @@ def expand_project_with_connection(project_name: str, parent_name: str, child_na
 
 # region Operator Querying
 
+
 # TODO: .chat (system prompt + [list[str] | str]) -> ChatCompletion ( made redundant by template_chat)
+@app.post("/operators/{operator_id}/chat")
+def chat(operator_id: UUID, message: str) -> str:
+    """
+    Chat with the operator.
+    Default system prompt + message.
+    """
+    operator: OperatorModel = crud.get_operator(operator_id)
+    if operator is None:
+        raise operator_not_found(operator_id)
+
+    pydantic_operator: operators.Operator = operator.to_obj()
+
+    # .chat Can take a long time to run, maybe don't leave the connection open, and instead return a job id
+    return pydantic_operator.chat(message)
+
 
 # TODO: .template_chat ([Any] + str) -> ChatCompletion
 # template_chat takes name of the chat method (e.g. "chat")
