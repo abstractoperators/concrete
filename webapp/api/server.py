@@ -336,8 +336,28 @@ def chat(operator_id: UUID, message: str) -> str:
 
     pydantic_operator: operators.Operator = operator.to_obj()
 
-    # .chat Can take a long time to run, maybe don't leave the connection open, and instead return a job id
+    # chat Can take potentially take a while to run, maybe don't leave the connection open, and instead return a job id
     return pydantic_operator.chat(message)
+
+
+@app.post("/operators/{operator_id}/complete")
+def complete(
+    operator_id: UUID,
+    kwargs: dict[str, str],
+    method_name: str = "chat",
+) -> str:
+
+    operator: OperatorModel = crud.get_operator(operator_id)
+    if operator is None:
+        raise operator_not_found(operator_id)
+
+    pydantic_operator: operators.Operator = operator.to_obj()
+    if not hasattr(pydantic_operator, method_name):
+        raise HTTPException(status_code=400, detail=f"{method_name} not found on operator {operator_id}")
+
+    method = getattr(pydantic_operator, method_name)
+
+    return method(**kwargs)
 
 
 # TODO: .template_chat ([Any] + str) -> ChatCompletion
