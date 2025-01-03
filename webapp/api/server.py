@@ -22,6 +22,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from concrete import operators
+from concrete.models.messages import Message
 from concrete.projects import PROJECTS, DAGNode, Project
 from concrete.webutils import AuthMiddleware
 
@@ -325,7 +326,7 @@ def expand_project_with_connection(project_name: str, parent_name: str, child_na
 
 # TODO: .chat (system prompt + [list[str] | str]) -> ChatCompletion ( made redundant by template_chat)
 @app.post("/operators/{operator_id}/chat")
-def chat(operator_id: UUID, message: str) -> str:
+def chat(operator_id: UUID, message: str) -> Message:
     """
     Chat with the operator.
     Default system prompt + message.
@@ -336,7 +337,8 @@ def chat(operator_id: UUID, message: str) -> str:
 
     pydantic_operator: operators.Operator = operator.to_obj()
 
-    # chat Can take potentially take a while to run, maybe don't leave the connection open, and instead return a job id
+    # chat Can take potentially take a while to run, maybe don't leave the connection open,
+    # and instead return a job id to fetch from
     return pydantic_operator.chat(message)
 
 
@@ -345,7 +347,7 @@ def complete(
     operator_id: UUID,
     method_name: str,
     method_kwargs: dict[str, str],
-) -> str:
+) -> Message:
     """
     Chat with the operator using a template method.
     Args:
