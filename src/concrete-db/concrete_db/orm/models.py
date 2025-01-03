@@ -148,14 +148,23 @@ class OperatorBase(Base, ProfilePictureMixin):
     name: str = Field(description="Name of the operator.", max_length=64)
     title: str = Field(description="Title of the operator.", max_length=32)  # dropdown for title exec/dev
 
-    orchestrator_id: UUID = Field(
+    orchestrator_id: Optional[UUID] = Field(
+        default=None,
         description="ID of Orchestrator that owns this operator.",
         foreign_key="orchestrator.id",
         ondelete="CASCADE",
     )
 
     # TODO: Add unique name + orchestrator composite key
-    __table_args__ = (UniqueConstraint("name", "orchestrator_id", name="no_duplicate_operators_per_orchestrator"),)
+    __table_args__ = (
+        UniqueConstraint("name", "orchestrator_id", name="no_duplicate_operators_per_orchestrator"),
+        Index(
+            "unique_name_when_orchestrator_null",
+            "name",
+            unique=True,
+            postgresql_where=(orchestrator_id is None),
+        ),
+    )
 
 
 class OperatorUpdate(Base, ProfilePictureMixin):
