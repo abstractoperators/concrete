@@ -90,6 +90,10 @@ class User(UserBase, MetadataMixin, table=True):
         back_populates="user",
         cascade_delete=True,
     )
+    operators: list["Operator"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
     # Store Google's refresh token for later
     auth_token: "AuthToken" = Relationship(back_populates="user", cascade_delete=True)
     tools: list["Tool"] = Relationship(back_populates="user", link_model=UserToolLink)
@@ -185,7 +189,7 @@ class Operator(OperatorBase, MetadataMixin, table=True):
     )
     tools: list["Tool"] = Relationship(back_populates="operators", link_model=OperatorToolLink)
     orchestrator: Orchestrator = Relationship(back_populates="operators")
-
+    user: User = Relationship(back_populates="operators")
     direct_message_project: "Project" = Relationship(
         back_populates="direct_message_operator",
         cascade_delete=True,
