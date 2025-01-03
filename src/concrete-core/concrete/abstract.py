@@ -37,8 +37,8 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self,
         clients: dict[str, OpenAIClient] | None = None,
         tools: list[MetaTool] | None = None,
-        operator_id: UUID = uuid4(),  # TODO: Don't set a default
-        project_id: UUID = uuid4(),  # TODO: Don't set a default
+        operator_id: UUID | None = None,
+        project_id: UUID | None = None,
         starting_prompt: str | None = None,
         store_messages: bool = False,
         response_format: type[Message] = TextMessage,
@@ -54,8 +54,8 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         self.tools = tools
         self.response_format = response_format
 
-        self.operator_id = operator_id
-        self.project_id = project_id
+        self.operator_id = operator_id or uuid4()
+        self.project_id = project_id or uuid4()
         self.starting_prompt = starting_prompt
         self.store_messages = store_messages
         self.use_tools = use_tools
