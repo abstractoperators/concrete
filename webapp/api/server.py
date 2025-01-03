@@ -77,6 +77,7 @@ client_not_found = object_not_found("Client")
 software_project_not_found = object_not_found("SoftwareProject")
 project_not_found = object_not_found("Project")
 user_not_found = object_not_found("User")
+# TODO: User authentication
 
 
 @app.get("/ping")
@@ -195,7 +196,7 @@ def delete_operator(orchestrator_id: UUID, operator_id: UUID) -> Operator:
 
 # endregion ===CRUD operations for Clients=== #
 
-# region ===CRUD operations for Clients=== #
+# region ===CRUD operations for LLM Clients=== #
 
 
 @app.post("/clients/")
@@ -317,5 +318,14 @@ def expand_project_with_connection(project_name: str, parent_name: str, child_na
     if project_name not in PROJECTS:
         raise project_not_found(project_name)
 
+
+# endregion
+
+# region Operator Querying
+
+# TODO: .chat (system prompt + [list[str] | str]) -> ChatCompletion ( made redundant by template_chat)
+
+# TODO: .template_chat ([Any] + str) -> ChatCompletion
+# template_chat takes name of the chat method (e.g. "chat")
 
 # endregion
