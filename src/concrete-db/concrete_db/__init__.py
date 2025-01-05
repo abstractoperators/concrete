@@ -1,10 +1,11 @@
 from collections.abc import Callable
 from functools import wraps
 
+from sqlmodel import Session
+
 from concrete.abstract import AbstractOperator
 from concrete.clients import CLIClient
 from concrete.models.messages import Message
-from sqlmodel import Session
 
 from .crud import create_message
 from .orm import engine
