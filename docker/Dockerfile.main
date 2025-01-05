@@ -10,9 +10,12 @@ COPY src ./src
 
 # App specifics
 COPY webapp/main ./webapp/main
-WORKDIR /app/webapp/main
+COPY webapp/webapp-common ./webapp/webapp-common
+
+WORKDIR /app/webapp
 RUN uv sync
 RUN chmod +x /app/webapp/main/scripts/start.sh
+
 EXPOSE 80
 CMD ["/app/webapp/main/scripts/start.sh"]
 

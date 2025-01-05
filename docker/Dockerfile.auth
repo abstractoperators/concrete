@@ -7,10 +7,13 @@ WORKDIR /app
 COPY pyproject.toml uv.lock .env ./
 COPY src ./src
 # App specifics
-COPY webapp/__init__.py webapp/common.py ./webapp/
 COPY webapp/auth ./webapp/auth
+COPY webapp/webapp-common ./webapp/webapp-common
+
+WORKDIR /app/webapp/auth
 RUN uv sync
-RUN chmod +x ./webapp/auth/scripts/start.sh
+
+RUN chmod +x /app/webapp/auth/scripts/start.sh
 EXPOSE 80
-CMD ["./webapp/auth/scripts/start.sh"]
+CMD ["/app/webapp/auth/scripts/start.sh"]
 

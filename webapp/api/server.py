@@ -4,9 +4,6 @@ from typing import Annotated
 from uuid import UUID
 
 import dotenv
-from concrete.clients import CLIClient
-from concrete.projects import DAGNode, Project
-from concrete.webutils import AuthMiddleware
 from concrete_db import crud
 from concrete_db.orm.models import (
     Client,
@@ -28,10 +25,12 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
+from webapp_common import DbDep
 
 from concrete import operators
-
-from ..common import DbDep
+from concrete.clients import CLIClient
+from concrete.projects import DAGNode, Project
+from concrete.webutils import AuthMiddleware
 
 dotenv.load_dotenv(override=True)
 

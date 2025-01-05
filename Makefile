@@ -20,27 +20,18 @@ helloworld:
 	$(ORCHESTRATE) "Create a simple hello world program"
 
 # Requires rabbitmq and celery worker to be running
-helloworld_celery: celery
+helloworld-celery: celery
 	sleep 10
 	$(ORCHESTRATE) "Create a simple hello world program" --run-async
 	
 simpleflask:
 	$(ORCHESTRATE) "Provide the code for a flask application. The applicataion should have a single route that renders the HTML template 'index.html'. The template should contain a single header tag with the text 'Hello, World!'."
 
-# Requires dind-builder to be running
-# Need to manually delete created resources in AWS.
-# Created resources will be in ECR, ECS (tasks definitions and services), LB listener rules.
-deploysimpleflask:
-	$(ORCHESTRATE) "Create a simple helloworld flask application" --deploy
 
 # ----------------------- Build commands -----------------------
-# alembic, auth, api, main, homepage, docs
+# alembic, auth, api, main, homepage, docs, daemons
 build-app:
 	docker compose -f docker/docker-compose.yml build $(APP)
-
-build-daemons:
-	docker compose -f docker/docker-compose.yml build daemons
-
 
 # ----------------------- Run commands -----------------------
 run-webapp: build-app
@@ -61,17 +52,12 @@ run-postgres:
 
 # Need to set your aws config for default profile + credentials
 aws-ecr-login:
-	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
+	uv run aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971649127.dkr.ecr.us-east-1.amazonaws.com
 
 aws-ecr-push: aws-ecr-login
 	docker tag $(APP):latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
 	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/$(APP):latest
-aws-ecr-push-docs: aws-ecr-login
-	docker tag docs:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/docs:latest
-aws-ecr-push-daemons: aws-ecr-login
-	docker tag daemons:latest 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
-	docker push 008971649127.dkr.ecr.us-east-1.amazonaws.com/daemons:latest
+
 
 # ------------------------ Local Development without Docker ------------------------
 rabbitmq:
@@ -91,15 +77,21 @@ local-api:
 	$(UV) fastapi dev webapp/api/server.py --port 8001
 
 local-main:
-	$(UV) fastapi dev webapp/main/server.py
+	$(UV) fastapi dev webapp/main/server.py --port 8004
 
 local-auth:
 	$(UV) fastapi dev webapp/auth/server.py --port 8002
 
+local-homepage:
+	$(UV) fastapi dev webapp/homepage/server.py --port 8003
+
 # Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
 # I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
-local-daemons:
-	/bin/bash -c "set -a; source .env.daemons; set +a; cd webapp/daemons && $(UV) fastapi dev server.py"
+ngrok: # Use the provided url as your webhook url
+	ngrok http 8000
+
+local-daemons: 
+	$(UV) fastapi dev webapp/daemons/server.py 
 
 
 # Build Packages

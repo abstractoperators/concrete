@@ -184,8 +184,12 @@ shared/
 
 # Keys
 *.pem
+!us-east-1-bundle.pem
 
 # mkdocs™
 .site/
 
 .vsls.json
+
+# Benchmarking
+benchmarks/logs/

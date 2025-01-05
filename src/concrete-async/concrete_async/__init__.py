@@ -2,10 +2,10 @@ from collections.abc import Callable
 from typing import Any, cast
 
 from celery.result import AsyncResult
-from concrete.clients import CLIClient, model_to_schema
 from concrete_async.tasks import abstract_operation
 
 import concrete
+from concrete.clients import CLIClient, model_to_schema
 from concrete.models import KombuMixin, Message, Operation
 
 

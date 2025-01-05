@@ -1,9 +1,10 @@
 import os
 
-from concrete.clients import CLIClient
 from dotenv import load_dotenv
 from sqlalchemy import URL
 from sqlmodel import create_engine
+
+from concrete.clients import CLIClient
 
 load_dotenv(override=True)
 if (

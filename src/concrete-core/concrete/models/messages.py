@@ -14,7 +14,9 @@ Example:
     message_formatted: MyClass = message.parsed
 """
 
+import io
 import json
+import zipfile
 
 from pydantic import Field
 
@@ -63,7 +65,9 @@ class TextMessage(Message):
 
 class Param(Message):
     name: str = Field(description="Name of the parameter")
-    value: str = Field(description="Value of the parameter")
+    value: str | float | bool | int | list[str | int | float | bool] | None = Field(
+        description="Value of the parameter"
+    )
 
 
 class Tool(Message):
@@ -93,6 +97,20 @@ class ProjectDirectory(Message):
         description="A list of files in the project directory. Each list item represents a file"
     )
 
+    def to_zip(self) -> io.BytesIO:
+        """
+        Creates an in-memory ZIP file of the project directory.
+
+        Returns:
+            io.BytesIO: A buffer containing the ZIP file.
+        """
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for project_file in self.files:
+                zip_file.writestr(project_file.file_name, project_file.file_contents)
+        zip_buffer.seek(0)  # Reset buffer position for streaming
+        return zip_buffer
+
 
 class ChildNodeSummary(Message):
     node_name: str = Field(description="Name of the node")
@@ -107,3 +125,7 @@ class NodeSummary(Message):
 
 class NodeUUID(Message):
     node_uuid: str = Field(description="UUID of the node")
+
+
+class Rating(Message):
+    rating: int = Field(description="Rating from 1 to 10")

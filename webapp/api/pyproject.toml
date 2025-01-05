@@ -5,8 +5,6 @@ requires-python = ">=3.11.9"
 dependencies = [
     "concrete-core[openai,auth,google-auth,requests]>=0.0.4",
     "concrete-db>=0.0.0",
-    "fastapi>=0.115.4",
-    "gunicorn>=23.0.0",
-    "uvicorn>=0.32.0",
+    "webapp-common",
 ]
 

@@ -1,10 +1,9 @@
 import argparse
 import asyncio
 
+from concrete import orchestrators
 from concrete.clients import CLIClient
 from concrete.tools.aws import AwsTool, Container
-
-from concrete import orchestrators
 
 try:
     import concrete_async  # noqa
@@ -103,7 +102,13 @@ deploy_parser.add_argument(
     "--listener-arn",
     type=str,
     required=False,
-    help="Listener ARN of Load Balancer for the service",
+    help="HTTPS Listener ARN of Load Balancer for the service.",
+)
+deploy_parser.add_argument(
+    "--http-listener-arn",
+    type=str,
+    required=False,
+    help="HTTP Listener arn for the service",
 )
 deploy_parser.add_argument(
     "--health-check-path",
@@ -175,7 +180,8 @@ async def main():
                 "subnets": args.subnets,
                 "vpc": args.vpc,
                 "security_groups": args.security_groups,
-                "listener_arn": args.listener_arn,
+                "https_listener_arn": args.listener_arn,
+                "http_listener_arn": args.http_listener_arn,
                 "listener_rule": listener_rule,
                 "health_check_path": args.health_check_path,
             }

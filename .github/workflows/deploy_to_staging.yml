@@ -12,7 +12,7 @@ jobs:
       environment: staging
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth', alembic, 'docs']
+          image: ['api', 'main', 'homepage', 'auth', alembic, 'docs', 'daemons']
       
       steps:
           - uses: actions/checkout@v4
@@ -32,6 +32,10 @@ jobs:
           - uses: actions/setup-python@v5
             with:
               python-version-file: '.python-version'
+          
+          - uses: astral-sh/setup-uv@v3
+            with: 
+              version: "0.4.27"
 
           - name: Build the images
             run: |
@@ -146,7 +150,8 @@ jobs:
                       --container-env-file .env \
                       --security-groups sg-01af4e696bd2679c3 \
                       --subnets subnet-0644cadc735c6b557 \
-                      --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46"
+                      --listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/5f6189397e559d46 \
+                      --http-listener-arn arn:aws:elasticloadbalancing:us-east-1:008971649127:listener/app/ConcreteStagingLB/14b30997c81f806e/e084e15f11c52e80"
 
                 if [ -n "$LISTENER_RULE_FIELD" ] && [ -n "$LISTENER_RULE_VALUE" ]; then
                   cmd="$cmd --listener-rule-field \"$LISTENER_RULE_FIELD\" --listener-rule-value \"$LISTENER_RULE_VALUE\""
