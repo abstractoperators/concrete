@@ -46,10 +46,25 @@ load_dotenv('.env', override=True)
 
 
 @app.get("/api/operators/{operator_id}")
-def get_operator(operator_id: UUID):
+def get_operator(operator_id: UUID) -> dict:
+    """
+    Get the instructions for an operator.
+    TODO: More detailed response
+    """
     if operator_id not in operators:
         raise HTTPException(status_code=404, detail="Operator not found")
     return {'instructions': operators[operator_id].instructions}
+
+
+@app.get("/api/operators/{operator_id}/chat")
+def chat_with_operator(operator_id: UUID, message: str) -> str:
+    """
+    Chat with an operator.
+    """
+    if operator_id not in operators:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    operator = operators[operator_id]
+    return operator.chat(message).text
 
 
 class Webhook(ABC):
@@ -132,13 +147,15 @@ class SlackPersona:
 
         self.memory: list[str] = []
 
+    @property
+    def operator(self) -> Operator:
+        return operators[self.operator_id]
+
     def chat_no_memory(self, message: str) -> str:
-        operator = operators[self.operator_id]
-        return operator.chat(message).text
+        return self.operator.chat(message).text
 
     def chat_with_memory(self, message: str) -> str:
-        operator = operators[self.operator_id]
-        return operator.chat('\n'.join(self.memory) + message).text
+        return self.operator.chat('\n'.join(self.memory) + message).text
 
     def append_memory(self, message: str) -> None:
         self.memory.append(message)
@@ -147,15 +164,13 @@ class SlackPersona:
         self.memory = []
 
     def update_instructions(self, instructions: str) -> None:
-        operator = operators[self.operator_id]
-        operator.instructions = instructions
+        self.operator.instructions = instructions
 
     def update_icon(self, icon: str) -> None:
         self.icon = icon
 
     def get_instructions(self) -> str:
-        operator = operators[self.operator_id]
-        return operator.instructions
+        return self.operator.instructions
 
     def get_memory(self) -> list[str]:
         return self.memory
