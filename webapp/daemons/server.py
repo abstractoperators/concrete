@@ -6,6 +6,7 @@ from abc import ABC
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from typing import Callable
+from uuid import UUID
 
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
@@ -94,6 +95,10 @@ class InstallationToken:
 
     def set_installation_id(self, installation_id: str):
         self.installation_id = installation_id
+
+
+# TODO: Stateful Operators using concrete-db. Remove from memory.
+operators: dict[UUID, Operator] = {}
 
 
 class SlackPersona:
