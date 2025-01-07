@@ -85,6 +85,17 @@ def chat_with_operator(operator_id: UUID, message: str) -> str:
     return operator.chat(message).text
 
 
+@app.delete("/api/operators/{operator_id}")
+def delete_operator(operator_id: UUID) -> dict:
+    """
+    Delete an operator.
+    """
+    if operator_id not in operators:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    operators.pop(operator_id)
+    return {"message": "Operator deleted"}
+
+
 class Webhook(ABC):
     """
     Represents a Webhook.
@@ -416,7 +427,7 @@ class SlackDaemon(Webhook):
                         text=f'ArXiv paper {args.id} added to RAG database',
                     )
 
-        if not await verify_slack_request(slack_signing_secret=self.signing_secret, request=Request):
+        if not await verify_slack_request(slack_signing_secret=self.signing_secret, request=request):
             return JSONResponse(
                 content={"error": "Request not from Slack"},
                 status_code=401,
