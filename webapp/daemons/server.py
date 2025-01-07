@@ -358,24 +358,7 @@ class SlackDaemon(Webhook):
                     self.new_persona()
 
                 elif subcommand == 'update-persona':
-                    if args.name not in self.personas:
-                        self.respond(
-                            response_url=response_url,
-                            text=f'Persona {args.name} does not exist',
-                        )
-                    else:
-                        persona = self.personas[args.name]
-                        if args.instructions:
-                            persona.update_instructions(args.instructions)
-                        if args.icon:
-                            persona.update_icon(args.icon)
-                        if args.clear_memory:
-                            persona.clear_memory()
-
-                        self.respond(
-                            response_url=response_url,
-                            text=f'Persona {args.name} updated',
-                        )
+                    self.update_persona()
 
                 elif subcommand == 'delete-persona':
                     if args.name not in self.personas:
@@ -470,8 +453,32 @@ class SlackDaemon(Webhook):
                 status_code=200,
             )
 
-    def update_persona():
+    def update_persona(
+        self,
+        persona_name: str,
+        response_url: str,
+        instructions: str | None = None,
+        icon: str | None = None,
+        clear_memory: bool = False,
+    ):
         pass
+        if persona_name not in self.personas:
+            self.respond(
+                response_url=response_url,
+                text=f'Persona {persona_name} does not exist',
+            )
+        else:
+            persona = self.personas[persona_name]
+            if instructions:
+                persona.update_instructions(instructions)
+            if icon:
+                persona.update_icon(icon)
+            if clear_memory:
+                persona.clear_memory()
+            self.respond(
+                response_url=response_url,
+                text=f'Persona {persona_name} updated',
+            )
 
     def delete_persona(self, persona_name: str):
         self.personas.pop(persona_name)
