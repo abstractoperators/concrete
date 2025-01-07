@@ -45,6 +45,13 @@ def ping():
 load_dotenv('.env', override=True)
 
 
+@app.get("/api/operators/{operator_id}")
+def get_operator(operator_id: UUID):
+    if operator_id not in operators:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    return {'instructions': operators[operator_id].instructions}
+
+
 class Webhook(ABC):
     """
     Represents a Webhook.
