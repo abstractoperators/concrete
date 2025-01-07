@@ -174,26 +174,29 @@ class SlackPersona:
 
     def __init__(
         self,
-        instructions: str,
-        icon: str,
         persona_name: str,
+        instructions: str = "",
+        icon: str = "smiley",
+        uuid: UUID | None = None,
     ):
-        self.operator_id = uuid4()
-        operator = Operator(
-            tools=[ArxivTool, DocumentTool],
-            use_tools=True,
-            operator_id=self.operator_id,
-        )
-        operator.instructions = instructions
-        operators[self.operator_id] = operator
+        # New Operator
+        if not uuid or uuid not in operators:
+            self.operator_id = create_operator(instructions)['operator_id']
 
-        self.icon: str = icon
-        self.username: str = persona_name
+            self.icon: str = icon
+            self.username: str = persona_name
 
-        self.memory: list[str] = []
+            self.memory: list[str] = []
+
+        # Existing Operator
+        else:
+            self.operator_id = uuid
+            self.icon = icon
+            self.username = persona_name
+            self.memory: list[str] = []
 
     @property
-    def operator(self) -> Operator | None:
+    def operator(self) -> Operator:
         return operators.get(self.operator_id)
 
     def chat_no_memory(self, message: str) -> str:
@@ -321,6 +324,7 @@ class SlackDaemon(Webhook):
             json={
                 'text': text,
                 'response_type': response_type,
+                'icon_emoji': ':robot_face:',
             },
         )
 
@@ -351,17 +355,7 @@ class SlackDaemon(Webhook):
                     )
             else:
                 if subcommand == 'new-persona':
-                    if args.name in self.personas:
-                        self.respond(
-                            response_url=response_url,
-                            text=f'Persona {args.name} already exists',
-                        )
-                    else:
-                        self.new_persona(persona_name=args.name, instructions=args.instructions, icon=args.icon)
-                        self.respond(
-                            response_url=response_url,
-                            text=f'Persona {args.name} created',
-                        )
+                    self.new_persona()
 
                 elif subcommand == 'update-persona':
                     if args.name not in self.personas:
@@ -476,10 +470,38 @@ class SlackDaemon(Webhook):
                 status_code=200,
             )
 
-    def new_persona(self, persona_name: str, instructions: str = "", icon: str = 'robot_face'):
-        instructions = f'You are a slack bot persona named {persona_name}' + instructions
-        icon = icon
-        self.personas[persona_name] = SlackPersona(instructions, icon, persona_name)
+    def update_persona():
+        pass
+
+    def delete_persona(self, persona_name: str):
+        self.personas.pop(persona_name)
+        # Doesn't delete the operator
+
+    def new_persona(
+        self,
+        persona_name: str,
+        response_url: str,
+        instructions: str = "",
+        icon: str = 'robot_face',
+        uuid: UUID | None = None,
+    ):
+        """
+        Creates a new persona.
+        Responds with a message to the user.
+        """
+        if persona_name:
+            self.respond(
+                response_url=response_url,
+                text=f'Persona {persona_name} already exists',
+            )
+            return
+        else:
+            persona = SlackPersona(persona_name=persona_name, instructions=instructions, icon=icon, uuid=uuid)
+            self.personas[persona_name] = persona
+            self.respond(
+                response_url=response_url,
+                text=f'Persona {persona_name} with operator uuid {persona.operator_id} created',
+            )
 
 
 routers = [slack_daemon := SlackDaemon()]
