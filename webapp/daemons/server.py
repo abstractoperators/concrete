@@ -63,6 +63,14 @@ def ping():
 load_dotenv('.env', override=True)
 
 
+@app.get("/api/operators")
+def get_operators() -> dict:
+    """
+    Get all operators.
+    """
+    return {"operators": list(operators.keys())}
+
+
 @app.get("/api/operators/{operator_id}")
 def get_operator(operator_id: UUID) -> dict:
     """
@@ -82,7 +90,7 @@ def chat_with_operator(operator_id: UUID, message: str) -> str:
     if operator_id not in operators:
         raise HTTPException(status_code=404, detail="Operator not found")
     operator = operators[operator_id]
-    return {'message': operator.chat(message).text, 'operator_id': operator_id}
+    return operator.chat(message).text
 
 
 @app.delete("/api/operators/{operator_id}")
@@ -110,6 +118,14 @@ def create_operator(instructions) -> dict:
     operator.instructions = instructions
     operators[operator_id] = operator
     return {"message": "Operator created", "operator_id": operator_id}
+
+
+@app.patch("/api/operators/{operator_id}")
+def update_operator(operator_id: UUID, instructions: str) -> dict:
+    if operator_id not in operators:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    operators[operator_id].instructions = instructions
+    return {"message": "Operator updated", "operator_id": operator_id}
 
 
 class Webhook(ABC):
@@ -182,18 +198,12 @@ class SlackPersona:
         # New Operator
         if not uuid or uuid not in operators:
             self.operator_id = create_operator(instructions)['operator_id']
-
-            self.icon: str = icon
-            self.username: str = persona_name
-
-            self.memory: list[str] = []
-
-        # Existing Operator
         else:
             self.operator_id = uuid
-            self.icon = icon
-            self.username = persona_name
-            self.memory: list[str] = []
+
+        self.icon: str = icon
+        self.username = persona_name
+        self.memory: list[str] = []
 
     @property
     def operator(self) -> Operator:
@@ -490,7 +500,7 @@ class SlackDaemon(Webhook):
         Creates a new persona.
         Responds with a message to the user.
         """
-        if persona_name:
+        if persona_name in self.personas:
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} already exists',
