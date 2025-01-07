@@ -82,13 +82,18 @@ def get_operator(operator_id: UUID) -> dict:
     return {'instructions': operators[operator_id].instructions, 'operator_id': operator_id}
 
 
-@app.get("/api/operators/{operator_id}/chat")
-def chat_with_operator(operator_id: UUID, message: str) -> str:
+@app.post("/api/operators/{operator_id}/chat")
+async def chat_with_operator(operator_id: UUID, request: Request) -> str:
     """
     Chat with an operator.
     """
+    data = await request.json()
+    message = data.get('message', '')
     if operator_id not in operators:
         raise HTTPException(status_code=404, detail="Operator not found")
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+
     operator = operators[operator_id]
     return operator.chat(message).text
 
@@ -268,7 +273,7 @@ class SlackDaemon(Webhook):
         self.personas = {
             'jaime': SlackPersona(
                 instructions="You are the persona of a slack chat bot. Your name is Jaime. Assist users in the workspace.",  # noqa
-                icon=":robot_face:",
+                icon="robot_face",
                 persona_name="Jaime",
             )
         }
@@ -397,10 +402,16 @@ class SlackDaemon(Webhook):
                     )
 
                 elif subcommand == 'delete-persona':
-                    self.delete_persona(persona_name=args.name, response_url=response_url)
+                    self.delete_persona(
+                        persona_name=args.name,
+                        response_url=response_url,
+                    )
 
                 elif subcommand == 'get-persona':
-                    self.get_persona_uuid(persona_name=args.name, response_url=response_url)
+                    self.get_persona_uuid(
+                        persona_name=args.name,
+                        response_url=response_url,
+                    )
 
                 elif subcommand == 'add-arxiv-paper':
                     self.respond(
@@ -567,7 +578,7 @@ class SlackDaemon(Webhook):
 
         else:
             text_list: list[str] = []
-            for name, persona in self.personas.keys():
+            for name in self.personas:
                 if persona := self.get_persona(name):
                     text_list.append(
                         f'Persona: {name}\n'
