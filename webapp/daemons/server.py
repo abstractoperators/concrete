@@ -206,13 +206,17 @@ class SlackPersona:
         self.memory: list[str] = []
 
     @property
-    def operator(self) -> Operator:
+    def operator(self) -> Operator | None:
         return operators.get(self.operator_id)
 
     def chat_no_memory(self, message: str) -> str:
+        if not self.operator:
+            raise ValueError("Operator not found")
         return self.operator.chat(message).text
 
     def chat_with_memory(self, message: str) -> str:
+        if not self.operator:
+            raise ValueError("Operator not found")
         return self.operator.chat('\n'.join(self.memory) + message).text
 
     def append_memory(self, message: str) -> None:
@@ -222,12 +226,16 @@ class SlackPersona:
         self.memory = []
 
     def update_instructions(self, instructions: str) -> None:
+        if not self.operator:
+            raise ValueError("Operator not found")
         self.operator.instructions = instructions
 
     def update_icon(self, icon: str) -> None:
         self.icon = icon
 
     def get_instructions(self) -> str:
+        if not self.operator:
+            raise ValueError("Operator not found")
         return self.operator.instructions
 
     def get_memory(self) -> list[str]:
@@ -392,7 +400,7 @@ class SlackDaemon(Webhook):
                     self.delete_persona(persona_name=args.name, response_url=response_url)
 
                 elif subcommand == 'get-persona':
-                    self.get_persona(persona_name=args.name, response_url=response_url)
+                    self.get_persona_uuid(persona_name=args.name, response_url=response_url)
 
                 elif subcommand == 'add-arxiv-paper':
                     self.respond(
@@ -457,14 +465,13 @@ class SlackDaemon(Webhook):
         icon: str | None = None,
         clear_memory: bool = False,
     ):
-        pass
-        if persona_name not in self.personas:
+        persona = self.get_persona(persona_name)
+        if not persona:
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} does not exist',
             )
         else:
-            persona = self.personas[persona_name]
             if instructions:
                 persona.update_instructions(instructions)
             if icon:
@@ -477,7 +484,8 @@ class SlackDaemon(Webhook):
             )
 
     def delete_persona(self, persona_name: str, response_url: str):
-        if persona_name not in self.personas:
+        persona = self.get_persona(persona_name)
+        if not persona:
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} does not exist',
@@ -500,12 +508,11 @@ class SlackDaemon(Webhook):
         Creates a new persona.
         Responds with a message to the user.
         """
-        if persona_name in self.personas:
+        if self.get_persona(persona_name):
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} already exists',
             )
-            return
         else:
             persona = SlackPersona(persona_name=persona_name, instructions=instructions, icon=icon, uuid=uuid)
             self.personas[persona_name] = persona
@@ -516,6 +523,23 @@ class SlackDaemon(Webhook):
 
     def get_persona(
         self,
+        persona_name: str,
+    ) -> SlackPersona | None:
+        """
+        Gets a SlackPersona.
+        Deletes the persona if the operator no longer exists
+        Returns None if the Persona does not exist, or if the Operator does not exist.
+        """
+        persona = self.personas.get(persona_name)
+        if not persona:
+            return None
+        if not persona.operator:
+            self.personas.pop(persona_name)
+            return None
+        return persona
+
+    def get_persona_uuid(
+        self,
         persona_name: str | None,
         response_url: str,
     ):
@@ -524,7 +548,7 @@ class SlackDaemon(Webhook):
         Responds with a message of the persona or list of personas to the user.
         """
         if persona_name:
-            if persona_name not in self.personas:
+            if not self.get_persona(persona_name):
                 self.respond(
                     response_url=response_url,
                     text=f'Persona {persona_name} does not exist',
@@ -532,7 +556,7 @@ class SlackDaemon(Webhook):
             else:
                 persona = self.personas[persona_name]
                 text = (
-                    f'Persona {persona_name}\n'
+                    f'Persona: {persona_name}\n'
                     f'Instructions: {persona.get_instructions()}\n'
                     f'UUID: {persona.operator_id}'
                 )
@@ -542,7 +566,16 @@ class SlackDaemon(Webhook):
                 )
 
         else:
-            text = '\n'.join(f'{i + 1}: {name}' for i, name in enumerate(self.personas.keys()))
+            text_list: list[str] = []
+            for name, persona in self.personas.keys():
+                if persona := self.get_persona(name):
+                    text_list.append(
+                        f'Persona: {name}\n'
+                        f'Instructions: {persona.get_instructions()}\n'
+                        f'UUID: {persona.operator_id}'
+                    )
+            text = '\n'.join(text_list)
+
             self.respond(
                 response_url=response_url,
                 text=text,
