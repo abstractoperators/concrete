@@ -6,7 +6,7 @@ from abc import ABC
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from typing import Callable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
@@ -27,6 +27,9 @@ dname = os.path.dirname(abspath)
 app = FastAPI()
 templates = Jinja2Templates(directory=os.path.join(dname, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
+
+# TODO: Stateful Operators using concrete-db. Remove from memory.
+operators: dict[UUID, Operator] = {}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -97,10 +100,6 @@ class InstallationToken:
         self.installation_id = installation_id
 
 
-# TODO: Stateful Operators using concrete-db. Remove from memory.
-operators: dict[UUID, Operator] = {}
-
-
 class SlackPersona:
     """
     Represents a persona in a slack workspace
@@ -112,8 +111,14 @@ class SlackPersona:
         icon: str,
         persona_name: str,
     ):
-        self.operator = Operator(tools=[ArxivTool, DocumentTool], use_tools=True)
-        self.operator.instructions = instructions
+        self.operator_id = uuid4()
+        operator = Operator(
+            tools=[ArxivTool, DocumentTool],
+            use_tools=True,
+            operator_id=self.operator_id,
+        )
+        operator.instructions = instructions
+        operators[self.operator_id] = operator
 
         self.icon: str = icon
         self.username: str = persona_name
@@ -121,10 +126,12 @@ class SlackPersona:
         self.memory: list[str] = []
 
     def chat_no_memory(self, message: str) -> str:
-        return self.operator.chat(message).text
+        operator = operators[self.operator_id]
+        return operator.chat(message).text
 
     def chat_with_memory(self, message: str) -> str:
-        return self.operator.chat('\n'.join(self.memory) + message).text
+        operator = operators[self.operator_id]
+        return operator.chat('\n'.join(self.memory) + message).text
 
     def append_memory(self, message: str) -> None:
         self.memory.append(message)
@@ -133,13 +140,15 @@ class SlackPersona:
         self.memory = []
 
     def update_instructions(self, instructions: str) -> None:
-        self.operator.instructions = instructions
+        operator = operators[self.operator_id]
+        operator.instructions = instructions
 
     def update_icon(self, icon: str) -> None:
         self.icon = icon
 
     def get_instructions(self) -> str:
-        return self.operator.instructions
+        operator = operators[self.operator_id]
+        return operator.instructions
 
     def get_memory(self) -> list[str]:
         return self.memory
