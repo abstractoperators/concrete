@@ -1,5 +1,4 @@
 import argparse
-import hmac
 import os
 import shlex
 import time
@@ -14,6 +13,8 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 from webapp_common import JwtToken
 
 from concrete.clients.http import HTTPClient
@@ -21,11 +22,27 @@ from concrete.operators import Operator
 from concrete.tools.arxiv import ArxivTool
 from concrete.tools.document import DocumentTool
 from concrete.tools.http import RestApiTool
+from concrete.webutils import AuthMiddleware, verify_slack_request
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 
-app = FastAPI()
+
+# slack commands are authenticated by Slack signing secret.
+UNAUTHENTICATED_PATHS = {"/ping", "/docs", "/redoc", "/openapi.json", "/favicon.ico", "/slack/slash_commands", "/"}
+
+# Setup App with Middleware
+middleware = [
+    Middleware(
+        SessionMiddleware,
+        secret_key=os.environ["HTTP_SESSION_SECRET"],
+        domain=os.environ["HTTP_SESSION_DOMAIN"],
+    ),
+    Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
+]
+
+app = FastAPI(title="Agent Server", middleware=middleware)
+
 templates = Jinja2Templates(directory=os.path.join(dname, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(dname, "static")), name="static")
 
@@ -209,6 +226,9 @@ class SlackDaemon(Webhook):
         }
 
         self.http_client = HTTPClient()
+        self.signing_secret = os.getenv('SLACK_SIGNING_SECRET')
+        if not self.signing_secret:
+            raise Exception("Slack signing secret not found")
 
         def init_slashcommand_parser():
             self.arg_parser = argparse.ArgumentParser(
@@ -267,43 +287,6 @@ class SlackDaemon(Webhook):
             arxiv_papers_parser.add_argument("id", type=str, help="The arXiv paper ID to add (e.g. 2308.08155)")
 
         init_slashcommand_parser()
-
-    async def verify_slack_request(self, request: Request) -> bool:
-        """
-        Verify that the request is from Slack.
-        https://api.slack.com/authentication/verifying-requests-from-slack
-        """
-        body = await request.body()
-        timestamp = request.headers.get('X-Slack-Request-Timestamp')
-        signature = request.headers.get('X-Slack-Signature')
-        print("Verifying request")
-        print(f'Timestamp: {timestamp}')
-        print(f'Signature: {signature}')
-        if not timestamp or not signature:
-            return False
-
-        current_time = time.time()
-        if abs(current_time - int(timestamp)) > 60 * 5:
-            return False
-
-        sig_basestring = f'v0:{timestamp}:{body.decode("utf-8")}'
-        print(sig_basestring)
-
-        signing_secret = os.getenv('SLACK_SIGNING_SECRET')
-        if not signing_secret:
-            print('No signing secret found')
-            return False
-
-        my_signature = (
-            'v0='
-            + hmac.new(
-                signing_secret.encode(),
-                sig_basestring.encode(),
-                'sha256',
-            ).hexdigest()
-        )
-
-        return hmac.compare_digest(my_signature, signature)
 
     def respond(self, response_url: str, text: str, response_type: str = 'in_channel'):
         self.http_client.post(
@@ -405,7 +388,7 @@ class SlackDaemon(Webhook):
                                 text=text,
                             )
                     else:
-                        text = '\n'.join(f'{i+1}: {name}' for i, name in enumerate(self.personas.keys()))
+                        text = '\n'.join(f'{i + 1}: {name}' for i, name in enumerate(self.personas.keys()))
                         self.respond(
                             response_url=response_url,
                             text=text,
@@ -433,7 +416,7 @@ class SlackDaemon(Webhook):
                         text=f'ArXiv paper {args.id} added to RAG database',
                     )
 
-        if not await self.verify_slack_request(request):
+        if not await verify_slack_request(slack_signing_secret=self.signing_secret, request=Request):
             return JSONResponse(
                 content={"error": "Request not from Slack"},
                 status_code=401,

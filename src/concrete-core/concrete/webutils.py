@@ -1,3 +1,5 @@
+import hmac
+import time
 from typing import cast
 
 from fastapi import Request, status
@@ -37,3 +39,36 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     headers={"WWW-Authenticate": "Bearer"},
                 )
         return await call_next(request)
+
+
+async def verify_slack_request(slack_signing_secret: str, request: Request) -> bool:
+    """
+    Verify the request is coming from Slack by checking the request signature.
+    https://api.slack.com/authentication/verifying-requests-from-slack
+
+    TODO: Pass in timestamp/signature as arguments instead of reading from request headers.
+    Maybe pass in basestring as well.
+    """
+
+    body = await request.body()
+    timestamp = request.headers.get("X-Slack-Request-Timestamp")
+    signature = request.headers.get("X-Slack-Signature")
+
+    if not timestamp or not signature:
+        return False
+
+    if abs(time.time() - int(timestamp)) > 60 * 5:
+        return False
+
+    sig_basestring = f'v0:{timestamp}:{body.decode("utf-8")}'
+
+    my_signature = (
+        'v0='
+        + hmac.new(
+            slack_signing_secret.encode(),
+            sig_basestring.encode(),
+            'sha256',
+        ).hexdigest()
+    )
+
+    return hmac.compare_digest(my_signature, signature)
