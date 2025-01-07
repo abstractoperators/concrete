@@ -1,4 +1,5 @@
 import argparse
+import hmac
 import os
 import shlex
 import time
@@ -267,6 +268,43 @@ class SlackDaemon(Webhook):
 
         init_slashcommand_parser()
 
+    async def verify_slack_request(self, request: Request) -> bool:
+        """
+        Verify that the request is from Slack.
+        https://api.slack.com/authentication/verifying-requests-from-slack
+        """
+        body = await request.body()
+        timestamp = request.headers.get('X-Slack-Request-Timestamp')
+        signature = request.headers.get('X-Slack-Signature')
+        print("Verifying request")
+        print(f'Timestamp: {timestamp}')
+        print(f'Signature: {signature}')
+        if not timestamp or not signature:
+            return False
+
+        current_time = time.time()
+        if abs(current_time - int(timestamp)) > 60 * 5:
+            return False
+
+        sig_basestring = f'v0:{timestamp}:{body.decode("utf-8")}'
+        print(sig_basestring)
+
+        signing_secret = os.getenv('SLACK_SIGNING_SECRET')
+        if not signing_secret:
+            print('No signing secret found')
+            return False
+
+        my_signature = (
+            'v0='
+            + hmac.new(
+                signing_secret.encode(),
+                sig_basestring.encode(),
+                'sha256',
+            ).hexdigest()
+        )
+
+        return hmac.compare_digest(my_signature, signature)
+
     def respond(self, response_url: str, text: str, response_type: str = 'in_channel'):
         self.http_client.post(
             url=response_url,
@@ -367,9 +405,10 @@ class SlackDaemon(Webhook):
                                 text=text,
                             )
                     else:
+                        text = '\n'.join(f'{i+1}: {name}' for i, name in enumerate(self.personas.keys()))
                         self.respond(
                             response_url=response_url,
-                            text='\n'.join(self.personas.keys()),
+                            text=text,
                         )
 
                 elif subcommand == 'add-arxiv-paper':
@@ -393,6 +432,12 @@ class SlackDaemon(Webhook):
                         response_url=response_url,
                         text=f'ArXiv paper {args.id} added to RAG database',
                     )
+
+        if not await self.verify_slack_request(request):
+            return JSONResponse(
+                content={"error": "Request not from Slack"},
+                status_code=401,
+            )
 
         json_data = await request.form()
 
