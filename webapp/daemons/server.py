@@ -71,7 +71,7 @@ def get_operator(operator_id: UUID) -> dict:
     """
     if operator_id not in operators:
         raise HTTPException(status_code=404, detail="Operator not found")
-    return {'instructions': operators[operator_id].instructions}
+    return {'instructions': operators[operator_id].instructions, 'operator_id': operator_id}
 
 
 @app.get("/api/operators/{operator_id}/chat")
@@ -82,7 +82,7 @@ def chat_with_operator(operator_id: UUID, message: str) -> str:
     if operator_id not in operators:
         raise HTTPException(status_code=404, detail="Operator not found")
     operator = operators[operator_id]
-    return operator.chat(message).text
+    return {'message': operator.chat(message).text, 'operator_id': operator_id}
 
 
 @app.delete("/api/operators/{operator_id}")
@@ -93,7 +93,23 @@ def delete_operator(operator_id: UUID) -> dict:
     if operator_id not in operators:
         raise HTTPException(status_code=404, detail="Operator not found")
     operators.pop(operator_id)
-    return {"message": "Operator deleted"}
+    return {"message": "Operator deleted", "operator_id": operator_id}
+
+
+@app.put("/api/operators/{operator_id}")
+def create_operator(instructions) -> dict:
+    """
+    Create an operator.
+    """
+    operator_id = uuid4()
+    operator = Operator(
+        tools=[ArxivTool, DocumentTool],
+        use_tools=True,
+        operator_id=operator_id,
+    )
+    operator.instructions = instructions
+    operators[operator_id] = operator
+    return {"message": "Operator created", "operator_id": operator_id}
 
 
 class Webhook(ABC):
@@ -177,8 +193,8 @@ class SlackPersona:
         self.memory: list[str] = []
 
     @property
-    def operator(self) -> Operator:
-        return operators[self.operator_id]
+    def operator(self) -> Operator | None:
+        return operators.get(self.operator_id)
 
     def chat_no_memory(self, message: str) -> str:
         return self.operator.chat(message).text
