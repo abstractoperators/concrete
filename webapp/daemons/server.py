@@ -293,6 +293,12 @@ class SlackDaemon(Webhook):
             new_persona_parser.add_argument(
                 "--icon", type=str, help="The icon for the persona (e.g. smiley)", default="smiley", required=False
             )
+            new_persona_parser.add_argument(
+                "--uuid",
+                type=UUID,
+                help="The existing operator uuid for the persona to be created from",
+                required=False,
+            )
 
             update_persona_parser.add_argument("name", type=str, help="The name of the persona to update.")
             update_persona_parser.add_argument(
@@ -355,23 +361,25 @@ class SlackDaemon(Webhook):
                     )
             else:
                 if subcommand == 'new-persona':
-                    self.new_persona()
+                    self.new_persona(
+                        persona_name=args.name,
+                        response_url=response_url,
+                        instructions=args.instructions,
+                        icon=args.icon,
+                        uuid=args.uuid,
+                    )
 
                 elif subcommand == 'update-persona':
-                    self.update_persona()
+                    self.update_persona(
+                        persona_name=args.name,
+                        response_url=response_url,
+                        instructions=args.instructions,
+                        icon=args.icon,
+                        clear_memory=args.clear_memory,
+                    )
 
                 elif subcommand == 'delete-persona':
-                    if args.name not in self.personas:
-                        self.respond(
-                            response_url=response_url,
-                            text=f'Persona {args.name} does not exist',
-                        )
-                    else:
-                        self.personas.pop(args.name)
-                        self.respond(
-                            response_url=response_url,
-                            text=f'Persona {args.name} deleted',
-                        )
+                    self.delete_persona(persona_name=args.name, response_url=response_url)
 
                 elif subcommand == 'get-persona':
                     if args.name:
@@ -480,9 +488,17 @@ class SlackDaemon(Webhook):
                 text=f'Persona {persona_name} updated',
             )
 
-    def delete_persona(self, persona_name: str):
-        self.personas.pop(persona_name)
-        # Doesn't delete the operator
+    def delete_persona(self, persona_name: str, response_url: str):
+        if persona_name not in self.personas:
+            self.respond(
+                response_url=response_url,
+                text=f'Persona {persona_name} does not exist',
+            )
+        else:
+            self.personas.pop(persona_name)
+            self.respond(
+                response_url=response_url, text=f'Persona {persona_name} deleted'
+            ),  # Doesn't delete the operator
 
     def new_persona(
         self,
