@@ -382,29 +382,7 @@ class SlackDaemon(Webhook):
                     self.delete_persona(persona_name=args.name, response_url=response_url)
 
                 elif subcommand == 'get-persona':
-                    if args.name:
-                        if args.name not in self.personas:
-                            self.respond(
-                                response_url=response_url,
-                                text=f'Persona {args.name} does not exist',
-                            )
-                        else:
-                            persona = self.personas[args.name]
-                            text = (
-                                f'Persona {args.name}\n'
-                                f'Instructions: {persona.get_instructions()}\n'
-                                f'UUID: {persona.operator_id}'
-                            )
-                            self.respond(
-                                response_url=response_url,
-                                text=text,
-                            )
-                    else:
-                        text = '\n'.join(f'{i + 1}: {name}' for i, name in enumerate(self.personas.keys()))
-                        self.respond(
-                            response_url=response_url,
-                            text=text,
-                        )
+                    self.get_persona(persona_name=args.name, response_url=response_url)
 
                 elif subcommand == 'add-arxiv-paper':
                     self.respond(
@@ -524,6 +502,40 @@ class SlackDaemon(Webhook):
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} with operator uuid {persona.operator_id} created',
+            )
+
+    def get_persona(
+        self,
+        persona_name: str | None,
+        response_url: str,
+    ):
+        """
+        Gets a persona or personas
+        Responds with a message of the persona or list of personas to the user.
+        """
+        if persona_name:
+            if persona_name not in self.personas:
+                self.respond(
+                    response_url=response_url,
+                    text=f'Persona {persona_name} does not exist',
+                )
+            else:
+                persona = self.personas[persona_name]
+                text = (
+                    f'Persona {persona_name}\n'
+                    f'Instructions: {persona.get_instructions()}\n'
+                    f'UUID: {persona.operator_id}'
+                )
+                self.respond(
+                    response_url=response_url,
+                    text=text,
+                )
+
+        else:
+            text = '\n'.join(f'{i + 1}: {name}' for i, name in enumerate(self.personas.keys()))
+            self.respond(
+                response_url=response_url,
+                text=text,
             )
 
 
