@@ -357,9 +357,14 @@ class SlackDaemon(Webhook):
                             )
                         else:
                             persona = self.personas[args.name]
+                            text = (
+                                f'Persona {args.name}\n'
+                                f'Instructions: {persona.get_instructions()}\n'
+                                f'UUID: {persona.operator_id}'
+                            )
                             self.respond(
                                 response_url=response_url,
-                                text=f'Persona {args.name}\nInstructions: {persona.get_instructions()}',
+                                text=text,
                             )
                     else:
                         self.respond(
