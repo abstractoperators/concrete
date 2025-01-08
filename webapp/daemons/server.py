@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import shlex
 import time
@@ -27,6 +28,7 @@ from concrete.webutils import AuthMiddleware, verify_slack_request
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 
+LOG_FILE = os.path.join(dname, "logs.jsonl")
 
 # slack commands are authenticated by Slack signing secret.
 UNAUTHENTICATED_PATHS = {"/ping", "/docs", "/redoc", "/openapi.json", "/favicon.ico", "/slack/slash_commands", "/"}
@@ -53,6 +55,23 @@ operators: dict[UUID, Operator] = {}
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/logs")
+def get_logs(page: int = 1):
+    page_size = 10
+    start = (page - 1) * page_size
+    end = start + page_size
+    logs = []
+
+    with open(LOG_FILE, 'r') as file:
+        for i, line in enumerate(file):
+            if start <= i < end:
+                logs.append(json.loads(line))
+            elif i >= end:
+                break
+
+    return {"page": page, "logs": logs}
 
 
 @app.get("/ping")
