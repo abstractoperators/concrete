@@ -16,10 +16,13 @@ def setenv(monkeypatch):
 
 @pytest.fixture
 def mock_operator():
-    operator_id = uuid4()
-    mock_operator = MagicMock()
-    agentserver.operators[operator_id] = mock_operator
-    return operator_id, mock_operator
+    def _create_operator():
+        operator_id = uuid4()
+        mock_operator = MagicMock()
+        agentserver.operators[operator_id] = mock_operator
+        return operator_id, mock_operator
+
+    return _create_operator
 
 
 def test_operator_chat_endpoint(mock_operator, setenv):
@@ -27,7 +30,7 @@ def test_operator_chat_endpoint(mock_operator, setenv):
     Tests /chat/{operator_id} endpoint to ensure that the chat method is called.
     TODO: Update return value for endpoint, and test that as well.
     """
-    operator_id, mock_operator = mock_operator
+    operator_id, mock_operator = mock_operator()
 
     payload = "Mocked chat request"
 
@@ -47,7 +50,7 @@ def test_operator_delete_endpoint(mock_operator, setenv):
     Tests delete /operators/{operator_id} endpoint to ensure that the operator is deleted.
     TODO: Check db to make sure operator is deleted post stateful PR.
     """
-    operator_id, mock_operator = mock_operator
+    operator_id, mock_operator = mock_operator()
 
     response = test_client.delete(f"/operators/{operator_id}")
 
@@ -60,7 +63,7 @@ def test_operator_get_endpoint(mock_operator, setenv):
     """
     Tests get /operators/{operator_id} endpoint to make sure the right information is retrieved.
     """
-    operator_id, mock_operator = mock_operator
+    operator_id, mock_operator = mock_operator()
     mock_operator.instructions = "Mocked instructions"
 
     mock_tool1 = MagicMock()
@@ -74,3 +77,16 @@ def test_operator_get_endpoint(mock_operator, setenv):
     assert UUID(response['operator_id']) == operator_id
     assert response['instructions'] == "Mocked instructions"
     assert response['tools'] == ["mock_tool1", "mock_tool2"]
+
+
+def test_operator_list_endpoint(mock_operator, setenv):
+    """
+    Tests get /operators endpoint to make sure all uuids are returned.
+    """
+    operator_id1, mock_operator1 = mock_operator()
+    operator_id2, mock_operator2 = mock_operator()
+
+    response = test_client.get("/operators").json()
+
+    assert str(operator_id1) in response['operators']
+    assert str(operator_id2) in response['operators']
