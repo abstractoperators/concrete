@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
-from webapp_common import JwtToken
+from webapp_common import JwtToken, LoggerMiddleware
 
 from concrete.clients.http import HTTPClient
 from concrete.operators import Operator
@@ -31,7 +31,7 @@ dname = os.path.dirname(abspath)
 
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     filename=os.path.join(dname, "server.log"),
     filemode="w",
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -49,7 +49,9 @@ middleware = [
         domain=os.getenv("HTTP_SESSION_DOMAIN"),
     ),
     Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
+    Middleware(LoggerMiddleware, logger=logger),
 ]
+
 
 app = FastAPI(title="Agent Server", middleware=middleware)
 
