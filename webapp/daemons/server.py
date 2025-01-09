@@ -80,9 +80,9 @@ load_dotenv('.env', override=True)
 
 
 @app.get("/operators")
-def get_operators() -> dict:
+def list_operators() -> dict:
     """
-    Get all operators.
+    List all operators.
     """
     logger.info("/operators GET")
     return {"operators": list(operators.keys())}
