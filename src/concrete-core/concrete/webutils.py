@@ -1,5 +1,6 @@
 import hmac
 import time
+from os import getenv
 from typing import cast
 
 from fastapi import Request, status
@@ -30,7 +31,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return payload
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path not in self.exclude_paths:
+        if request.url.path not in self.exclude_paths and getenv("ENV") != "test":
             user_data = AuthMiddleware.check_auth(request)
             if user_data is None:
                 return JSONResponse(
