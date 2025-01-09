@@ -25,7 +25,7 @@ def mock_operator():
 def test_operator_chat_endpoint(mock_operator, setenv):
     """
     Tests /chat/{operator_id} endpoint to ensure that the chat method is called.
-    TODO: Finalize return value for endpoint, and test that as well.
+    TODO: Update return value for endpoint, and test that as well.
     """
     operator_id, mock_operator = mock_operator
 
