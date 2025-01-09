@@ -22,7 +22,17 @@ jobs:
       
       - run: |
           touch .env
-          echo OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} > .env
+          echo HTTP_SESSION_DOMAIN=${{ secrets.HTTP_SESSION_DOMAIN }} > .env
+          echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+          echo OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} >> .env
+          echo POSTGRES_VECTOR_DB_DATABASE=${{ secrets.POSTGRES_VECTOR_DB_DATABASE}} >> .env
+          echo POSTGRES_VECTOR_DB_DRIVER=${{ secrets.POSTGRES_VECTOR_DB_DRIVER }} >> .env
+          echo POSTGRES_VECTOR_DB_HOST=${{ secrets.POSTGRES_VECTOR_DB_HOST }} >> .env
+          echo POSTGRES_VECTOR_DB_PASSWORD=${{ secrets.POSTGRES_VECTOR_DB_PASSWORD }} >> .env
+          echo POSTGRES_VECTOR_DB_PORT=${{ secrets.POSTGRES_VECTOR_DB_PORT }} >> .env
+          echo POSTGRES_VECTOR_DB_USERNAME=${{ secrets.POSTGRES_VECTOR_DB_USERNAME }} >> .env
+          echo POSTGRES_VECTOR_STORE_TABLE=${{ secrets.POSTGRES_VECTOR_STORE_TABLE }} >> .env
+          echo SLACK_SIGNING_SECRET=${{ secrets.SLACK_SIGNING_SECRET }} >> .env
 
       - name: Install the project
         run: uv sync --all-extras --dev
