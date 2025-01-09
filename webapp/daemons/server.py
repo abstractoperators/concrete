@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 # slack commands are authenticated by Slack signing secret.
 UNAUTHENTICATED_PATHS = {
     "/",
+    "/logs",
     "/docs",
     "/ping",
     "/redoc",
@@ -76,7 +77,7 @@ async def root(request: Request):
 
 @app.get("/logs")
 def get_logs():
-    with open(os.path.join(dname, "server.log"), "r") as f:
+    with open(dname + "/server.log", "r") as f:
         return f.read()
 
 
