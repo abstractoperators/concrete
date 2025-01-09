@@ -158,7 +158,8 @@ def create_operator(instructions: str) -> dict:
     )
     operator.instructions = instructions
     operators[operator_id] = operator
-    return {"message": "Operator created", "operator_id": operator_id}
+
+    return get_operator(operator_id)
 
 
 @app.patch("/operators/{operator_id}")
