@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,7 +18,7 @@ def setenv(monkeypatch):
 def mock_operator():
     operator_id = uuid4()
     mock_operator = MagicMock()
-    agentserver.operators = {operator_id: mock_operator}
+    agentserver.operators[operator_id] = mock_operator
     return operator_id, mock_operator
 
 
@@ -44,7 +44,7 @@ def test_operator_chat_endpoint(mock_operator, setenv):
 
 def test_operator_delete_endpoint(mock_operator, setenv):
     """
-    Tests /delete/{operator_id} endpoint to ensure that the operator is deleted.
+    Tests delete /operators/{operator_id} endpoint to ensure that the operator is deleted.
     TODO: Check db to make sure operator is deleted post stateful PR.
     """
     operator_id, mock_operator = mock_operator
@@ -54,3 +54,23 @@ def test_operator_delete_endpoint(mock_operator, setenv):
     assert response.status_code == 200
 
     assert operator_id not in agentserver.operators
+
+
+def test_operator_get_endpoint(mock_operator, setenv):
+    """
+    Tests get /operators/{operator_id} endpoint to make sure the right information is retrieved.
+    """
+    operator_id, mock_operator = mock_operator
+    mock_operator.instructions = "Mocked instructions"
+
+    mock_tool1 = MagicMock()
+    mock_tool1.__name__ = "mock_tool1"
+    mock_tool2 = MagicMock()
+    mock_tool2.__name__ = "mock_tool2"
+    mock_operator.tools = [mock_tool1, mock_tool2]
+
+    response = test_client.get(f"/operators/{operator_id}").json()
+
+    assert UUID(response['operator_id']) == operator_id
+    assert response['instructions'] == "Mocked instructions"
+    assert response['tools'] == ["mock_tool1", "mock_tool2"]
