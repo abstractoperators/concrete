@@ -136,8 +136,8 @@ def delete_operator(operator_id: UUID) -> dict:
     return {"message": "Operator deleted", "operator_id": operator_id}
 
 
-@app.put("/api/operators/{operator_id}")
-def create_operator(instructions) -> dict:
+@app.post("/api/operators/{operator_id}")
+def create_operator(instructions: str) -> dict:
     """
     Create an operator.
     """
