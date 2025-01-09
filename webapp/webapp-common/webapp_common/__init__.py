@@ -219,7 +219,7 @@ def log_request(request: Request, logger: logging.Logger):
         body=request_info.body,
         headers=request_info.headers,
     )
-    logger.info(request_log.dict())
+    logger.info(request_log.model_dump())
 
 
 def log_error(uuid: str, response_body: dict, logger: logging.Logger):
@@ -227,7 +227,7 @@ def log_error(uuid: str, response_body: dict, logger: logging.Logger):
         req_id=uuid,
         error_message=response_body["error_message"],
     )
-    logger.error(error_log.dict())
+    logger.error(error_log.model_dump())
     logger.error(traceback.format_exc())
 
 

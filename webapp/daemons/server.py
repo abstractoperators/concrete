@@ -29,7 +29,6 @@ abspath = os.path.abspath(__file__)
 
 dname = os.path.dirname(abspath)
 
-
 logging.basicConfig(
     level=logging.DEBUG,
     filename=os.path.join(dname, "server.log"),
@@ -39,7 +38,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # slack commands are authenticated by Slack signing secret.
-UNAUTHENTICATED_PATHS = {"/ping", "/docs", "/redoc", "/openapi.json", "/favicon.ico", "/slack/slash_commands", "/"}
+UNAUTHENTICATED_PATHS = {
+    "/",
+    "/docs",
+    "/ping",
+    "/redoc",
+    "/openapi.json",
+    "/favicon.ico",
+    "/slack/slash_commands",
+}
 
 # Setup App with Middleware
 middleware = [
@@ -86,7 +93,6 @@ def list_operators() -> dict:
     """
     List all operators.
     """
-    logger.info("/operators GET")
     return {"operators": list(operators.keys())}
 
 
@@ -99,9 +105,7 @@ def get_operator(operator_id: UUID) -> dict:
     TODO: More detailed response
     """
 
-    logger.info(f"/operators/{operator_id} GET")
     if operator_id not in operators:
-        logger.error("Operator not found")
         raise HTTPException(status_code=404, detail="Operator not found")
 
     return {
@@ -118,14 +122,11 @@ async def chat_with_operator(operator_id: UUID, request: Request) -> str:
     """
     Chat with an operator.
     """
-    logger.info(f"/operators/{operator_id}/chat POST")
     data = await request.json()
     message = data.get('message', '')
     if operator_id not in operators:
-        logger.error("Operator not found")
         raise HTTPException(status_code=404, detail="Operator not found")
     if not message:
-        logger.error("Message is required")
         raise HTTPException(status_code=400, detail="Message is required")
 
     operator = operators[operator_id]
@@ -137,9 +138,7 @@ def delete_operator(operator_id: UUID) -> dict:
     """
     Delete an operator.
     """
-    logger.info(f"/operators/{operator_id} DELETE")
     if operator_id not in operators:
-        logger.error("Operator not found")
 
         raise HTTPException(status_code=404, detail="Operator not found")
     operators.pop(operator_id)
@@ -151,7 +150,6 @@ def create_operator(instructions: str) -> dict:
     """
     Create an operator.
     """
-    logger.info("/operators PUT")
     operator_id = uuid4()
     operator = Operator(
         tools=[ArxivTool, DocumentTool],
@@ -166,9 +164,7 @@ def create_operator(instructions: str) -> dict:
 
 @app.patch("/operators/{operator_id}")
 def update_operator(operator_id: UUID, instructions: str) -> dict:
-    logger.info(f"/operators/{operator_id} PATCH")
     if operator_id not in operators:
-        logger.error("Operator not found")
         raise HTTPException(status_code=404, detail="Operator not found")
     operators[operator_id].instructions = instructions
     return {"message": "Operator updated", "operator_id": operator_id}
@@ -517,16 +513,13 @@ class SlackDaemon(Webhook):
         icon: str | None = None,
         clear_memory: bool = False,
     ):
-        logger.info(f'update_persona: {response_url}, {persona_name}, {instructions}, {icon}, {clear_memory}')
         persona = self.get_persona(persona_name)
         if not persona:
-            logger.error(f'Persona {persona_name} does not exist')
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} does not exist',
             )
         else:
-            logger.info(f'Updating persona {persona_name}')
             if instructions:
                 persona.update_instructions(instructions)
             if icon:
@@ -539,16 +532,13 @@ class SlackDaemon(Webhook):
             )
 
     def delete_persona(self, persona_name: str, response_url: str):
-        logger.info(f'delete_persona: {response_url}, {persona_name}')
         persona = self.get_persona(persona_name)
         if not persona:
-            logger.error(f'Persona {persona_name} does not exist')
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} does not exist',
             )
         else:
-            logger.info(f'Deleting persona {persona_name}')
             self.personas.pop(persona_name)
             self.respond(
                 response_url=response_url, text=f'Persona {persona_name} deleted'
@@ -566,9 +556,7 @@ class SlackDaemon(Webhook):
         Creates a new persona.
         Responds with a message to the user.
         """
-        logger.info(f'new_persona: {response_url}, {persona_name}, {instructions}, {icon}, {uuid}')
         if self.get_persona(persona_name):
-            logger.error(f'Persona {persona_name} already exists')
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} already exists',
@@ -580,7 +568,6 @@ class SlackDaemon(Webhook):
                 response_url=response_url,
                 text=f'Persona {persona_name} with operator uuid {persona.operator_id} created',
             )
-        logger.info(f'Persona {persona_name} created')
 
     def get_persona(
         self,
@@ -609,10 +596,8 @@ class SlackDaemon(Webhook):
         Gets a persona or personas
         Responds with a message of the persona or list of personas to the user.
         """
-        logger.info(f'get_persona_uuid: {response_url}, {persona_name}')
         if persona_name:
             if not self.get_persona(persona_name):
-                logger.error(f'Persona {persona_name} not found')
                 self.respond(
                     response_url=response_url,
                     text=f'Persona {persona_name} does not exist',
