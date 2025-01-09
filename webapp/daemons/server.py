@@ -103,7 +103,7 @@ def get_operator(operator_id: UUID) -> dict:
     return {'instructions': operators[operator_id].instructions, 'operator_id': operator_id}
 
 
-@app.post("/api/operators/{operator_id}/chat")
+@app.post("/api/chat/{operator_id}")
 async def chat_with_operator(operator_id: UUID, request: Request) -> str:
     """
     Chat with an operator.
