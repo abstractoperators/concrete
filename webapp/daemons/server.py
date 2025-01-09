@@ -91,7 +91,9 @@ def list_operators() -> dict:
 @app.get("/operators/{operator_id}")
 def get_operator(operator_id: UUID) -> dict:
     """
-    Get the instructions for an operator.
+    Get details for an Operator.
+
+    Returns:
     TODO: More detailed response
     """
 
@@ -100,7 +102,13 @@ def get_operator(operator_id: UUID) -> dict:
         logger.error("Operator not found")
         raise HTTPException(status_code=404, detail="Operator not found")
 
-    return {'instructions': operators[operator_id].instructions, 'operator_id': operator_id}
+    return {
+        'instructions': operators[operator_id].instructions,
+        'operator_id': operator_id,
+        "tools": [
+            tool.__name__ for tool in operators[operator_id].tools
+        ],  # TODO: Structured tool response (sqlmodel maybe?)
+    }
 
 
 @app.post("/chat/{operator_id}")
