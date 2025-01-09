@@ -79,23 +79,23 @@ def ping():
 load_dotenv('.env', override=True)
 
 
-@app.get("/api/operators")
+@app.get("/operators")
 def get_operators() -> dict:
     """
     Get all operators.
     """
-    logger.info("/api/operators GET")
+    logger.info("/operators GET")
     return {"operators": list(operators.keys())}
 
 
-@app.get("/api/operators/{operator_id}")
+@app.get("/operators/{operator_id}")
 def get_operator(operator_id: UUID) -> dict:
     """
     Get the instructions for an operator.
     TODO: More detailed response
     """
 
-    logger.info(f"/api/operators/{operator_id} GET")
+    logger.info(f"/operators/{operator_id} GET")
     if operator_id not in operators:
         logger.error("Operator not found")
         raise HTTPException(status_code=404, detail="Operator not found")
@@ -103,12 +103,12 @@ def get_operator(operator_id: UUID) -> dict:
     return {'instructions': operators[operator_id].instructions, 'operator_id': operator_id}
 
 
-@app.post("/api/chat/{operator_id}")
+@app.post("/chat/{operator_id}")
 async def chat_with_operator(operator_id: UUID, request: Request) -> str:
     """
     Chat with an operator.
     """
-    logger.info(f"/api/operators/{operator_id}/chat POST")
+    logger.info(f"/operators/{operator_id}/chat POST")
     data = await request.json()
     message = data.get('message', '')
     if operator_id not in operators:
@@ -122,12 +122,12 @@ async def chat_with_operator(operator_id: UUID, request: Request) -> str:
     return operator.chat(message).text
 
 
-@app.delete("/api/operators/{operator_id}")
+@app.delete("/operators/{operator_id}")
 def delete_operator(operator_id: UUID) -> dict:
     """
     Delete an operator.
     """
-    logger.info(f"/api/operators/{operator_id} DELETE")
+    logger.info(f"/operators/{operator_id} DELETE")
     if operator_id not in operators:
         logger.error("Operator not found")
 
@@ -136,12 +136,12 @@ def delete_operator(operator_id: UUID) -> dict:
     return {"message": "Operator deleted", "operator_id": operator_id}
 
 
-@app.post("/api/operators/{operator_id}")
+@app.post("/operators/{operator_id}")
 def create_operator(instructions: str) -> dict:
     """
     Create an operator.
     """
-    logger.info("/api/operators PUT")
+    logger.info("/operators PUT")
     operator_id = uuid4()
     operator = Operator(
         tools=[ArxivTool, DocumentTool],
@@ -153,9 +153,9 @@ def create_operator(instructions: str) -> dict:
     return {"message": "Operator created", "operator_id": operator_id}
 
 
-@app.patch("/api/operators/{operator_id}")
+@app.patch("/operators/{operator_id}")
 def update_operator(operator_id: UUID, instructions: str) -> dict:
-    logger.info(f"/api/operators/{operator_id} PATCH")
+    logger.info(f"/operators/{operator_id} PATCH")
     if operator_id not in operators:
         logger.error("Operator not found")
         raise HTTPException(status_code=404, detail="Operator not found")
