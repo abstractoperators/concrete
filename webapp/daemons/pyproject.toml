@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.11.9, <4.0.0"
 dependencies = [
     "concrete-core[openai,tool-arxiv,tool-documentretriever,requests]>=0.0.7",
+    "concrete-db",
     "webapp-common",
 ]
 
+[tool.uv.sources]
+concrete-db = { workspace = true }
