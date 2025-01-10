@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from ..api.server import app
+from webapp.api.server import app
 
 
 @pytest.mark.parametrize("client", [app], indirect=True)

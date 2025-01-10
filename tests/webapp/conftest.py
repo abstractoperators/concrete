@@ -3,8 +3,7 @@ from concrete_db.orm.models import SQLModel
 from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine
 from sqlmodel.pool import StaticPool
-
-from ..common import get_session
+from webapp_common import get_session
 
 
 @pytest.fixture(name="session")
