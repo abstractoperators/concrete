@@ -16,6 +16,7 @@ dev = [
     "boto3-stubs[ecs]",
     "urllib3",
     "awscli",
+    "pytest-env>=1.1.5",
 ]
 
 
@@ -42,3 +43,7 @@ webapp-common = { workspace = true }
 exclude_dirs = ["tests", "path/to/file"]
 tests = ["B201", "B301"]
 skips = ["B101", "B601"]
+
+[tool.pytest_env]
+HTTP_SESSION_SECRET = ""
+HTTP_SESSION_DOMAIN = ""

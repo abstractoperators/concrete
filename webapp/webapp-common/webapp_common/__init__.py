@@ -4,7 +4,9 @@ from typing import Annotated, Any
 from uuid import UUID
 
 import jwt
+from concrete_db.orm import engine
 from fastapi import Depends, HTTPException, Request, WebSocket
+from sqlmodel import Session
 
 
 class ConnectionManager:
@@ -66,6 +68,12 @@ async def get_user_email_from_request(request: Request) -> str:
     return request.session["user"]["email"]
 
 
+async def get_session():
+    with Session(engine) as session:
+        yield session
+
+
+DbDep = Annotated[Session, Depends(get_session)]
 UserIdDep = Annotated[UUID, Depends(get_user_id_from_request)]
 UserIdDepWS = Annotated[UUID, Depends(get_user_id_from_ws)]
 UserEmailDep = Annotated[str, Depends(get_user_email_from_request)]
