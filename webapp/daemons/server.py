@@ -386,6 +386,13 @@ class SlackDaemon(Webhook):
         init_slashcommand_parser()
 
     def respond(self, response_url: str, text: str, response_type: str = 'in_channel'):
+        """
+        Responds to a slack slash command with a message.
+        response_url: URL provided with the original slash command payload
+        text: Message to send
+        response_type: in_channel or ephemeral
+        """
+        logger.info(f'Responding to slack {response_url} with {text}')
         self.http_client.post(
             url=response_url,
             json={
