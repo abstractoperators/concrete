@@ -3,7 +3,6 @@ import logging
 import os
 import shlex
 import time
-from abc import ABC
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from typing import Callable
@@ -16,7 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
-from webapp_common import JwtToken, LoggerMiddleware
+from webapp_common import JwtToken
+from webapp_common.logger import LoggerMiddleware
 
 from concrete.clients.http import HTTPClient
 from concrete.operators import Operator
@@ -25,16 +25,12 @@ from concrete.tools.document import DocumentTool
 from concrete.tools.http import RestApiTool
 from concrete.webutils import AuthMiddleware, verify_slack_request
 
+from .logging import LogDBHandler
+
 abspath = os.path.abspath(__file__)
 
 dname = os.path.dirname(abspath)
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename=os.path.join(dname, "server.log"),
-    filemode="w",
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 # slack commands are authenticated by Slack signing secret.
@@ -171,9 +167,10 @@ def update_operator(operator_id: UUID, instructions: str) -> dict:
     return {"message": "Operator updated", "operator_id": operator_id}
 
 
-class Webhook(ABC):
+class Webhook:
     """
-    Represents a Webhook.
+    Represents webhook endpoints.
+    Separates endpoints by application.
     """
 
     def __init__(self):
@@ -523,7 +520,6 @@ class SlackDaemon(Webhook):
     ):
         persona = self.get_persona(persona_name)
         if not persona:
-            logger.info(f'Failed to get persona {persona_name}. Does not exist')
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} does not exist',
@@ -535,7 +531,6 @@ class SlackDaemon(Webhook):
                 persona.update_icon(icon)
             if clear_memory:
                 persona.clear_memory()
-            logger.info(f'Persona {persona_name} updated')
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} updated',
@@ -544,17 +539,15 @@ class SlackDaemon(Webhook):
     def delete_persona(self, persona_name: str, response_url: str):
         persona = self.get_persona(persona_name)
         if not persona:
-            logger.info(f'Failed to get persona {persona_name} to delete. Does not exist')
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} does not exist',
             )
         else:
             self.personas.pop(persona_name)
-            logger.info(f'Persona {persona_name} deleted')
             self.respond(
                 response_url=response_url, text=f'Persona {persona_name} deleted'
-            ),  # Doesn't delete the operator
+            ),  # Doesn't delete the underlying operator
 
     def new_persona(
         self,
@@ -568,20 +561,33 @@ class SlackDaemon(Webhook):
         Creates a new persona.
         Responds with a message to the user.
         """
+        # SlackPersona constructor uses create_operator under the hood.
         if self.get_persona(persona_name):
-            logger.info(f'Failed to create persona {persona_name}. Already exists')
             self.respond(
                 response_url=response_url,
                 text=f'Persona {persona_name} already exists',
             )
         else:
-            persona = SlackPersona(persona_name=persona_name, instructions=instructions, icon=icon, uuid=uuid)
-            self.personas[persona_name] = persona
-            logger.info(f'Persona {persona_name} created')
-            self.respond(
-                response_url=response_url,
-                text=f'Persona {persona_name} with operator uuid {persona.operator_id} created',
-            )
+            if uuid:
+                if uuid not in operators:
+                    self.respond(
+                        response_url=response_url,
+                        text=f'Operator with uuid {uuid} does not exist',
+                    )
+                else:
+                    persona = SlackPersona(persona_name=persona_name, instructions=instructions, icon=icon, uuid=uuid)
+                    self.personas[persona_name] = persona
+                    self.respond(
+                        response_url=response_url,
+                        text=f'Persona {persona_name} with operator uuid {uuid} created',
+                    )
+            else:
+                persona = SlackPersona(persona_name=persona_name, instructions=instructions, icon=icon, uuid=uuid)
+                self.personas[persona_name] = persona
+                self.respond(
+                    response_url=response_url,
+                    text=f'Persona {persona_name} with operator uuid {persona.operator_id} created',
+                )
 
     def get_persona(
         self,
@@ -612,7 +618,6 @@ class SlackDaemon(Webhook):
         """
         if persona_name:
             if not self.get_persona(persona_name):
-                logger.info(f'Failed to get persona {persona_name}. Does not exist')
                 self.respond(
                     response_url=response_url,
                     text=f'Persona {persona_name} does not exist',
@@ -624,7 +629,6 @@ class SlackDaemon(Webhook):
                     f'Instructions: {persona.get_instructions()}\n'
                     f'UUID: {persona.operator_id}'
                 )
-                logger.info(f'Got persona {persona_name} {text}')
                 self.respond(
                     response_url=response_url,
                     text=text,
@@ -641,7 +645,6 @@ class SlackDaemon(Webhook):
                     )
             text = '\n'.join(text_list)
 
-            logger.info(f'Got list of personas {text}')
             self.respond(
                 response_url=response_url,
                 text=text,
