@@ -33,6 +33,8 @@ dname = os.path.dirname(abspath)
 
 logger = logging.getLogger(__name__)
 
+logger.addHandler(LogDBHandler())
+
 # slack commands are authenticated by Slack signing secret.
 UNAUTHENTICATED_PATHS = {
     "/",
