@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
+    <title>Abstract Operators</title>
+    <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='abstractoperators_favicon.jpg') }}">
+
+    <!-- Kantumruy Pro -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+
+    <!-- Judson -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Judson:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    {% from "header.html" import header with context %}
+    {{ header(request=request) }}
+    <main id="landing-panels">
+        <div class="main panel">
+            <h1>
+                About Us
+            </h1>
+        </div>
+        <div class="main panel">
+            <h1>Why the name?</h1>
+            <p>
+                Under construction, check back soon!
+            </p>
+        </div>
+    </main>
+</body>

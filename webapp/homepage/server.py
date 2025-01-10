@@ -32,6 +32,11 @@ async def agentserver(request: Request):
     return templates.TemplateResponse(name="agentserver.html", request=request)
 
 
+@app.get("/about", response_class=HTMLResponse)
+async def about(request: Request):
+    return templates.TemplateResponse(name="about.html", request=request)
+
+
 @app.get("/ping")
 def ping():
     return {"message": "pong"}
