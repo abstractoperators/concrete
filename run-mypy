@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -o errexit
+
+# Change directory to the project root directory.
+cd "$(dirname "$0")"
+
+# Normally, Python uses __init__.py files to define a directory as a package. If these files are missing, MyPy may misinterpret directories as top-level modules, leading to conflicts (e.g., webapp.daemons.logging vs daemons.logging).
+uv run mypy --config-file mypy.ini  --explicit-package-bases
