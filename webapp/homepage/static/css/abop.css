@@ -91,6 +91,23 @@ body {
     filter: brightness(150%);
 }
 
+#primary-nav {
+    a {
+        color: white;
+        transition: color var(--hover-transition-time);
+
+        font-size: ;
+    }
+
+    a:hover {
+        color: var(--aureolin);
+    }
+}
+
+.primary-nav-link {
+    color: white;
+}
+
 .call-to-action {
     font-family: var(--sans-serif-family);
     font-weight: 500;
@@ -105,6 +122,7 @@ body {
         background-color var(--hover-transition-time);
 
     &.large {
+        text-decoration: none;
         box-shadow: 0px 2px 2px var(--jet);
 
         padding: 1rem 2rem;
@@ -232,10 +250,6 @@ header nav {
     display: flex;
     margin: 8px;
     align-items: center;
-}
-
-header nav a {
-    max-height: 32px;
 }
 
 header nav a:hover {
