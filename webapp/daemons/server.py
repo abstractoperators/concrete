@@ -107,12 +107,13 @@ def get_operator(operator_id: UUID) -> dict:
     if operator_id not in operators:
         raise HTTPException(status_code=404, detail="Operator not found")
 
+    tools = operators[operator_id].tools
+    if tools:
+        tool_names = [tool.__name__ for tool in tools]
     return {
         'instructions': operators[operator_id].instructions,
         'operator_id': operator_id,
-        "tools": [
-            tool.__name__ for tool in operators[operator_id].tools
-        ],  # TODO: Structured tool response (sqlmodel maybe?)
+        "tools": tool_names,  # TODO: Return more detailed information about tools
     }
 
 
@@ -407,7 +408,9 @@ class SlackDaemon(Webhook):
             Potentially can take a long time to run.
             """
             subcommand = args.subcommand
-            response_url = json_data.get('response_url')
+            response_url = json_data.get('response_url', "")
+            if not isinstance(response_url, str):
+                raise ValueError("Response URL has to be string.")
 
             if subcommand == 'chat':
                 if args.name not in self.personas:
@@ -487,8 +490,11 @@ class SlackDaemon(Webhook):
 
         json_data = await request.form()
 
-        text = json_data.get('text').strip()
-        args = shlex.split(text)
+        slash_command_text = json_data.get('text', '')
+        if not isinstance(slash_command_text, str):  # Mostly for mypy
+            raise ValueError("Slash command text has to be string.")
+
+        args = shlex.split(slash_command_text.strip())
 
         # argparse is designed to be CLI, so we need to redirect stdout and stderr to capture help messages
         buf = StringIO()
@@ -500,7 +506,7 @@ class SlackDaemon(Webhook):
             return JSONResponse(
                 content={
                     "response_type": "in_channel",
-                    "text": f'Processing command from {json_data.get("user_id")}: {text}',
+                    "text": f'Processing command from {json_data.get("user_id")}: {slash_command_text}',
                 },
             )
         except SystemExit:  # Immediately return a help message if the command is invalid
