@@ -12,6 +12,9 @@ from sqlmodel import Field, Relationship, SQLModel
 from concrete.clients import CLIClient
 from concrete.models.messages import Message as ConcreteMessage
 from concrete.models.messages import TextMessage
+from concrete.operators import Developer as PydanticDeveloper
+from concrete.operators import Executive as PydanticExecutive
+from concrete.operators import Operator as PydanticOperator
 from concrete.state import ProjectStatus
 from concrete.tools import MetaTool
 from concrete.tools.utils import tool_name_to_class
@@ -185,12 +188,8 @@ class Operator(OperatorBase, MetadataMixin, table=True):
         },
     )
 
-    def to_obj(self):
+    def to_obj(self) -> "PydanticOperator":
         # TODO: Abide by orchestrator clients
-        from concrete.operators import Developer as PydanticDeveloper
-        from concrete.operators import Executive as PydanticExecutive
-        from concrete.operators import Operator as PydanticOperator
-
         operator: PydanticOperator | PydanticDeveloper | PydanticExecutive
 
         if self.title == "executive":

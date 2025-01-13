@@ -176,7 +176,7 @@ class Webhook:
     Separates endpoints by application.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.routes: dict[str, Callable] = {}
 
 

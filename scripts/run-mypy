@@ -2,7 +2,8 @@
 
 set -o errexit
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.." # cd to parent of scripts directory
+
 
 # Note: There seems to be an issue with mypy cache causing alternating error messages.
 # Disabling cache with --no-incremental fixes the issue, but is slower.

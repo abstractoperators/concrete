@@ -113,7 +113,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
         def _send_and_await_reply(
             *args,
             **kwargs,
-        ):
+        ) -> Message:
             """
             options (dict): can contain extra options:
                 response_format ([PydanticModel, ConcreteModel]): something json-like
