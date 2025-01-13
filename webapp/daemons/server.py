@@ -483,6 +483,7 @@ class SlackDaemon(Webhook):
                     )
 
         if not await verify_slack_request(slack_signing_secret=self.signing_secret, request=request):
+            logger.error("Request not from Slack")
             return JSONResponse(
                 content={"error": "Request not from Slack"},
                 status_code=401,

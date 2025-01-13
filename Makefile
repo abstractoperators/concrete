@@ -1,4 +1,4 @@
-UV := uv run
+UV := uv run --all-extras
 PYTHON := $(UV) python
 ORCHESTRATE := PYTHONPATH=src/concrete-core $(PYTHON) -m concrete prompt
 
@@ -16,8 +16,10 @@ lint:
 	$(UV) pre-commit run --all-files
 
 # mypy
+# Note: There seems to be an issue with mypy cache causing alternating error messages.
+# Disabling cache with --no-incremental fixes the issue, but is slower.
 mypy:
-	$(UV) mypy --config-file mypy.ini  --no-namespace-packages --no-incremental
+	$(UV) mypy --config-file mypy.ini  --no-namespace-packages 
 
 # Demo commands
 helloworld:

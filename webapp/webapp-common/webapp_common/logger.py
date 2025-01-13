@@ -5,14 +5,13 @@ import uuid
 
 from fastapi import HTTPException, Request
 from pydantic import BaseModel
-from starlette.concurrency import iterate_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class RequestInfo:
 
-    def __init__(self, request) -> None:
-        self.request = request
+    def __init__(self, request: Request) -> None:
+        self.request: Request = request
 
     @property
     def method(self) -> str:
@@ -24,6 +23,8 @@ class RequestInfo:
 
     @property
     def ip(self) -> str:
+        if self.request.client is None:
+            return "UNKNOWN"
         return str(self.request.client.host)
 
     @property
@@ -64,25 +65,43 @@ class LoggerMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.logger = logger
 
+    async def set_body(self, request: Request):
+        receive_ = await request._receive()
+
+        async def receive():
+            return receive_
+
+        request._receive = receive
+
     async def dispatch(self, request: Request, call_next):
         req_id = str(uuid.uuid4())
         try:
+            await self.set_body(request)
             request.state.req_id = req_id
-            request.state.body = json.loads(await request.body() or "{}")
+
+            body = await request.body()
+            try:
+                json_body = await request.json()
+            except json.decoder.JSONDecodeError:
+                json_body = None
+            try:
+                form_body = await request.form()
+            except Exception:
+                form_body = None
+
+            parsed_body = json_body or form_body or body
+            request.state.body = {'body': parsed_body}
+
             log_request(request, self.logger)
 
-            response = await call_next(request)
-            if response.headers.get("content-type") == "application/json":
-                response_body = [chunk async for chunk in response.body_iterator]
-                response.body_iterator = iterate_in_threadpool(iter(response_body))
-            return response
+            return await call_next(request)
         except Exception as e:
             log_error(req_id, {"error_message": "ERR_UNEXPECTED" + str(e)}, self.logger)
             return HTTPException(status_code=500, detail="ERR_UNEXPECTED" + str(e))
 
 
 def log_request(request: Request, logger: logging.Logger):
-    request_info = RequestInfo(request)
+    request_info: RequestInfo = RequestInfo(request)
     request_log = RequestLog(
         req_id=request.state.req_id,
         method=request_info.method,

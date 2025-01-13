@@ -4,7 +4,8 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from webapp.daemons import server as agentserver
+# TODO: Fix import. webapp doesn't have an init, and mypy has implicit namespacing disabled.
+from webapp.daemons import server as agentserver  # type: ignore
 
 test_client: TestClient = TestClient(agentserver.app)
 
