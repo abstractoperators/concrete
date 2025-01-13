@@ -11,7 +11,7 @@ COPY alembic.ini alembic.ini
 COPY migrations migrations
 COPY scripts/run_alembic_migrations.sh scripts/run_alembic_migrations.sh
 
-RUN uv sync
+RUN uv sync --all-extras
 RUN chmod +x scripts/run_alembic_migrations.sh
 CMD ["./scripts/run_alembic_migrations.sh"]
 

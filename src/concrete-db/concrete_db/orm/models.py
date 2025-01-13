@@ -578,6 +578,15 @@ class OperatorOptions(Base):
     model_config = ConfigDict(arbitrary_types_allowed=True)  # type: ignore
 
 
+class LogBase(Base):
+    level: str = Field(default=None, description="Log level, e.g., INFO, WARNING,...", max_length=10)
+    message: str = Field(default=None, description="Log message. Possibly a json dump.")
+
+
+class Log(LogBase, MetadataMixin, table=True):
+    pass
+
+
 def init_sqlite_db():
     if SQLALCHEMY_DATABASE_URL.drivername == "sqlite":
         # Creating all tables won't update schema if a table already exists.

@@ -13,8 +13,6 @@ dotenv.load_dotenv(override=True)
 
 from concrete_db.orm.models import *  # noqa: F401, F403, E402
 
-from webapp.daemons.logging import *  # noqa: F401, F403, E402
-
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

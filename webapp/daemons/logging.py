@@ -1,9 +1,8 @@
 import logging
 import os
 
-from concrete_db.orm.models import Base, MetadataMixin, init_sqlite_db
+from concrete_db.orm.models import Log
 from concrete_db.orm.setup import Session
-from sqlmodel import Field
 
 dname = os.path.dirname(__file__)
 
@@ -13,18 +12,6 @@ logging.basicConfig(
     filemode="w",
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-
-
-class LogBase(Base):
-    level: str = Field(default=None, description="Log level, e.g., INFO, WARNING,...", max_length=10)
-    message: str = Field(default=None, description="Log message. Possibly a json dump.")
-
-
-class Log(LogBase, MetadataMixin, table=True):
-    pass
-
-
-init_sqlite_db()
 
 
 class LogDBHandler(logging.Handler):
