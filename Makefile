@@ -9,11 +9,15 @@ install:
 
 # Run tests
 test:
-	$(UV) pytest
+	$(UV) pytest 
 
 # Lint
 lint:
 	$(UV) pre-commit run --all-files
+
+# mypy
+mypy:
+	$(UV) mypy --config-file mypy.ini  --no-namespace-packages --no-incremental
 
 # Demo commands
 helloworld:
