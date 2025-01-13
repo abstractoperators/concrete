@@ -2,9 +2,6 @@
 
 set -o errexit
 
-# Change directory to the project root directory.
 cd "$(dirname "$0")"
 
-# Normally, Python uses __init__.py files to define a directory as a package. If these files are missing, MyPy may misinterpret directories as top-level modules, leading to conflicts (e.g., webapp.daemons.logging vs daemons.logging).src/concrete-core/concrete/telemetry/exporter.py:4: error: Cannot find implementation or library stub for module named "opentelemetry.sdk.trace"  [import-not-found]
-uv run mypy --config-file mypy.ini  --no-namespace-packages
-# uv run mypy --config-file mypy.ini  --explicit-package-bases
+uv run mypy --config-file mypy.ini  --no-namespace-packages --no-incremental
