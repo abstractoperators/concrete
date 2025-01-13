@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -o errexit
+
+cd "$(dirname "$0")"
+
+# Note: There seems to be an issue with mypy cache causing alternating error messages.
+# Disabling cache with --no-incremental fixes the issue, but is slower.
+uv run mypy --config-file mypy.ini  --no-namespace-packages

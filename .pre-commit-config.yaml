@@ -21,7 +21,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: "./run-mypy"
+        entry: "./scripts/run-mypy"
         language: python
         language_version: python3.11
         additional_dependencies: ["mypy==1.11.2"] # Matches mypy version in uv.lock
