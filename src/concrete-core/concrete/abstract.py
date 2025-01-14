@@ -132,7 +132,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
             tools_addendum = ""
             if tools:
-                tools_addendum = """Here are your available tools. If invoking a tool will help you answer the question, fill in the exact values for tool_name, tool_method, and tool_parameters. Leave these fields empty if no tool is needed."""  # noqa
+                tools_addendum = """\nHere are your available tools. If invoking a tool will help you answer the question, fill in the exact values for tool_name, tool_method, and tool_parameters. Leave these fields empty if no tool is needed."""  # noqa
 
                 for tool in tools:
                     tools_addendum += str(tool)

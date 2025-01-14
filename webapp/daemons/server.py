@@ -671,6 +671,3 @@ routers = [slack_daemon := SlackDaemon()]
 for router in routers:
     for route, handler in router.routes.items():
         app.add_api_route(route, handler, methods=["POST"])
-
-operator = operators[list(operators.keys())[0]]
-print(operator.chat(message='foobarbaz'))
