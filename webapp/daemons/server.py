@@ -318,7 +318,7 @@ class SlackDaemon(Webhook):
 
         self.personas = {
             'jaime': SlackPersona(
-                instructions="You are the persona of a slack chat bot. Your name is Jaime. Assist users in the workspace.",  # noqa
+                instructions="You are Jaime, a chat bot residing in a Slack channel. Assist users in the workspace.",  # noqa
                 icon="robot_face",
                 persona_name="Jaime",
             )

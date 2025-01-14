@@ -137,16 +137,15 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 for tool in tools:
                     tools_addendum += str(tool)
 
-            # Fetch underlying prompt, post string interpolation
-            query = question_producer(*args, **kwargs)
-            query += tools_addendum
-
-            if tools:
                 response_format = type(
                     f"{response_format.__name__}WithTools",
                     (response_format, Tool),
                     {},
                 )
+
+            # Fetch underlying prompt, post string interpolation
+            query = question_producer(*args, **kwargs)
+            instructions = instructions + tools_addendum
 
             # Process the finalized query
             answer = self._qna(
@@ -165,12 +164,14 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                     if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
                         resp = invoke_tool(cast(Tool, answer))
                         if resp is not None and hasattr(resp, "__str__"):
-                            # Update the query to include the tool call results.
-                            tool_preface = f"You called the tool: {answer.tool_name}.{answer.tool_method}\n"
-                            tool_preface += f"with the following parameters: {answer.tool_parameters}\n"
-                            tool_preface += f"The tool returned: {str(resp)}\n"
-                            tool_preface += "Use these results to answer the following query:\n"
-                            query = tool_preface + question_producer(*args, **kwargs)
+                            tool_postface = 'Use the following results to answer the query.'
+                            tool_postface += (
+                                f'The tool {answer.tool_name}.{answer.tool_method}'
+                                ' with arguments {answer.tool_parameters} yields:\n'
+                            )
+                            tool_postface += str(resp)
+
+                            query = question_producer(*args, **kwargs) + tool_postface
                             answer = self._qna(
                                 query,
                                 response_format=response_format,
