@@ -13,6 +13,9 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from webapp_common import JwtToken
@@ -20,6 +23,7 @@ from webapp_common.logger import LoggerMiddleware
 
 from concrete.clients.http import HTTPClient
 from concrete.operators import Operator
+from concrete.telemetry.exporter import LogExporter
 from concrete.tools.arxiv import ArxivTool
 from concrete.tools.document import DocumentTool
 from concrete.tools.http import RestApiTool
@@ -28,12 +32,17 @@ from concrete.webutils import AuthMiddleware, verify_slack_request
 from .logging import LogDBHandler
 
 abspath = os.path.abspath(__file__)
-
 dname = os.path.dirname(abspath)
 
-logger = logging.getLogger(__name__)
-
+logger: logging.Logger = logging.getLogger(__name__)
 logger.addHandler(LogDBHandler())
+
+tracer_provider: TracerProvider = trace.get_tracer_provider()
+span_processor = SimpleSpanProcessor(LogExporter(logger))
+tracer_provider.add_span_processor(span_processor)
+
+# tracer_provider.add_span_processor(span_processor)
+
 
 # slack commands are authenticated by Slack signing secret.
 UNAUTHENTICATED_PATHS = {
@@ -47,7 +56,6 @@ UNAUTHENTICATED_PATHS = {
     "/slack/slash_commands",
 }
 
-# Setup App with Middleware
 middleware = [
     Middleware(
         SessionMiddleware,
@@ -55,7 +63,7 @@ middleware = [
         domain=os.getenv("HTTP_SESSION_DOMAIN"),
     ),
     Middleware(AuthMiddleware, exclude_paths=UNAUTHENTICATED_PATHS),
-    Middleware(LoggerMiddleware, logger=logger),
+    Middleware(LoggerMiddleware, logger=logger),  # Logs all requests
 ]
 
 
@@ -176,7 +184,7 @@ class Webhook:
     Separates endpoints by application.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.routes: dict[str, Callable] = {}
 
 
@@ -483,7 +491,6 @@ class SlackDaemon(Webhook):
                     )
 
         if not await verify_slack_request(slack_signing_secret=self.signing_secret, request=request):
-            logger.error("Request not from Slack")
             return JSONResponse(
                 content={"error": "Request not from Slack"},
                 status_code=401,
@@ -664,3 +671,6 @@ routers = [slack_daemon := SlackDaemon()]
 for router in routers:
     for route, handler in router.routes.items():
         app.add_api_route(route, handler, methods=["POST"])
+
+operator = operators[list(operators.keys())[0]]
+print(operator.chat(message='foobarbaz'))

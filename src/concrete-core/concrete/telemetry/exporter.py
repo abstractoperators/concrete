@@ -1,4 +1,3 @@
-import json
 import logging
 import typing
 from os import linesep
@@ -38,18 +37,16 @@ class LogExporter(SpanExporter):
         logger: logging.Logger,
     ):
         self.logger = logger
-        self.logger.setLevel(logging.INFO)
-        if not self.logger.handlers:
+        if not self.logger.hasHandlers():
             raise ValueError("Logger must have at least one handler.")
 
     def export(self, spans: typing.Sequence[ReadableSpan]) -> SpanExportResult:
         for span in spans:
             span_data = {
                 "name": span.name,
-                "start_time": span.start_time.isoformat(),
-                "end_time": span.end_time.isoformat(),
+                "start_time": span.start_time,
+                "end_time": span.end_time,
                 "attributes": span.attributes,
-                "status": span.status.name,
             }
-            self.logger.info(f"Otel Span Logged: {json.dumps(span_data)}")
+            self.logger.info(f"Otel Span Logged: {span_data}")
         return SpanExportResult.SUCCESS
