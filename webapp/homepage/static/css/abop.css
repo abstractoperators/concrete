@@ -140,39 +140,6 @@ body {
     background-color: var(--electric-purple);
 }
 
-section.sidebar.right {
-    animation-name: slideLeft;
-    animation-duration: 150ms;
-    animation-timing-function: ease;
-}
-
-section.sidebar.right.closing {
-    animation-name: slideRight;
-    animation-duration: 150ms;
-    animation-timing-function: ease;
-}
-
-li.left {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: start;
-}
-
-li.right {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: end;
-}
-
-.list.row {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 16px;
-}
-
 .main.panel {
     display: flex;
     flex-direction: column;
@@ -200,27 +167,46 @@ li.right {
 
     p {
         font-size: max(32px, 3vw);
-        width: 50vw;
+        width: 60vw;
     }
 }
 
-.button {
+.centered-column {
     display: flex;
-    justify-content: flex-start;
+    flex-direction: column;
     align-items: center;
-    flex-direction: row;
-
-    gap: 8px;
-    margin: 8px;
-
-    border: none;
-    background: none;
-    cursor: pointer;
+    width: 100%;
 }
 
-.button.circle img {
-    display: block;
+.row {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.column {
+    width: 33.3%;
+}
+
+@media screen and (width < 650px) {
+    .column {
+      width: 90%;
+    }
+}
+
+.circle-mask {
+    object-fit: cover;
     border-radius: 50%;
+}
+
+.propic {
+    height: 100%;
+    width: 100%;
+}
+
+.card {
+    padding: 16px;
 }
 
 header {
@@ -258,40 +244,4 @@ header nav a:hover {
 
 header nav a img {
     height: 32px;
-}
-
-header, footer {
-    flex-grow: 0;
-    flex-shrink: 0;
-}
-
-footer {
-    font-family: var(--serif-family);
-    display: flex;
-    justify-content: space-around;
-}
-
-footer img {
-    height: 32px;
-}
-
-#footer-nav-icons {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-}
-
-#footer-nav-icons a {
-    margin: 4px;
-}
-
-@keyframes slideLeft {
-    0% {transform: translateX(0em);}
-    100% {transform: translateX(-20em);}
-}
-
-@keyframes slideRight {
-    0% {transform: translateX(0em);}
-    100% {transform: translateX(20em);}
 }
