@@ -318,7 +318,7 @@ class SlackDaemon(Webhook):
 
         self.personas = {
             'jaime': SlackPersona(
-                instructions="You are Jaime, a chat bot residing in a Slack channel. Assist users in the workspace.",  # noqa
+                instructions="Your name is Jaime, you are a chat bot residing in a Slack channel. Assist users in the workspace.",  # noqa
                 icon="robot_face",
                 persona_name="Jaime",
             )
@@ -428,7 +428,7 @@ class SlackDaemon(Webhook):
                     )
                 else:
                     persona = self.personas[args.name]
-                    resp = persona.chat_with_memory(args.message)
+                    resp = persona.chat_with_memory(f'User {json_data.get("user_id")}: {args.message}')
                     persona.append_memory(f'User {json_data.get("user_id")}: {args.message}')
                     persona.append_memory(f'Assistant {args.name}: {resp}')
 
