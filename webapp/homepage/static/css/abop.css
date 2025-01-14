@@ -156,7 +156,7 @@ body {
 
 #landing-panels {
     .main.panel {
-        height: 100vh;
+        min-height: 100vh;
         justify-content: center;
         margin: 0 16px;
     }
