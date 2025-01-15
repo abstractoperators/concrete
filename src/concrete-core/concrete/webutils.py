@@ -58,6 +58,7 @@ async def verify_slack_request(slack_signing_secret: str, request: Request) -> b
     if not timestamp or not signature:
         return False
 
+    # Prevent replay attacks
     if abs(time.time() - int(timestamp)) > 60 * 5:
         return False
 
