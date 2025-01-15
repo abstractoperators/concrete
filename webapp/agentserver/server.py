@@ -183,11 +183,22 @@ def create_operator_helper(instructions: str) -> dict:
 
 
 @app.patch("/operators/{operator_id}")
-def update_operator(operator_id: UUID, instructions: str) -> dict:
+async def update_operator(operator_id: UUID, request: Request) -> dict:
+    data = await request.json()
+    if not (instructions := data.get('instructions', '')):
+        raise HTTPException(status_code=400, detail="Instructions are required")
+
+    res = update_operator_helper(operator_id, instructions)
+    if res.get('error'):
+        raise HTTPException(status_code=res['error_code'], detail=res['error'])
+    return update_operator_helper(operator_id, instructions)
+
+
+def update_operator_helper(operator_id: UUID, instructions: str) -> dict:
     if operator_id not in operators:
-        raise HTTPException(status_code=404, detail="Operator not found")
+        return {'error': 'Operator not found', 'error_code': 404}
     operators[operator_id].instructions = instructions
-    return {"message": "Operator updated", "operator_id": operator_id}
+    return get_operator(operator_id)
 
 
 class Webhook:
@@ -291,7 +302,7 @@ class SlackPersona:
     def update_instructions(self, instructions: str) -> None:
         if not self.operator:
             raise ValueError("Operator not found")
-        self.operator.instructions = instructions
+        update_operator_helper(self.operator_id, instructions)
 
     def update_icon(self, icon: str) -> None:
         self.icon = icon

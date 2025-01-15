@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi.exceptions import HTTPException
 from fastapi.testclient import TestClient
 
 # TODO: Fix import. webapp doesn't have an init, and mypy has implicit namespacing disabled.
@@ -104,3 +105,25 @@ def test_operator_create_endpoint(setenv):
 
     assert response['instructions'] == 'Mocked instructions'
     assert UUID(response['operator_id']) in agentserver.operators
+
+
+def test_operator_update_endpoint(mock_operator, setenv):
+    """
+    Tests patch /operators/{operator_id} endpoint to ensure that the operator is updated."""
+    operator_id, mock_operator = mock_operator()
+
+    response = test_client.patch(
+        f"/operators/{operator_id}",
+        json={'instructions': 'Updated mock instructions'},
+    ).json()
+
+    assert response['instructions'] == 'Updated mock instructions'
+    assert UUID(response['operator_id']) in agentserver.operators
+
+    try:
+        response = test_client.patch(
+            f"/operators/{uuid4()}",
+            json={'instructions': 'Updated mock instructions'},
+        ).json()
+    except HTTPException as e:
+        assert e.status_code == 404
