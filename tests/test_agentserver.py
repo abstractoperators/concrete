@@ -18,13 +18,20 @@ def setenv(monkeypatch):
 
 @pytest.fixture
 def mock_operator():
+    ids = []
+
     def _create_operator():
         operator_id = uuid4()
+        ids.append(operator_id)
         mock_operator = MagicMock()
         agentserver.operators[operator_id] = mock_operator
         return operator_id, mock_operator
 
-    return _create_operator
+    yield _create_operator
+
+    for operator_id in ids:
+        if operator_id in agentserver.operators:  # Check because endpoint can also delete.
+            agentserver.operators.pop(operator_id)
 
 
 def test_operator_chat_endpoint(mock_operator, setenv):
@@ -43,8 +50,6 @@ def test_operator_chat_endpoint(mock_operator, setenv):
     assert response.status_code == 200
 
     mock_operator.chat.assert_called_once_with("Mocked chat request")
-
-    agentserver.operators.pop(operator_id)
 
 
 def test_operator_delete_endpoint(mock_operator, setenv):
