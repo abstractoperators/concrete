@@ -21,6 +21,15 @@ SLACK_BOT_TOKEN=
 HTTP_SESSION_SECRET
 HTTP_SESSION_DOMAIN
 OPENAI_API_KEY=
+
+# For logging (leave blank to use sqlite)
+DB_DRIVER=
+DB_USERNAME=
+DB_PASSWORD=
+DB_PORT=
+DB_HOST=
+DB_DATABASE=
+
 ```
 
 
@@ -32,6 +41,7 @@ OPENAI_API_KEY=
 3. Update the Slack App's slash command URL to the deployed server (at endpoint `/slack/slash-commands`)
 4. Create auth server that updates session secrets
 5. Update http session secret and domain
+6. Potentially configure a db for logging
 
-Lines Changed: +30, -10
-Last Updated: 2025-01-07 22:40:59 UTC
+Lines Changed: +10, -0
+Last Updated: 2025-01-15 02:41:47 UTC
