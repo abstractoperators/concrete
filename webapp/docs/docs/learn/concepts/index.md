@@ -16,10 +16,10 @@ A `Project` represents a unit of work executed on and returned to a user or anot
 `Client`s are the internal interface to an API or other programmatic backend.
 
 **agentserver**
-`agentserver` are long-running processes providing an entrypoint for Operators and Tools to interact.
+`agentserver` persist long-running processes providing an entrypoint for Operators and Tools to interact.
 
 ---
 
-Last Updated: 2025-01-15 02:47:48 UTC
+Last Updated: 2025-01-15 16:18:26 UTC
 
-Lines Changed: +2, -2
+Lines Changed: +1, -1
