@@ -15,7 +15,7 @@ members = [
     "concrete-core",
     "concrete-db",
     "concrete-inference",
-    "daemons",
+    "agentserver",
     "docs",
     "homepage",
     "main",
@@ -952,9 +952,9 @@ wheels = [
 ]
 
 [[package]]
-name = "daemons"
+name = "agentserver"
 version = "0.1.0"
-source = { virtual = "webapp/daemons" }
+source = { virtual = "webapp/agentserver" }
 dependencies = [
     { name = "concrete-core", extra = ["openai", "requests", "tool-arxiv", "tool-documentretriever"] },
     { name = "concrete-db" },

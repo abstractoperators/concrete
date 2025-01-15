@@ -46,7 +46,7 @@ nav:
           - learn/concepts/operators.md
           - learn/concepts/projects.md
           - learn/concepts/tools.md
-          - learn/concepts/daemons.md
+          - learn/concepts/agentserver.md
   - Developer Guide:
       - developer-guide/index.md
       - developer-guide/setup.md

@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # TODO: Fix import. webapp doesn't have an init, and mypy has implicit namespacing disabled.
-from webapp.daemons import server as agentserver  # type: ignore
+from webapp.agentserver import server as agentserver  # type: ignore
 
 test_client: TestClient = TestClient(agentserver.app)
 

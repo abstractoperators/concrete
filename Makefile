@@ -35,7 +35,7 @@ simpleflask:
 
 
 # ----------------------- Build commands -----------------------
-# alembic, auth, api, main, homepage, docs, daemons
+# alembic, auth, api, main, homepage, docs, agentserver
 build-app:
 	docker compose -f docker/docker-compose.yml build $(APP)
 
@@ -93,12 +93,12 @@ local-homepage:
 
 
 # Note that for webhook functionality, you will need to use a service like ngrok to expose your local server to the internet. 
-# I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/daemons/README.md for more details.
+# I run `ngrok http 8000`, and then use the forwarding URL as the webhook URL in the GitHub app settings. See webapp/agentserver/README.md for more details.
 ngrok: # Use the provided url as your webhook url
 	ngrok http 8000
 
-local-daemons: 
-	$(UV) fastapi dev webapp/daemons/server.py 
+local-agentserver: 
+	$(UV) fastapi dev webapp/agentserver/server.py 
 
 
 # Build Packages

@@ -53,12 +53,12 @@ services:
     network_mode: service:ts-oauth-auth
     platform: linux/arm64
 
-  daemons:
+  agentserver:
     build:
       context: ../
-      dockerfile: ./docker/Dockerfile.daemons
-    container_name: daemons
-    image: daemons:latest
+      dockerfile: ./docker/Dockerfile.agentserver
+    container_name: agentserver
+    image: agentserver:latest
     ports:
       - "8000:80"
     platform: linux/arm64

@@ -6,7 +6,7 @@ Webhooks require a URL to be able to send requests to. This is a problem when de
 
 1. [Install Ngrok](https://dashboard.ngrok.com/get-started/setup/linux)
 2. Start ngrok `make ngrok`
-3. Start your local server (e.g., make local-daemons)
+3. Start your local server (e.g., make local-agentserver)
 4. Copy the forwarding URL from ngrok console, and use it as the webhook URL. For the Slack Daemon, https://api.slack.com/apps/A07P0F0TK2L/slash-commands?)
 
 # Jaime
@@ -43,5 +43,5 @@ DB_DATABASE=
 5. Update http session secret and domain
 6. Potentially configure a db for logging
 
-Lines Changed: +10, -0
-Last Updated: 2025-01-15 02:41:47 UTC
+Lines Changed: +47, -0
+Last Updated: 2025-01-15 02:47:48 UTC
