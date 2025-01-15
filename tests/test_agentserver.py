@@ -91,3 +91,16 @@ def test_operator_list_endpoint(mock_operator, setenv):
 
     assert str(operator_id1) in response['operators']
     assert str(operator_id2) in response['operators']
+
+
+def test_operator_create_endpoint(setenv):
+    """
+    Tests post /operators endpoint to make sure a new operator is created.
+    """
+    response = test_client.post(
+        "/operators",
+        json={'instructions': 'Mocked instructions'},
+    ).json()
+
+    assert response['instructions'] == 'Mocked instructions'
+    assert UUID(response['operator_id']) in agentserver.operators
