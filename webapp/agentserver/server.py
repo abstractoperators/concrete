@@ -153,10 +153,22 @@ def delete_operator(operator_id: UUID) -> dict:
     return {"message": "Operator deleted", "operator_id": operator_id}
 
 
-@app.post("/operators/{operator_id}")
-def create_operator(instructions: str) -> dict:
+@app.post("/operators")
+async def create_operator(request: Request) -> dict:
     """
     Create an operator.
+    """
+    data = await request.json()
+    if not (instructions := data.get('instructions', '')):
+        raise HTTPException(status_code=400, detail="Instructions are required")
+
+    return create_operator_helper(instructions)
+
+
+def create_operator_helper(instructions: str) -> dict:
+    """
+    Helper function to create an operator.
+    Lets us create an operator without a request object.
     """
     operator_id = uuid4()
     operator = Operator(
@@ -248,7 +260,7 @@ class SlackPersona:
     ):
         # New Operator
         if not uuid or uuid not in operators:
-            self.operator_id = create_operator(instructions)['operator_id']
+            self.operator_id = create_operator_helper(instructions)['operator_id']
         else:
             self.operator_id = uuid
 
