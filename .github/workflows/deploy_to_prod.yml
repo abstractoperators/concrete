@@ -154,6 +154,8 @@ jobs:
                 export SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
                 export SLACK_SIGNING_SECRET=${{ secrets.SLACK_SIGNING_SECRET }}
 
+                export TRACE_ENABLED=true
+
 
             - uses: actions/setup-python@v5
               with:
