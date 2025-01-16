@@ -37,7 +37,18 @@ class RequestInfo:
 
     @property
     def headers(self) -> dict:
-        return {key: value for key, value in self.request.headers.items()}
+        # I asked chatgpt for headers that are safe and useful to log
+        safe_headers = {
+            'accept': self.request.headers.get('accept'),
+            'accept-encoding': self.request.headers.get('accept-encoding'),
+            'host': self.request.headers.get('host'),
+            'content-type': self.request.headers.get('content-type'),
+            'content-length': self.request.headers.get('content-length'),
+            'connection': self.request.headers.get('connection'),
+            'x-request-id': self.request.headers.get('x-request-id'),
+            'x-correlation-id': self.request.headers.get('x-correlation-id'),
+        }
+        return {k: v for k, v in safe_headers.items() if v is not None}
 
     @property
     def body(self) -> dict:
