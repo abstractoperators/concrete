@@ -5,6 +5,7 @@ from celery.result import AsyncResult
 from concrete_async.tasks import abstract_operation
 
 import concrete
+import concrete.abstract
 from concrete.clients import CLIClient, model_to_schema
 from concrete.models import KombuMixin, Message, Operation
 

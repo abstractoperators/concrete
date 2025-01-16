@@ -10,7 +10,6 @@ from concrete.clients import CLIClient
 
 dotenv.load_dotenv(override=True)
 
-
 from concrete_db.orm.models import *  # noqa: F401, F403, E402
 
 # this is the Alembic Config object, which provides

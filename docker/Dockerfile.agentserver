@@ -8,12 +8,12 @@ COPY .env .env
 COPY pyproject.toml uv.lock .env ./
 COPY src ./src
 
-COPY webapp/daemons ./webapp/daemons
+COPY webapp/agentserver ./webapp/agentserver
 COPY webapp/webapp-common ./webapp/webapp-common
 
-WORKDIR /app/webapp/daemons
+WORKDIR /app/webapp/agentserver
 RUN uv sync
 
-RUN chmod +x /app/webapp/daemons/scripts/start.sh
+RUN chmod +x /app/webapp/agentserver/scripts/start.sh
 EXPOSE 80
-CMD ["/app/webapp/daemons/scripts/start.sh"]
+CMD ["/app/webapp/agentserver/scripts/start.sh"]

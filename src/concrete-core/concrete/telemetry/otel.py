@@ -8,6 +8,7 @@ try:
     from opentelemetry import trace
     from opentelemetry.sdk.trace import ConcurrentMultiSpanProcessor, TracerProvider
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.trace import Tracer
 
     from .exporter import FileSpanExporter
 
@@ -15,12 +16,13 @@ try:
     multi_span_processor = ConcurrentMultiSpanProcessor(num_threads=1)
     span_processor = SimpleSpanProcessor(FileSpanExporter(filepath="trace.log"))
     multi_span_processor.add_span_processor(span_processor)
-    trace.set_tracer_provider(TracerProvider(active_span_processor=multi_span_processor))
+    tracer_provider: TracerProvider = TracerProvider(active_span_processor=multi_span_processor)
+    trace.set_tracer_provider(tracer_provider)
 
     def add_tracing(func):
         """Decorator to add OpenTelemetry tracing."""
 
-        tracer = trace.get_tracer(func.__module__)
+        tracer: Tracer = trace.get_tracer(func.__module__)
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
@@ -33,6 +35,7 @@ try:
                 span.set_attribute("kwargs", str(kwargs))
 
                 # TODO Make generic to non-AbstractOperator methods
+                # locals?
                 span.set_attribute('project_id', str(self.project_id))
                 span.set_attribute('operator_id', str(self.operator_id))
                 span.set_attribute('starting_prompt', str(self.starting_prompt))
@@ -53,4 +56,6 @@ except ImportError:
     def add_tracing(func):
         return func
 
-    CLIClient.emit("concrete[otel] extra dependencies not installed. Tracing is disabled")
+    trace_enabled = os.getenv("TRACE_ENABLED")
+    if trace_enabled and trace_enabled.lower() == 'true':
+        CLIClient.emit("concrete[otel] extra dependencies not installed. Tracing is disabled")

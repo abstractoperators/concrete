@@ -50,7 +50,7 @@ jobs:
       environment: prod 
       strategy:
         matrix:
-          image: ['api', 'main', 'homepage', 'auth', 'docs', 'daemons']
+          image: ['api', 'main', 'homepage', 'auth', 'docs', 'agentserver']
       continue-on-error: true
         
 
@@ -129,8 +129,8 @@ jobs:
                 echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
                 echo GOOGLE_OAUTH_REDIRECT=https://auth.abop.ai/auth >> .env
             
-            - name: Set up env for daemons
-              if: matrix.image == 'daemons'
+            - name: Set up env for agentserver
+              if: matrix.image == 'agentserver'
               run: |
                 touch .env
                 # For Document (RAG) Tool

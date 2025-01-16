@@ -2,8 +2,6 @@ import os
 import re
 from typing import TYPE_CHECKING
 
-import tiktoken
-
 try:
     from openai import OpenAI  # noqa
     from tiktoken import encoding_for_model
@@ -64,7 +62,7 @@ class OpenAIClient(LMClient):
         elif re.search(gpt_3_5_turbo_pattern, self.model):
             context_window, max_output = 16_384, 4_096
 
-        encoding = tiktoken.encoding_for_model(self.model)
+        encoding = encoding_for_model(self.model)
         num_tokens = len(encoding.encode(message))
         return (context_window - max_output) >= num_tokens
 
