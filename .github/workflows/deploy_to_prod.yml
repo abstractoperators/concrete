@@ -137,12 +137,22 @@ jobs:
                 echo POSTGRES_VECTOR_DB_DRIVER=postgresql+psycopg2 >> .env
                 echo POSTGRES_VECTOR_DB_USERNAME=postgres >> .env
                 echo POSTGRES_VECTOR_DB_PASSWORD=${{ secrets.POSTGRES_VECTOR_DB_PASSWORD }} >> .env
-                echo POSTGRES_VECTOR_DB_HOST=staging-db.c3auqaqcunqy.us-east-1.rds.amazonaws.com
                 echo POSTGRES_VECTOR_DB_PORT=5432 >> .env
                 echo POSTGRES_VECTOR_DB_DATABASE=postgres >> .env
                 echo POSTGRES_VECTOR_STORE_TABLE='arxiv_paper_vector_store' >> .env
                 
                 echo OPENAI_API_KEY=${{ secrets.JAIME_OPENAI_API_KEY }} >> .env
+
+                echo HTTP_CORS_ORIGINS=*.abop.ai >> .env
+                echo HTTP_SESSION_DOMAIN=abop.ai >> .env
+                echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
+                echo GOOGLE_OAUTH_CLIENT_ID=1079616795937-oo3obhti3cv2npc4j6i06l5pq61v7925.apps.googleusercontent.com >> .env
+
+                export LISTENER_RULE_FIELD=host-header
+                export LISTENER_RULE_VALUE=agentserver.abop.ai
+
+                export SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
+                export SLACK_SIGNING_SECRET=${{ secrets.SLACK_SIGNING_SECRET }}
 
 
             - uses: actions/setup-python@v5
