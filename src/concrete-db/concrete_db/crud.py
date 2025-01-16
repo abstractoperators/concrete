@@ -1,7 +1,9 @@
 from collections.abc import Sequence
+from logging import LogRecord
 from typing import TypeVar
 from uuid import UUID
 
+from sqlalchemy import desc
 from sqlmodel import Session, select
 
 from .orm.models import (
@@ -13,6 +15,7 @@ from .orm.models import (
     Client,
     ClientCreate,
     ClientUpdate,
+    Log,
     Message,
     MessageCreate,
     MessageUpdate,
@@ -522,3 +525,13 @@ def get_user(db: Session, email: str) -> User | None:
 
 def create_authtoken(db: Session, authtoken_create: AuthTokenCreate) -> AuthToken:
     return create_generic(db, AuthToken(**authtoken_create.model_dump()))
+
+
+def write_log(db: Session, record: LogRecord) -> Log:
+    log = Log(level=record.levelname, message=record.getMessage())
+    return create_generic(db, log)
+
+
+def get_logs(db: Session, n: int) -> Sequence[Log]:
+    stmt = select(Log).order_by(desc(Log.created_at)).limit(n)  # type: ignore
+    return db.scalars(stmt).all()
