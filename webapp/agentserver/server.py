@@ -340,9 +340,14 @@ class SlackDaemon(Webhook):
         super().__init__()
         self.routes['/slack/slash_commands'] = self.slash_commands
 
+        instructions = (
+            "Your name is jaime.\n"
+            "The user will pass you a log of past interactions representing a discussion in a shared slack channel."
+            "Respond to the last message the user sends you using the context of the conversation."
+        )
         self.personas = {
             'jaime': SlackPersona(
-                instructions="Your name is Jaime, you are a chat bot residing in a Slack channel. Assist users in the workspace.",  # noqa
+                instructions=instructions,
                 icon="robot_face",
                 persona_name="Jaime",
             )
