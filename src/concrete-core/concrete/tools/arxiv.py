@@ -48,8 +48,8 @@ class ArxivTool(metaclass=MetaTool):
         query: str,
         id_list: list[str] = [],
         max_results: int = 10,
-        sort_by: str = "Relevance",
-        sort_order: str = "Descending",
+        sort_by: str = "relevance",
+        sort_order: str = "descending",
     ) -> str:
         """
         Search and return a list of arXiv articles.

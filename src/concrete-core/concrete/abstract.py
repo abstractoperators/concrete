@@ -155,7 +155,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             )
 
             # TODO: Async and give up after a certain amount of time
-            # TODO: Be more transparent with how the Operator is invoking tools.
+            # TODO: Be more transparent with how the Operator is invoking tools, which wil also help with prompting.
             retry_ct = 0
             tool_postfaces = []
             while retry_ct < 3:
@@ -179,6 +179,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                             response_format=response_format,
                             instructions=instructions,
                         )
+
                 except Exception:
                     tool_postface = (
                         f"\nThe tool {answer.tool_name}.{answer.tool_method}"
