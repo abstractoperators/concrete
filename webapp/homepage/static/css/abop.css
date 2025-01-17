@@ -11,7 +11,7 @@
     --princeton-orange: #FF961F;
     --dark-orange: #ff8d0a;
     --yellow: #F5F500;
-    --aureolin: #E4E400;
+    --aureolin: #e4e400;
 
     --jet: #2f2f2f;
 
@@ -164,6 +164,12 @@ header > nav > a {
 label {
     display: none;
     background: url("../icons/bars.svg") no-repeat center/80%;
+
+    transition: filter var(--hover-transition-time);
+}
+
+label:hover {
+    filter: brightness(150%);
 }
 
 #cta-nav {
@@ -184,7 +190,7 @@ label {
 
 .call-to-action {
     font-family: var(--sans-serif-family);
-    font-weight: 500;
+    font-weight: 420;
     color: white;
 
     background-color: var(--electric-violet);
@@ -282,6 +288,7 @@ label {
 
     #cta-nav {
         padding: 32px;
+        justify-content: end;
     }
 
     label {
@@ -291,20 +298,25 @@ label {
         cursor: pointer;
     }
 
+    [type="checkbox"]:checked ~ label {
+        background: url("../icons/xmark.svg") no-repeat center/90%;
+    }
+
     [type="checkbox"]:checked ~ #main-nav {
         display: flex;
         flex-direction: column;
-        align-items: end;
+        align-items: stretch;
 
         position: fixed;
         right: 0;
         top: 0;
+        width: 100vw;
         height: 100vh;
         z-index: -1;
         background: linear-gradient(
-            to left,
-            rgba(0, 71, 171, 1) 0%,
-            rgba(0, 71, 171, .5) 100%
+            to bottom left,
+            rgba(139, 0, 255, 1) 0%,
+            rgba(255, 141, 10, .5) 100%
         );
     }
 
