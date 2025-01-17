@@ -154,10 +154,8 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 instructions=instructions,
             )
 
-            # TODO Reconsider where this occurs.
-            # This will be blocking, and the intermediate tool call will not be returned.
-            # It also makes it difficult to do a manual invocation of the tool.
             # TODO: Async and give up after a certain amount of time
+            # TODO: Be more transparent with how the Operator is invoking tools.
             try:
                 if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
                     resp = invoke_tool(cast(Tool, answer))
@@ -177,8 +175,6 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                         instructions=instructions,
                     )
             except Exception:
-                # TODO: Be more transparent with how the Operator is invoking tools. ->
-                # Better error handling and retrying
                 tool_postface = (
                     f"\nThe tool {answer.tool_name}.{answer.tool_method}"
                     " with arguments {answer.tool_parameters} failed to execute.\n"
