@@ -96,15 +96,15 @@ jobs:
                 echo HTTP_SESSION_DOMAIN=abop.ai >> .env
                 echo HTTP_SESSION_SECRET=${{ secrets.HTTP_SESSION_SECRET }} >> .env
                 
-                export LISTENER_RULE_FIELD=host-header
-                export LISTENER_RULE_VALUE=app.abop.ai
+                echo "LISTENER_RULE_FIELD=host-header" >> $GITHUB_ENV
+                echo "LISTENER_RULE_VALUE=app.abop.ai" >> $GITHUB_ENV
 
             - name: Set up env for homepage
               if: matrix.image == 'homepage'
               run: |
                 touch .env
-                export LISTENER_RULE_FIELD=host-header
-                export LISTENER_RULE_VALUE=www.abop.ai
+                echo "LISTENER_RULE_FIELD=host-header" >> $GITHUB_ENV
+                echo "LISTENER_RULE_VALUE=www.abop.ai" >> $GITHUB_ENV
             
             - name: Set up env for auth
               if: matrix.image == 'auth'
