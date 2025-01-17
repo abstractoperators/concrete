@@ -1,40 +1,52 @@
 {% macro header(request) %}
 <header>
     <nav>
-        <a style="height: 3rem" href="{{ url_for('root') }}">
+        <a href="{{ url_for('root') }}">
             <img
                 id="home-button"
                 src="{{ url_for('static', path='abstractoperators_favicon.jpg') }}"
                 alt="Home"
             >
         </a>
-        <nav id="primary-nav">
-            <a href="{{ url_for('concrete') }}" >
-                Concrete
-            </a>
-            <a href="{{ url_for('agentserver') }}" >
-                AgentServer
-            </a>
-            <a href="{{ url_for('about') }}" >
-                About Us
-            </a>
-        </nav>
-    </nav>
-    <nav>
-        <a
-            id="nav-github"
-            href="https://github.com/abstractoperators"
-            target="_blank"
-        >
-            <img src="{{ url_for('static', path='/icons/github.svg') }}" alt="Github">
-        </a>
-        <a
-            class="call-to-action nav"
-            href="http://calendly.com/kentgang/30min"
-            target="_blank"
-        >
-            Contact Us
-        </a>
+        <input type="checkbox" id="nav">
+        <label for="nav">
+            <i class="fa-solid fa-bars" style="color: var(--electric-violet)"></i>
+        </label>
+        <div id="main-nav">
+            <ul>
+                <li>
+                    <a href="{{ url_for('concrete') }}" >
+                        Concrete
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('agentserver') }}" >
+                        Operatus
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('about') }}" >
+                        About Us
+                    </a>
+                </li>
+            </ul>
+            <div id="cta-nav">
+                <a
+                    id="nav-github"
+                    href="https://github.com/abstractoperators"
+                    target="_blank"
+                >
+                    <img src="{{ url_for('static', path='/icons/github.svg') }}" alt="Github">
+                </a>
+                <a
+                    class="call-to-action nav"
+                    href="http://calendly.com/kentgang/30min"
+                    target="_blank"
+                >
+                    Contact Us
+                </a>
+            </div>
+        </div>
     </nav>
 </header>
 {% endmacro %}
