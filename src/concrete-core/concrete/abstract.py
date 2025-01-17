@@ -144,12 +144,12 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 )
 
             # Fetch underlying prompt, post string interpolation
-            query = question_producer(*args, **kwargs)
+            original_query = question_producer(*args, **kwargs)
             instructions = instructions + tools_addendum
 
             # Process the finalized query
             answer = self._qna(
-                query,
+                original_query,
                 response_format=response_format,
                 instructions=instructions,
             )
@@ -157,6 +157,7 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             # TODO: Async and give up after a certain amount of time
             # TODO: Be more transparent with how the Operator is invoking tools.
             retry_ct = 0
+            tool_postfaces = []
             while retry_ct < 3:
                 try:
                     if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
@@ -170,7 +171,9 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                         else:
                             tool_postface += "No response from tool."
 
-                        query = question_producer(*args, **kwargs) + tool_postface
+                        tool_postfaces.append(tool_postface)
+
+                        query = original_query + '\n'.join(tool_postfaces)
                         answer = self._qna(
                             query,
                             response_format=response_format,
@@ -181,14 +184,14 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                         f"\nThe tool {answer.tool_name}.{answer.tool_method}"
                         " with arguments {answer.tool_parameters} failed to execute.\n"
                     )
-                    query = question_producer(*args, **kwargs) + tool_postface
+                    tool_postfaces.append(tool_postface)
+                    query = original_query + '\n'.join(tool_postfaces)
                     answer = self._qna(
                         query,
                         response_format=response_format,
                         instructions=instructions,
                     )
                     break
-
                 retry_ct += 1
 
             return answer
