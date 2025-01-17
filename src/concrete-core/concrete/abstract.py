@@ -156,35 +156,40 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
 
             # TODO: Async and give up after a certain amount of time
             # TODO: Be more transparent with how the Operator is invoking tools.
-            try:
-                if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
-                    resp = invoke_tool(cast(Tool, answer))
-                    tool_postface = (
-                        f'\nThe tool {answer.tool_name}.{answer.tool_method}'
-                        f' with arguments {answer.tool_parameters} yields:\n'
-                    )
-                    if resp is not None and hasattr(resp, "__str__"):
-                        tool_postface += str(resp)
-                    else:
-                        tool_postface += "No response from tool."
+            retry_ct = 0
+            while retry_ct < 3:
+                try:
+                    if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
+                        resp = invoke_tool(cast(Tool, answer))
+                        tool_postface = (
+                            f'\nThe tool {answer.tool_name}.{answer.tool_method}'
+                            f' with arguments {answer.tool_parameters} yields:\n'
+                        )
+                        if resp is not None and hasattr(resp, "__str__"):
+                            tool_postface += str(resp)
+                        else:
+                            tool_postface += "No response from tool."
 
+                        query = question_producer(*args, **kwargs) + tool_postface
+                        answer = self._qna(
+                            query,
+                            response_format=response_format,
+                            instructions=instructions,
+                        )
+                except Exception:
+                    tool_postface = (
+                        f"\nThe tool {answer.tool_name}.{answer.tool_method}"
+                        " with arguments {answer.tool_parameters} failed to execute.\n"
+                    )
                     query = question_producer(*args, **kwargs) + tool_postface
                     answer = self._qna(
                         query,
                         response_format=response_format,
                         instructions=instructions,
                     )
-            except Exception:
-                tool_postface = (
-                    f"\nThe tool {answer.tool_name}.{answer.tool_method}"
-                    " with arguments {answer.tool_parameters} failed to execute.\n"
-                )
-                query = question_producer(*args, **kwargs) + tool_postface
-                answer = self._qna(
-                    query,
-                    response_format=response_format,
-                    instructions=instructions,
-                )
+                    break
+
+                retry_ct += 1
 
             return answer
 
