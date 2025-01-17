@@ -157,38 +157,39 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
             # TODO Reconsider where this occurs.
             # This will be blocking, and the intermediate tool call will not be returned.
             # It also makes it difficult to do a manual invocation of the tool.
-            # However, it aligns with goals of wanting Operators to be able to use tools
-            retry_ct = 0  # try thrice
             # TODO: Async and give up after a certain amount of time
-            while retry_ct < 3:
-                try:
-                    if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
-                        resp = invoke_tool(cast(Tool, answer))
-                        if resp is not None and hasattr(resp, "__str__"):
-                            tool_postface = 'Use the following results to answer the query.'
-                            tool_postface += (
-                                f'The tool {answer.tool_name}.{answer.tool_method}'
-                                f' with arguments {answer.tool_parameters} yields:\n'
-                            )
-                            tool_postface += str(resp)
-                        else:
-                            tool_postface = "Use the following results to answer the query."
-                            tool_postface += (
-                                f'The tool {answer.tool_name}.{answer.tool_method}'
-                                f' with arguments {answer.tool_parameters} did not return a result.'
-                            )
+            try:
+                if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
+                    resp = invoke_tool(cast(Tool, answer))
+                    tool_postface = (
+                        f'\nThe tool {answer.tool_name}.{answer.tool_method}'
+                        f' with arguments {answer.tool_parameters} yields:\n'
+                    )
+                    if resp is not None and hasattr(resp, "__str__"):
+                        tool_postface += str(resp)
+                    else:
+                        tool_postface += "No response from tool."
 
-                        query = question_producer(*args, **kwargs) + tool_postface
-                        answer = self._qna(
-                            query,
-                            response_format=response_format,
-                            instructions=instructions,
-                        )
-                    break
-                except AttributeError:
-                    retry_ct += 1
-            if retry_ct == 3:
-                CLIClient.emit("Could not invoke tool, returning attempted tool call request")
+                    query = question_producer(*args, **kwargs) + tool_postface
+                    answer = self._qna(
+                        query,
+                        response_format=response_format,
+                        instructions=instructions,
+                    )
+            except Exception:
+                # TODO: Be more transparent with how the Operator is invoking tools. ->
+                # Better error handling and retrying
+                tool_postface = (
+                    f"\nThe tool {answer.tool_name}.{answer.tool_method}"
+                    " with arguments {answer.tool_parameters} failed to execute.\n"
+                )
+                query = question_producer(*args, **kwargs) + tool_postface
+                answer = self._qna(
+                    query,
+                    response_format=response_format,
+                    instructions=instructions,
+                )
+
             return answer
 
         return _send_and_await_reply
