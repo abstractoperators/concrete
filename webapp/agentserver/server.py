@@ -5,9 +5,12 @@ import shlex
 import time
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
-from typing import Callable
+from typing import Callable, Sequence
 from uuid import UUID, uuid4
 
+from concrete_db.crud import get_logs
+from concrete_db.orm.models import Log
+from concrete_db.orm.setup import Session
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -40,9 +43,6 @@ logger.addHandler(LogDBHandler())
 tracer_provider: TracerProvider = trace.get_tracer_provider()
 span_processor = SimpleSpanProcessor(LogExporter(logger))
 tracer_provider.add_span_processor(span_processor)
-
-# tracer_provider.add_span_processor(span_processor)
-
 
 # slack commands are authenticated by Slack signing secret.
 UNAUTHENTICATED_PATHS = {
@@ -82,9 +82,10 @@ async def root(request: Request):
 
 
 @app.get("/logs")
-def get_logs():
-    with open(dname + "/server.log", "r") as f:
-        return f.read()
+def logs(n: int = 20):
+    with Session() as session:
+        logs: Sequence[Log] = get_logs(session, n=n)
+    return logs
 
 
 @app.get("/ping")
@@ -339,9 +340,14 @@ class SlackDaemon(Webhook):
         super().__init__()
         self.routes['/slack/slash_commands'] = self.slash_commands
 
+        instructions = (
+            "Your name is jaime.\n"
+            "The user will pass you a log of past interactions representing a discussion in a shared slack channel."
+            "Respond to the last message the user sends you using the context of the conversation."
+        )
         self.personas = {
             'jaime': SlackPersona(
-                instructions="Your name is Jaime, you are a chat bot residing in a Slack channel. Assist users in the workspace.",  # noqa
+                instructions=instructions,
                 icon="robot_face",
                 persona_name="Jaime",
             )

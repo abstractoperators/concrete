@@ -8,6 +8,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "agentserver",
     "api",
     "auth",
     "benchmarks",
@@ -15,7 +16,6 @@ members = [
     "concrete-core",
     "concrete-db",
     "concrete-inference",
-    "agentserver",
     "docs",
     "homepage",
     "main",
@@ -36,6 +36,23 @@ requirements = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "urllib3" },
+]
+
+[[package]]
+name = "agentserver"
+version = "0.1.0"
+source = { virtual = "webapp/agentserver" }
+dependencies = [
+    { name = "concrete-core", extra = ["auth", "openai", "otel", "requests", "tool-arxiv", "tool-documentretriever"] },
+    { name = "concrete-db" },
+    { name = "webapp-common" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concrete-core", extras = ["openai", "tool-arxiv", "tool-documentretriever", "requests", "otel", "auth"], editable = "src/concrete-core" },
+    { name = "concrete-db", editable = "src/concrete-db" },
+    { name = "webapp-common", editable = "webapp/webapp-common" },
 ]
 
 [[package]]
@@ -949,23 +966,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/33/b3682992ab2e9476b9c81fff22f02c8b0a1e6e1d49ee1750a67d85fd7ed2/cryptography-43.0.3-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:df6b6c6d742395dd77a23ea3728ab62f98379eff8fb61be2744d4679ab678f73", size = 4076592 },
     { url = "https://files.pythonhosted.org/packages/81/1e/ffcc41b3cebd64ca90b28fd58141c5f68c83d48563c88333ab660e002cd3/cryptography-43.0.3-cp39-abi3-win32.whl", hash = "sha256:d56e96520b1020449bbace2b78b603442e7e378a9b3bd68de65c782db1507995", size = 2623145 },
     { url = "https://files.pythonhosted.org/packages/87/5c/3dab83cc4aba1f4b0e733e3f0c3e7d4386440d660ba5b1e3ff995feb734d/cryptography-43.0.3-cp39-abi3-win_amd64.whl", hash = "sha256:0c580952eef9bf68c4747774cde7ec1d85a6e61de97281f2dba83c7d2c806362", size = 3068026 },
-]
-
-[[package]]
-name = "agentserver"
-version = "0.1.0"
-source = { virtual = "webapp/agentserver" }
-dependencies = [
-    { name = "concrete-core", extra = ["openai", "requests", "tool-arxiv", "tool-documentretriever"] },
-    { name = "concrete-db" },
-    { name = "webapp-common" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "concrete-core", extras = ["openai", "tool-arxiv", "tool-documentretriever", "requests"], editable = "src/concrete-core" },
-    { name = "concrete-db", editable = "src/concrete-db" },
-    { name = "webapp-common", editable = "webapp/webapp-common" },
 ]
 
 [[package]]

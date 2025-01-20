@@ -11,7 +11,7 @@ COPY src ./src
 COPY webapp/agentserver ./webapp/agentserver
 COPY webapp/webapp-common ./webapp/webapp-common
 
-WORKDIR /app/webapp/agentserver
+WORKDIR /app/webapp
 RUN uv sync
 
 RUN chmod +x /app/webapp/agentserver/scripts/start.sh

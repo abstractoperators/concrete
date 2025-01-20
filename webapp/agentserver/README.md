@@ -30,6 +30,18 @@ DB_PORT=
 DB_HOST=
 DB_DATABASE=
 
+# For arxivtool
+POSTGRES_VECTOR_DB_DRIVER
+POSTGRES_VECTOR_DB_USERNAME
+POSTGRES_VECTOR_DB_PASSWORD
+POSTGRES_VECTOR_DB_HOST
+POSTGRES_VECTOR_DB_PORT
+POSTGRES_VECTOR_DB_DATABASE
+POSTGRES_VECTOR_STORE_TABLE
+
+# Log otel traces
+TRACE_ENABLED=true
+
 ```
 
 
@@ -43,5 +55,5 @@ DB_DATABASE=
 5. Update http session secret and domain
 6. Potentially configure a db for logging
 
-Lines Changed: +47, -0
-Last Updated: 2025-01-15 02:47:48 UTC
+Lines Changed: +12, -0
+Last Updated: 2025-01-16 18:52:14 UTC
