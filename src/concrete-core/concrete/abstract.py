@@ -144,51 +144,57 @@ class AbstractOperator(metaclass=AbstractOperatorMetaclass):
                 )
 
             # Fetch underlying prompt, post string interpolation
-            query = question_producer(*args, **kwargs)
+            original_query = question_producer(*args, **kwargs)
             instructions = instructions + tools_addendum
 
             # Process the finalized query
             answer = self._qna(
-                query,
+                original_query,
                 response_format=response_format,
                 instructions=instructions,
             )
 
-            # TODO Reconsider where this occurs.
-            # This will be blocking, and the intermediate tool call will not be returned.
-            # It also makes it difficult to do a manual invocation of the tool.
-            # However, it aligns with goals of wanting Operators to be able to use tools
-            retry_ct = 0  # try thrice
             # TODO: Async and give up after a certain amount of time
+            # TODO: Be more transparent with how the Operator is invoking tools, which wil also help with prompting.
+            retry_ct = 0
+            tool_postfaces = []
             while retry_ct < 3:
                 try:
                     if issubclass(type(answer), Tool) and answer.tool_name and answer.tool_method:
                         resp = invoke_tool(cast(Tool, answer))
+                        tool_postface = (
+                            f'\nThe tool {answer.tool_name}.{answer.tool_method}'
+                            f' with arguments {answer.tool_parameters} yields:\n'
+                        )
                         if resp is not None and hasattr(resp, "__str__"):
-                            tool_postface = 'Use the following results to answer the query.'
-                            tool_postface += (
-                                f'The tool {answer.tool_name}.{answer.tool_method}'
-                                f' with arguments {answer.tool_parameters} yields:\n'
-                            )
                             tool_postface += str(resp)
                         else:
-                            tool_postface = "Use the following results to answer the query."
-                            tool_postface += (
-                                f'The tool {answer.tool_name}.{answer.tool_method}'
-                                f' with arguments {answer.tool_parameters} did not return a result.'
-                            )
+                            tool_postface += "No response from tool."
 
-                        query = question_producer(*args, **kwargs) + tool_postface
+                        tool_postfaces.append(tool_postface)
+
+                        query = original_query + '\n'.join(tool_postfaces)
                         answer = self._qna(
                             query,
                             response_format=response_format,
                             instructions=instructions,
                         )
+
+                except Exception:
+                    tool_postface = (
+                        f"\nThe tool {answer.tool_name}.{answer.tool_method}"
+                        " with arguments {answer.tool_parameters} failed to execute.\n"
+                    )
+                    tool_postfaces.append(tool_postface)
+                    query = original_query + '\n'.join(tool_postfaces)
+                    answer = self._qna(
+                        query,
+                        response_format=response_format,
+                        instructions=instructions,
+                    )
                     break
-                except AttributeError:
-                    retry_ct += 1
-            if retry_ct == 3:
-                CLIClient.emit("Could not invoke tool, returning attempted tool call request")
+                retry_ct += 1
+
             return answer
 
         return _send_and_await_reply
