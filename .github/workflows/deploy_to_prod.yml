@@ -129,9 +129,9 @@ jobs:
                 echo GOOGLE_OAUTH_REDIRECT_URIS=https://abop.ai >> .env
                 echo GOOGLE_OAUTH_REDIRECT=https://auth.abop.ai/auth >> .env
                 
-                - name: Set up env for agentserver
-                if: matrix.image == 'agentserver'
-                run: |
+            - name: Set up env for agentserver
+              if: matrix.image == 'agentserver'
+              run: |
                 touch .env
                 # For auth
                 echo HTTP_CORS_ORIGINS=*.abop.ai >> .env
