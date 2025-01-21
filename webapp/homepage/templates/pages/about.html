@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
+    <title>Abstract Operators - About Us</title>
+    <link href="{{ url_for('static', path='/css/abop.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='abstractoperators_favicon.jpg') }}">
+
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+
+    <!-- font-awesome -->
+    <script src="https://kit.fontawesome.com/93b35543dd.js" crossorigin="anonymous"></script>
+
+    <!-- Google Font Base Embed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Raleway -->
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+    <!-- Judson -->
+    <link href="https://fonts.googleapis.com/css2?family=Judson:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    {% from "header.html" import header with context %}
+    {{ header(request=request) }}
+    <h1 style="text-align: center; padding-top: 128px;">About Us</h1>
+    <main class="centered-column">
+        <h2>Our Team</h2>
+        <div class="row">
+            <div class="column">
+                <div class="card">
+                    <img
+                        src="{{ url_for('static', path='slightsmile-crossedarms.jpg') }}"
+                        alt="Picture of Kent"
+                        class="circle-mask propic"
+                    >
+                    <h3>Kent Gang</h3>
+                    <h4>Founder, CEO</h4>
+                    <hr>
+                    <p>
+                        Kent brings experience working as a backend engineer in fintech, startups, and blockchain.
+                        He graduated in three years with a B.S. in engineering physics from the University of Illinois at Urbana-Champaign.
+                        He is an enjoyer of roguelike video games, conceptual art, and cold plunges.
+                    </p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="card">
+                    <img
+                        src="{{ url_for('static', path='swole-propic.jpeg') }}"
+                        alt="Picture of Michael"
+                        class="circle-mask propic"
+                    >
+                    <h3>Michael Deng</h3>
+                    <h4>Founding Engineer</h4>
+                    <hr>
+                    <p>
+                        A class of 2024 dual-degree graduate from the University of Wisconsin-Madison,
+                        Michael brings deep technical knowledge on LLMs and Big Data.
+                        In his free time, Michael prefers to lift weights and learn new things.
+                    </p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="card">
+                    <img
+                        src="{{ url_for('static', path='dance-propic.jpeg') }}"
+                        alt="Picture of Andrew"
+                        class="circle-mask propic"
+                    >
+                    <h3>Andrew Liang</h3>
+                    <h4>Senior Product Engineer</h4>
+                    <hr>
+                    <p>
+                        With previous experience working in AI, Andrew seeks to utilize this powerful technology in ways that are both effective and frictionless.
+                        He holds a B.S. in Engineering Physics and an M.S. in Computer Science.
+                        In addition to working at Abstract Operators, Andrew is a professional street dancer.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <main class="centered-column">
+        <h1>Frequently Asked Questions</h1>
+        <br>
+        <hr style="width: 50em;">
+        <div class="faq">
+            <!-- <button type="button" class="faq-header">Why the name Abstract Operators?</button> -->
+            <h1>Why the name Abstract Operators?</h1>
+            <ul style="padding: 0 64px;">
+                <li>
+                    In computer science, an <a href="https://en.wikipedia.org/wiki/Operator_(computer_programming)" style="color: #e4e400;">operator</a> is something that interacts with an input that precedes and/or follows it, like the plus sign + will add the two numbers it's between. An abstract object (similar to an interface) is a partial definition that is meant to be completed at a later time rather than used directly. Thus, an abstract operator is a placeholder actor that will be given meaning at a later time based on context.
+                </li>
+                <li>
+                    In business, an operator is a person that runs a business, usually in a financial or operational capacity.
+                </li>
+                <li>
+                    Tool use or function calling is an important feature of AI agents. We build infrastructure for agents that are operators of tools like search, browsers, and other agents.
+                </li>
+                <li>
+                    The humans of abstract operators are the operators of agents, bringing them to market to serve and delight our enterprise customers.
+                </li>
+                <li>
+                    We are wielders (operators) of abstraction to make conceptual frameworks work for us by expressing them through multiagent systems.
+                </li>
+            </ul>
+        </div>
+    </main>
+</body>

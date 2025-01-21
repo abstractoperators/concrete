@@ -22,6 +22,21 @@ async def root(request: Request):
     return templates.TemplateResponse(name="index.html", request=request)
 
 
+@app.get("/concrete", response_class=HTMLResponse)
+async def concrete(request: Request):
+    return templates.TemplateResponse(name="concrete.html", request=request)
+
+
+@app.get("/agentserver", response_class=HTMLResponse)
+async def agentserver(request: Request):
+    return templates.TemplateResponse(name="agentserver.html", request=request)
+
+
+@app.get("/about", response_class=HTMLResponse)
+async def about(request: Request):
+    return templates.TemplateResponse(name="about.html", request=request)
+
+
 @app.get("/ping")
 def ping():
     return {"message": "pong"}
