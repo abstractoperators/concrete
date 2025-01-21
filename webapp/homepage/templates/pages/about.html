@@ -27,7 +27,7 @@
 <body>
     {% from "header.html" import header with context %}
     {{ header(request=request) }}
-    <h1 style="text-align: center;">About Us</h1>
+    <h1 style="text-align: center; padding-top: 128px;">About Us</h1>
     <main class="centered-column">
         <h2>Our Team</h2>
         <div class="row">
@@ -85,15 +85,15 @@
         </div>
     </main>
     <main class="centered-column">
-        <h2>What's in a name?</h2>
-    </main>
-    <main class="centered-column">
         <h1>Frequently Asked Questions</h1>
+        <br>
+        <hr style="width: 50em;">
         <div class="faq">
-            <button type="button" class="faq-header">Why the name Abstract Operators?</button>
+            <!-- <button type="button" class="faq-header">Why the name Abstract Operators?</button> -->
+            <h1>Why the name Abstract Operators?</h1>
             <ul style="padding: 0 64px;">
                 <li>
-                    In computer science, an [operator](https://en.wikipedia.org/wiki/Operator_(computer_programming)) is something that interacts with an input that precedes and/or follows it, like the plus sign + will add the two numbers it's between. An abstract object (similar to an interface) is a partial definition that is meant to be completed at a later time rather than used directly. Thus, an abstract operator is a placeholder actor that will be given meaning at a later time based on context.
+                    In computer science, an <a href="https://en.wikipedia.org/wiki/Operator_(computer_programming)" style="color: #e4e400;">operator</a> is something that interacts with an input that precedes and/or follows it, like the plus sign + will add the two numbers it's between. An abstract object (similar to an interface) is a partial definition that is meant to be completed at a later time rather than used directly. Thus, an abstract operator is a placeholder actor that will be given meaning at a later time based on context.
                 </li>
                 <li>
                     In business, an operator is a person that runs a business, usually in a financial or operational capacity.
