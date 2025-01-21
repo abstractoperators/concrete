@@ -165,8 +165,10 @@ class AwsTool(metaclass=MetaTool):
         target_group_arn = None
         existing_rule_priority = None
         for rule in existing_rules:
-            if rule["Actions"][0]["Type"] == "forward" and rule["Actions"][0]["TargetGroupArn"].startswith(
-                arn_prefix + f":targetgroup/{target_group_name}"
+            if (
+                rule['Priority'] != "default"
+                and rule["Actions"][0]["Type"] == "forward"
+                and rule["Actions"][0]["TargetGroupArn"].startswith(arn_prefix + f":targetgroup/{target_group_name}")
             ):
                 existing_rule_priority = int(rule["Priority"])
                 elbv2_client.delete_rule(RuleArn=rule["RuleArn"])
