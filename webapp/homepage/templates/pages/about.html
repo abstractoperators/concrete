@@ -10,9 +10,6 @@
     <!-- htmx -->
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
 
-    <!-- font-awesome -->
-    <script src="https://kit.fontawesome.com/93b35543dd.js" crossorigin="anonymous"></script>
-
     <!-- Google Font Base Embed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +24,7 @@
 <body>
     {% from "header.html" import header with context %}
     {{ header(request=request) }}
-    <h1 style="text-align: center; padding-top: 128px;">About Us</h1>
+    <h1 style="text-align: center;">About Us</h1>
     <main class="centered-column">
         <h2>Our Team</h2>
         <div class="row">
@@ -85,13 +82,13 @@
         </div>
     </main>
     <main class="centered-column">
-        <h1>Frequently Asked Questions</h1>
+        <h1 style="text-align: center;">Frequently Asked Questions</h1>
         <br>
-        <hr style="width: 50em;">
+        <hr style="width: 60%;">
         <div class="faq">
             <!-- <button type="button" class="faq-header">Why the name Abstract Operators?</button> -->
             <h1>Why the name Abstract Operators?</h1>
-            <ul style="padding: 0 64px;">
+            <ul>
                 <li>
                     In computer science, an <a href="https://en.wikipedia.org/wiki/Operator_(computer_programming)" style="color: #e4e400;">operator</a> is something that interacts with an input that precedes and/or follows it, like the plus sign + will add the two numbers it's between. An abstract object (similar to an interface) is a partial definition that is meant to be completed at a later time rather than used directly. Thus, an abstract operator is a placeholder actor that will be given meaning at a later time based on context.
                 </li>

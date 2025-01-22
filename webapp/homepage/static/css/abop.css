@@ -75,7 +75,7 @@ a:hover{
 }
 
 header {
-    position: fixed;
+    position: sticky;
     top: 0;
 
     width: 100%;
@@ -192,6 +192,8 @@ label:hover {
     font-family: var(--sans-serif-family);
     font-weight: 450;
     color: white;
+    text-wrap: nowrap;
+    text-align: center;
 
     background-color: var(--electric-violet);
 
@@ -237,17 +239,17 @@ label:hover {
 
 #landing-panels {
     .main.panel {
-        min-height: 100vh;
+        min-height: 90vh;
         justify-content: center;
-        margin: 0 32px;
+        margin: 32px;
     }
 
     h1 {
-        font-size: max(64px, 6vw);
+        font-size: max(48px, 6vw);
     }
 
     p {
-        font-size: max(32px, 3vw);
+        font-size: max(24px, 3vw);
         width: 60vw;
     }
 }
@@ -329,6 +331,7 @@ label:hover {
     [type="checkbox"]:checked ~ #main-nav {
         display: flex;
         flex-direction: column;
+        justify-content: start;
         align-items: stretch;
 
         position: fixed;
