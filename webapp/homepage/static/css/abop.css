@@ -192,6 +192,8 @@ label:hover {
     font-family: var(--sans-serif-family);
     font-weight: 450;
     color: white;
+    text-wrap: nowrap;
+    text-align: center;
 
     background-color: var(--electric-violet);
 
@@ -329,6 +331,7 @@ label:hover {
     [type="checkbox"]:checked ~ #main-nav {
         display: flex;
         flex-direction: column;
+        justify-content: start;
         align-items: stretch;
 
         position: fixed;
