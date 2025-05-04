@@ -1,6 +1,11 @@
-name: Unit Test
-run-name: Unit Test ${{ github.actor }}
-on: [push]
+name: Python Tests
+run-name: Python Tests ${{ github.actor }}
+on:
+  push:
+    paths:
+      - '**.py'
+      - '!**.md'
+      - '!**.yml'
 
 jobs:
   Test-Agents:
