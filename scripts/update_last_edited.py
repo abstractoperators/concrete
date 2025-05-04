@@ -5,6 +5,9 @@ import sys
 
 
 def get_lines_changed(file_path):
+    """
+    Help function to find previously added lines_changed messages.
+    """
     result = subprocess.run(  # nosec B603, B404, B607
         ["git", "diff", "--cached", "--numstat", file_path],
         check=True,
